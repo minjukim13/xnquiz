@@ -9,7 +9,6 @@ import Layout from '../components/Layout'
 import { mockQuestions, mockStudents, QUIZ_TYPES, mockQuizzes, getStudentAnswer, isAnswerCorrect } from '../data/mockData'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
-const QUIZ_INFO = mockQuizzes[0]
 
 const SORT_OPTIONS = [
   { value: 'ungraded_first', label: '미채점 우선' },
@@ -33,6 +32,7 @@ const LIGHT_COLORS = {
 
 export default function GradingDashboard() {
   const { id } = useParams()
+  const QUIZ_INFO = mockQuizzes.find(q => q.id === id) ?? mockQuizzes[0]
 
   // 채점 모드: 'question' = 문항 중심, 'student' = 학생 중심
   const [gradingMode, setGradingMode] = useState('question')
@@ -1066,6 +1066,7 @@ function RegradeModal({ onClose }) {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
           <p className="font-medium mb-1">재채점 시 주의사항</p>
           <p className="text-xs">정답 기준을 수정하면 해당 문항에 응시한 <span className="font-bold">82명 전원</span>의 점수가 즉시 재계산됩니다.</p>
+          <p className="text-xs mt-1.5 text-amber-600">자동채점 문항만 재산출되며, 수동채점(주관식·서술형) 점수는 변경되지 않습니다.</p>
           <p className="text-xs mt-1">점수 변경 시 해당 학생에게 LMS 메시지 알림이 발송됩니다.</p>
         </div>
 
