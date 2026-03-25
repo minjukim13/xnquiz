@@ -79,7 +79,7 @@ function QuizCard({ quiz, urgent }) {
             </span>
             <span className="w-px h-3 bg-gray-200 shrink-0" />
             <span className="text-xs text-gray-400">{quiz.week}주차 {quiz.session}차시</span>
-            {!quiz.published && (
+            {quiz.status === 'draft' && (
               <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">미발행</span>
             )}
           </div>

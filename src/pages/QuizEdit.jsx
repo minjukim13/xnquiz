@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Plus, Search, X, GripVertical, Trash2, BookOpen, Settings2, ChevronDown } from 'lucide-react'
 import Layout from '../components/Layout'
-import { QUIZ_TYPES } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes } from '../data/mockData'
 
 const BANKS = ['DB 기초', 'SQL 심화', '설계 원칙', '트랜잭션']
 
@@ -42,6 +42,8 @@ const LIGHT_COLORS = {
 
 export default function QuizEdit() {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const quiz = mockQuizzes.find(q => q.id === id) ?? mockQuizzes[0]
   const [showBankModal, setShowBankModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [questions, setQuestions] = useState([
@@ -64,16 +66,29 @@ export default function QuizEdit() {
   const removeQuestion = (qId) => setQuestions(prev => prev.filter(q => q.id !== qId))
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
 
+  const handleSave = () => {
+    const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
+    if (idx !== -1) {
+      mockQuizzes[idx] = {
+        ...mockQuizzes[idx],
+        status: quiz.status === 'draft' ? 'open' : quiz.status,
+        questions: questions.length,
+        totalPoints,
+      }
+    }
+    navigate('/')
+  }
+
   return (
     <Layout breadcrumbs={[
       { label: '퀴즈 관리', href: '/' },
-      { label: '중간고사 - 데이터베이스 설계 및 SQL' },
+      { label: quiz.title },
       { label: '편집' },
     ]}>
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center justify-between mb-6 gap-3">
           <h1 className="text-lg font-bold text-slate-900">퀴즈 편집</h1>
-          <button className="btn-primary text-sm">저장 및 발행</button>
+          <button onClick={handleSave} className="btn-primary text-sm">저장 및 발행</button>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-5">

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, BookOpen, GripVertical, Trash2, X, Search } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
-import { QUIZ_TYPES } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes } from '../data/mockData'
 
 // ── 옵션 상수 ──────────────────────────────────────────────────────────────
 const WEEK_OPTIONS = Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` }))
@@ -149,7 +149,25 @@ export default function QuizCreate() {
             ) : (
               <button
                 disabled={!isFormValid}
-                onClick={() => navigate('/')}
+                onClick={() => {
+                  mockQuizzes.push({
+                    id: String(Date.now()),
+                    title: form.title,
+                    course: 'CS301 데이터베이스',
+                    status: 'open',
+                    startDate: form.startDate,
+                    dueDate: form.dueDate,
+                    week: form.week || 1,
+                    session: form.session || 1,
+                    totalStudents: 0,
+                    submitted: 0,
+                    graded: 0,
+                    pendingGrade: 0,
+                    questions: questions.length,
+                    totalPoints,
+                  })
+                  navigate('/')
+                }}
                 className="btn-primary text-sm disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 발행하기

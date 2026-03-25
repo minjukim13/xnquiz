@@ -508,10 +508,18 @@ function ResponsesTab({ question, students, search, onSearch }) {
 
 // ─── 문항 중심: 학생 행 (문항 유형별 채점 UI) ─────────────────────────────
 function StudentRow({ student, question }) {
+  const storageKey = `${student.id}_${question.id}`
   const [expanded, setExpanded] = useState(false)
-  const [score, setScore] = useState(student.score ?? '')
-  const [saved, setSaved] = useState(student.score !== null)
-  const isGraded = student.score !== null || saved
+  const [score, setScore] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem('xnq_manual_grades') || '{}')
+    if (storageKey in saved) return saved[storageKey]
+    return student.manualScores?.[question.id] ?? ''
+  })
+  const [saved, setSaved] = useState(() => {
+    const grades = JSON.parse(localStorage.getItem('xnq_manual_grades') || '{}')
+    return (storageKey in grades) || student.manualScores?.[question.id] != null
+  })
+  const isGraded = saved
 
   const answer = student.response || getStudentAnswer(parseInt(student.id.replace('s', '')), question.id)
   const autoCorrect = question.autoGrade ? isAnswerCorrect(answer, question.id) : null
@@ -591,7 +599,14 @@ function StudentRow({ student, question }) {
                   />
                   <span className="text-xs text-slate-400">/ {question.points}</span>
                   <button
-                    onClick={() => setSaved(true)}
+                    onClick={() => {
+                      const grades = JSON.parse(localStorage.getItem('xnq_manual_grades') || '{}')
+                      grades[storageKey] = Number(score)
+                      localStorage.setItem('xnq_manual_grades', JSON.stringify(grades))
+                      if (!student.manualScores) student.manualScores = {}
+                      student.manualScores[question.id] = Number(score)
+                      setSaved(true)
+                    }}
                     disabled={score === '' || Number(score) > question.points || Number(score) < 0}
                     className="text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition-colors font-medium"
                   >
@@ -702,13 +717,20 @@ function StudentDetailPanel({ student, questions }) {
 
 // ─── 학생 중심: 문항별 답안 카드 ──────────────────────────────────────────
 function AnswerCard({ question, student, studentIdx, onSaved }) {
+  const storageKey = `${student.id}_${question.id}`
   const [score, setScore] = useState(() => {
     if (question.autoGrade) {
       return student.autoScores?.[question.id] ?? question.points
     }
+    const grades = JSON.parse(localStorage.getItem('xnq_manual_grades') || '{}')
+    if (storageKey in grades) return grades[storageKey]
     return student.manualScores?.[question.id] ?? ''
   })
-  const [saved, setSaved] = useState(question.autoGrade || (student.manualScores?.[question.id] != null))
+  const [saved, setSaved] = useState(() => {
+    if (question.autoGrade) return true
+    const grades = JSON.parse(localStorage.getItem('xnq_manual_grades') || '{}')
+    return (storageKey in grades) || student.manualScores?.[question.id] != null
+  })
 
   const answer = getStudentAnswer(studentIdx, question.id)
   const autoCorrect = question.autoGrade ? isAnswerCorrect(answer, question.id) : null
@@ -780,7 +802,15 @@ function AnswerCard({ question, student, studentIdx, onSaved }) {
             </span>
           )}
           <button
-            onClick={() => { setSaved(true); onSaved?.() }}
+            onClick={() => {
+              const grades = JSON.parse(localStorage.getItem('xnq_manual_grades') || '{}')
+              grades[storageKey] = Number(score)
+              localStorage.setItem('xnq_manual_grades', JSON.stringify(grades))
+              if (!student.manualScores) student.manualScores = {}
+              student.manualScores[question.id] = Number(score)
+              setSaved(true)
+              onSaved?.()
+            }}
             disabled={score === '' || Number(score) > question.points || Number(score) < 0}
             className="ml-auto text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition-colors font-medium"
           >
