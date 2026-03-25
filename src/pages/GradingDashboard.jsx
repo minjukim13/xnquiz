@@ -281,6 +281,7 @@ export default function GradingDashboard() {
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
                     onExcel={() => setShowExcelModal(true)}
+                    quizId={id}
                   />
                 )}
               </div>
@@ -339,7 +340,7 @@ export default function GradingDashboard() {
                 {!selectedStudent ? (
                   <EmptyState message="학생을 선택하면 전체 문항 답안을 확인할 수 있습니다" />
                 ) : (
-                  <StudentDetailPanel student={selectedStudent} questions={mockQuestions} />
+                  <StudentDetailPanel student={selectedStudent} questions={mockQuestions} quizId={id} />
                 )}
               </div>
             </>
@@ -406,7 +407,7 @@ function QuestionItem({ question, selected, onClick, dimmed }) {
 }
 
 // ─── 문항 중심: 우측 상세 패널 ─────────────────────────────────────────────
-function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel }) {
+function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId }) {
   return (
     <div className="flex flex-col h-full">
       {/* 문항 정보 */}
@@ -451,7 +452,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
       </div>
 
       {activeTab === 'responses' ? (
-        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} />
+        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} />
       ) : (
         <StatsTab question={question} students={mockStudents} />
       )}
@@ -460,7 +461,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
 }
 
 // ─── 문항 중심: 응시 현황 탭 ───────────────────────────────────────────────
-function ResponsesTab({ question, students, search, onSearch }) {
+function ResponsesTab({ question, students, search, onSearch, quizId }) {
   const gradedStudents = students.filter(s => s.score !== null)
   const ungradedStudents = students.filter(s => s.score === null)
 
@@ -487,7 +488,7 @@ function ResponsesTab({ question, students, search, onSearch }) {
               <AlertCircle size={11} />미채점 ({ungradedStudents.length}명)
             </div>
             {ungradedStudents.map(s => (
-              <StudentRow key={s.id} student={s} question={question} />
+              <StudentRow key={s.id} student={s} question={question} quizId={quizId} />
             ))}
           </div>
         )}
@@ -497,7 +498,7 @@ function ResponsesTab({ question, students, search, onSearch }) {
               <CheckCircle2 size={11} />채점 완료 ({gradedStudents.length}명)
             </div>
             {gradedStudents.map(s => (
-              <StudentRow key={s.id} student={s} question={question} />
+              <StudentRow key={s.id} student={s} question={question} quizId={quizId} />
             ))}
           </div>
         )}
@@ -507,8 +508,8 @@ function ResponsesTab({ question, students, search, onSearch }) {
 }
 
 // ─── 문항 중심: 학생 행 (문항 유형별 채점 UI) ─────────────────────────────
-function StudentRow({ student, question }) {
-  const storageKey = `${student.id}_${question.id}`
+function StudentRow({ student, question, quizId }) {
+  const storageKey = `${quizId}_${student.id}_${question.id}`
   const [expanded, setExpanded] = useState(false)
   const [score, setScore] = useState(() => {
     const saved = JSON.parse(localStorage.getItem('xnq_manual_grades') || '{}')
@@ -605,6 +606,9 @@ function StudentRow({ student, question }) {
                       localStorage.setItem('xnq_manual_grades', JSON.stringify(grades))
                       if (!student.manualScores) student.manualScores = {}
                       student.manualScores[question.id] = Number(score)
+                      const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
+                      const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
+                      student.score = autoTotal + manualTotal
                       setSaved(true)
                     }}
                     disabled={score === '' || Number(score) > question.points || Number(score) < 0}
@@ -659,7 +663,7 @@ function StudentListItem({ student, selected, onClick }) {
 }
 
 // ─── 학생 중심: 학생별 전체 문항 패널 ─────────────────────────────────────
-function StudentDetailPanel({ student, questions }) {
+function StudentDetailPanel({ student, questions, quizId }) {
   const studentIdx = parseInt(student.id.replace('s', '')) - 1
   const [savedQIds, setSavedQIds] = useState(new Set())
   const cardRefs = useRef({})
@@ -707,7 +711,7 @@ function StudentDetailPanel({ student, questions }) {
       <div className="flex-1 overflow-y-auto scrollbar-thin space-y-2.5 pr-1">
         {questions.map(q => (
           <div key={q.id} ref={el => { cardRefs.current[q.id] = el }}>
-            <AnswerCard question={q} student={student} studentIdx={studentIdx} onSaved={() => handleSaved(q.id)} />
+            <AnswerCard question={q} student={student} studentIdx={studentIdx} quizId={quizId} onSaved={() => handleSaved(q.id)} />
           </div>
         ))}
       </div>
@@ -716,8 +720,8 @@ function StudentDetailPanel({ student, questions }) {
 }
 
 // ─── 학생 중심: 문항별 답안 카드 ──────────────────────────────────────────
-function AnswerCard({ question, student, studentIdx, onSaved }) {
-  const storageKey = `${student.id}_${question.id}`
+function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
+  const storageKey = `${quizId}_${student.id}_${question.id}`
   const [score, setScore] = useState(() => {
     if (question.autoGrade) {
       return student.autoScores?.[question.id] ?? question.points
@@ -808,6 +812,9 @@ function AnswerCard({ question, student, studentIdx, onSaved }) {
               localStorage.setItem('xnq_manual_grades', JSON.stringify(grades))
               if (!student.manualScores) student.manualScores = {}
               student.manualScores[question.id] = Number(score)
+              const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
+              const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
+              student.score = autoTotal + manualTotal
               setSaved(true)
               onSaved?.()
             }}
