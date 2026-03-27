@@ -47,20 +47,20 @@ export default function Layout({ children, breadcrumbs = [] }) {
                 <rect x="8" y="8" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
               </svg>
             </div>
-            <span className="text-[13px] font-bold" style={{ color: '#222222' }}>XN Quizzes</span>
+            <span className="text-sm font-bold" style={{ color: '#222222' }}>XN Quizzes</span>
           </Link>
 
           {/* 브레드크럼 */}
           {breadcrumbs.length > 0 && (
             <nav className="flex items-center gap-1 overflow-hidden min-w-0">
-              <span className="text-[13px] font-light select-none mx-0.5" style={{ color: '#BDBDBD' }}>/</span>
+              <span className="text-sm font-light select-none mx-0.5" style={{ color: '#BDBDBD' }}>/</span>
               {breadcrumbs.map((b, i) => (
                 <span key={i} className="flex items-center gap-1 min-w-0">
                   {i > 0 && <ChevronRight size={12} className="shrink-0" style={{ color: '#BDBDBD' }} />}
                   {b.href ? (
                     <Link
                       to={b.href}
-                      className="text-[13px] truncate transition-colors"
+                      className="text-sm truncate transition-colors"
                       style={{ color: '#9E9E9E' }}
                       onMouseEnter={e => e.target.style.color = '#424242'}
                       onMouseLeave={e => e.target.style.color = '#9E9E9E'}
@@ -68,7 +68,7 @@ export default function Layout({ children, breadcrumbs = [] }) {
                       {b.label}
                     </Link>
                   ) : (
-                    <span className="text-[13px] font-semibold truncate" style={{ color: '#222222' }}>{b.label}</span>
+                    <span className="text-sm font-semibold truncate" style={{ color: '#222222' }}>{b.label}</span>
                   )}
                 </span>
               ))}
@@ -196,7 +196,7 @@ export default function Layout({ children, breadcrumbs = [] }) {
                 <Link
                   key={item.href}
                   to={item.href}
-                  className="flex items-center gap-2.5 px-2.5 py-2 rounded text-[13px] font-medium transition-colors"
+                  className="flex items-center gap-2.5 px-2.5 py-2 rounded text-sm font-medium transition-colors"
                   style={active
                     ? { background: '#EEF2FF', color: '#4338ca' }
                     : { color: '#616161' }

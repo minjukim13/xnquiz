@@ -222,7 +222,7 @@ export default function GradingDashboard() {
               ].map((item, i) => (
                 <div key={item.label} className="flex flex-col items-center justify-center px-6 py-4 text-center"
                   style={{ borderLeft: i > 0 ? '1px solid #EEEEEE' : 'none', minWidth: 72 }}>
-                  <p className="text-[22px] font-bold leading-none" style={{ color: item.styleColor }}>{item.value}</p>
+                  <p className="text-2xl font-bold leading-none" style={{ color: item.styleColor }}>{item.value}</p>
                   <p className="text-xs font-medium mt-1" style={{ color: '#9E9E9E' }}>{item.sub}</p>
                   <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{item.label}</p>
                 </div>

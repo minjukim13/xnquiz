@@ -112,12 +112,12 @@ export default function QuizAttempt() {
         <div className="card p-4 mb-5 flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>{quiz.week}주차 {quiz.session}차시 · {quiz.totalPoints}점</p>
-            <h1 className="text-[15px] font-bold truncate" style={{ color: '#222222' }}>{quiz.title}</h1>
+            <h1 className="text-base font-bold truncate" style={{ color: '#222222' }}>{quiz.title}</h1>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <div className="text-center">
               <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>답변 완료</p>
-              <p className="text-[15px] font-bold" style={{ color: answeredCount === questions.length ? '#018600' : '#222222' }}>
+              <p className="text-base font-bold" style={{ color: answeredCount === questions.length ? '#018600' : '#222222' }}>
                 {answeredCount}<span className="text-xs font-normal" style={{ color: '#9E9E9E' }}>/{questions.length}</span>
               </p>
             </div>
@@ -203,7 +203,7 @@ function QuestionCard({ question, index, value, onChange, disabled }) {
           </div>
           <span className="text-xs font-semibold shrink-0" style={{ color: '#616161' }}>{question.points}점</span>
         </div>
-        <p className="text-[14px] leading-relaxed mb-4" style={{ color: '#222222' }}>{question.text}</p>
+        <p className="text-sm leading-relaxed mb-4" style={{ color: '#222222' }}>{question.text}</p>
 
         {/* 입력 영역 */}
         {(question.type === 'multiple_choice' || question.type === 'true_false') && (
