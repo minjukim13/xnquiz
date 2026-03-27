@@ -101,8 +101,27 @@ export default function GradingDashboard() {
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [mobileView, setMobileView] = useState('questions')
 
+  // gradedCount 실시간 반영을 위한 버전 카운터
+  const [gradeVersion, setGradeVersion] = useState(0)
+  const onGradeSaved = useCallback(() => setGradeVersion(v => v + 1), [])
+
   const quizQuestions = getQuizQuestions(id)
-  const manualQuestions = quizQuestions.filter(q => !q.autoGrade)
+
+  // localStorage 채점 기록을 반영한 실시간 gradedCount 계산
+  const questionsWithLiveCounts = useMemo(() => {
+    const grades = getLocalGrades()
+    const submittedStudents = mockStudents.filter(s => s.submitted)
+    return quizQuestions.map(q => {
+      if (q.autoGrade) return q
+      const gradedCount = submittedStudents.filter(s => {
+        const key = `${id}_${s.id}_${q.id}`
+        return (key in grades) || s.manualScores?.[q.id] != null
+      }).length
+      return { ...q, gradedCount }
+    })
+  }, [quizQuestions, id, gradeVersion]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const manualQuestions = questionsWithLiveCounts.filter(q => !q.autoGrade)
 
   const sortedQuestions = useMemo(() => {
     if (!QUIZ_INFO) return []
@@ -115,7 +134,7 @@ export default function GradingDashboard() {
       })
     }
     return [...manualQuestions].sort((a, b) => a.order - b.order)
-  }, [sortBy, QUIZ_INFO])
+  }, [sortBy, QUIZ_INFO, manualQuestions])
 
   const gradedQuestions = sortedQuestions.filter(q => q.gradedCount >= q.totalCount)
   const ungradedQuestions = sortedQuestions.filter(q => q.gradedCount < q.totalCount)
@@ -388,6 +407,7 @@ export default function GradingDashboard() {
                     onTabChange={setActiveTab}
                     onExcel={() => setShowExcelModal(true)}
                     quizId={id}
+                    onGradeSaved={onGradeSaved}
                   />
                 )}
               </div>
@@ -516,7 +536,7 @@ function QuestionItem({ question, selected, onClick, dimmed }) {
 }
 
 // ─── 문항 중심: 우측 상세 패널 ─────────────────────────────────────────────
-function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId }) {
+function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId, onGradeSaved }) {
   return (
     <div className="flex flex-col h-full">
       {/* 문항 정보 */}
@@ -562,7 +582,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
       </div>
 
       {activeTab === 'responses' ? (
-        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} />
+        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} />
       ) : (
         <StatsTab question={question} students={mockStudents} />
       )}
@@ -571,7 +591,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
 }
 
 // ─── 문항 중심: 응시 현황 탭 ───────────────────────────────────────────────
-function ResponsesTab({ question, students, search, onSearch, quizId }) {
+function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved }) {
   const gradedStudents = students.filter(s => s.score !== null)
   const ungradedStudents = students.filter(s => s.score === null)
 
@@ -599,7 +619,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId }) {
               <AlertCircle size={11} />미채점 ({ungradedStudents.length}명)
             </div>
             {ungradedStudents.map(s => (
-              <StudentRow key={s.id} student={s} question={question} quizId={quizId} />
+              <StudentRow key={s.id} student={s} question={question} quizId={quizId} onGradeSaved={onGradeSaved} />
             ))}
           </div>
         )}
@@ -609,7 +629,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId }) {
               <CheckCircle2 size={11} />채점 완료 ({gradedStudents.length}명)
             </div>
             {gradedStudents.map(s => (
-              <StudentRow key={s.id} student={s} question={question} quizId={quizId} />
+              <StudentRow key={s.id} student={s} question={question} quizId={quizId} onGradeSaved={onGradeSaved} />
             ))}
           </div>
         )}
@@ -619,7 +639,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId }) {
 }
 
 // ─── 문항 중심: 학생 행 (문항 유형별 채점 UI) ─────────────────────────────
-function StudentRow({ student, question, quizId }) {
+function StudentRow({ student, question, quizId, onGradeSaved }) {
   const storageKey = `${quizId}_${student.id}_${question.id}`
   const [expanded, setExpanded] = useState(false)
   const [score, setScore] = useState(() => {
@@ -727,6 +747,7 @@ function StudentRow({ student, question, quizId }) {
                       const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
                       student.score = autoTotal + manualTotal
                       setSaved(true)
+                      onGradeSaved?.()
                     }}
                     disabled={score === '' || Number(score) > question.points || Number(score) < 0}
                     className="text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded transition-colors font-medium"

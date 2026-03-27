@@ -136,6 +136,8 @@ export default function QuizCreate() {
                     pendingGrade: 0,
                     questions: questions.length,
                     totalPoints,
+                    scorePolicy: form.scorePolicy,
+                    allowAttempts: form.allowAttempts,
                   })
                   navigate('/')
                 }}

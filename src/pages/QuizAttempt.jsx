@@ -82,6 +82,7 @@ export default function QuizAttempt() {
       submittedAt: new Date().toLocaleString('ko-KR'),
       timeTaken: Math.ceil(((quiz?.timeLimit ?? 30) * 60 - timeRemaining) / 60),
       autoSubmitted: auto,
+      scorePolicy: quiz?.scorePolicy ?? '최고 점수 유지',
     }
 
     try {

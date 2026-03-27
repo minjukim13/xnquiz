@@ -31,6 +31,8 @@ export const mockQuizzes = [
     questions: 10,
     totalPoints: 100,
     timeLimit: 120,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
   },
   {
     id: '2',
@@ -48,6 +50,8 @@ export const mockQuizzes = [
     questions: 20,
     totalPoints: 50,
     avgScore: 38.2,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
   },
   {
     id: '3',
@@ -64,6 +68,8 @@ export const mockQuizzes = [
     pendingGrade: 0,
     questions: 10,
     totalPoints: 20,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 3,
   },
   {
     id: '4',
@@ -80,6 +86,8 @@ export const mockQuizzes = [
     pendingGrade: 0,
     questions: 25,
     totalPoints: 100,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
   },
 ]
 
@@ -274,11 +282,39 @@ export function getQuizQuestions(quizId) {
 }
 
 // 학생 응시 결과 저장/불러오기
+// 복수응시 정책에 따라 학생별 최종 유효 응시 반환
 export function getStudentAttempts(quizId) {
   try {
     const raw = localStorage.getItem('xnq_student_attempts')
     const all = raw ? JSON.parse(raw) : {}
-    return all[quizId] || []
+    const attempts = all[quizId] || []
+
+    // 학생별로 그룹화
+    const byStudent = {}
+    attempts.forEach(a => {
+      if (!byStudent[a.studentId]) byStudent[a.studentId] = []
+      byStudent[a.studentId].push(a)
+    })
+
+    // 각 학생의 최종 유효 응시 1개 반환 (점수 정책 적용)
+    return Object.values(byStudent).map(list => {
+      if (list.length <= 1) return list[0]
+      const policy = list[list.length - 1].scorePolicy ?? '최고 점수 유지'
+      if (policy === '최고 점수 유지') {
+        return list.reduce((best, curr) =>
+          (curr.totalAutoScore ?? 0) > (best.totalAutoScore ?? 0) ? curr : best
+        )
+      }
+      if (policy === '평균 점수') {
+        const latest = { ...list[list.length - 1] }
+        latest.totalAutoScore = Math.round(
+          list.reduce((s, a) => s + (a.totalAutoScore ?? 0), 0) / list.length
+        )
+        return latest
+      }
+      // '최신 점수 유지'
+      return list[list.length - 1]
+    }).filter(Boolean)
   } catch { return [] }
 }
 
@@ -287,10 +323,8 @@ export function saveStudentAttempt(quizId, attempt) {
     const raw = localStorage.getItem('xnq_student_attempts')
     const all = raw ? JSON.parse(raw) : {}
     if (!all[quizId]) all[quizId] = []
-    // 같은 studentId의 기존 응시 있으면 교체
-    const idx = all[quizId].findIndex(a => a.studentId === attempt.studentId)
-    if (idx >= 0) all[quizId][idx] = attempt
-    else all[quizId].push(attempt)
+    // 모든 응시 기록 보존 (정책은 읽기 시점에 적용)
+    all[quizId].push(attempt)
     localStorage.setItem('xnq_student_attempts', JSON.stringify(all))
   } catch (err) {
     if (err.name === 'QuotaExceededError') {
