@@ -20,19 +20,28 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-2 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-sm transition-all focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+        className="w-full flex items-center justify-between gap-2 bg-white px-3.5 py-2.5 text-sm transition-all focus:outline-none"
+        style={{
+          border: open ? '1px solid #6366f1' : '1px solid #E0E0E0',
+          borderRadius: 4,
+          boxShadow: open ? '0 0 0 2px rgba(99,102,241,0.12)' : 'none',
+        }}
       >
-        <span className={selected ? 'text-slate-800 font-medium' : 'text-slate-400'}>
+        <span style={{ color: selected ? '#222222' : '#9E9E9E', fontWeight: selected ? 500 : 400 }}>
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown
           size={15}
-          className={`text-slate-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          className={`shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          style={{ color: '#9E9E9E' }}
         />
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-200/60 z-50 overflow-hidden py-1.5 max-h-60 overflow-y-auto">
+        <div
+          className="absolute top-full left-0 right-0 mt-1 bg-white z-50 overflow-hidden py-1 max-h-60 overflow-y-auto scrollbar-thin"
+          style={{ border: '1px solid #E0E0E0', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+        >
           {options.map(o => {
             const isSelected = String(o.value) === String(value)
             return (
@@ -40,14 +49,16 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
                 key={o.value}
                 type="button"
                 onClick={() => { onChange(o.value); setOpen(false) }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition-colors ${
-                  isSelected
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition-colors"
+                style={{
+                  background: isSelected ? '#EEF2FF' : 'transparent',
+                  color: isSelected ? '#4338ca' : '#424242',
+                }}
+                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#F5F5F5' }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
               >
-                <span className={isSelected ? 'font-medium' : ''}>{o.label}</span>
-                {isSelected && <Check size={14} className="text-indigo-500 shrink-0" />}
+                <span style={{ fontWeight: isSelected ? 500 : 400 }}>{o.label}</span>
+                {isSelected && <Check size={14} className="shrink-0" style={{ color: '#6366f1' }} />}
               </button>
             )
           })}

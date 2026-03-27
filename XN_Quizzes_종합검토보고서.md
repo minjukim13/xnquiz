@@ -1,356 +1,314 @@
-# XN Quizzes — 종합 검토 보고서
+# XN Quizzes 종합검토보고서
 
-작성일: 2026-03-25
-검토 범위: PM1(디자인) + PM2(기획) + PM3(개발) + PM4(QA) + PM5(PO 스펙)
-검토자: Leader (총괄)
-
----
-
-## 1. PM별 검토 요약
-
-### PM1 — 디자인 검토
-
-전체적으로 indigo-600 주색 + slate 계열의 모던 화이트 모드 기조는 잘 유지되어 있다. 그러나 구조적 문제가 두 가지 존재한다. 첫째, AddQuestionModal과 QuestionBankModal이 QuizCreate.jsx와 QuizEdit.jsx에 각각 중복 정의되어 있어 향후 버그 수정 시 양쪽을 동시에 수정해야 하는 유지보수 위험이 있다. 둘째, 접근성(WCAG AA) 위반이 다수 발견되었는데, focus-visible 미적용 인풋, 아이콘 전용 버튼의 aria-label 누락, 커스텀 라디오의 키보드 접근 불가, gray-400 텍스트의 대비비 미달(2.85:1 vs 기준 4.5:1)이 핵심 이슈다. slate/gray 혼용, LIGHT_COLORS 4개 파일 중복, 페이지 타이틀 크기 불일치, 태블릿(768px) 구간 레이아웃 미대응 등 High 이슈도 상당수다.
-
-### PM2 — 기획 검토
-
-교수자 관점 핵심 플로우(생성-편집-채점-통계)는 UI 수준에서 대부분 구현되어 있으나, Happy Path에 치명적 단절이 있다. 채점 저장 기능이 없고(S5), 퀴즈 생성/편집 후 목록이 갱신되지 않는다(S1/S2). 정책 공백도 광범위하다. `published` 필드와 `status` 필드 이중 관리로 상태 전이 정합성 오류가 발생 가능하고, short_answer의 autoGrade='partial' 정의가 채점 대시보드의 수동 처리와 불일치한다. 재응시 간격, 지각 제출 세부 정책, 정답 공개 시점, 미제출 학생 점수 처리 정책이 모두 미정 상태이며, 역할 기반 권한 설계(교수자/조교/학습자)도 전무하다.
-
-### PM3 — 개발 검토
-
-번들 크기(약 208 KB gzip), lazy loading/Suspense 전면 적용, manualChunks 함수 형식 준수, useMemo/useCallback 핵심 위치 적용 등 긍정적인 면이 뚜렷하다. 그러나 채점 저장 로직이 로컬 state(`setSaved`)에만 머물러 새로고침 시 전체 채점 결과가 소실된다는 것이 가장 큰 Critical 이슈다(GradingDashboard.jsx L586~596, L783~788). QUESTION_BANK가 3개 파일에, LIGHT_COLORS가 5개 파일에 중복 정의되어 있어 유지보수 위험이 높다. QuizEdit.jsx에서 `useParams()`로 받은 `id`를 실제로 사용하지 않아 실데이터 연동이 불가능한 구조이며, `Math.max(...scores)` 스프레드 방식, `Date.now()` 기반 ID 생성 등 대규모 데이터 환경에서의 잠재적 결함도 존재한다.
-
-### PM4 — QA 테스트
-
-기능/성능/보안 3개 영역에서 총 28개 이슈가 발견되었으며 Critical 3건, High 9건이다. 기능 면에서 퀴즈 발행 버튼이 navigate만 실행하고 저장하지 않고(F-01), 퀴즈 편집이 URL :id를 무시하며(F-02), 문제은행 편집/삭제 버튼에 핸들러가 없다(F-05/06). 보안 면에서는 모든 라우트에 인증/인가 Guard가 없고(S-01), 학번 패턴이 실제 대학 학번 체계(2022XXX)와 구조적으로 유사하여 CLAUDE.md 정책 위반 소지가 있다(S-04). 성능 면에서는 82명 학생 목록과 60개 문항 전체가 가상화 없이 렌더링되며, 점수 분포 X축이 지나치게 세분화되어 있다.
-
-### PM5 — PO 스펙 정의
-
-PM1~PM4 검토 결과를 바탕으로 MVP1 완료 기준 9개 Must-have 항목을 확정하고, 8개 핵심 정책 결정 사항을 명문화했다. 주요 정책 결정: 채점 저장은 수동저장(localStorage persist) 방식, `status` 필드 단일 SSOT로 `published` 필드 폐기, short_answer는 수동채점 대상으로 분류(autoGrade='partial'은 MVP2에서 "AI 채점 제안" 워크플로우로 구현), 문제은행-퀴즈 연결은 복사본(Snapshot) 방식, 미제출 학생은 "결시" 상태로 별도 처리(0점 자동 부여 안 함). MVP1은 총 9개 Gap 항목 수정 완료 시 완료 선언 가능, MVP2는 학습자 응시 화면 및 상태 자동 전이를 포함하며 4~6주 예상이다.
+**작성자**: Leader — 총괄 검토자
+**작성일**: 2026-03-26
+**검토 기반**: PM1(디자인) / PM2(기획) / PM3(개발) / PM4(QA) / PM5(PO) 보고서 전수 교차 분석
+**검토 대상**: XN Quizzes 프로토타입 v0.0.0 (React 19 + Vite 8 + Tailwind CSS v4)
 
 ---
 
-## 2. 통합 이슈 목록
+## 목차
 
-중복 이슈는 통합하고 출처 PM을 복수 표기하였다.
-
-### Critical
-
-| **ID** | **이슈** | **출처 PM** | **우선순위** | **수정 권고안** |
-|---|---|---|:---:|---|
-| C-01 | 채점 저장 로직이 로컬 state에만 머물러 새로고침 시 채점 결과 전부 소실 | PM2, PM3, PM4 | Critical | localStorage에 채점 결과 persist 구현 (PATCH API 연동 전 프로토타입 단계 방안) |
-| C-02 | 퀴즈 발행 버튼이 navigate만 실행하고 저장 로직 없음. 생성 흐름 단절 | PM4 | Critical | 발행 클릭 시 form+questions 데이터를 전역 state 또는 mockData 배열에 추가 후 navigate |
-| C-03 | 퀴즈 편집 페이지가 URL :id를 무시하고 항상 동일한 하드코딩 데이터 표시 | PM3, PM4 | Critical | `mockQuizzes.find(q => q.id === id)`로 데이터 조회, 초기 state에 반영. 없는 id면 404 처리 |
-| C-04 | AddQuestionModal / QuestionBankModal이 QuizCreate.jsx와 QuizEdit.jsx에 각각 중복 정의 — 버그 수정 시 양쪽 동시 수정 필요 | PM1, PM3 | Critical | `src/components/modals/` 디렉토리로 추출하여 공유 컴포넌트화 (PM5: MVP2로 이관) |
-| C-05 | focus-visible 스타일 미적용 인라인 인풋 — 키보드 사용자 포커스 피드백 없음 | PM1 | Critical | 모든 인터랙티브 요소에 `focus-visible:ring-2 focus-visible:ring-indigo-400` 적용 (PM5: MVP2) |
-| C-06 | 아이콘 전용 버튼 aria-label 누락 전반 — 스크린리더 접근 불가 | PM1 | Critical | 모든 아이콘 버튼에 `aria-label` 속성 추가 (PM5: MVP2) |
-| C-07 | 커스텀 라디오(차시 선택) 키보드 접근 불가 — div에 onClick만 있고 role/tabIndex/onKeyDown 미적용 | PM1 | Critical | `role="radio" tabIndex={0} onKeyDown` 처리 추가 또는 `<input type="radio">` + 커스텀 스타일로 교체 (PM5: MVP2) |
-| C-08 | 모든 라우트에 인증/인가 Guard 없음 — URL 직접 접근으로 전체 페이지 무단 접근 가능 | PM4 | Critical | ProtectedRoute 컴포넌트 구현 (PM5: MVP3, 프로토타입 의도된 생략으로 분류) |
-
-### High
-
-| **ID** | **이슈** | **출처 PM** | **우선순위** | **수정 권고안** |
-|---|---|---|:---:|---|
-| H-01 | 문제은행 문항 추가/편집/삭제 버튼에 핸들러 없음 — 클릭 시 아무 반응 없음 | PM4 | High | onAdd/onEdit/onDelete 콜백 prop 연결, QuestionBank local state 배열 관리 |
-| H-02 | 시작일 > 마감일 역순 입력 시 유효성 검증 없음 | PM2, PM4 | High | isFormValid에 `new Date(form.dueDate) > new Date(form.startDate)` 조건 추가, 인라인 오류 메시지 표시 |
-| H-03 | QUESTION_BANK 3개 파일 중복 정의 (QuizCreate, QuizEdit, QuestionBank) | PM3, PM4 | High | `src/data/questionBankData.js`로 단일 통합 |
-| H-04 | `published` 필드와 `status` 필드 이중 관리 — 상태 전이 정합성 오류 가능 | PM2, PM3 | High | `status`를 SSOT로 사용, `published` 필드 폐기 (PM5 정책 확정) |
-| H-05 | short_answer autoGrade='partial' 정의와 채점 대시보드 수동 처리 간 불일치 | PM2, PM3 | High | short_answer는 수동채점 탭으로 분류. 'partial'은 MVP2에서 "AI 채점 제안" 워크플로우로 명문화 (PM5 정책 확정) |
-| H-06 | StudentRow 컴포넌트에 React.memo 없음 — 82명 전체 불필요 재렌더링 가능성 | PM3, PM4 | High | `React.memo(StudentRow)` 적용 (PM5: MVP2) |
-| H-07 | LIGHT_COLORS 5개 파일 중복 정의 | PM1, PM3 | High | `src/constants/quizTypeColors.js`로 단일 통합 (PM5: MVP2) |
-| H-08 | slate/gray 텍스트 계열 혼용 — 일관성 파괴 | PM1 | High | 전체를 `slate` 계열로 통일 |
-| H-09 | 페이지 h1 타이틀 크기 불일치 (24/20/18px 혼재) | PM1 | High | 페이지 타이틀 = `text-2xl font-bold`로 통일 |
-| H-10 | QuizCreate/QuizEdit 버튼이 `.btn-*` 클래스 미사용 — rounded-lg(8px) vs rounded-xl(12px) 불일치 | PM1 | High | `.btn-primary`, `.btn-secondary` 클래스 활용, 불가피한 크기 차이만 오버라이드 |
-| H-11 | CustomSelect(QuizCreate) vs 네이티브 select(QuizEdit) 혼용 | PM1 | High | QuizEdit도 CustomSelect 또는 스타일링된 select로 통일 |
-| H-12 | 태블릿(768px) 구간 레이아웃 미대응 — sm → lg 사이에서 급격한 전환 발생 | PM1 | High | `md:grid-cols-2 lg:grid-cols-3` 패턴 적용 |
-| H-13 | 모바일 아이콘 전용 버튼 텍스트 숨김 시 aria-label 미적용 | PM1 | High | QuizList.jsx L27-34 버튼에 `aria-label` 추가 |
-| H-14 | caption 텍스트 gray-400 대비비 2.85:1 — WCAG AA 기준(4.5:1) 미달 | PM1 | High | caption/보조 텍스트를 `gray-600` 이상 또는 `slate-600`으로 상향 |
-| H-15 | Toggle 컴포넌트 focus-visible 피드백 없음 | PM1 | High | `peer-focus-visible:ring-2` 패턴으로 시각적 피드백 추가 |
-| H-16 | QuizList 퀴즈 0건 Empty State 부재 | PM1 | High | "아직 생성된 퀴즈가 없습니다" + 새 퀴즈 만들기 CTA 포함 Empty State 추가 |
-| H-17 | 학번 패턴이 실번호 형식과 유사 (2022001~2022082) — CLAUDE.md 정책 위반 소지 | PM4 | High | `TEST-001` 또는 `DEMO1001` 형식으로 변경 |
-| H-18 | GradingDashboard split-pane 최소 높이 calc 하드코딩 (`min-h-[calc(100vh-360px)]`) | PM1 | High | CSS 변수(`--header-height`) 분리 또는 flex 기반 full-height 레이아웃으로 리팩토링 |
-
-### Medium
-
-| **ID** | **이슈** | **출처 PM** | **우선순위** | **수정 권고안** |
-|---|---|---|:---:|---|
-| M-01 | 존재하지 않는 :id 접근 시 첫 번째 퀴즈로 무음 fallback — 잘못된 데이터 노출 | PM3, PM4 | Medium | fallback 제거, 404 처리 + 목록으로 이동 버튼 표시 |
-| M-02 | 채점 점수 입력에서 소수점 허용 (step 속성 없음) | PM4 | Medium | `step={1}` 추가 또는 저장 시 `parseInt()` 처리 |
-| M-03 | 임시저장 버튼에 onClick 핸들러 없음 | PM4 | Medium | localStorage 기반 임시저장 구현 및 "임시저장 완료" 토스트 표시 |
-| M-04 | 미제출 학생 점수 처리 정책 미정 | PM2 | Medium | PM5 정책 확정: score=null, 표시 레이블="미제출", 교수자가 수동 0점 부여 가능 |
-| M-05 | 채점 미완료 상태에서 통계 페이지 접근 시 데이터 기준 미표시 | PM2 | Medium | 통계 상단에 "채점 미완료: N명 미채점 — M명 기준 통계" 배너 추가 |
-| M-06 | 채점 점수 입력 범위 검증이 클라이언트 HTML 속성만 의존 | PM4 | Medium | 저장 함수 내부에 범위 체크 추가, 실데이터 전환 시 서버 측 검증 필수 |
-| M-07 | 문제은행 QuestionBankModal 내 filtered useMemo 미적용 | PM3, PM4 | Medium | `useMemo(() => ..., [search, filterType, filterBank])`로 감싸기 |
-| M-08 | 진행률 바 인라인 gradient 하드코딩 | PM1 | Medium | `bg-gradient-to-r from-indigo-400 to-indigo-600` Tailwind 클래스로 변경 |
-| M-09 | 모달 max-h가 dvh 단위 미사용 — 소형 폰 스크롤 영역 부족 | PM1 | Medium | `max-h-[85vh]` → `max-h-[90dvh]`로 변경 |
-| M-10 | QuizStats 점수 분포 X축 지나치게 세분화 (1점 단위) | PM4 | Medium | 5점 또는 10점 단위 구간화(bucket)로 변경 |
-| M-11 | QuizStats scores 빈 배열 시 distData에 0점 막대 1개 생성 | PM3, PM4 | Medium | distData 생성 조건에 `scores.length > 0` 가드 추가 |
-| M-12 | `Math.max(...scores)` 스프레드 방식 — 대규모 배열 시 스택 오버플로우 가능 | PM3 | Medium | `scores.reduce((a, b) => Math.max(a, b))` 또는 동등한 방식으로 교체 |
-| M-13 | `Date.now()` 기반 ID 생성 — 밀리초 충돌 가능성 | PM3 | Medium | `crypto.randomUUID()` 사용으로 교체 |
-| M-14 | 발행된 퀴즈 편집 시 응시 중인 학생 영향 정책 미정 및 경고 없음 | PM2 | Medium | status='open'/'grading' 퀴즈 편집 시 경고 모달 표시 (AC-08) |
-| M-15 | QuizStats 응시자 0명 Empty State 미처리 | PM2 | Medium | 차트 대신 "아직 제출한 학생이 없습니다" Empty State 표시 |
-| M-16 | TabBtn 컴포넌트 두 유형(Underline Tab/Segmented Control) 명시적 분리 없음 | PM1 | Medium | `src/components/Tabs.jsx`로 두 유형 명시적 분리 정의 |
-| M-17 | 로딩 스켈레톤 컴포넌트 부재 — 실데이터 전환 시 빈 화면 깜빡임 발생 예정 | PM1, PM3 | Medium | `src/components/Skeleton.jsx` 미리 구현 |
-| M-18 | 채점 모드 전환(문항 중심 ↔ 학생 중심) 시 선택 상태 미초기화 | PM4 | Medium | 모드 전환 시 선택된 학생/문항 상태 초기화 처리 추가 |
-| M-19 | 문항 0개 상태에서 발행 차단 로직 없음 | PM2 | Medium | questions.length === 0 또는 총 배점 === 0이면 발행 버튼 비활성화 |
-
-### Low
-
-| **ID** | **이슈** | **출처 PM** | **우선순위** | **수정 권고안** |
-|---|---|---|:---:|---|
-| L-01 | 임의 숫자 text-[18px], text-[11px] Tailwind 토큰 외 사용 | PM1 | Low | `text-lg`, `text-xs` 또는 index.css 커스텀 토큰 정의 |
-| L-02 | 브레드크럼 text-[13px] 하드코딩 | PM1 | Low | `.text-breadcrumb` 유틸 클래스 정의 후 재사용 |
-| L-03 | QuizList 상태 필터/검색 기능 없음 | PM4 | Low | 퀴즈 수 증가 대비 MVP2에서 구현 예정 |
-| L-04 | 문제은행 검색 초기화 버튼 없음 | PM4 | Low | 검색 입력 우측에 X 버튼 추가 |
-| L-05 | 응시 시간 계산이 string split 파싱 — 자정 넘김 시 오류 | PM3 | Low | `Date` 객체 기반 차이 계산으로 교체 |
-| L-06 | Layout.jsx breadcrumbs 배열 인덱스를 key로 사용 | PM3 | Low | 고유 식별자(경로 등) 기반 key로 교체 |
-| L-07 | GradingDashboard setTimeout 스크롤 150ms 하드코딩 | PM3 | Low | CSS transition 완료 이벤트 또는 requestAnimationFrame 활용 |
-| L-08 | EmptyState 컴포넌트 텍스트만 표시 — 아이콘 없음 | PM1 | Low | lucide 아이콘(FileText, Users 등) + 텍스트 조합으로 시각 보강 |
-| L-09 | 퀴즈 제목 글자 수 제한 및 카운터 없음 | PM2 | Low | maxLength 설정 및 남은 글자 수 카운터 표시 |
-| L-10 | StatsTab 분포 계산 useMemo 미적용 | PM4 | Low | useMemo로 감싸 불필요한 재계산 방지 |
+1. PM별 보고서 요약
+2. Critical 긴급 수정 항목
+3. 통합 이슈 목록
+4. PM 간 의견 충돌 조율
+5. MVP 로드맵
+6. 다음 스프린트 Top 10 권고안
+7. 총평
 
 ---
 
-## 3. 긴급 수정 항목 (Critical)
+## 1. PM별 보고서 요약
 
-### C-01: 채점 저장 로직 — 로컬 state에만 저장, 새로고침 시 소실
+### PM1 — 디자이너 (Critical 0 / High 10 / Medium 13 / Low 9)
 
-**문제 설명**: GradingDashboard.jsx에서 점수 저장 시 `setSaved(true)` UI 상태만 변경되며 실제 데이터 영속성이 없다. 브라우저 새로고침 즉시 모든 채점 결과가 초기화된다.
+GDS(G-Market Design System) 기반 전면 재작업이 완료된 상태로 전반적인 설계 구조는 양호하다. recharts 차트 색상 3건(#94a3b8, #64748b, #01A900/#EF2B2A)이 GDS 토큰과 불일치하고, 탭 컴포넌트가 3개 파일에서 서로 다른 방식으로 중복 구현되어 있다. 접근성 측면에서 CustomSelect 포커스 스타일 미구현, 아이콘 전용 버튼 aria-label 전면 누락, #BDBDBD 텍스트 대비비 WCAG AA 미달(1.6:1), 탭 ARIA role 미적용 등 4건의 High 등급 이슈가 잔존한다. '보통' 난이도 배지와 '채점중' 상태 배지가 동일한 색상(orange 계열)을 사용해 의미 혼동이 발생하는 문제도 즉시 수정이 필요하다.
 
-**영향 범위**: 문항 중심 모드(L586~596), 학생 중심 모드(L783~788) 두 경로 모두 해당. 채점 기능 전체가 실질적으로 동작하지 않는 상태.
+### PM2 — 서비스 기획자 (Critical 4 / High 8 / Medium 7 / Low 2)
 
-**수정 방법**:
-1. `src/data/gradingStore.js` 파일 생성 — localStorage read/write 함수 정의
-2. GradingDashboard 마운트 시 `localStorage.getItem('gradingData_${quizId}')` 로드
-3. 저장 버튼 클릭 시 localStorage에 채점 결과 저장 후 `setSaved(true)` 호출
-4. 실데이터 전환 시 해당 함수를 `PATCH /api/submissions/:id/scores` 호출로 교체
+교수자 채점 워크플로우 핵심 기능은 구현되었으나, 서비스 운영 관점에서 4건의 Critical 이슈가 확인되었다. mockQuestions가 퀴즈 ID와 무관하게 전역 공유되어 모든 퀴즈 채점 화면에서 동일한 문항이 표시되는 데이터 모델 결함, 채점 완료 후 퀴즈 상태를 closed로 전환하는 교수자 액션 부재, 마감 일시가 시작 일시보다 이른 퀴즈 발행 허용, 문항 0개 퀴즈 발행 허용이 해당한다. 상태 전이 자동화(open→grading→closed) 전체가 수동 데이터 변경에 의존하고 있으며, 학습자 화면이 완전히 부재하다.
 
-**담당 파일**: `src/pages/GradingDashboard.jsx` L586~596, L783~788
+### PM3 — 시니어 개발자 (Critical 4 / High 4 / Medium 6 / Low 5)
 
----
+Vite 8 rolldown 규칙 준수, 6개 페이지 lazy loading + Suspense 전체 적용, useMemo/useCallback 핵심 연산 적용 등 기본 성능 구조는 양호하다. 보완 검토에서 추가로 발견된 Critical 이슈로 localStorage JSON.parse에 try/catch가 없어 파싱 오류 시 채점 기능 전체 중단 위험이 있으며, mockStudents 배열 객체를 직접 변이하여 React 렌더링 감지 실패 가능성이 있다. QUESTION_BANK 3중 중복 정의, LIGHT_COLORS 5중 중복 정의는 유지보수 직접 위협 요소다. QuizEdit.jsx에서 useParams()로 받은 :id를 실제로 사용하지 않아 편집 화면이 항상 동일한 하드코딩 데이터를 표시하는 문제도 확인되었다.
 
-### C-02: 퀴즈 생성 발행 버튼 — navigate만 실행, 저장 없음
+### PM4 — QA 엔지니어 (Critical 3 / High 9 / Medium 10 / Low 6)
 
-**문제 설명**: 발행하기 버튼 클릭 시 `navigate('/')` 만 실행된다. 입력한 제목, 날짜, 문항 정보가 어디에도 저장되지 않아 QuizList로 이동 후 신규 퀴즈가 전혀 반영되지 않는다.
+기능 테스트 결과 퀴즈 생성 발행 버튼이 실제 저장 로직 없이 navigate만 실행하고, 퀴즈 편집이 URL :id와 완전히 무관하게 동작하는 2건의 Critical을 확인하였다. 보안 테스트에서는 App.jsx에 인증/인가 Guard가 전혀 없어 모든 교수자 전용 페이지가 URL 직접 접근으로 노출되는 Critical 1건이 추가로 발견되었다. 문제은행의 문항 추가/편집 저장/삭제 버튼 3개 모두 onClick 핸들러가 연결되지 않아 동작하지 않으며, 학번 패턴이 실제 학번 형식(2022XXXXX)과 유사하여 CLAUDE.md 실데이터 사용 금지 정책 위반 경계에 있다.
 
-**영향 범위**: QuizCreate.jsx 전체. 프로토타입 데모 시 핵심 플로우 시연 불가.
+### PM5 — 시니어 PO (정책 공백 및 스펙 확정)
 
-**수정 방법**:
-1. App.jsx 또는 Context에 quizzes 상태 배열 관리 추가 (또는 mockData.js를 module-level mutable 배열로 전환)
-2. 발행하기 클릭 핸들러에서 `{ id: Date.now(), ...form, questions, status: 'open' }` 객체를 목록에 push
-3. navigate('/') 이동 후 QuizList에서 신규 항목이 렌더링되는지 확인
-4. 임시저장 버튼도 동일 구조에서 `status: 'draft'`로 저장
-
-**담당 파일**: `src/pages/QuizCreate.jsx` L144, L152~155
+코드 직접 분석 결과 isFormValid 조건이 제목+날짜만 체크하고 문항 수와 총점을 검증하지 않는 명백한 스펙 갭을 확인하였다. DEFAULT_NOTICE의 "자동 제출되지 않습니다" 문구는 실서비스 배포 시 학생이 시간 초과 후 미제출 0점 처리되는 사고를 유발할 수 있어 즉시 수정이 필요하다. short_answer의 autoGrade 정책이 mockData.js('partial')와 GradingDashboard.jsx(수동채점 분류)에서 불일치하며, 재채점/점수 공개/재응시 정책이 모두 미확정 상태다. MVP1 완료 기준으로 채점 저장, 퀴즈 생성/편집 저장, 상태 전이 트리거, 발행 유효성 검증, 문제은행 저장 5개 항목이 미완료임을 명시하였다.
 
 ---
 
-### C-03: 퀴즈 편집 — URL :id 무시, 하드코딩 데이터 고정
+## 2. Critical 긴급 수정 항목
 
-**문제 설명**: QuizEdit.jsx에서 `const { id } = useParams()`로 id를 받으나 실제로 사용하지 않는다. 초기 questions state가 항상 `[QUESTION_BANK[0], QUESTION_BANK[2], QUESTION_BANK[4]]`로 고정되어 어떤 퀴즈를 편집해도 동일 화면이 표시된다.
+> 아래 항목은 데모 시연 및 실서비스 전환 모두에서 즉각적인 위험을 발생시키는 이슈다. 다음 스프린트 착수 전 반드시 해결해야 한다.
 
-**영향 범위**: QuizEdit.jsx 전체. 편집 기능이 실질적으로 무의미한 상태.
+### C-01 — 퀴즈 생성 발행 저장 로직 부재
 
-**수정 방법**:
-1. `mockQuizzes.find(q => q.id === id)` 로 해당 퀴즈 데이터 조회
-2. 찾은 퀴즈의 title, startDate, dueDate, questions를 초기 state에 반영
-3. id에 해당하는 퀴즈가 없으면 "퀴즈를 찾을 수 없습니다" Empty State + 목록 이동 버튼 표시
-4. GradingDashboard.jsx L35, QuizStats.jsx L37의 `?? mockQuizzes[0]` fallback도 동일하게 404 처리로 교체
+**출처**: PM4 F-01, PM5 MVP1 미완료 항목
 
-**담당 파일**: `src/pages/QuizEdit.jsx` L43~49
+- QuizCreate.jsx:152 — 발행하기 버튼이 navigate('/') 만 실행하고 데이터 저장 없음
+- 데모 시연 시 생성한 퀴즈가 목록에 반영되지 않아 프로토타입 데모 흐름 자체가 불완전
+- **수정**: 발행 시 mockQuizzes.push(newQuiz) 또는 API 연동. 최소한 프로토타입에서 목록 반영 필수
 
----
+### C-02 — 퀴즈 편집이 URL :id를 무시하고 항상 동일한 데이터 표시
 
-### C-04: 모달 컴포넌트 중복 정의
+**출처**: PM4 F-02, PM3 H-03
 
-**문제 설명**: AddQuestionModal(L461~549)과 QuestionBankModal(L551~647)이 QuizCreate.jsx와 QuizEdit.jsx에 각각 동일하게 정의되어 있다. 향후 디자인 수정 또는 버그 수정 시 두 파일을 동시에 수정해야 하며 한쪽 누락 위험이 상존한다.
+- QuizEdit.jsx:43 — useParams()로 id를 받지만 사용하지 않고 하드코딩된 QUESTION_BANK 인덱스로 초기화
+- 어떤 퀴즈를 편집해도 "중간고사 - 데이터베이스 설계 및 SQL" 데이터가 표시됨
+- **수정**: mockQuizzes.find(q => q.id === id) 로 초기 상태 주입
 
-**영향 범위**: QuizCreate.jsx, QuizEdit.jsx. 코드 약 400줄 중복 존재.
+### C-03 — mockQuestions 전역 공유로 인한 퀴즈 ID 무관 문항 표시
 
-**수정 방법**:
-1. `src/components/modals/AddQuestionModal.jsx` 생성
-2. `src/components/modals/QuestionBankModal.jsx` 생성
-3. 필요한 props(onAdd, questions, QUESTION_BANK 등)를 prop으로 주입받는 구조로 정의
-4. QuizCreate.jsx, QuizEdit.jsx에서 import하여 사용
+**출처**: PM2 I-01(Critical), PM2 E-15
 
-**담당 파일**: QuizCreate.jsx L461~647, QuizEdit.jsx L242~468
+- 모든 채점 대시보드(quiz/1/grade, quiz/2/grade 등)에서 동일한 문항 목록이 표시됨
+- 다중 퀴즈 환경의 채점 정확성 자체가 훼손됨
+- **수정**: 퀴즈별 문항 데이터를 mockData.js에서 quiz ID로 분리 관리
 
-**PM5 판단**: Nice-to-have로 MVP2 이관 결정. MVP1에서는 기능 구현 우선.
+### C-04 — 채점 완료 후 grading → closed 전환 액션 없음
 
----
+**출처**: PM2 I-02(Critical), PM5 MVP1 미완료 항목
 
-### C-05 ~ C-07: 접근성 Critical (focus-visible / aria-label / 커스텀 라디오)
+- 채점을 완료해도 퀴즈 상태를 closed로 바꾸는 UI/플로우가 존재하지 않음
+- **수정**: GradingDashboard에 "채점 완료 확정" 버튼 추가, 클릭 시 상태 전환 처리
 
-**문제 설명**: 세 가지 접근성 Critical 이슈가 키보드 사용자와 스크린리더 사용자의 핵심 기능 사용을 막는다.
+### C-05 — localStorage JSON.parse try/catch 누락으로 채점 기능 전체 중단 위험
 
-**영향 범위**:
-- C-05 focus-visible: QuizEdit.jsx L173, QuizCreate.jsx L514, GradingDashboard.jsx L590 등 인라인 인풋 전반
-- C-06 aria-label: Layout.jsx 로고 링크, QuizCreate/QuizEdit 모달 닫기 버튼, QuestionBank 편집/삭제 버튼
-- C-07 커스텀 라디오: QuizCreate.jsx L234~256 차시 선택 div
+**출처**: PM3 보완검토 11-1
 
-**수정 방법**:
-- C-05: `focus-visible:ring-2 focus-visible:ring-indigo-400` 추가. `.input` 클래스 사용 확대로 자동 해결 가능
-- C-06: 각 아이콘 버튼에 `aria-label="닫기"`, `aria-label="편집"`, `aria-label="삭제"` 추가
-- C-07: `role="radio" tabIndex={0} onKeyDown={e => e.key === 'Enter' && handler()}` 추가 또는 `<input type="radio">` 네이티브 요소 사용
+- GradingDashboard.jsx:513, 608, 735 — JSON.parse(localStorage.getItem('xnq_manual_grades') || '{}') 에 try/catch 없음
+- localStorage 데이터 오염 또는 용량 초과 시 SyntaxError 발생으로 채점 기능 전체 중단
+- **수정**: 해당 3개 호출부를 try/catch로 감싸고 실패 시 빈 객체로 폴백 처리
 
-**PM5 판단**: 세 항목 모두 Nice-to-have로 MVP2 이관 결정.
+### C-06 — 인증/인가 전무 (실서비스 전환 시 가장 먼저 해결해야 할 보안 이슈)
 
----
+**출처**: PM4 S-01(Critical)
 
-### C-08: 인증/인가 없음
+- App.jsx — 모든 라우트에 인증 Guard 없음. 채점 대시보드, 문제은행, 퀴즈 생성/편집 모두 URL 직접 접근 가능
+- 프로토타입 단계에서는 의도된 생략이나, 실서비스 전환 시 선행 해결 필수
+- **수정**: ProtectedRoute 래퍼 컴포넌트 설계 및 미인증 리다이렉트 처리
 
-**문제 설명**: App.jsx에 ProtectedRoute가 없어 채점 대시보드, 문제은행, 퀴즈 생성/편집 모두 URL 직접 입력으로 접근 가능하다.
+### C-07 — 발행 유효성 검증 미흡 (문항 수 0개, 마감 일시 < 시작 일시 허용)
 
-**영향 범위**: 전체 라우트. 실서비스 배포 시 권한 없는 사용자의 교수자 기능 무단 접근 가능.
+**출처**: PM2 E-01, E-02(Critical), PM4 F-07, PM5 2-1 정책 확정
 
-**수정 방법**: `<ProtectedRoute>` 컴포넌트 생성, 인증 여부 확인 후 미인증 시 `/login`으로 redirect.
+- QuizCreate.jsx:94 — isFormValid = form.title && form.startDate && form.dueDate 만 체크
+- 문항 0개 퀴즈 발행, 마감일이 시작일보다 이른 퀴즈 발행이 모두 허용됨
+- **수정**: questions.length > 0, totalPoints > 0, new Date(dueDate) > new Date(startDate) 조건 추가
 
-**PM5 판단**: Out-of-scope — 프로토타입의 의도된 생략. MVP3(실데이터 연동) 단계에서 구현.
+### C-08 — DEFAULT_NOTICE "자동 제출되지 않습니다" 위험 문구
 
----
+**출처**: PM5 자체 리뷰
 
-## 4. MVP 로드맵
-
-### MVP1 완료 현황
-
-현재 구현된 기능 목록과 완성도 평가:
-
-| **기능** | **완성도** | **Gap** |
-|---|:---:|---|
-| 퀴즈 목록 조회 및 상태 표시 | 완료 | 필터/검색 없음 (Low) |
-| 퀴즈 생성 UI 흐름 | 부분 완료 | 발행 후 목록 미반영 (C-02, Must-have) |
-| 퀴즈 편집 UI 흐름 | 부분 완료 | URL :id 무시, 하드코딩 데이터 (C-03, Must-have) |
-| 채점 대시보드 — 문항 중심 모드 | 완료 | 채점 저장 미연결 (C-01, Must-have) |
-| 채점 대시보드 — 학생 중심 모드 | 완료 | 채점 저장 미연결 (C-01, Must-have) |
-| 퀴즈 통계 페이지 | 완료 | 채점 미완료 배너 없음 (Medium) |
-| 문제은행 — 목록/검색/필터 | 완료 | CRUD 핸들러 미연결 (H-01, Must-have) |
-| 재채점 모달 | 완료 | 실제 재산출 로직 없음 (Medium) |
-
-**MVP1 완료 판정 기준**: 아래 9개 Must-have Gap 항목 수정 완료 시 선언 가능.
-
-1. 채점 저장 (localStorage persist)
-2. 퀴즈 생성 발행 후 목록 반영
-3. 퀴즈 편집 URL :id 연동
-4. 문제은행 CRUD 핸들러 연결
-5. 시작일 > 마감일 유효성 검증
-6. status 단일 필드 통일 (published 폐기)
-7. 잘못된 :id 접근 시 404 처리
-8. short_answer 수동채점 대상 명확화 (PM5 정책 반영)
-9. 학번 패턴 변경 (TEST-001 형식)
+- 실서비스 배포 시 이 문구를 그대로 배포하면 학생이 제한 시간 초과 후 수동으로 제출하지 않으면 0점 처리되는 사고가 발생할 수 있음
+- **수정**: 문구를 "제한 시간이 종료되면 자동으로 제출됩니다"로 즉시 변경, 또는 자동 제출 정책 구현과 연계
 
 ---
 
-### MVP2 우선순위 (다음 스프린트, 4~6주 예상)
+## 3. 통합 이슈 목록
 
-PM5 Must-have 매트릭스 기반으로 정렬:
+> PM1~PM5 보고서의 이슈를 교차 분석하여 중복 이슈를 통합하고, 우선순위 기준으로 재정렬하였다. 중복 확인된 이슈는 더 높은 등급으로 통합하였다.
 
-**Phase 2-A (High 우선 — 2~3주)**
+### Critical (8건)
 
-| **우선순위** | **기능** | **근거** |
-|:---:|---|---|
-| 1 | 학습자 응시 화면 (문항 유형별 UI + 타이머 + 제출 플로우) | 서비스 핵심 플로우 완성 |
-| 2 | 발행 전 체크리스트 모달 (문항 수, 배점, 날짜 유효성 확인) | 교수자 실수 방지 |
-| 3 | 퀴즈 상태 자동 전이 (마감일 기반 open→grading) | 운영 자동화 |
-| 4 | 채점 완료 → 점수 공개 → 학생 결과 열람 플로우 | Happy Path 완성 |
+| **ID** | **이슈** | **근거 PM** | **영향 범위** |
+|---|---|---|---|
+| **C-01** | 퀴즈 생성 발행 저장 로직 부재 — navigate만 실행 | PM4 F-01, PM5 | 퀴즈 생성 전체 |
+| **C-02** | 퀴즈 편집 URL :id 무시 — 항상 동일 데이터 표시 | PM4 F-02, PM3 H-03 | 퀴즈 편집 전체 |
+| **C-03** | mockQuestions 전역 공유 — 퀴즈 ID 무관 문항 표시 | PM2 I-01, E-15 | 채점 대시보드 |
+| **C-04** | 채점 완료 후 grading→closed 전환 액션 없음 | PM2 I-02, PM5 | 채점 플로우 |
+| **C-05** | localStorage JSON.parse try/catch 누락 — 채점 기능 중단 위험 | PM3 11-1 | 채점 대시보드 |
+| **C-06** | 인증/인가 전무 — 모든 URL 직접 접근 가능 | PM4 S-01 | 전체 라우트 |
+| **C-07** | 발행 유효성 미흡 — 문항 0개/역순 날짜 발행 허용 | PM2 E-01/E-02, PM4 F-07 | 퀴즈 생성 |
+| **C-08** | DEFAULT_NOTICE 자동 제출 불가 문구 — 학생 0점 사고 위험 | PM5 | 퀴즈 안내사항 |
 
-**Phase 2-B (Medium 우선 — 3~4주)**
+### High (19건)
 
-| **우선순위** | **기능** | **근거** |
-|:---:|---|---|
-| 5 | 조교 권한 설계 및 역할 기반 접근 제어 | 대학 LMS 운영 현실 |
-| 6 | 정답 공개 시점 세분화 (4옵션) | Canvas LMS 표준 수준 |
-| 7 | 지각 제출 허용 기간/감점 설정 UI | 정책 공백 해소 |
-| 8 | 코드 품질 개선 (QUESTION_BANK/LIGHT_COLORS 상수 통합, React.memo, 모달 중복 제거) | 유지보수성 |
-| 9 | 접근성 개선 (aria-label, focus-visible, WCAG AA) | 서비스 품질 |
-| 10 | 알림 시스템 (마감 임박, 채점 완료 인앱 알림) | 사용자 참여율 |
+| **ID** | **이슈** | **근거 PM** | **영향 범위** |
+|---|---|---|---|
+| **H-01** | 채점 저장 새로고침 시 초기화 — mockStudents 직접 변이로 일관성 깨짐 | PM3 C-01/C-02, PM4 F-03 | 채점 대시보드 |
+| **H-02** | 문제은행 문항 추가/편집 저장/삭제 버튼 onClick 핸들러 미연결 (3개) | PM4 F-04, F-05, F-06 | 문제은행 |
+| **H-03** | QUESTION_BANK 3중 중복 정의 (QuizCreate, QuizEdit, QuestionBank) | PM3 H-01, 11-3 | 코드 유지보수 |
+| **H-04** | 존재하지 않는 :id 접근 시 첫 번째 퀴즈로 무음 fallback | PM2 E-06, PM3 L-05, PM4 F-09/F-10 | 라우팅 전체 |
+| **H-05** | open/draft 퀴즈 URL 직접 입력으로 채점 대시보드 접근 가능 | PM2 E-13, I-06 | 채점 대시보드 |
+| **H-06** | 지각 제출 정책 미정 — 허용 기간/감점 정책 미구현 | PM2 I-07, E-10 | 퀴즈 생성/응시 |
+| **H-07** | 복수 응시 채점 방식 선택 후 실제 적용 로직 없음 | PM2 I-08 | 채점 플로우 |
+| **H-08** | 문제은행 새로고침 시 초기화 — localStorage 미사용 | PM2 I-09 | 문제은행 |
+| **H-09** | 채점 소수점 점수 입력 허용 — 정책 미확정 | PM2 I-10, PM3 11-2, PM4 F-11 | 채점 대시보드 |
+| **H-10** | 퀴즈 생성 임시저장 버튼 onClick 없음 | PM2 I-11, PM4 F-08 | 퀴즈 생성 |
+| **H-11** | StudentRow React.memo 미적용 — 82명 전체 불필요 재렌더링 | PM3 H-02, PM4 P-01 | 채점 대시보드 성능 |
+| **H-12** | 차트 색상 3건 GDS 토큰 이탈 (#94a3b8, #64748b, #01A900/#EF2B2A) | PM1 1-1, 1-2, 1-3 | 차트 전체 |
+| **H-13** | 탭 컴포넌트 3가지 방식 혼재 — Tab.jsx 공통 추출 필요 | PM1 3-1 | 전체 탭 UI |
+| **H-14** | .btn-ghost 정의됐으나 미사용 — 인라인 hover 이벤트 반복 | PM1 3-2 | 버튼 컴포넌트 |
+| **H-15** | 페이지 h1 크기 불일치 (text-lg~text-2xl 혼재) | PM1 2-1 | 타이포그래피 |
+| **H-16** | CustomSelect 키보드 포커스 스타일 미구현 — WCAG 2.4.7 위반 | PM1 6-1, PM3 M-05 | 접근성 |
+| **H-17** | 아이콘 전용 버튼 aria-label 전면 누락 | PM1 6-2 | 접근성 |
+| **H-18** | #BDBDBD 텍스트 대비비 WCAG AA 미달 (1.6:1) | PM1 6-3 | 접근성 |
+| **H-19** | 탭 컴포넌트 ARIA role 미적용 — WCAG 4.1.2 위반 | PM1 6-4 | 접근성 |
+
+### Medium (18건)
+
+| **ID** | **이슈** | **근거 PM** | **영향 범위** |
+|---|---|---|---|
+| **M-01** | LIGHT_COLORS 5중 중복 정의 — 공통 상수 파일 분리 필요 | PM3 M-01 | 코드 유지보수 |
+| **M-02** | short_answer autoGrade 정책 불일치 (mockData: 'partial' vs 코드: 수동채점 분류) | PM5 2-5, PM2 I-19 | 자동채점 정확성 |
+| **M-03** | 응시 시간 계산 자정 경계 버그 — 23:50 시작 후 00:10 종료 시 음수 반환 | PM3 L-02/11-4 | 퀴즈 통계 |
+| **M-04** | open/draft 상태 퀴즈에서도 통계 접근 가능 — 정책 미정의 | PM2 I-12 | 퀴즈 통계 |
+| **M-05** | 정답 공개 시점 정책 미정 (즉시/마감 후/채점 완료 후) | PM2 I-13, PM5 2-4 | 정책 |
+| **M-06** | 학번 패턴이 실번호 형식과 유사 (2022XXXXX) — 실데이터 사용 금지 정책 위반 경계 | PM4 S-04, PM3 6절 | 데이터 정책 |
+| **M-07** | '보통' 난이도 배지와 '채점중' 상태 배지 동일 색상 — 의미 혼동 | PM1 1-9 | 배지 색상 |
+| **M-08** | TypeBadge 컴포넌트 중복 정의 (QuizStats, GradingDashboard) | PM1 3-3 | 컴포넌트 재사용 |
+| **M-09** | QuestionBankModal 양쪽 중복 구현 (QuizCreate, QuizEdit) | PM1 3-7 | 컴포넌트 재사용 |
+| **M-10** | EmptyState 표현 방식 3종 혼재 | PM1 3-5 | UX 일관성 |
+| **M-11** | 색상만으로 상태 구분 — 색맹 사용자 구분 불가 | PM1 6-5 | 접근성 |
+| **M-12** | 폼 라벨-인풋 htmlFor-id 연결 누락 | PM1 6-6 | 접근성 |
+| **M-13** | 모달 포커스 트랩 미구현 | PM1 6-7 | 접근성 |
+| **M-14** | QuizList Empty state 없음 — 퀴즈 0건 시 빈 화면 | PM1 7-3 | UX |
+| **M-15** | GradingDashboard 검색 결과 빈 상태 처리 누락 | PM1 7-4 | UX |
+| **M-16** | QuizCreate 발행 시 course 하드코딩 — 다강좌 교수자 대응 불가 | PM3 11-5 | 다강좌 대응 |
+| **M-17** | QuizStats 점수 분포 X축 밀집 (점수 1개당 1 데이터 포인트) | PM4 P-04 | 통계 UX |
+| **M-18** | 퀴즈 생성 중 브라우저 이탈 확인 다이얼로그 없음 | PM2 I-15, PM5 AC-03 | UX/데이터 보호 |
+
+### Low (10건)
+
+| **ID** | **이슈** | **근거 PM** | **영향 범위** |
+|---|---|---|---|
+| **L-01** | 임의 픽셀 단위 하드코딩 산재 (text-[15px], text-[17px] 등) | PM1 2-3 | 타이포그래피 |
+| **L-02** | 주차/차시 미선택 시 기본값 1/1 자동 저장 — 의도 불명확 | PM2 시나리오1 | 퀴즈 생성 |
+| **L-03** | 문항 사용 횟수(usageCount) 증가 로직 없음 | PM2 I-14 | 문제은행 |
+| **L-04** | Math.max(...scores) 스프레드 방식 — 대규모 배열 스택 오버플로우 가능 | PM3 M-03 | QuizStats 성능 |
+| **L-05** | Date.now() ID 생성 — 밀리초 충돌 가능 | PM3 M-04 | 문항 ID 생성 |
+| **L-06** | 채점 모드 전환 시 검색어 미초기화 | PM3 11-6, PM4 F-14 | UX |
+| **L-07** | Layout.jsx breadcrumbs.map 배열 인덱스를 key로 사용 | PM3 L-03 | 렌더링 경고 |
+| **L-08** | 단답형 부분 문자열 매칭으로 오답 정답 처리 가능성 | PM3 L-04 | 자동채점 정확도 |
+| **L-09** | 채점 저장 후 시각적 피드백 없음 — saved 상태 미활용 | PM1 7-5 | UX |
+| **L-10** | GradingDashboard min-h 100vh — iOS Safari 오버플로우 가능 | PM1 5-1 | 반응형 |
 
 ---
 
-### MVP3 후보
+## 4. PM 간 의견 충돌 조율
 
-Nice-to-have + Out-of-scope 중 실서비스 전환 시 가치 높은 항목:
+### 조율 1 — 채점 저장 이슈 등급
 
-| **기능** | **분류** | **비고** |
-|---|---|---|
-| API 클라이언트 레이어 구축 및 실서버 연동 | Out-of-scope → MVP3 필수 | useQuiz, useSubmissions 커스텀 훅 레이어 |
-| 인증/인가 시스템 (JWT 또는 세션 기반) | Out-of-scope → MVP3 필수 | ProtectedRoute 구현 |
-| 로딩 스켈레톤 및 에러 핸들링 UI | Nice-to-have | 실데이터 전환 시 UX 필수 |
-| 리스트 가상화 (react-window) | Nice-to-have | 수강생 300명+ 시나리오 대응 |
-| AI 보조 채점 (short_answer 제안 채점) | Out-of-scope | 별도 AI 인프라 필요 |
-| Canvas LMS / LTI 1.3 연동 | Out-of-scope | 별도 개발 트랙 |
-| 채점 일관성 분석 (채점자 간 편차 통계) | Out-of-scope | 실데이터 누적 후 의미 있음 |
+- PM3: C-01, C-02로 Critical 분류 (localStorage 연동 미구현 기준)
+- PM4: F-03으로 High 분류 (localStorage는 연동되어 있으나 새로고침 시 초기화 기준)
+- **Leader 판정**: 코드 재확인 결과 localStorage 저장은 구현되어 있으나 mockStudents 배열 직접 변이로 인해 일관성 문제가 있음. PM4의 분석이 현재 코드 상태에 더 정확하나, 직접 변이 패턴은 PM3 지적대로 별도 수정이 필요함. **통합 이슈 H-01로 High 등급 유지**. 단, localStorage 파싱 try/catch 누락(PM3 11-1)은 별도 Critical 이슈(C-05)로 분리.
 
----
+### 조율 2 — 인증/인가 이슈의 MVP 포함 여부
 
-## 5. 다음 스프린트 권고 작업 (Top 10)
+- PM4: S-01 Critical — 즉시 수정 권고
+- PM2, PM5: MVP3 (Canvas SSO 연동 시) 구현 예정으로 현재 프로토타입에서는 Out-of-scope
+- **Leader 판정**: 프로토타입 단계에서는 완전한 인증 구현이 MVP 범위 외이나, ProtectedRoute 컴포넌트 껍데기 설계와 미인증 리다이렉트 구조는 MVP1 완료 전 선행 설계가 필요하다. **Critical 등급 유지하되, 실제 인증 로직은 MVP3, 라우트 가드 구조 설계는 MVP2 착수 전으로 일정 분리**.
 
-| **순위** | **작업명** | **예상 공수** | **담당 영역** | **기대 효과** |
-|:---:|---|:---:|---|---|
-| 1 | 채점 저장 localStorage persist 구현 | 0.5일 | 개발 | 채점 Happy Path 완성, 데모 신뢰도 확보 |
-| 2 | 퀴즈 생성 발행 후 전역 state 반영 | 0.5일 | 개발 | 퀴즈 생성 플로우 완성 |
-| 3 | 퀴즈 편집 URL :id 기반 데이터 로딩 | 0.5일 | 개발 | 편집 기능 실질적 동작, 가장 낮은 공수 대비 최대 효과 |
-| 4 | 문제은행 CRUD 핸들러 연결 (추가/편집/삭제) | 1일 | 개발 | 문제은행 기능 완성 |
-| 5 | 시작일 > 마감일 역순 유효성 검증 + 인라인 오류 | 0.25일 | 개발 | 데이터 오류 방지, 사용자 가이드 |
-| 6 | status 단일 필드 통일 (published 폐기) | 0.25일 | 개발 | 상태 정합성 확보, mockData 정리 |
-| 7 | 학번 패턴 변경 (TEST-001 형식) + 잘못된 :id 404 처리 | 0.25일 | 개발 | 정책 준수, 잘못된 데이터 노출 방지 |
-| 8 | 문항 0개/총 배점 0점 발행 차단 | 0.25일 | 개발 | 데이터 정합성 오류 방지 |
-| 9 | 채점 점수 소수점 차단 (step=1) + 이탈 전 경고 모달 | 0.5일 | 개발 | 채점 정확도, 데이터 유실 방지 UX |
-| 10 | slate/gray 혼용 정리 + h1 타이틀 크기 통일 + gray-400→gray-600 상향 | 0.5일 | 디자인/개발 | 시각적 일관성 확보, WCAG AA 대비비 개선 |
+### 조율 3 — short_answer autoGrade 등급
 
-**총 예상 공수**: 약 4.5일 (1인 기준). MVP1 완료 선언 가능.
+- PM2: Low 이슈 (I-19) — 데이터 정합성 확인 수준
+- PM5: 정책 불일치 명시, 확정 룰 제시 (autoGrade = false로 통일)
+- **Leader 판정**: PM5의 확정 룰(단답형은 기본 수동채점, 교수자 정답 키워드 등록 시 자동채점 활성화)을 채택한다. mockData.js의 short_answer.autoGrade를 false로 변경하고 GradingDashboard의 채점 대상 분류 로직 정합성을 맞추는 것으로 확정. **M-02로 Medium 등급 상향 조정**.
 
 ---
 
-## 6. PM 간 의견 충돌 및 조율
+## 5. MVP 로드맵
 
-### 충돌 1: 모달 중복 정의 이슈의 MVP 단계 (PM1 C-1 vs PM5)
+### MVP1 — 현재 프로토타입 (완료 조건 재정의)
 
-- **PM1 주장**: AddQuestionModal / QuestionBankModal 중복은 Critical 이슈이며 즉시 수정 필요
-- **PM5 결정**: Nice-to-have로 MVP2 이관
+> 교수자 단독 사용 기준의 퀴즈 관리 도구. UI/UX는 거의 완성, 데이터 영속성과 핵심 플로우 완결성이 미완료 상태.
 
-**Leader 최종 판단**: PM5 결정을 지지한다. 현재 프로토타입 단계에서는 기능 동작 완성이 구조 정리보다 우선이다. 단, MVP2 Phase 2-B 작업 목록 상위에 고정하여 MVP2에서 반드시 처리해야 한다. 중복 파일이 존재하는 동안은 두 파일에 동일 변경을 적용하는 원칙을 팀 내 공유할 것을 권고한다.
+| **항목** | **현재 상태** | **완료 기준** | **우선순위** |
+|---|:---:|---|:---:|
+| 퀴즈 목록/대시보드 | 완료 | — | — |
+| 퀴즈 통계/결과 조회 | 완료 | — | — |
+| CSV 다운로드 | 완료 | — | — |
+| 발행 유효성 검증 (문항 수, 총점, 날짜) | 미완료 | isFormValid 조건 추가 | 긴급 |
+| 퀴즈 생성 저장 (mockData 반영) | 미완료 | 발행 시 목록 반영 | 긴급 |
+| 퀴즈 편집 저장 (ID 기반) | 미완료 | useParams() id 활용 | 긴급 |
+| 채점 완료 확정 액션 | 미완료 | "채점 완료" 버튼 추가 | 긴급 |
+| mockQuestions 퀴즈 ID 분리 | 미완료 | 퀴즈별 문항 분리 | 긴급 |
+| localStorage JSON.parse 안전화 | 미완료 | try/catch 추가 | 긴급 |
+| 문제은행 CRUD 저장 | 미완료 | onClick 핸들러 연결 | 높음 |
+| DEFAULT_NOTICE 문구 수정 | 미완료 | 자동 제출 정책 반영 | 긴급 |
+
+### MVP2 — 다음 스프린트 목표 (상태 전이 자동화 + 학습자 화면)
+
+| **항목** | **설명** | **예상 공수** |
+|---|---|:---:|
+| 퀴즈 상태 자동 전이 (open→grading→closed) | 마감 도래 시 자동 전환 로직 | M |
+| 학습자 응시 화면 | 문제 풀기, 시간 제한, 자동 제출 | L |
+| 채점 완료 후 학습자 점수 공개 흐름 | 공개 시점 정책 구현 | S |
+| 재응시 흐름 | 횟수 제한, 점수 정책 적용 | M |
+| 라우트 가드 구조 설계 (인증 껍데기) | ProtectedRoute 컴포넌트 | S |
+| 임시저장(draft) 기능 | localStorage 활용 | S |
+| 지각 제출 정책 구체화 | 기간 설정, 감점 옵션 | S |
+| 이탈 방지 beforeunload | 폼 데이터 보호 | XS |
+| 접근성 일괄 개선 | aria-label, 포커스 트랩, role | M |
+
+### MVP3 — 중장기 목표 (실서비스 전환)
+
+| **항목** | **설명** |
+|---|---|
+| Canvas LMS API 연동 | 퀴즈 데이터 동기화 |
+| 학교 SSO 인증 | 교수자/학습자 로그인 |
+| 학습자 성적 조회 포털 | 본인 점수, 정답 확인 |
+| 완전한 역할 기반 접근 제어 (RBAC) | 교수자/조교/학습자 권한 분리 |
+| API 클라이언트 레이어 구축 | hooks/useQuiz.js, api/client.js 등 |
+| 알림 정책 구현 | 이메일/인앱 알림 인프라 |
+| 재채점 이력 관리 | 감사 로그 목적 |
+| 학과/강좌 단위 통계 리포트 | 다강좌 교수자 지원 |
 
 ---
 
-### 충돌 2: 인증/인가 없음의 심각도 분류 (PM4 S-01 Critical vs PM5)
+## 6. 다음 스프린트 Top 10 권고안
 
-- **PM4 주장**: 인증/인가 없음은 Critical 보안 이슈
-- **PM5 결정**: Out-of-scope — 프로토타입의 의도된 생략으로 분류
+> 영향도(Impact) 대비 수정 공수(Effort) 효율성 기준으로 선정하였다.
 
-**Leader 최종 판단**: PM5 결정을 지지한다. 프로토타입은 기능 흐름 검증이 목적이므로 인증 Guard 부재는 의도된 범위 조정이다. 단, 실데이터 연동 착수 전 인증 레이어 설계를 선행 완료하는 조건을 명시적으로 MVP3 입구 조건으로 등록할 것을 권고한다.
-
----
-
-### 충돌 3: short_answer autoGrade='partial' 처리 방식 (PM2 C-04, PM3 H-03 vs PM5)
-
-- **PM2/PM3 주장**: mockData의 'partial' 정의와 채점 대시보드 수동 처리가 불일치하므로 즉시 정합성 수정 필요
-- **PM5 결정**: 'partial'을 "AI 채점 제안 후 교수자 확인" 워크플로우로 재정의. MVP1에서는 수동채점으로 단순화, MVP2에서 'partial' 워크플로우 구현
-
-**Leader 최종 판단**: PM5 결정을 지지한다. 'partial'의 동작을 명확히 정의함으로써 PM2/PM3의 불일치 우려가 해소된다. MVP1에서는 short_answer를 수동채점 탭으로 명확히 분류하는 것만으로 충분하며, 이를 코드에 주석으로 명시(TODO: MVP2 AI 채점 제안 워크플로우 연동)하는 것을 권고한다.
+| **순위** | **작업** | **관련 이슈** | **예상 공수** | **기대 효과** |
+|:---:|---|---|:---:|---|
+| **1** | isFormValid 조건 보강 (문항 수, 총점, 날짜 역순 검증 추가) | C-07 | XS | 발행 유효성 즉각 확보, 데모 신뢰도 향상 |
+| **2** | DEFAULT_NOTICE 자동 제출 문구 수정 | C-08 | XS | 학생 0점 사고 예방, 즉각 적용 가능 |
+| **3** | localStorage JSON.parse try/catch 추가 (3개 위치) | C-05 | XS | 채점 기능 중단 위험 즉시 해소 |
+| **4** | 퀴즈 생성 발행 시 mockQuizzes.push() 연동 | C-01 | S | 데모 흐름 완성, 목록 반영 확인 가능 |
+| **5** | QuizEdit useParams() id 활용 — 퀴즈별 데이터 로딩 | C-02 | S | 편집 기능 실질적으로 동작 |
+| **6** | mockQuestions 퀴즈 ID 분리 — 퀴즈별 문항 독립 | C-03 | S | 다중 퀴즈 채점 시나리오 정상화 |
+| **7** | 채점 완료 확정 버튼 추가 및 grading→closed 전환 처리 | C-04 | S | 채점 플로우 완결, MVP1 완료 조건 충족 |
+| **8** | 문제은행 추가/편집 저장/삭제 버튼 onClick 핸들러 연결 | H-02 | S | 문제은행 CRUD 정상 동작 |
+| **9** | QUESTION_BANK / LIGHT_COLORS 중복 정의 공통 파일 분리 | H-03, M-01 | S | 유지보수성 즉각 개선, 실데이터 전환 선행 작업 |
+| **10** | 접근성 일괄 적용 (aria-label 추가, 탭 role, 대비비 수정) | H-16~H-19 | M | WCAG AA 준수, 스크린리더 지원 |
 
 ---
 
 ## 7. 총평
 
-### 영역별 완성도 점수 (10점 만점)
+### 이슈 집계
 
-| **영역** | **점수** | **평가 근거** |
-|---|:---:|---|
-| UI/UX 디자인 완성도 | 7 / 10 | 모던한 기조와 컴포넌트 구조는 훌륭하나 접근성, 일관성 균열 다수 |
-| 기능 정책 완결성 | 4 / 10 | 채점 저장 미구현, 상태 전이 정책 공백, 편집 URL 연동 미작동 |
-| 코드 품질 | 6 / 10 | 번들 최적화, useMemo/useCallback 적절한 활용. 그러나 중복 정의 다수 |
-| 서비스 기획 완성도 | 5 / 10 | Happy Path UI는 갖춰졌으나 인터랙션 연결과 정책 명문화 부족 |
-| QA 안정성 | 4 / 10 | Critical 3건, High 9건. 핵심 CRUD 핸들러 미연결 다수 |
-| **종합** | **5.2 / 10** | — |
+| **등급** | **건수** | **비중** |
+|---|---:|---:|
+| Critical | 8 | 15% |
+| High | 19 | 34% |
+| Medium | 18 | 33% |
+| Low | 10 | 18% |
+| **합계** | **55** | **100%** |
 
-### 총평
+### 잘 구현된 부분
 
-XN Quizzes 프로토타입은 교수자 관점의 퀴즈 관리 전체 플로우를 시각적으로 구현하는 데 성공했으며, 5개 페이지의 UI 구조와 정보 설계 품질은 MVP 프로토타입 수준으로 완성도가 있다. 특히 채점 대시보드의 문항 중심/학생 중심 이중 뷰, 문제은행 검색/필터, 통계 시각화는 제품의 차별화 포인트로 기능할 수 있다.
+XN Quizzes 프로토타입은 교수자 중심의 채점 워크플로우(문항 중심/학생 중심 이중 모드), GDS 기반 컴포넌트 구조, 퀴즈 통계 화면(평균/표준편차/p27·p73/시간압박 비율)이 경쟁 LMS(Canvas, Moodle)에 견줄 만한 완성도로 구현되어 있다. Vite 8 rolldown 규칙 준수, lazy loading 전 페이지 적용, useMemo/useCallback 핵심 연산 적용 등 성능 기반도 양호하다. mockData의 autoScores + manualScores 분리 구조는 실데이터 전환 시 모델 확장이 용이하다.
 
-그러나 채점 저장, 퀴즈 생성 발행, 문제은행 CRUD 등 핵심 인터랙션이 UI와 로직 사이에서 단절되어 있어 현재 상태로는 사용자에게 "동작하는 프로토타입"을 시연하기 어렵다. 이 간극은 약 4.5일의 집중 작업으로 해결 가능한 수준이며, 해당 작업 완료 시 MVP1 완료 선언과 함께 본격적인 사용자 테스트 진행이 가능하다.
+### 핵심 갭 요약
 
-다음 스프린트의 최우선 과제는 본 보고서의 Top 10 작업 목록 완료이며, 이를 통해 Happy Path 완주율 100% 달성을 목표로 한다. MVP2 착수 전 접근성(WCAG AA) 개선과 코드 중복 정리를 Phase 2-B에 반드시 포함하여 기술 부채가 누적되지 않도록 관리하는 것을 강력히 권고한다.
+PM1~PM5 보고서를 종합하면 이 프로토타입의 가장 중요한 갭은 UI/UX 완성도가 아니라 데이터 영속성과 플로우 완결성이다. 퀴즈 생성이 저장되지 않고, 편집이 ID를 무시하며, 채점 완료 후 상태를 전환하는 수단이 없다. Critical 8건 중 C-01~C-05, C-07, C-08은 모두 1~2시간 이내 수정 가능한 낮은 공수 항목이므로 다음 스프린트 착수 전 즉시 처리를 강력히 권고한다.
+
+### 다음 단계 전략
+
+- 1단계(즉시): Critical 8건 수정 완료 — 데모 시연 흐름 완결
+- 2단계(MVP2 스프린트): 상태 전이 자동화, 학습자 응시 화면, 라우트 가드 구조 설계
+- 3단계(MVP3): Canvas LMS 연동, SSO 인증, 완전한 RBAC
 
 ---
 
-*본 보고서는 PM1~PM5 보고서를 종합하여 Leader 총괄 검토자 관점에서 작성되었습니다. 검토 기준일: 2026-03-25.*
+*본 보고서는 PM1~PM5 보고서를 전수 교차 분석하여 작성되었으며, 이후 코드 변경 시 재검토가 필요합니다.*
+*다음 리뷰 예정: Critical 8건 수정 완료 후 (예정: 2026-04-07)*

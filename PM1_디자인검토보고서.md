@@ -1,172 +1,142 @@
 # PM1 디자인 검토 보고서
-**XN Quizzes Prototype — UI/UX Design Review**
-검토일: 2026-03-25
-검토자: PM1 (디자이너)
-검토 범위: QuizList, GradingDashboard, QuizCreate, QuizEdit, QuestionBank, Layout, index.css
+
+**작성자**: PM1 — 디자이너
+**검토 기준일**: 2026-03-26
+**검토 대상**: XN Quizzes 프로토타입 전체 UI/UX (GDS 기반 재작업 완료 버전)
+**검토 파일**: index.css / Layout.jsx / CustomSelect.jsx / QuizList.jsx / QuizStats.jsx / GradingDashboard.jsx / QuizCreate.jsx / QuizEdit.jsx / QuestionBank.jsx
 
 ---
 
-## 요약
+## 총평
 
-전체적으로 모던하고 깔끔한 화이트 모드 기조는 잘 유지되어 있으며, indigo-600 주색과 slate 계열 보조색 사용도 대체로 일관적이다. 그러나 파일 간 컴포넌트 중복 정의, slate와 gray의 혼용, 인라인 스타일 및 임의 숫자 하드코딩 등 일관성 균열이 곳곳에 존재한다. 접근성(포커스 스타일, 색상 대비)과 반응형(태블릿 중간 구간, 버튼 텍스트 숨김 처리) 보완이 필요하다.
-
----
-
-## 검토 항목별 현황
-
-### 1. 색상 시스템 일관성
-
-| 현재 상태 | 문제점 | 개선안 | 우선순위 |
-|---|---|---|---|
-| 주색 indigo-600, 배경 #F5F6F8, 카드 white 기조 잘 정립됨 | `slate`와 `gray`가 혼용됨. GradingDashboard는 `slate-*` 계열, QuizList는 `gray-*` 계열이 주로 사용됨 | 텍스트/보더/배경 전반을 `slate` 또는 `gray` 중 하나로 통일. 프로젝트 기준 `slate` 권장 (이미 index.css는 gray-900 기반이나 컴포넌트 대다수는 slate 사용) | **High** |
-| LIGHT_COLORS (문항 유형 배지)가 여러 파일에 동일하게 중복 정의됨 | GradingDashboard.jsx L18-31, QuizCreate.jsx L48-61, QuizEdit.jsx L28-41, QuestionBank.jsx L9-22 — 총 4곳에 동일 객체 복사 존재. QuestionBank만 `border-*` 클래스를 추가 포함하여 미세한 불일치 발생 | `src/constants/questionTypes.js` (또는 기존 `mockData.js`) 로 LIGHT_COLORS를 단일 소스로 추출 후 import하여 사용 | **High** |
-| 채점 완료 색: emerald-600, 미채점 색: amber-500/600 혼용 | QuizList L121 `text-emerald-600` / GradingDashboard L140 `text-emerald-600` — 이 부분은 일관. 그러나 미채점은 L120 `text-amber-500`, GradingDashboard L141 `text-amber-500`, StudentListItem L639 `text-amber-600` 으로 달라짐 | 미채점은 `amber-500`, 채점 완료는 `emerald-600`으로 시스템 확정 후 일괄 적용 | **Medium** |
-| 진행률 바에 인라인 style로 gradient 사용 | QuizList.jsx L141, GradingDashboard.jsx L160: `style={{ background: 'linear-gradient(90deg, #818CF8, #6366F1)' }}` — Tailwind 토큰 외부에 하드코딩됨 | `bg-gradient-to-r from-indigo-400 to-indigo-600` 으로 Tailwind 클래스화하거나 index.css에 토큰 정의 | **Medium** |
+GDS(G-Market Design System) 토큰을 기준으로 전면 재작업이 완료된 상태로, 색상 시스템과 컴포넌트 기반 구조는 전반적으로 양호하다. 다만 몇 가지 GDS 토큰 이탈, 컴포넌트 혼용, 접근성 미비 영역이 잔존한다. Critical 이슈는 없으나 High 등급 이슈 10건이 실사용 품질에 직접 영향을 준다.
 
 ---
 
-### 2. 타이포그래피 위계
+## 1. 색상 시스템 일관성 (GDS 토큰 준수 여부)
 
-| 현재 상태 | 문제점 | 개선안 | 우선순위 |
-|---|---|---|---|
-| Pretendard CDN, body 14px/1.6, h1~h4 letter-spacing -0.025em 설정됨 | `h1` 크기가 페이지마다 다름. QuizList.jsx L24 `text-2xl`, QuizCreate.jsx L113 `text-xl`, QuizEdit.jsx L75 `text-lg`, QuestionBank.jsx L70 `text-2xl` — 같은 레벨의 페이지 제목이 24/20/18px로 혼재 | 페이지 타이틀(h1) = `text-2xl font-bold`로 통일. Layout에 `pageTitle` 헬퍼 컴포넌트 정의 추천 | **High** |
-| 섹션 헤더(h2/h3) 크기도 불일치 | QuizCreate의 Section 컴포넌트 h2: `text-sm font-semibold` (L426). GradingDashboard의 패널 헤더: `text-sm font-medium` / `text-xs font-medium` 등 레벨 혼재 | h2 = `text-sm font-semibold`, h3 = `text-xs font-semibold`, body = `text-sm`, caption = `text-xs` 로 위계 고정 | **Medium** |
-| 카드 내 수치 숫자에 임의 크기 사용 | QuizList.jsx L125 `text-[18px]`, GradingDashboard.jsx L144 `text-[18px]`, 하단 캡션 L127 `text-[11px]` — Tailwind 토큰 외 임의값 사용 | `text-lg`(18px), `text-[11px]` → `text-[11px]`는 `text-xs`(12px)로 근사하거나 index.css에 커스텀 토큰 정의 | **Low** |
-| 브레드크럼 텍스트 크기 `text-[13px]` 하드코딩 | Layout.jsx L20, L33, L38: `text-[13px]` 3회 반복 | `text-xs`(12px) 또는 `text-[13px]`를 index.css에 `.text-breadcrumb` 유틸 정의 후 재사용 | **Low** |
-
----
-
-### 3. 컴포넌트 재사용성 및 일관성
-
-| 현재 상태 | 문제점 | 개선안 | 우선순위 |
-|---|---|---|---|
-| index.css에 `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.input`, `.card`, `.badge` 잘 정의됨 | QuizCreate/QuizEdit의 인라인 버튼들이 `.btn-*` 클래스를 사용하지 않고 직접 클래스를 조합함. 예: QuizEdit.jsx L89 `flex items-center gap-1.5 text-xs text-slate-600 border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg` — `.btn-secondary`와 유사하나 `rounded-lg`(8px) vs `.btn-secondary`의 `rounded-xl`(12px) 불일치 | QuizEdit/QuizCreate 내 버튼도 `.btn-primary`, `.btn-secondary` 클래스 활용. 불가피한 크기 차이만 `text-xs py-1.5` 오버라이드 처리 | **High** |
-| AddQuestionModal, QuestionBankModal이 QuizCreate/QuizEdit 양쪽에 각각 중복 정의됨 | QuizCreate.jsx L461-647, QuizEdit.jsx L242-468 — 거의 동일한 모달 컴포넌트가 두 파일에 중복. 버그 수정 시 양쪽 반영이 누락될 위험 존재 | `src/components/modals/` 디렉토리로 AddQuestionModal, QuestionBankModal 추출하여 공유 | **Critical** |
-| TabBtn 컴포넌트가 QuizCreate.jsx L180과 GradingDashboard.jsx에 각각 별도 정의됨 | QuizCreate의 TabBtn은 `border-b-2` 방식, GradingDashboard의 TabBtn은 `bg-slate-100` pill 방식 — 의도된 차이라면 허용, 아니라면 통일 필요 | 두 탭 스타일 유형(Underline Tab / Segmented Control)을 `src/components/Tabs.jsx`로 명시적으로 분리 정의 | **Medium** |
-| CustomSelect가 QuizCreate에서만 사용되고 QuizEdit는 네이티브 `<select>` 사용 | QuizCreate.jsx L224, L287, L309: CustomSelect 사용. QuizEdit.jsx L181-199: 동일 목적의 드롭다운을 `<select>` 태그로 처리 — 시각적 일관성 파괴 | QuizEdit도 CustomSelect 또는 index.css로 스타일링된 `<select>`로 통일 | **High** |
-| 채점 점수 입력 인풋이 `.input` 클래스 미사용 | GradingDashboard.jsx L590: 점수 입력용 `<input>`에 직접 클래스 조합 사용. `.input` 클래스와 테두리 색(`border-slate-300` vs `border-[#E5E7EB]`), 라운드값(`rounded-lg` vs `rounded-xl`) 불일치 | 소형 인풋에도 `.input` 적용 후 `w-16` 등 크기만 오버라이드 | **Medium** |
+| # | 항목 | 현재 상태 | 문제점 | 개선안 | 등급 |
+|---|------|-----------|--------|--------|------|
+| 1-1 | 차트 축 tick 색상 (XAxis) | QuizStats.jsx: `fill: '#94a3b8'` (Tailwind slate-400) | GDS 토큰 외 색상 사용 | `fill: '#9E9E9E'` 로 통일 | **High** |
+| 1-2 | 차트 축 tick 색상 (YAxis) | GradingDashboard 차트: `fill: '#64748b'` (slate-500) | GDS 토큰 이탈 | `fill: '#616161'` 로 통일 | **High** |
+| 1-3 | 응시 현황 바 차트 색상 | QuizStats.jsx: `#01A900`, `#EF2B2A` 사용 | GDS 시맨틱 `#018600` / `#B43200` 과 불일치 | `#018600`, `#B43200` 으로 통일 | **High** |
+| 1-4 | 삭제 버튼 hover 색상 | QuizEdit.jsx, QuestionBank.jsx: `#EF2B2A` | GDS에 danger 토큰 미정의 상태에서 혼용 | GDS에 `danger: #EF2B2A` 추가 또는 `#B43200` 으로 대체 후 토큰화 | **Medium** |
+| 1-5 | 탭 활성 색상 | QuizStats.jsx, QuizCreate.jsx: `#6366f1` (indigo-500) | GDS 주색은 `#4f46e5`(indigo-600). 활성 탭에 indigo-500 혼용 | `#4f46e5` 로 통일 | **Medium** |
+| 1-6 | 문항 유형 배지 | 전체: `background: #F5F5F5, color: #616161` 단일 색상 | GDS 준수. 자동/수동/부분자동 구분 없이 단일 색상 | 현재 유지 가능. 유형별 색상 차별화는 추후 고려 | Low |
+| 1-7 | 진행 바 색상 | QuizList.jsx, GradingDashboard.jsx: `bg-indigo-500` | GDS 주색 `#4f46e5`(indigo-600) 와 미세 불일치 | `bg-indigo-600` 으로 변경 | **Medium** |
+| 1-8 | btn-secondary 텍스트 색상 | index.css: `color: #424242` | GDS 미정의 토큰. secondary 텍스트는 `#616161` 권장 | `color: #616161` 로 변경 또는 GDS에 `#424242` 명시 추가 | Low |
+| 1-9 | 난이도 '보통' 배지 색상 | QuizStats.jsx: `background: #FFF6F2, color: #B43200` | 채점중 상태 배지와 동일한 색 — 의미 혼동 가능 | '보통'은 amber 계열(`#FFFBEB / #B45309`)로 분리 | **High** |
 
 ---
 
-### 4. 레이아웃 그리드 및 여백 체계
+## 2. 타이포그래피 위계
 
-| 현재 상태 | 문제점 | 개선안 | 우선순위 |
-|---|---|---|---|
-| 최대 너비 `max-w-screen-xl`, 페이지 패딩 `px-4 sm:px-6` 대체로 일관 | QuizCreate.jsx L112 `max-w-2xl` — 다른 페이지는 `max-w-screen-xl`인데 QuizCreate만 좁은 너비 사용. 폼 페이지 의도적 제한이라면 주석이나 정책 명시 필요 | 폼 레이아웃의 max-width 정책을 문서화. `max-w-2xl`이 의도라면 유지하되 QuizEdit 설정 패널과 비교 검토 필요 | **Low** |
-| 카드 내 여백이 `p-4`/`p-5` 혼용 | GradingDashboard L119 `p-4 sm:p-5`, QuestionBankItem L167 `p-4`, QuizCreate의 Section L425 `p-5` — 소폭 혼용이나 패턴은 일관 | 카드 패딩을 `p-5` (데스크톱 기준)로 통일하거나 `p-4 sm:p-5` 패턴을 일관 적용 | **Low** |
-| GradingDashboard의 split-pane 최소 높이 calc 하드코딩 | GradingDashboard.jsx L225 `min-h-[calc(100vh-360px)]` — 360px은 헤더+상단 요소 높이의 추정값. 헤더 높이가 변경되면 레이아웃 깨짐 | CSS 변수(`--header-height`)로 분리하거나 flex 기반 full-height 레이아웃으로 리팩토링 | **Medium** |
-
----
-
-### 5. 반응형 브레이크포인트 대응
-
-| 현재 상태 | 문제점 | 개선안 | 우선순위 |
-|---|---|---|---|
-| `sm:` 브레이크포인트(640px) 기반 반응형 기본 적용됨 | 태블릿(768px) 구간 전용 대응이 전무. `sm:` → `lg:` 사이에서 레이아웃 전환 없이 바로 3컬럼 전환됨. 예: QuizEdit.jsx L79 `grid lg:grid-cols-3` — 768~1024px 구간에서 2컬럼이 더 적합 | `md:grid-cols-2 lg:grid-cols-3` 패턴 적용. 태블릿 구간(768px) 중간 레이아웃 설계 필요 | **High** |
-| 헤더 브레드크럼에서 퀴즈 제목이 긴 경우 넘침 처리 불완전 | Layout.jsx L38 `truncate` 적용됨. 그러나 브레드크럼 아이템이 3단계일 때 (GradingDashboard: 퀴즈 관리 / 긴 퀴즈 제목 / 채점 대시보드) 모바일에서 중간 항목이 화면 밖으로 밀릴 수 있음 | 마지막 브레드크럼 항목만 표시하는 모바일 축약 처리 또는 `max-w-[120px]` 제한 적용 | **Medium** |
-| QuizList 헤더 버튼의 텍스트가 `sm:block`으로만 처리됨 | QuizList.jsx L29 `hidden sm:block`, L33 `hidden sm:block` — 375px 모바일에서 "문제은행", "새 퀴즈" 텍스트가 사라지고 아이콘만 남음. aria-label 없음 | `aria-label` 속성 추가. 아이콘 단독 노출 시 tooltip 또는 시각적 레이블 최소 보장 필요 | **High** |
-| 모달이 모바일에서 bottom-sheet 스타일로 전환됨 | QuizCreate.jsx L473, QuizEdit.jsx L254: `items-end sm:items-center` — 의도된 bottom-sheet 패턴이나 모달 높이가 `85vh`로 고정될 때 소형 폰(812px 이하)에서 스크롤 영역이 부족할 수 있음 | `max-h-[85vh]`를 `max-h-[90dvh]`로 변경(dynamic viewport 대응) 및 최소 높이 보장 | **Medium** |
+| # | 항목 | 현재 상태 | 문제점 | 개선안 | 등급 |
+|---|------|-----------|--------|--------|------|
+| 2-1 | 페이지 h1 크기 불일치 | QuizList.jsx: `text-2xl(24px)` / QuestionBank.jsx: `text-2xl(24px)` / QuizEdit.jsx: `text-lg(18px)` / QuizCreate.jsx: `text-xl(20px)` | 동일 레벨 페이지 제목임에도 크기 불일치 | 모든 페이지 h1을 `text-xl(20px) font-bold` 로 통일 | **High** |
+| 2-2 | 카드 내 제목 크기 | GradingDashboard: `text-[15px] font-bold` / QuizStats: `text-base font-bold` / 기타: `text-sm font-semibold` | 카드 헤더 레벨이 컴포넌트마다 다름 | 카드 제목: `text-sm font-semibold`, 상세 패널 제목: `text-[15px] font-bold` 2단계로 고정 | **Medium** |
+| 2-3 | 임의 픽셀 단위 하드코딩 | 전체 파일: `text-[15px]`, `text-[17px]`, `text-[18px]`, `text-[11px]`, `text-[13px]`, `text-[10px]` 다수 | Tailwind 기본 스케일 외 임의 픽셀값 산재. 타입 스케일 관리 불가 | 기본 스케일 체계 사용: `text-xs(12px)`, `text-sm(14px)`, `text-base(16px)`, `text-lg(18px)`. 불가피한 예외만 CSS 변수로 토큰화 | **Medium** |
+| 2-4 | line-height 혼용 | 컴포넌트마다 `leading-snug`, `leading-relaxed`, `leading-none` 혼용 | 용도 기준 없이 혼용 | 제목 `leading-tight(1.25)`, 본문 `leading-normal(1.5)`, 숫자 `leading-none(1)` 로 정리 | Low |
 
 ---
 
-### 6. 접근성 (WCAG AA)
+## 3. 컴포넌트 재사용성 및 일관성
 
-| 현재 상태 | 문제점 | 개선안 | 우선순위 |
-|---|---|---|---|
-| `.input` focus 링: `focus:ring-4 focus:ring-indigo-50` 정의됨 | 그러나 QuizCreate/QuizEdit/GradingDashboard 내 직접 정의된 인라인 인풋들은 `focus:outline-none` 만 적용되고 focus-visible 링 미적용. 예: QuizEdit.jsx L173, QuizCreate.jsx L514, GradingDashboard.jsx L590 | 모든 인터랙티브 요소에 `focus-visible:ring-2 focus-visible:ring-indigo-400` 일관 적용. `.input` 클래스 사용 확대로 자동 해결 | **Critical** |
-| 버튼 아이콘 단독 사용 시 aria-label 없음 | Layout.jsx의 로고 링크, QuizCreate/QuizEdit의 모달 닫기(X) 버튼, QuestionBank의 Edit2/Trash2 아이콘 버튼 — 스크린리더 접근 불가 상태 | 아이콘 전용 버튼에 `aria-label="닫기"`, `aria-label="편집"`, `aria-label="삭제"` 추가 | **Critical** |
-| 라디오 버튼 대체 구현(차시 선택)에 키보드 접근 불가 | QuizCreate.jsx L236-244: div 기반 커스텀 라디오 — `onClick` 만 있고 `onKeyDown`, `role="radio"`, `aria-checked` 미적용. Tab키로 포커스 이동 불가 | `<input type="radio">` + 커스텀 스타일 조합으로 변경하거나, `role="radio" tabIndex={0} onKeyDown` 처리 추가 | **Critical** |
-| 색상만으로 상태 구분 (색맹 취약) | 미채점(amber) / 채점완료(emerald) 구분이 색상에만 의존. 예: QuizList.jsx L77 상태 dot, StudentRow L541 미채점 뱃지 | 색상에 더해 아이콘 또는 텍스트 레이블을 병기 — 이미 일부 구현됨(CheckCircle2, AlertCircle). 퀴즈 상태 dot(color-only)에 아이콘 추가 보완 필요 | **High** |
-| Toggle 컴포넌트 `sr-only` input이 있으나 focus 스타일 없음 | QuizCreate.jsx L447: `className="sr-only"` — 화면에 숨겨진 checkbox라 키보드 포커스 시 시각적 피드백 없음 | `peer` 패턴 활용하여 `peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400` 토글 외부 div에 적용 | **High** |
-| 텍스트 대비비 잠재 위험: gray-400/slate-400 텍스트 | `text-gray-400`(#9CA3AF)와 white 배경 대비비: 2.85:1 — WCAG AA 기준(4.5:1) 미달. QuizList.jsx L87, L53, GradingDashboard 전반에서 caption/meta 정보에 사용 | caption/보조 텍스트를 `text-gray-500`(#6B7280, 대비비 3.95:1)으로 상향. 또는 `text-slate-500` 활용. 완전 AA 준수는 `text-gray-600`(#4B5563) 이상 필요 | **High** |
+| # | 항목 | 현재 상태 | 문제점 | 개선안 | 등급 |
+|---|------|-----------|--------|--------|------|
+| 3-1 | 탭(Tab) 컴포넌트 3중 분기 | QuizCreate.jsx: `TabBtn` 컴포넌트 정의 / GradingDashboard.jsx: 동명의 `TabBtn` 별도 정의 / QuizStats.jsx: inline 스타일로 구현 | 탭 UI 3가지 구현 방식 혼재. 스타일 미세 불일치 | `src/components/Tab.jsx` 로 추출. 활성: `border-b-2 color #4f46e5`, 비활성: `color #9E9E9E` 통일 | **High** |
+| 3-2 | `.btn-ghost` 미사용 | index.css: `.btn-ghost` 클래스 정의 / 실제 코드: `onMouseEnter/Leave` 인라인으로 반복 구현 | 정의된 유틸리티 클래스가 사용되지 않고 중복 코드 산재 | 정의된 `.btn-ghost` 클래스 적극 사용. 인라인 hover 이벤트 제거 | **High** |
+| 3-3 | TypeBadge 컴포넌트 중복 | QuizStats.jsx와 GradingDashboard.jsx에 각각 `TypeBadge` 컴포넌트 중복 정의 | 변경 시 두 파일 모두 수정 필요 | `src/components/TypeBadge.jsx` 로 추출 | **Medium** |
+| 3-4 | CustomSelect vs native select 혼용 | QuizCreate.jsx: `CustomSelect` / QuizEdit.jsx 설정 패널: native `<select>` / QuestionBank.jsx 필터: native `<select>` | 동일 기능에 UI가 다름. 사용자 경험 불일치 | 폼 내 선택 필드: `CustomSelect` / 인라인 필터: native `<select>` 로 기준 명시 및 문서화 | **Medium** |
+| 3-5 | EmptyState 표현 방식 3종 | GradingDashboard.jsx: `EmptyState` 컴포넌트 / QuizEdit.jsx: 인라인 dashed border / QuizStats.jsx: 인라인 텍스트 | 빈 상태 표현 방식 혼재 | `src/components/EmptyState.jsx` 공통 추출. props: `message`, `action(선택)` | **Medium** |
+| 3-6 | 모달 구조 반복 | GradingDashboard, QuizEdit, QuizCreate, QuestionBank: 모달 오버레이/닫기/제목 구조 반복 구현 | 동일 구조 중복 | `src/components/Modal.jsx` 공통 추출 | Low |
+| 3-7 | QuestionBankModal 양쪽 중복 | QuizCreate.jsx와 QuizEdit.jsx에 동일한 `QuestionBankModal` 각각 구현 | 코드 중복 최다 지점 | `src/components/QuestionBankModal.jsx` 로 추출 | **Medium** |
 
 ---
 
-### 7. 빈 상태(Empty State) 및 로딩 상태 처리
+## 4. 레이아웃 그리드 및 여백 체계 (8px 기준)
 
-| 현재 상태 | 문제점 | 개선안 | 우선순위 |
-|---|---|---|---|
-| GradingDashboard에 EmptyState 컴포넌트 구현됨 (문항/학생 미선택 시) | QuizList.jsx에 퀴즈가 0개인 경우 Empty State 없음. `otherQuizzes` 빈 배열일 때 섹션 헤더("전체 퀴즈 (0)")만 표시됨 | 퀴즈가 없을 때 "아직 생성된 퀴즈가 없습니다" + 새 퀴즈 만들기 CTA 버튼을 포함한 Empty State 추가 | **High** |
-| QuestionBank 검색 결과 없음 처리됨 (L129) | 정상 | — | — |
-| 전체 페이지 및 컴포넌트에 로딩 스켈레톤 없음 | 현재 mock 데이터라 문제 없으나, 실데이터 전환 시 모든 리스트/카드가 빈 화면으로 깜빡임 발생 | 각 리스트 영역에 Skeleton 컴포넌트 설계(카드형 shimmer) 준비. `src/components/Skeleton.jsx` 미리 구현 권장 | **Medium** |
-| GradingDashboard에서 문항 선택 전 EmptyState는 있으나 일러스트 또는 아이콘 없음 | EmptyState 컴포넌트가 텍스트만 표시 — 정보 전달은 되나 시각적 완성도 낮음 | 간단한 아이콘(FileText, Users 등 lucide 기반) + 텍스트 조합으로 Empty State 시각 보강 | **Low** |
+| # | 항목 | 현재 상태 | 문제점 | 개선안 | 등급 |
+|---|------|-----------|--------|--------|------|
+| 4-1 | 페이지 상단 여백 불일치 | QuizList: `py-10(40px)` / QuizCreate: `py-8(32px)` / GradingDashboard: `py-6(24px)` / QuizStats: `py-6(24px)` | 동급 페이지 간 상단 여백 제각각. 8px 그리드 준수이나 기준 없음 | 상세/채점 페이지: `py-6`, 목록/생성 페이지: `py-8` 로 2단계 통일 | **Medium** |
+| 4-2 | 섹션/카드 간격 혼용 | QuizList: `mb-8` / QuizStats: `space-y-4` / GradingDashboard: `mb-4`, `mb-5` 혼용 | 카드/섹션 간격 기준값 없음 | 카드 간격: `gap-3(12px)`, 섹션 간격: `mb-6(24px)` 기준 수립 | Low |
+| 4-3 | 카드 내부 패딩 혼용 | `p-4`, `p-5`, `px-5 pt-5 pb-4`, `p-3` 혼용 | 카드 내부 패딩 기준 없음 | 기본 카드: `p-5`, 컴팩트: `p-4`, 아이템: `p-3` 3단계 기준 정립 | Low |
+| 4-4 | max-width 혼용 | QuizCreate.jsx: `max-w-2xl` / 기타: `max-w-screen-xl` | 생성 폼만 좁은 레이아웃 | 의도적 설계이면 문서화. 아니면 `max-w-screen-xl` 통일 | Low |
+
+---
+
+## 5. 반응형 브레이크포인트 대응
+
+| # | 항목 | 현재 상태 | 문제점 | 개선안 | 등급 |
+|---|------|-----------|--------|--------|------|
+| 5-1 | GradingDashboard 최소 높이 하드코딩 | `min-h-[calc(100vh-360px)]` | `100vh` 사용 — iOS Safari 주소창 고려 시 오버플로우 가능 | `min-h-[calc(100svh-360px)]` 로 변경 | **Medium** |
+| 5-2 | 통계 요약 카드 그리드 | `grid-cols-2 sm:grid-cols-3 lg:grid-cols-6` (카드 5개) | 5개 카드가 6열 그리드에서 1개 단독 배치되는 레이아웃 깨짐 발생 | 카드 6개로 고정(평균 응시 시간 카드 포함 시 6개) 또는 `lg:grid-cols-5` 로 변경 | **Medium** |
+| 5-3 | 아이콘 전용 버튼 모바일 처리 | `hidden sm:block` 으로 버튼 텍스트 숨김 다수 | aria-label 미적용 (접근성 항목 6-2와 중복) | 접근성 항목에서 통합 처리 | - |
+| 5-4 | 테이블 가로 스크롤 힌트 없음 | `overflow-x-auto` 적용 | 모바일에서 가로 스크롤 가능하나 힌트 없음 | 테이블 컨테이너 우측 fade 그라데이션 힌트 추가 검토 | Low |
+
+---
+
+## 6. 접근성 (대비, 포커스, 스크린리더)
+
+| # | 항목 | 현재 상태 | 문제점 | 개선안 | 등급 |
+|---|------|-----------|--------|--------|------|
+| 6-1 | CustomSelect 포커스 스타일 | `focus:outline-none`. 열림 시에만 ring 표시 | 키보드 탐색 시 닫힌 상태 포커스 불명확. WCAG 2.4.7 위반 | `focus-visible:ring-2 focus-visible:ring-indigo-500` 추가 | **High** |
+| 6-2 | 아이콘 전용 버튼 aria-label 누락 | 모달 X 버튼, 모바일 아이콘만 표시 버튼 등 다수 | 스크린리더 사용자가 버튼 목적 파악 불가 | 모든 아이콘 전용 버튼에 `aria-label` 추가. 텍스트 숨김 버튼은 `<span className="sr-only">` 활용 | **High** |
+| 6-3 | caption 색상 대비비 | `#BDBDBD` on 흰색 배경: 대비비 약 1.6:1 | WCAG AA 기준(4.5:1) 미달. StatChip muted, 미채점 '-' 표시 등에 적용 | `#BDBDBD` 는 장식용으로만 제한. 읽어야 할 텍스트는 최소 `#9E9E9E`(3.0:1) 이상 | **High** |
+| 6-4 | 탭 ARIA role 미적용 | QuizStats, QuizCreate, GradingDashboard 탭: role 미적용 | 스크린리더가 탭 컴포넌트 인식 불가. WCAG 4.1.2 위반 | 컨테이너: `role="tablist"`, 각 버튼: `role="tab" aria-selected={active}` | **High** |
+| 6-5 | 색상만으로 상태 구분 | 미제출/미채점을 숫자 색상(`#B43200`)만으로 구분 | 색맹 사용자 구분 불가. WCAG 1.4.1 위반 | 아이콘 또는 텍스트 레이블 병행 (일부 `AlertCircle` 적용된 패턴 확장) | **Medium** |
+| 6-6 | 폼 라벨-인풋 연결 누락 | QuizCreate.jsx `<Field>` 컴포넌트: htmlFor-id 연결 없이 텍스트만 표시 | 스크린리더가 라벨과 인풋 연결 불가 | `<label htmlFor={id}>` + `<input id={id}>` 명시적 연결 적용 | **Medium** |
+| 6-7 | 모달 포커스 트랩 미구현 | GradingDashboard, QuizEdit 등: 포커스 트랩 없음 | 모달 열린 상태에서 Tab으로 모달 외부 요소 포커스 가능 | `focus-trap-react` 또는 수동 포커스 트랩 구현 | **Medium** |
+
+---
+
+## 7. 빈 상태 및 로딩 상태 처리
+
+| # | 항목 | 현재 상태 | 문제점 | 개선안 | 등급 |
+|---|------|-----------|--------|--------|------|
+| 7-1 | 로딩 상태 전무 | 전체 파일: 로딩 스켈레톤/스피너 없음 | 목업 데이터라 현재 무관하나, 실 API 전환 시 빈 화면 노출 | 주요 컴포넌트에 `<Skeleton>` 또는 pulse 애니메이션 상태 추가 준비 | **Medium** |
+| 7-2 | GradingDashboard empty 안내 | 미선택 시 텍스트 메시지만 표시 | 행동 유도 없음 | 화살표 아이콘 + "좌측에서 문항을 선택하세요" 유도 문구 추가 | Low |
+| 7-3 | QuizList 퀴즈 0건 처리 없음 | `otherQuizzes.length === 0` 이면 빈 `<div>` 렌더링 | 빈 화면에서 UI 단절 | "아직 등록된 퀴즈가 없습니다 + 새 퀴즈 만들기" 버튼 포함 Empty state 추가 | **Medium** |
+| 7-4 | GradingDashboard 검색 빈 결과 누락 | QuizStats, QuestionBank는 empty 처리 / GradingDashboard ResponsesTab은 미처리 | students 배열 빈 경우 아무것도 렌더링되지 않음 | ResponsesTab에 empty 처리 추가. 전체 empty 메시지 문구 통일 | **Medium** |
+| 7-5 | 채점 저장 후 피드백 없음 | StudentRow: 점수 저장 후 시각적 피드백 없음 | 저장 성공 여부 인지 어려움 | `saved` state 이미 존재 — 저장 후 체크 아이콘 + "저장됨" 텍스트 표시 | Low |
 
 ---
 
 ## 우선순위 종합 요약
 
-### Critical (즉시 수정)
+### Critical (0건)
+없음
 
-| # | 항목 | 파일 |
-|---|---|---|
-| C-1 | AddQuestionModal / QuestionBankModal 중복 정의 — 단일 소스로 추출 | QuizCreate.jsx, QuizEdit.jsx |
-| C-2 | focus-visible 스타일 미적용 인라인 인풋 전반 | QuizEdit.jsx L173, QuizCreate.jsx L514, GradingDashboard.jsx L590 등 |
-| C-3 | 아이콘 전용 버튼 aria-label 누락 | Layout.jsx, QuizCreate.jsx L483, QuestionBank.jsx L186-193 등 |
-| C-4 | 커스텀 라디오(차시 선택) 키보드 접근 불가 | QuizCreate.jsx L234-256 |
+### High (10건)
+| ID | 내용 |
+|----|------|
+| 1-1, 1-2 | 차트 tick 색상 GDS 이탈 (`#94a3b8`, `#64748b`) |
+| 1-3 | 응시 현황 바 색상 GDS 불일치 (`#01A900`, `#EF2B2A`) |
+| 1-9 | '보통' 난이도 배지 = '채점중' 상태 배지 동일 색상 — 의미 혼동 |
+| 2-1 | 페이지 h1 크기 불일치 (text-lg ~ text-2xl 혼재) |
+| 3-1 | 탭 컴포넌트 3가지 방식 혼재 |
+| 3-2 | `.btn-ghost` 정의 존재하나 미사용, 인라인 반복 |
+| 6-1 | CustomSelect 키보드 포커스 스타일 불명확 |
+| 6-2 | 아이콘 전용 버튼 `aria-label` 누락 |
+| 6-3 | `#BDBDBD` 텍스트 대비비 WCAG AA 미달 (1.6:1) |
+| 6-4 | 탭 컴포넌트 ARIA role 미적용 |
 
-### High (이번 스프린트 내 처리)
+### Medium (13건)
+1-4, 1-5, 1-7 / 2-2, 2-3 / 3-3, 3-4, 3-5, 3-7 / 4-1 / 5-1, 5-2 / 6-5, 6-6, 6-7 / 7-1, 7-3, 7-4
 
-| # | 항목 | 파일 |
-|---|---|---|
-| H-1 | LIGHT_COLORS 4중 중복 정의 → 단일 파일로 추출 | GradingDashboard.jsx L18, QuizCreate.jsx L48, QuizEdit.jsx L28, QuestionBank.jsx L9 |
-| H-2 | slate / gray 텍스트 계열 혼용 정리 | 전체 |
-| H-3 | 페이지 h1 타이틀 크기 불일치 통일 (text-2xl 기준) | QuizCreate.jsx L113, QuizEdit.jsx L75 |
-| H-4 | QuizCreate/QuizEdit 버튼이 .btn-* 클래스 미사용 — rounded-lg(8px) vs rounded-xl(12px) 불일치 | QuizEdit.jsx L89-100, QuizCreate.jsx L360-370 |
-| H-5 | CustomSelect vs 네이티브 select 혼용 | QuizEdit.jsx L184-199 |
-| H-6 | 태블릿(768px) 구간 레이아웃 미대응 | QuizEdit.jsx L79 |
-| H-7 | 모바일 아이콘 전용 버튼 텍스트 숨김 시 aria-label 누락 | QuizList.jsx L27-34 |
-| H-8 | caption 텍스트 gray-400 대비비 WCAG AA 미달 | 전체 (text-gray-400 사용 위치) |
-| H-9 | Toggle 컴포넌트 focus-visible 피드백 없음 | QuizCreate.jsx L443-458 |
-| H-10 | QuizList 퀴즈 0건 Empty State 부재 | QuizList.jsx L52-59 |
-
-### Medium (다음 스프린트)
-
-| # | 항목 | 파일 |
-|---|---|---|
-| M-1 | 진행률 바 인라인 gradient → Tailwind 클래스화 | QuizList.jsx L141, GradingDashboard.jsx L160 |
-| M-2 | 미채점 색 amber-500/600 혼용 통일 | QuizList.jsx L120, GradingDashboard.jsx L639 |
-| M-3 | TabBtn 컴포넌트 두 유형 명시적 분리 정의 | QuizCreate.jsx L180, GradingDashboard.jsx |
-| M-4 | 채점 인풋 .input 클래스 미사용 | GradingDashboard.jsx L590 |
-| M-5 | split-pane 최소 높이 calc 하드코딩 제거 | GradingDashboard.jsx L225 |
-| M-6 | 모달 max-h를 dvh 단위로 변경 | QuizCreate.jsx L475, QuizEdit.jsx L380 |
-| M-7 | 브레드크럼 모바일 overflow 처리 개선 | Layout.jsx L24-43 |
-| M-8 | 로딩 스켈레톤 컴포넌트 설계 준비 | src/components/Skeleton.jsx (신규) |
-
-### Low (백로그)
-
-| # | 항목 | 파일 |
-|---|---|---|
-| L-1 | 임의 숫자 text-[18px], text-[11px] Tailwind 토큰화 | QuizList.jsx L125-127, GradingDashboard.jsx L144-146 |
-| L-2 | 브레드크럼 text-[13px] 유틸 클래스화 | Layout.jsx L20, L33, L38 |
-| L-3 | QuizCreate max-w-2xl 정책 문서화 | QuizCreate.jsx L112 |
-| L-4 | EmptyState 아이콘 시각 보강 | GradingDashboard.jsx (EmptyState 컴포넌트) |
+### Low (9건)
+1-6, 1-8 / 2-4 / 3-6 / 4-2, 4-3, 4-4 / 5-4 / 7-2, 7-5
 
 ---
 
-## 주요 발견사항 상세
+## 다음 스프린트 권고 수정 항목 (Top 5)
 
-### 가장 시급한 구조 문제: 모달 컴포넌트 중복 (C-1)
+1. **차트 색상 GDS 토큰 통일** (1-1, 1-2, 1-3) — 코드 수정 공수 최소, 시각 일관성 즉각 개선
+2. **탭 공통 컴포넌트 추출** (3-1) — 3개 파일 분산 구현을 `Tab.jsx` 단일화
+3. **aria-label 일괄 추가** (6-2) — 접근성 리스크 대응, 변경 공수 낮음
+4. **`#BDBDBD` 텍스트 대비 개선** (6-3) — WCAG AA 준수, caption 색상 사용 기준 가이드 수립
+5. **QuizList Empty state 추가** (7-3) — 데이터 0건 시 UI 단절 방지
 
-```
-QuizCreate.jsx L461-549  : AddQuestionModal
-QuizCreate.jsx L551-647  : QuestionBankModal
-QuizEdit.jsx L242-348    : AddQuestionModal (동일)
-QuizEdit.jsx L350-468    : QuestionBankModal (동일)
-```
-두 파일의 모달이 동일한 UI이지만 별도로 유지됨. 향후 버그 수정이나 디자인 변경 시 두 파일을 동시에 수정해야 하며 누락 위험이 높다.
+---
 
-### 접근성 위험: 커스텀 라디오 (C-4)
-
-`QuizCreate.jsx L236-244`: div에 onClick만 있고 `role`, `tabIndex`, `onKeyDown` 없음. 키보드 사용자와 스크린리더 사용자가 차시를 선택할 수 없는 상태다.
-
-### 색상 대비비 위험 구체 수치
-
-| 색상 | 배경 | 대비비 | WCAG AA(일반 텍스트) |
-|---|---|---|---|
-| gray-400 (#9CA3AF) | white | 2.85:1 | 실패 (기준: 4.5:1) |
-| gray-500 (#6B7280) | white | 3.95:1 | 실패 |
-| gray-600 (#4B5563) | white | 5.74:1 | 통과 |
-| slate-400 (#94A3B8) | white | 2.98:1 | 실패 |
-| slate-500 (#64748B) | white | 4.48:1 | 경계값 (주의) |
-
-현재 caption 및 보조 텍스트 상당 부분이 gray-400/slate-400으로 처리되어 있어 WCAG AA 기준을 충족하지 못한다. gray-600 이상 또는 slate-600으로 상향이 필요하다.
+*본 보고서는 실제 소스 파일을 직접 코드 분석하여 도출된 결과입니다. 추측 또는 시각적 스크린샷 없이 작성되었습니다.*

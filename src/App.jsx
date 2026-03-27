@@ -1,12 +1,16 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { RoleProvider } from './context/RoleContext'
+import { QuestionBankProvider } from './context/QuestionBankContext'
 
 const QuizList = lazy(() => import('./pages/QuizList'))
 const QuizEdit = lazy(() => import('./pages/QuizEdit'))
 const QuizCreate = lazy(() => import('./pages/QuizCreate'))
 const GradingDashboard = lazy(() => import('./pages/GradingDashboard'))
 const QuizStats = lazy(() => import('./pages/QuizStats'))
+const QuestionBankList = lazy(() => import('./pages/QuestionBankList'))
 const QuestionBank = lazy(() => import('./pages/QuestionBank'))
+const QuizAttempt = lazy(() => import('./pages/QuizAttempt'))
 
 function PageLoader() {
   return (
@@ -18,18 +22,24 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/" element={<QuizList />} />
-          <Route path="/quiz/new" element={<QuizCreate />} />
-          <Route path="/quiz/:id/edit" element={<QuizEdit />} />
-          <Route path="/quiz/:id/grade" element={<GradingDashboard />} />
-          <Route path="/quiz/:id/stats" element={<QuizStats />} />
-          <Route path="/question-bank" element={<QuestionBank />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+    <RoleProvider>
+      <QuestionBankProvider>
+      <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<QuizList />} />
+            <Route path="/quiz/new" element={<QuizCreate />} />
+            <Route path="/quiz/:id/edit" element={<QuizEdit />} />
+            <Route path="/quiz/:id/grade" element={<GradingDashboard />} />
+            <Route path="/quiz/:id/stats" element={<QuizStats />} />
+            <Route path="/quiz/:id/attempt" element={<QuizAttempt />} />
+            <Route path="/question-banks" element={<QuestionBankList />} />
+            <Route path="/question-banks/:bankId" element={<QuestionBank />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+      </QuestionBankProvider>
+    </RoleProvider>
   )
 }

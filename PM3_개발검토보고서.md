@@ -1,6 +1,6 @@
 # PM3 개발검토보고서 — XN Quizzes Prototype
 
-> 검토 기준일: 2026-03-25
+> 검토 기준일: 2026-03-26 (갱신)
 > 검토자: PM3 시니어 개발자
 > 검토 범위: src/App.jsx, src/pages/*.jsx, src/data/mockData.js, src/components/*.jsx, vite.config.js, package.json
 
@@ -316,4 +316,58 @@ GradingDashboard.jsx 내 채점 저장 로직(`setSaved(true)`)이 완전히 로
 
 ---
 
-*생성: PM3 시니어 개발자 에이전트 | XN Quizzes Prototype v0.0.0*
+---
+
+## 11. 보완 검토 (2026-03-26 갱신)
+
+이전 보고서 이후 전체 코드 재검토에서 추가로 확인된 항목.
+
+### 11-1. localStorage 파싱 안전성 — 신규 Critical 발견
+
+| 위치 | 코드 | 문제 |
+|---|---|---|
+| GradingDashboard.jsx:513, 608, 735 | `JSON.parse(localStorage.getItem('xnq_manual_grades') \|\| '{}')` | try/catch 없음. localStorage가 오염되거나 JSON 구조가 깨진 경우(브라우저 확장, 용량 초과 등) `SyntaxError` 발생으로 채점 기능 전체 중단 |
+| GradingDashboard.jsx:611, 826 | `student.manualScores[question.id] = Number(score)` | import된 mockStudents 배열 객체를 직접 변이. React가 해당 참조 변경을 감지하지 못해 다른 컴포넌트(StudentListItem 등)에서 최신 점수 미반영 가능 |
+
+**권고**: `JSON.parse` 호출부를 try/catch로 감싸고, 파싱 실패 시 빈 객체로 폴백 처리.
+
+### 11-2. 점수 입력 검증 불완전 — High
+
+`type="number"` input의 HTML `min`/`max` 속성은 브라우저 UI 힌트일 뿐 실제 값 제한이 아님.
+
+- 저장 버튼 비활성화 조건: `Number(score) > question.points || Number(score) < 0`
+- 통과 가능한 케이스: 소수점(`7.5`), 빈 문자열을 Number() 변환 시 0으로 처리되어 저장 허용
+- 소수점 점수 저장 후 총점 계산 시 `autoTotal + manualTotal`에서 부동소수점 오류 잠재적 발생
+
+**권고**: 저장 시 `Number.isInteger(Number(score))` 검증 추가. 소수점 허용 여부를 정책으로 명확히 결정 후 코드에 반영.
+
+### 11-3. QUESTION_BANK 데이터 불일치 위험 — High
+
+`QuizCreate.jsx`와 `QuizEdit.jsx`의 `QUESTION_BANK` 배열에는 `usageCount` 필드가 없는 반면, `QuestionBank.jsx`에는 존재함. 세 파일이 분리된 상수로 선언되어 있어 향후 필드 추가 시 일부 파일에만 반영되는 데이터 불일치가 발생할 수 있음.
+
+### 11-4. 응시 시간 계산 버그 (자정 경계) — Low (기존 L-02 상세화)
+
+`QuizStats.jsx:240~246` 시간 계산 로직:
+```
+const [sh, sm] = s.startTime.split(' ')[1].split(':').map(Number)
+const [eh, em] = s.endTime.split(' ')[1].split(':').map(Number)
+return (eh * 60 + em) - (sh * 60 + sm)
+```
+- 23:50 시작 → 00:20 종료 시 결과값이 `-210`분으로 음수 계산됨
+- `avgDuration`이 음수가 되어 "평균 응시 시간" 지표가 비정상 표시
+
+**권고**: 날짜 포함 전체 문자열을 `new Date()`로 파싱하거나, 결과값 음수 여부 체크 후 24*60 보정 처리.
+
+### 11-5. QuizCreate 발행 시 course 하드코딩 — Medium
+
+`QuizCreate.jsx:145`: `course: 'CS301 데이터베이스'`가 하드코딩됨. 다강좌 교수자 환경에서 퀴즈가 항상 동일 강좌로 귀속됨. 실데이터 전환 시 로그인 세션의 강좌 컨텍스트에서 동적으로 주입해야 함.
+
+### 11-6. GradingDashboard 채점 모드 전환 시 검색어 미초기화 — Low
+
+`GradingDashboard.jsx:161`: `onClick={() => { setGradingMode(mode); setMobileView('questions') }}`
+- 모드 전환 시 `searchStudent`(학생 중심), `searchStudent`(문항 중심) 검색어가 초기화되지 않아 이전 모드의 검색어가 잔존할 수 있음
+- 특히 `studentSearch`와 `searchStudent` 두 개의 별도 검색 상태 변수가 존재하여 혼란 가중 (M-02 이슈 연관)
+
+---
+
+*생성: PM3 시니어 개발자 에이전트 | XN Quizzes Prototype v0.0.0 | 최종 갱신: 2026-03-26*

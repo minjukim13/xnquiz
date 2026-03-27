@@ -34,8 +34,8 @@ export const mockQuizzes = [
   },
   {
     id: '2',
-    title: '1차 형성평가 - 알고리즘 기초',
-    course: 'CS201 알고리즘',
+    title: '1차 형성평가 - SQL 기초',
+    course: 'CS301 데이터베이스',
     status: 'closed',
     startDate: '2026-03-15 09:00',
     dueDate: '2026-03-15 23:59',
@@ -47,11 +47,12 @@ export const mockQuizzes = [
     pendingGrade: 0,
     questions: 20,
     totalPoints: 50,
+    avgScore: 38.2,
   },
   {
     id: '3',
-    title: '주차별 퀴즈 4 - 운영체제 프로세스',
-    course: 'CS302 운영체제',
+    title: '주차별 퀴즈 4 - 인덱스와 쿼리 최적화',
+    course: 'CS301 데이터베이스',
     status: 'open',
     startDate: '2026-03-25 09:00',
     dueDate: '2026-03-25 23:59',
@@ -66,8 +67,8 @@ export const mockQuizzes = [
   },
   {
     id: '4',
-    title: '기말고사 - 소프트웨어 공학',
-    course: 'CS401 소프트웨어공학',
+    title: '기말고사 - 데이터베이스 심화',
+    course: 'CS301 데이터베이스',
     status: 'draft',
     startDate: '2026-06-15 09:00',
     dueDate: '2026-06-15 18:00',
@@ -178,6 +179,137 @@ const AUTO_CORRECT_ANSWERS = {
   q9: ['15', '15개'],
 }
 
+// 퀴즈3 문항 (주차별 퀴즈 4 - 인덱스와 쿼리 최적화, 총 20점)
+export const mockQuiz3Questions = [
+  {
+    id: 'q3_1', order: 1, type: 'multiple_choice',
+    text: '인덱스(Index)를 생성했을 때 데이터 검색 속도가 빨라지는 이유로 가장 적절한 것은?',
+    points: 2, autoGrade: true,
+    correctAnswer: 'B-Tree 구조로 데이터를 정렬하여 탐색 범위를 줄이기 때문에',
+    choices: ['B-Tree 구조로 데이터를 정렬하여 탐색 범위를 줄이기 때문에', '데이터를 메모리에 캐시하기 때문에', '중복 데이터를 자동으로 제거하기 때문에', '테이블 전체 크기를 줄이기 때문에'],
+  },
+  {
+    id: 'q3_2', order: 2, type: 'true_false',
+    text: '인덱스를 많이 생성할수록 데이터베이스의 전체 성능이 향상된다.',
+    points: 2, autoGrade: true,
+    correctAnswer: '거짓',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'q3_3', order: 3, type: 'multiple_choice',
+    text: '다음 중 풀 테이블 스캔(Full Table Scan)이 발생할 가능성이 높은 경우는?',
+    points: 2, autoGrade: true,
+    correctAnswer: '인덱스가 없는 컬럼으로 WHERE 조건 검색',
+    choices: ['기본키(PK)로 단건 조회', '인덱스가 없는 컬럼으로 WHERE 조건 검색', 'LIMIT 1 조건 사용', '인덱스 컬럼 범위 검색'],
+  },
+  {
+    id: 'q3_4', order: 4, type: 'multiple_choice',
+    text: 'EXPLAIN 명령어를 사용하는 주된 목적은?',
+    points: 2, autoGrade: true,
+    correctAnswer: '쿼리 실행 계획을 확인하여 성능 병목을 파악하기 위해',
+    choices: ['쿼리 실행 계획을 확인하여 성능 병목을 파악하기 위해', '쿼리 결과를 외부 파일로 출력하기 위해', '데이터베이스 접근 권한을 확인하기 위해', '쿼리 오류를 자동으로 수정하기 위해'],
+  },
+  {
+    id: 'q3_5', order: 5, type: 'multiple_choice',
+    text: '복합 인덱스 (A, B, C)로 생성했을 때 인덱스가 효과적으로 활용되지 않는 WHERE 조건은?',
+    points: 2, autoGrade: true,
+    correctAnswer: 'WHERE B = ? AND C = ?',
+    choices: ['WHERE A = ?', 'WHERE A = ? AND B = ?', 'WHERE A = ? AND B = ? AND C = ?', 'WHERE B = ? AND C = ?'],
+  },
+  {
+    id: 'q3_6', order: 6, type: 'true_false',
+    text: 'SELECT * 보다 필요한 컬럼만 명시하여 조회하면 쿼리 성능이 향상될 수 있다.',
+    points: 2, autoGrade: true,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'q3_7', order: 7, type: 'multiple_choice',
+    text: 'N+1 문제(N+1 Problem)란 무엇인가?',
+    points: 2, autoGrade: true,
+    correctAnswer: '1번 쿼리로 N개 데이터 조회 후, 각 데이터에 대해 N번 추가 쿼리가 발생하는 현상',
+    choices: ['1번 쿼리로 N개 데이터 조회 후, 각 데이터에 대해 N번 추가 쿼리가 발생하는 현상', '하나의 테이블에 N+1개 이상의 인덱스가 생성된 상태', 'N개 테이블을 JOIN할 때 쿼리 수가 N+1이 되는 현상', '동시에 N+1명이 접속하여 데드락이 발생하는 현상'],
+  },
+  {
+    id: 'q3_8', order: 8, type: 'multiple_choice',
+    text: 'WHERE 절에서 인덱스 컬럼에 함수를 적용했을 때 발생하는 문제는?',
+    points: 2, autoGrade: true,
+    correctAnswer: '인덱스를 활용하지 못하고 풀 스캔이 발생한다',
+    choices: ['인덱스를 활용하지 못하고 풀 스캔이 발생한다', '쿼리 구문 오류가 발생한다', '함수 결과가 잘못 계산된다', '인덱스가 자동으로 재생성된다'],
+  },
+  {
+    id: 'q3_9', order: 9, type: 'short_answer',
+    text: '쿼리 실행 경로와 비용을 분석하여 보여주는 SQL 명령어를 쓰시오.',
+    points: 2, autoGrade: true,
+    correctAnswer: 'EXPLAIN',
+  },
+  {
+    id: 'q3_10', order: 10, type: 'multiple_choice',
+    text: '다음 중 인덱스 사용이 불리한 경우로 옳은 것은?',
+    points: 2, autoGrade: true,
+    correctAnswer: 'INSERT/UPDATE/DELETE가 매우 빈번한 테이블',
+    choices: ['고유값이 많은 컬럼 검색', 'INSERT/UPDATE/DELETE가 매우 빈번한 테이블', '기본키(PK)로 단건 조회', 'WHERE 조건 포함 범위 검색'],
+  },
+]
+
+// quiz3 자동채점 정답 맵
+const AUTO_CORRECT_Q3 = {
+  q3_1: ['B-Tree 구조로 데이터를 정렬하여 탐색 범위를 줄이기 때문에'],
+  q3_2: ['거짓', 'false'],
+  q3_3: ['인덱스가 없는 컬럼으로 WHERE 조건 검색'],
+  q3_4: ['쿼리 실행 계획을 확인하여 성능 병목을 파악하기 위해'],
+  q3_5: ['WHERE B = ? AND C = ?'],
+  q3_6: ['참', 'true'],
+  q3_7: ['1번 쿼리로 N개 데이터 조회 후, 각 데이터에 대해 N번 추가 쿼리가 발생하는 현상'],
+  q3_8: ['인덱스를 활용하지 못하고 풀 스캔이 발생한다'],
+  q3_9: ['EXPLAIN', 'explain'],
+  q3_10: ['INSERT/UPDATE/DELETE가 매우 빈번한 테이블'],
+}
+
+// 퀴즈 ID별 문항 반환 — GradingDashboard에서 사용
+export function getQuizQuestions(quizId) {
+  if (quizId === '1') return mockQuestions
+  if (quizId === '3') return mockQuiz3Questions
+  return []
+}
+
+// 학생 응시 결과 저장/불러오기
+export function getStudentAttempts(quizId) {
+  try {
+    const raw = localStorage.getItem('xnq_student_attempts')
+    const all = raw ? JSON.parse(raw) : {}
+    return all[quizId] || []
+  } catch { return [] }
+}
+
+export function saveStudentAttempt(quizId, attempt) {
+  try {
+    const raw = localStorage.getItem('xnq_student_attempts')
+    const all = raw ? JSON.parse(raw) : {}
+    if (!all[quizId]) all[quizId] = []
+    // 같은 studentId의 기존 응시 있으면 교체
+    const idx = all[quizId].findIndex(a => a.studentId === attempt.studentId)
+    if (idx >= 0) all[quizId][idx] = attempt
+    else all[quizId].push(attempt)
+    localStorage.setItem('xnq_student_attempts', JSON.stringify(all))
+  } catch { /* QuotaExceededError 무시 */ }
+}
+
+export function gradeQuiz3Answer(questionId, answer) {
+  const correct = AUTO_CORRECT_Q3[questionId]
+  if (!correct || !answer) return 0
+  return correct.some(c => answer.trim().toLowerCase() === c.toLowerCase().trim()) ? null : 0
+}
+
+export function autoGradeAnswer(question, answer) {
+  if (!answer && answer !== 0) return 0
+  const correctMap = question.id.startsWith('q3_') ? AUTO_CORRECT_Q3 : AUTO_CORRECT_ANSWERS
+  const correct = correctMap?.[question.id]
+  if (!correct) return null // 수동채점 필요
+  const isCorrect = correct.some(c => String(answer).trim().toLowerCase() === c.toLowerCase().trim())
+  return isCorrect ? question.points : 0
+}
+
 export function getStudentAnswer(studentIdx, questionId) {
   const pool = ANSWER_POOL[questionId] || ['답안 없음']
   return pool[(studentIdx * 3 + parseInt(questionId.replace('q', ''))) % pool.length]
@@ -188,6 +320,37 @@ export function isAnswerCorrect(answer, questionId) {
   if (!correct) return null
   return correct.some(c => answer.toLowerCase().includes(c.toLowerCase()))
 }
+
+// ── 문제은행 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──
+
+const BANK_QUESTION_TEXTS = [
+  'SQL SELECT 문의 기본 구조를 설명하시오.',
+  '정규화의 목적과 단계를 서술하시오.',
+  'JOIN의 종류와 각 특징을 설명하시오.',
+  'PRIMARY KEY와 FOREIGN KEY의 차이점은?',
+  'WHERE 절과 HAVING 절의 차이는?',
+  '인덱스의 역할과 장단점을 설명하시오.',
+  'ACID 속성이란 무엇인가?',
+  '뷰(View)의 개념과 사용 목적은?',
+  '서브쿼리와 JOIN의 성능 차이는?',
+  'GROUP BY 절의 사용 방법을 예시와 함께 설명하시오.',
+]
+
+export const MOCK_BANKS = [
+  { id: 'bank1', name: 'DB 기초', updatedAt: '2026-03-20', usedInQuizIds: ['1', '2'] },
+  { id: 'bank2', name: 'SQL 심화', updatedAt: '2026-03-24', usedInQuizIds: ['1'] },
+  { id: 'bank3', name: '설계 원칙', updatedAt: '2026-03-15', usedInQuizIds: ['4'] },
+  { id: 'bank4', name: '트랜잭션', updatedAt: '2026-03-10', usedInQuizIds: ['1', '4'] },
+]
+
+export const MOCK_BANK_QUESTIONS = Array.from({ length: 60 }, (_, i) => ({
+  id: `bank_q${i + 1}`,
+  text: BANK_QUESTION_TEXTS[i % 10] + (i >= 10 ? ` (${Math.floor(i / 10) + 1})` : ''),
+  type: Object.keys(QUIZ_TYPES)[i % Object.keys(QUIZ_TYPES).length],
+  points: [3, 5, 8, 10, 15][i % 5],
+  bankId: ['bank1', 'bank2', 'bank3', 'bank4'][i % 4],
+  usageCount: [0, 2, 5, 1, 3, 8, 0, 4][i % 8],
+}))
 
 // 데모용 가상 데이터 — 실제 개인정보 아님
 // Q3 단답형(10점) 개별 점수
