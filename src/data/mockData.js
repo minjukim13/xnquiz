@@ -292,7 +292,12 @@ export function saveStudentAttempt(quizId, attempt) {
     if (idx >= 0) all[quizId][idx] = attempt
     else all[quizId].push(attempt)
     localStorage.setItem('xnq_student_attempts', JSON.stringify(all))
-  } catch { /* QuotaExceededError 무시 */ }
+  } catch (err) {
+    if (err.name === 'QuotaExceededError') {
+      console.error('[xnquiz] localStorage 용량 초과 - 응시 기록 저장 실패:', err)
+      throw new Error('응시 데이터를 저장할 수 없습니다. 브라우저 저장 공간이 부족합니다.')
+    }
+  }
 }
 
 export function gradeQuiz3Answer(questionId, answer) {

@@ -78,7 +78,7 @@ const SORT_OPTIONS = [
 export default function GradingDashboard() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const QUIZ_INFO = mockQuizzes.find(q => q.id === id) ?? mockQuizzes[0]
+  const QUIZ_INFO = mockQuizzes.find(q => q.id === id)
 
   // 채점 모드: 'question' = 문항 중심, 'student' = 학생 중심
   const [gradingMode, setGradingMode] = useState('question')
@@ -105,6 +105,7 @@ export default function GradingDashboard() {
   const manualQuestions = quizQuestions.filter(q => !q.autoGrade)
 
   const sortedQuestions = useMemo(() => {
+    if (!QUIZ_INFO) return []
     if (sortBy === 'ungraded_first') {
       return [...manualQuestions].sort((a, b) => {
         const aComplete = a.gradedCount >= a.totalCount
@@ -114,7 +115,7 @@ export default function GradingDashboard() {
       })
     }
     return [...manualQuestions].sort((a, b) => a.order - b.order)
-  }, [sortBy])
+  }, [sortBy, QUIZ_INFO])
 
   const gradedQuestions = sortedQuestions.filter(q => q.gradedCount >= q.totalCount)
   const ungradedQuestions = sortedQuestions.filter(q => q.gradedCount < q.totalCount)
@@ -149,6 +150,19 @@ export default function GradingDashboard() {
   const handleSelectStudent = (s) => {
     setSelectedStudent(s)
     setMobileView('detail')
+  }
+
+  // 유효하지 않은 quiz id 처리 (모든 hook 이후)
+  if (!QUIZ_INFO) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <AlertCircle size={32} className="mx-auto mb-3" style={{ color: '#B43200' }} />
+          <p className="text-sm font-medium mb-1" style={{ color: '#222222' }}>퀴즈를 찾을 수 없습니다</p>
+          <Link to="/" className="text-xs text-indigo-600 hover:underline">퀴즈 목록으로 돌아가기</Link>
+        </div>
+      </Layout>
+    )
   }
 
   const submitRate = Math.round((QUIZ_INFO.submitted / QUIZ_INFO.totalStudents) * 100)

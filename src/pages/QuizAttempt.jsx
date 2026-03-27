@@ -33,7 +33,7 @@ export default function QuizAttempt() {
           handleSubmit(true)
           return 0
         }
-        return prev - 1
+        return Math.max(0, prev - 1)
       })
     }, 1000)
     return () => clearInterval(timer)
@@ -84,7 +84,12 @@ export default function QuizAttempt() {
       autoSubmitted: auto,
     }
 
-    saveStudentAttempt(id, attempt)
+    try {
+      saveStudentAttempt(id, attempt)
+    } catch (err) {
+      console.error('[xnquiz] 제출 저장 실패:', err)
+      alert('응시 기록 저장에 실패했습니다. 브라우저 저장 공간을 확인해주세요.')
+    }
     setResult(attempt)
   }, [answers, questions, id, currentStudent, timeRemaining, submitted])
 
