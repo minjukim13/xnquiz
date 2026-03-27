@@ -180,17 +180,18 @@ export default function GradingDashboard() {
               <p className="text-xs" style={{ color: '#9E9E9E' }}>{QUIZ_INFO.startDate} ~ {QUIZ_INFO.dueDate}</p>
             </div>
 
-            <div className="flex items-center gap-5 sm:gap-7 shrink-0">
+            <div className="flex items-stretch shrink-0 rounded-lg overflow-hidden" style={{ border: '1px solid #E0E0E0' }}>
               {[
-                { label: '제출',      value: QUIZ_INFO.submitted,                          sub: `${submitRate}%`,        styleColor: '#222222' },
-                { label: '미제출',    value: QUIZ_INFO.totalStudents - QUIZ_INFO.submitted, sub: `${100 - submitRate}%`,  styleColor: '#B43200' },
-                { label: '채점 완료', value: QUIZ_INFO.graded,                              sub: null,                    styleColor: '#018600' },
-                { label: '미채점',    value: QUIZ_INFO.pendingGrade,                        sub: null,                    styleColor: '#B43200' },
-              ].map(item => (
-                <div key={item.label} className="text-center">
+                { label: '제출',      value: QUIZ_INFO.submitted,                           sub: `${submitRate}%`,                                                              styleColor: '#222222' },
+                { label: '미제출',    value: QUIZ_INFO.totalStudents - QUIZ_INFO.submitted,  sub: `${100 - submitRate}%`,                                                        styleColor: '#B43200' },
+                { label: '채점 완료', value: QUIZ_INFO.graded,                               sub: `${QUIZ_INFO.submitted > 0 ? Math.round(QUIZ_INFO.graded / QUIZ_INFO.submitted * 100) : 0}%`, styleColor: '#018600' },
+                { label: '미채점',    value: QUIZ_INFO.pendingGrade,                         sub: `${QUIZ_INFO.submitted > 0 ? Math.round(QUIZ_INFO.pendingGrade / QUIZ_INFO.submitted * 100) : 0}%`, styleColor: '#B43200' },
+              ].map((item, i) => (
+                <div key={item.label} className="flex flex-col items-center justify-center px-5 py-3 text-center"
+                  style={{ borderLeft: i > 0 ? '1px solid #EEEEEE' : 'none', minWidth: 64 }}>
                   <p className="text-[18px] font-bold leading-none" style={{ color: item.styleColor }}>{item.value}</p>
-                  {item.sub && <p className="text-[11px] font-medium mt-0.5" style={{ color: '#9E9E9E' }}>{item.sub}</p>}
-                  <p className="text-[11px] mt-1" style={{ color: '#9E9E9E' }}>{item.label}</p>
+                  <p className="text-[11px] font-medium mt-1" style={{ color: '#9E9E9E' }}>{item.sub}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: '#9E9E9E' }}>{item.label}</p>
                 </div>
               ))}
             </div>
