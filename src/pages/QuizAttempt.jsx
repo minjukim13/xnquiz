@@ -195,7 +195,7 @@ function QuestionCard({ question, index, value, onChange, disabled }) {
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold" style={{ color: '#9E9E9E' }}>Q{index + 1}</span>
             <span
-              className="text-[11px] font-medium px-1.5 py-0.5 rounded"
+              className="text-xs font-medium px-1.5 py-0.5 rounded"
               style={{ background: '#EEF2FF', color: '#4f46e5' }}
             >
               {typeLabels[question.type] ?? question.type}
@@ -271,7 +271,7 @@ function QuestionCard({ question, index, value, onChange, disabled }) {
       {/* 답변 완료 표시 */}
       {isAnswered && (
         <div className="px-5 py-2" style={{ background: '#F5F7FF', borderTop: '1px solid #E8EBFF' }}>
-          <p className="text-[11px] flex items-center gap-1.5" style={{ color: '#4f46e5' }}>
+          <p className="text-xs flex items-center gap-1.5" style={{ color: '#4f46e5' }}>
             <CheckCircle2 size={11} />
             답변 완료
           </p>
@@ -317,7 +317,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
                 style={{ width: `${scorePercent}%`, background: scorePercent >= 80 ? '#018600' : scorePercent >= 60 ? '#f59e0b' : '#BF0A03' }}
               />
             </div>
-            <p className="text-[11px] mt-1.5 text-right" style={{ color: '#9E9E9E' }}>{scorePercent}% 정답</p>
+            <p className="text-xs mt-1.5 text-right" style={{ color: '#9E9E9E' }}>{scorePercent}% 정답</p>
           </div>
 
           {/* 수동채점 안내 */}

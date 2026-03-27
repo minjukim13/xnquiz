@@ -216,9 +216,9 @@ export default function GradingDashboard() {
             <div className="flex items-stretch shrink-0 rounded-lg overflow-hidden" style={{ border: '1px solid #E0E0E0' }}>
               {[
                 { label: '제출',      value: QUIZ_INFO.submitted,                           sub: `${submitRate}%`,                                                                          styleColor: '#222222' },
-                { label: '미제출',    value: QUIZ_INFO.totalStudents - QUIZ_INFO.submitted,  sub: `${100 - submitRate}%`,                                                                    styleColor: '#B43200' },
                 { label: '채점 완료', value: QUIZ_INFO.graded,                               sub: `${QUIZ_INFO.submitted > 0 ? Math.round(QUIZ_INFO.graded / QUIZ_INFO.submitted * 100) : 0}%`,        styleColor: '#018600' },
                 { label: '미채점',    value: QUIZ_INFO.pendingGrade,                         sub: `${QUIZ_INFO.submitted > 0 ? Math.round(QUIZ_INFO.pendingGrade / QUIZ_INFO.submitted * 100) : 0}%`,   styleColor: '#B43200' },
+                { label: '미제출',    value: QUIZ_INFO.totalStudents - QUIZ_INFO.submitted,  sub: `${100 - submitRate}%`,                                                                    styleColor: '#9E9E9E' },
               ].map((item, i) => (
                 <div key={item.label} className="flex flex-col items-center justify-center px-6 py-4 text-center"
                   style={{ borderLeft: i > 0 ? '1px solid #EEEEEE' : 'none', minWidth: 72 }}>
@@ -1044,7 +1044,7 @@ function TypeBadge({ type, small }) {
   const cfg = QUIZ_TYPES[type] || { label: type }
   return (
     <span
-      className={`inline-block font-medium px-1.5 py-0.5 rounded ${small ? 'text-[10px]' : 'text-xs'}`}
+      className={`inline-block font-medium px-1.5 py-0.5 rounded ${small ? 'text-xs' : 'text-xs'}`}
       style={{ background: '#F5F5F5', color: '#616161' }}
     >
       {cfg.label}

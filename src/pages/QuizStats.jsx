@@ -11,7 +11,7 @@ function TypeBadge({ type, small }) {
   const cfg = QUIZ_TYPES[type] || { label: type }
   return (
     <span
-      className={`inline-block font-medium px-1.5 py-0.5 rounded ${small ? 'text-[10px]' : 'text-xs'}`}
+      className={`inline-block font-medium px-1.5 py-0.5 rounded ${small ? 'text-xs' : 'text-xs'}`}
       style={{ background: '#F5F5F5', color: '#616161' }}
     >
       {cfg.label}
@@ -296,16 +296,16 @@ function StatsTab({ quiz }) {
             <div className="text-xl font-bold leading-none" style={{ color: item.accent ? '#6366f1' : '#222222' }}>
               {item.value}
             </div>
-            <div className="text-[11px] mt-0.5" style={{ color: '#9E9E9E' }}>{item.unit}</div>
+            <div className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{item.unit}</div>
             <div className="text-xs mt-1.5" style={{ color: '#616161' }}>{item.label}</div>
           </div>
         ))}
         <div className="bg-white p-3 text-center" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
           <div className="text-xl font-bold leading-none" style={{ color: '#222222' }}>{avgDuration ?? '-'}</div>
-          <div className="text-[11px] mt-0.5" style={{ color: '#9E9E9E' }}>분</div>
+          <div className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>분</div>
           <div className="text-xs mt-1.5" style={{ color: '#616161' }}>평균 응시시간</div>
           {timeLimit && timePressureCount > 0 && (
-            <div className="mt-1.5 text-[10px] pt-1.5" style={{ color: '#9E9E9E', borderTop: '1px solid #EEEEEE' }}>
+            <div className="mt-1.5 text-xs pt-1.5" style={{ color: '#9E9E9E', borderTop: '1px solid #EEEEEE' }}>
               마감 임박({Math.round(timeLimit * 0.95)}분↑) {timePressureRate}%
             </div>
           )}
@@ -486,7 +486,7 @@ function StatsTab({ quiz }) {
                   <td className="px-4 py-2.5">
                     {q.difficulty ? (
                       <span
-                        className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                        className="px-1.5 py-0.5 rounded text-xs font-medium"
                         style={
                           q.difficulty.label === '쉬움' ? { background: '#E5FCE3', color: '#018600' }
                           : q.difficulty.label === '보통' ? { background: '#FFF6F2', color: '#B43200' }

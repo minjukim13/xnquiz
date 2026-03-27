@@ -131,7 +131,7 @@ export default function Layout({ children, breadcrumbs = [] }) {
                     style={{ background: '#fff', border: '1px solid #E0E0E0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', minWidth: 180 }}
                   >
                     <div className="px-3 py-2" style={{ borderBottom: '1px solid #EEEEEE' }}>
-                      <p className="text-[11px] font-semibold" style={{ color: '#9E9E9E' }}>학생 계정 선택 (데모)</p>
+                      <p className="text-xs font-semibold" style={{ color: '#9E9E9E' }}>학생 계정 선택 (데모)</p>
                     </div>
                     {DEMO_STUDENTS.map(s => (
                       <button
@@ -186,7 +186,7 @@ export default function Layout({ children, breadcrumbs = [] }) {
           }}
         >
           <nav className="p-3 space-y-0.5">
-            <p className="text-[10px] font-semibold px-2 pt-2 pb-1.5" style={{ color: '#BDBDBD', letterSpacing: '0.06em' }}>
+            <p className="text-xs font-semibold px-2 pt-2 pb-1.5" style={{ color: '#BDBDBD', letterSpacing: '0.06em' }}>
               {role === 'student' ? '학습' : '강의'}
             </p>
             {navItems.map(item => {

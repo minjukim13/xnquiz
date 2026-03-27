@@ -105,7 +105,7 @@ function QuizCard({ quiz, onPublishQuiz }) {
               <span className="text-xs px-2 py-0.5 rounded" style={{ color: '#9E9E9E', background: '#F5F5F5' }}>미발행</span>
             )}
           </div>
-          <h3 className="text-[15px] font-semibold leading-snug mb-1 truncate" style={{ color: '#222222' }}>{quiz.title}</h3>
+          <h3 className="text-base font-semibold leading-snug mb-1 truncate" style={{ color: '#222222' }}>{quiz.title}</h3>
           <p className="text-xs" style={{ color: '#9E9E9E' }}>{quiz.startDate} ~ {quiz.dueDate}</p>
         </div>
 
@@ -238,10 +238,10 @@ function ActiveStats({ quiz }) {
             <p className="text-[17px] font-bold leading-none" style={{ color: item.styleColor }}>
               {item.value}
               {item.sub && (
-                <span className="text-[11px] font-medium ml-1" style={{ color: '#9E9E9E' }}>{item.sub}</span>
+                <span className="text-xs font-medium ml-1" style={{ color: '#9E9E9E' }}>{item.sub}</span>
               )}
             </p>
-            <p className="text-[11px] mt-1" style={{ color: '#9E9E9E' }}>{item.label}</p>
+            <p className="text-xs mt-1" style={{ color: '#9E9E9E' }}>{item.label}</p>
           </div>
         ))}
       </div>
@@ -384,7 +384,7 @@ function StudentQuizCard({ quiz, studentId }) {
               )}
               <span className="text-xs" style={{ color: '#9E9E9E' }}>{quiz.week}주차 {quiz.session}차시</span>
             </div>
-            <h3 className="text-[15px] font-semibold mb-1 truncate" style={{ color: '#222222' }}>{quiz.title}</h3>
+            <h3 className="text-base font-semibold mb-1 truncate" style={{ color: '#222222' }}>{quiz.title}</h3>
             <div className="flex items-center gap-3 text-xs" style={{ color: '#9E9E9E' }}>
               <span className="flex items-center gap-1"><Clock size={11} />{quiz.timeLimit ?? 30}분</span>
               <span>{quiz.questions}문항 · {quiz.totalPoints}점</span>
