@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, BookOpen, GripVertical, Trash2, X, Search, ChevronLeft } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
+import AddQuestionModal from '../components/AddQuestionModal'
 import { QUIZ_TYPES, mockQuizzes } from '../data/mockData'
 import { useQuestionBank } from '../context/QuestionBankContext'
 
@@ -217,7 +218,7 @@ function InfoTab({ form, set }) {
             />
           </Field>
           <Field label="차시">
-            <div className="flex gap-2 flex-wrap pt-0.5">
+            <div className="flex gap-2 flex-wrap h-10 items-center">
               {SESSION_OPTIONS.map(s => (
                 <label key={s.value} className="flex items-center gap-1.5 cursor-pointer">
                   <div
@@ -455,112 +456,6 @@ function Toggle({ checked, onChange, label, description }) {
         {description && <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{description}</p>}
       </div>
     </label>
-  )
-}
-
-// ── 직접 문항 추가 모달 ────────────────────────────────────────────────────
-function AddQuestionModal({ onClose, onAdd }) {
-  const [step, setStep] = useState('type')
-  const [selectedType, setSelectedType] = useState(null)
-  const [form, setForm] = useState({ text: '', points: 5, correctAnswer: '' })
-  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
-
-  const handleAdd = () => {
-    onAdd({ type: selectedType, text: form.text, points: Number(form.points), correctAnswer: form.correctAnswer || null })
-    onClose()
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="relative w-full sm:max-w-lg bg-white" style={{ border: '1px solid #E0E0E0', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }} onClick={e => e.stopPropagation()}>
-        <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
-          <div>
-            <h3 className="font-semibold" style={{ color: '#222222' }}>문항 직접 추가</h3>
-            {step === 'form' && selectedType && (
-              <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{QUIZ_TYPES[selectedType]?.label}</p>
-            )}
-          </div>
-          <button onClick={onClose} style={{ color: '#9E9E9E' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#424242'}
-            onMouseLeave={e => e.currentTarget.style.color = '#9E9E9E'}
-          ><X size={18} /></button>
-        </div>
-
-        {step === 'type' ? (
-          <div className="p-4">
-            <p className="text-sm mb-4" style={{ color: '#616161' }}>추가할 문항 유형을 선택하세요</p>
-            <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto scrollbar-thin">
-              {Object.entries(QUIZ_TYPES).map(([key, val]) => (
-                <button
-                  key={key}
-                  onClick={() => { setSelectedType(key); setStep('form') }}
-                  className="flex items-center gap-2.5 p-3 text-left transition-all rounded"
-                  style={{ border: '1px solid #E0E0E0' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#EEF2FF' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#E0E0E0'; e.currentTarget.style.background = 'transparent' }}
-                >
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: val.autoGrade === false ? '#B43200' : val.autoGrade === 'partial' ? '#f59e0b' : '#01A900' }} />
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: '#424242' }}>{val.label}</p>
-                    <p className="text-xs" style={{ color: '#9E9E9E' }}>{val.autoGrade === false ? '수동채점' : val.autoGrade === 'partial' ? '부분자동' : '자동채점'}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="p-4 space-y-4">
-            <div>
-              <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>문제 내용 <span style={{ color: '#EF2B2A' }}>*</span></label>
-              <textarea
-                value={form.text}
-                onChange={e => set('text', e.target.value)}
-                placeholder="문제를 입력하세요..."
-                rows={3}
-                className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
-                style={{ border: '1px solid #E0E0E0', color: '#222222' }}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>배점</label>
-                <input type="number" value={form.points} onChange={e => set('points', e.target.value)} min={1}
-                  className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                  style={{ border: '1px solid #E0E0E0', color: '#222222' }} />
-              </div>
-              {QUIZ_TYPES[selectedType]?.autoGrade !== false && (
-                <div>
-                  <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>정답</label>
-                  <input type="text" value={form.correctAnswer} onChange={e => set('correctAnswer', e.target.value)} placeholder="정답 입력"
-                    className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                    style={{ border: '1px solid #E0E0E0', color: '#222222' }} />
-                </div>
-              )}
-            </div>
-            <div className="flex justify-between pt-1">
-              <button onClick={() => setStep('type')} className="text-sm transition-colors" style={{ color: '#9E9E9E' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#424242'}
-                onMouseLeave={e => e.currentTarget.style.color = '#9E9E9E'}
-              >← 유형 다시 선택</button>
-              <div className="flex gap-2">
-                <button onClick={onClose} className="text-sm px-4 py-2 rounded transition-colors" style={{ color: '#424242', border: '1px solid #E0E0E0' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >취소</button>
-                <button
-                  disabled={!form.text}
-                  onClick={handleAdd}
-                  className="text-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded transition-colors font-medium"
-                >
-                  추가
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
   )
 }
 
