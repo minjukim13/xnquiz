@@ -1,6 +1,22 @@
 import { useState } from 'react'
-import { X, Plus, Trash2 } from 'lucide-react'
+import { X, Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, Minus, AlignJustify, ChevronDown, ArrowUpDown, Paperclip } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
+
+// ── 유형별 아이콘 + 설명 메타 ──────────────────────────────────────────────
+const TYPE_META = {
+  multiple_choice:          { Icon: CircleDot,      desc: '보기 중 1개 선택',         color: '#6366f1', bg: '#EEF2FF' },
+  true_false:               { Icon: ToggleLeft,      desc: '참 또는 거짓 선택',         color: '#059669', bg: '#ECFDF5' },
+  multiple_answers:         { Icon: ListChecks,      desc: '보기 여러 개 동시 선택',     color: '#3B82F6', bg: '#EFF6FF' },
+  short_answer:             { Icon: PenLine,         desc: '짧은 텍스트로 답변',         color: '#F59E0B', bg: '#FFFBEB' },
+  essay:                    { Icon: AlignLeft,       desc: '자유롭게 서술',             color: '#EF4444', bg: '#FEF2F2' },
+  numerical:                { Icon: Hash,            desc: '숫자로 정확히 답변',         color: '#8B5CF6', bg: '#F5F3FF' },
+  matching:                 { Icon: ArrowLeftRight,  desc: '항목끼리 짝 연결',          color: '#0891B2', bg: '#ECFEFF' },
+  fill_in_blank:            { Icon: Minus,           desc: '문장 속 빈칸 채우기',        color: '#D97706', bg: '#FFFBEB' },
+  fill_in_multiple_blanks:  { Icon: AlignJustify,   desc: '여러 빈칸 순서대로 채우기',   color: '#EA580C', bg: '#FFF7ED' },
+  multiple_dropdowns:       { Icon: ChevronDown,     desc: '드롭다운에서 항목 선택',     color: '#4F46E5', bg: '#EEF2FF' },
+  ordering:                 { Icon: ArrowUpDown,     desc: '올바른 순서로 항목 배열',    color: '#0D9488', bg: '#F0FDFA' },
+  file_upload:              { Icon: Paperclip,       desc: '파일 업로드로 제출',         color: '#64748B', bg: '#F8FAFC' },
+}
 
 // ── 유형별 미리보기 ────────────────────────────────────────────────────────
 function TypePreview({ type }) {
@@ -627,15 +643,24 @@ export default function AddQuestionModal({ onClose, onAdd }) {
                     onMouseLeave={() => setHoveredType(null)}
                     className="flex items-center gap-2.5 p-3 text-left transition-all rounded"
                     style={{
-                      border: `1px solid ${hoveredType === key ? '#6366f1' : '#E0E0E0'}`,
-                      background: hoveredType === key ? '#EEF2FF' : 'transparent',
+                      border: `1px solid ${hoveredType === key ? (TYPE_META[key]?.color ?? '#6366f1') : '#E0E0E0'}`,
+                      background: hoveredType === key ? (TYPE_META[key]?.bg ?? '#EEF2FF') : 'transparent',
                     }}
                   >
-                    <span className="w-2 h-2 rounded-full shrink-0"
-                      style={{ background: val.autoGrade === false ? '#B43200' : val.autoGrade === 'partial' ? '#f59e0b' : '#01A900' }} />
+                    {(() => {
+                      const meta = TYPE_META[key]
+                      return meta ? (
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: meta.bg, border: `1px solid ${meta.color}22` }}>
+                          <meta.Icon size={15} style={{ color: meta.color }} />
+                        </div>
+                      ) : (
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#9E9E9E' }} />
+                      )
+                    })()}
                     <div>
-                      <p className="text-sm font-medium" style={{ color: '#424242' }}>{val.label}</p>
-                      <p className="text-xs" style={{ color: '#9E9E9E' }}>{val.autoGrade === false ? '수동채점' : val.autoGrade === 'partial' ? '부분자동' : '자동채점'}</p>
+                      <p className="text-sm font-medium" style={{ color: '#222222' }}>{val.label}</p>
+                      <p className="text-xs mt-0.5" style={{ color: '#757575' }}>{TYPE_META[key]?.desc ?? ''}</p>
                     </div>
                   </button>
                 ))}
