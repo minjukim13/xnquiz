@@ -203,7 +203,7 @@ function ClosedSummary({ quiz }) {
     <div className="flex items-center gap-6 flex-wrap">
       {quiz.avgScore != null && (
         <div className="flex items-baseline gap-1">
-          <span className="text-[17px] font-bold" style={{ color: '#222222' }}>{quiz.avgScore}</span>
+          <span className="text-lg font-bold" style={{ color: '#222222' }}>{quiz.avgScore}</span>
           <span className="text-xs" style={{ color: '#9E9E9E' }}>/ {quiz.totalPoints}점 평균</span>
         </div>
       )}
@@ -235,7 +235,7 @@ function ActiveStats({ quiz }) {
           { label: '미채점',    value: quiz.pendingGrade, sub: null,         styleColor: quiz.pendingGrade > 0 ? '#B43200' : '#222222' },
         ].map((item, idx) => (
           <div key={item.label} className="text-center px-2 first:pl-0 last:pr-0" style={idx < 3 ? { borderRight: '1px solid #EEEEEE' } : {}}>
-            <p className="text-[17px] font-bold leading-none" style={{ color: item.styleColor }}>
+            <p className="text-lg font-bold leading-none" style={{ color: item.styleColor }}>
               {item.value}
               {item.sub && (
                 <span className="text-xs font-medium ml-1" style={{ color: '#9E9E9E' }}>{item.sub}</span>
@@ -267,7 +267,7 @@ function ActiveStats({ quiz }) {
 function StatChip({ label, value, sub, muted }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[13px] font-semibold" style={{ color: muted ? '#BDBDBD' : '#424242' }}>{value}</span>
+      <span className="text-sm font-semibold" style={{ color: muted ? '#BDBDBD' : '#424242' }}>{value}</span>
       {sub && <span className="text-xs font-medium" style={{ color: '#9E9E9E' }}>{sub}</span>}
       <span className="text-xs" style={{ color: '#9E9E9E' }}>{label}</span>
     </div>
