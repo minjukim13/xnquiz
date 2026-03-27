@@ -178,8 +178,8 @@ export default function GradingDashboard() {
       <div className="max-w-[1600px] mx-auto px-6 sm:px-10 xl:px-16 py-6">
 
         {/* 퀴즈 정보 카드 */}
-        <div className="card p-4 sm:p-5 mb-5">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="card p-5 sm:p-6 mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className="text-xs" style={{ color: '#9E9E9E' }}>
@@ -190,22 +190,22 @@ export default function GradingDashboard() {
                   채점 중
                 </span>
               </div>
-              <h2 className="text-[15px] font-bold mb-1" style={{ color: '#222222' }}>{QUIZ_INFO.title}</h2>
-              <p className="text-xs" style={{ color: '#9E9E9E' }}>{QUIZ_INFO.startDate} ~ {QUIZ_INFO.dueDate}</p>
+              <h2 className="text-lg font-bold mb-1.5" style={{ color: '#222222' }}>{QUIZ_INFO.title}</h2>
+              <p className="text-sm" style={{ color: '#9E9E9E' }}>{QUIZ_INFO.startDate} ~ {QUIZ_INFO.dueDate}</p>
             </div>
 
             <div className="flex items-stretch shrink-0 rounded-lg overflow-hidden" style={{ border: '1px solid #E0E0E0' }}>
               {[
-                { label: '제출',      value: QUIZ_INFO.submitted,                           sub: `${submitRate}%`,                                                              styleColor: '#222222' },
-                { label: '미제출',    value: QUIZ_INFO.totalStudents - QUIZ_INFO.submitted,  sub: `${100 - submitRate}%`,                                                        styleColor: '#B43200' },
-                { label: '채점 완료', value: QUIZ_INFO.graded,                               sub: `${QUIZ_INFO.submitted > 0 ? Math.round(QUIZ_INFO.graded / QUIZ_INFO.submitted * 100) : 0}%`, styleColor: '#018600' },
-                { label: '미채점',    value: QUIZ_INFO.pendingGrade,                         sub: `${QUIZ_INFO.submitted > 0 ? Math.round(QUIZ_INFO.pendingGrade / QUIZ_INFO.submitted * 100) : 0}%`, styleColor: '#B43200' },
+                { label: '제출',      value: QUIZ_INFO.submitted,                           sub: `${submitRate}%`,                                                                          styleColor: '#222222' },
+                { label: '미제출',    value: QUIZ_INFO.totalStudents - QUIZ_INFO.submitted,  sub: `${100 - submitRate}%`,                                                                    styleColor: '#B43200' },
+                { label: '채점 완료', value: QUIZ_INFO.graded,                               sub: `${QUIZ_INFO.submitted > 0 ? Math.round(QUIZ_INFO.graded / QUIZ_INFO.submitted * 100) : 0}%`,        styleColor: '#018600' },
+                { label: '미채점',    value: QUIZ_INFO.pendingGrade,                         sub: `${QUIZ_INFO.submitted > 0 ? Math.round(QUIZ_INFO.pendingGrade / QUIZ_INFO.submitted * 100) : 0}%`,   styleColor: '#B43200' },
               ].map((item, i) => (
-                <div key={item.label} className="flex flex-col items-center justify-center px-5 py-3 text-center"
-                  style={{ borderLeft: i > 0 ? '1px solid #EEEEEE' : 'none', minWidth: 64 }}>
-                  <p className="text-[18px] font-bold leading-none" style={{ color: item.styleColor }}>{item.value}</p>
-                  <p className="text-[11px] font-medium mt-1" style={{ color: '#9E9E9E' }}>{item.sub}</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: '#9E9E9E' }}>{item.label}</p>
+                <div key={item.label} className="flex flex-col items-center justify-center px-6 py-4 text-center"
+                  style={{ borderLeft: i > 0 ? '1px solid #EEEEEE' : 'none', minWidth: 72 }}>
+                  <p className="text-[22px] font-bold leading-none" style={{ color: item.styleColor }}>{item.value}</p>
+                  <p className="text-xs font-medium mt-1" style={{ color: '#9E9E9E' }}>{item.sub}</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{item.label}</p>
                 </div>
               ))}
             </div>
