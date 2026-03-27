@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Search, X, Edit2, Trash2, Upload, Download, ChevronLeft, AlertTriangle, Copy } from 'lucide-react'
+import { Plus, Search, X, Edit2, Trash2, Upload, Download, ChevronLeft, Copy } from 'lucide-react'
 import Layout from '../components/Layout'
 import { QUIZ_TYPES } from '../data/mockData'
 import { useQuestionBank } from '../context/QuestionBankContext'
@@ -165,16 +165,9 @@ export default function QuestionBank() {
         </div>
 
         {/* 동기화 정책 안내 */}
-        <div
-          className="flex items-start gap-2 p-3 mb-5 text-xs"
-          style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6 }}
-        >
-          <AlertTriangle size={14} className="shrink-0 mt-0.5" style={{ color: '#D97706' }} />
-          <span style={{ color: '#92400E' }}>
-            문항을 변경하더라도 해당 문항을 사용해 이미 생성된 퀴즈에는 자동으로 업데이트되지 않습니다.
-            필요 시 생성되어 있는 퀴즈에서 직접 수정해야 합니다.
-          </span>
-        </div>
+        <p className="text-xs mb-5" style={{ color: '#9E9E9E' }}>
+          문항을 수정해도 이미 생성된 퀴즈에는 자동 반영되지 않습니다.
+        </p>
 
         {/* 문항 추가 인라인 폼 */}
         {showAddForm && (
