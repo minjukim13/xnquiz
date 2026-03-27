@@ -62,7 +62,7 @@ function InstructorQuizList() {
             <div className="flex items-center gap-2 mb-3">
               <p className="text-xs font-semibold" style={{ color: '#B43200' }}>채점 필요 {gradingQuizzes.length}건</p>
             </div>
-            <div className="grid gap-3 xl:grid-cols-2">
+            <div className="grid gap-3">
               {gradingQuizzes.map(quiz => (
                 <QuizCard key={quiz.id} quiz={quiz} onPublishQuiz={handlePublishQuiz} />
               ))}
@@ -74,7 +74,7 @@ function InstructorQuizList() {
           <p className="text-xs font-semibold mb-3" style={{ color: '#9E9E9E' }}>
             전체 퀴즈 ({otherQuizzes.length})
           </p>
-          <div className="grid gap-3 xl:grid-cols-2">
+          <div className="grid gap-3">
             {otherQuizzes.map(quiz => (
               <QuizCard key={quiz.id} quiz={quiz} onPublishQuiz={handlePublishQuiz} />
             ))}
