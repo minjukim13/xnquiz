@@ -204,17 +204,42 @@ function ClosedSummary({ quiz }) {
   const unsubmitted = quiz.totalStudents - quiz.submitted
 
   return (
-    <div className="flex items-center gap-6 flex-wrap">
+    <div className="flex items-center gap-5 flex-wrap">
       {quiz.avgScore != null && (
-        <div className="flex items-baseline gap-1">
-          <span className="text-lg font-bold" style={{ color: '#222222' }}>{quiz.avgScore}</span>
-          <span className="text-xs" style={{ color: '#9E9E9E' }}>/ {quiz.totalPoints}점 평균</span>
-        </div>
+        <>
+          <div>
+            <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>평균 점수</p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-bold" style={{ color: '#222222' }}>{quiz.avgScore}점</span>
+              <span className="text-xs" style={{ color: '#BDBDBD' }}>/ {quiz.totalPoints}점 만점</span>
+            </div>
+          </div>
+          <div className="w-px h-7 shrink-0" style={{ background: '#EEEEEE' }} />
+        </>
       )}
-      <div className="w-px h-4 shrink-0" style={{ background: '#EEEEEE' }} />
-      <StatChip label="응시율" value={`${submitRate}%`} sub={`${quiz.submitted}명`} />
-      <StatChip label="채점 완료" value={`${quiz.graded}명`} />
-      {unsubmitted > 0 && <StatChip label="미제출" value={`${unsubmitted}명`} muted />}
+      <div>
+        <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>응시율</p>
+        <span className="text-sm font-bold" style={{ color: '#424242' }}>{submitRate}%</span>
+      </div>
+      <div className="w-px h-7 shrink-0" style={{ background: '#EEEEEE' }} />
+      <div>
+        <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>응시인원</p>
+        <span className="text-sm font-bold" style={{ color: '#424242' }}>{quiz.submitted}명</span>
+      </div>
+      <div className="w-px h-7 shrink-0" style={{ background: '#EEEEEE' }} />
+      <div>
+        <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>채점 완료</p>
+        <span className="text-sm font-bold" style={{ color: '#424242' }}>{quiz.graded}명</span>
+      </div>
+      {unsubmitted > 0 && (
+        <>
+          <div className="w-px h-7 shrink-0" style={{ background: '#EEEEEE' }} />
+          <div>
+            <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>미제출</p>
+            <span className="text-sm font-bold" style={{ color: '#BDBDBD' }}>{unsubmitted}명</span>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -231,20 +256,16 @@ function ActiveStats({ quiz }) {
 
   return (
     <>
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {[
-          { label: '제출',      value: submitted,    sub: `${submitRate}%`,  styleColor: '#222222' },
-          { label: '미제출',    value: unsubmitted,   sub: null,             styleColor: unsubmitted > 0 && quiz.status !== 'closed' ? '#B43200' : '#222222' },
-          { label: '채점 완료', value: graded,        sub: null,             styleColor: '#018600' },
-          { label: '미채점',    value: quiz.pendingGrade, sub: null,         styleColor: quiz.pendingGrade > 0 ? '#B43200' : '#222222' },
+          { label: '응시율',    value: `${submitRate}%`, styleColor: '#222222' },
+          { label: '응시인원',  value: `${submitted}명`, styleColor: '#222222' },
+          { label: '미제출',    value: `${unsubmitted}명`, styleColor: unsubmitted > 0 && quiz.status !== 'closed' ? '#B43200' : '#222222' },
+          { label: '채점 완료', value: `${graded}명`,    styleColor: '#018600' },
+          { label: '미채점',    value: `${quiz.pendingGrade}명`, styleColor: quiz.pendingGrade > 0 ? '#B43200' : '#222222' },
         ].map((item, idx) => (
-          <div key={item.label} className="text-center px-4 first:pl-0 last:pr-0" style={idx < 3 ? { borderRight: '1px solid #EEEEEE' } : {}}>
-            <p className="text-lg font-bold leading-none" style={{ color: item.styleColor }}>
-              {item.value}
-              {item.sub && (
-                <span className="text-xs font-medium ml-1" style={{ color: '#9E9E9E' }}>{item.sub}</span>
-              )}
-            </p>
+          <div key={item.label} className="text-center px-4 first:pl-0 last:pr-0" style={idx < 4 ? { borderRight: '1px solid #EEEEEE' } : {}}>
+            <p className="text-lg font-bold leading-none" style={{ color: item.styleColor }}>{item.value}</p>
             <p className="text-xs mt-1" style={{ color: '#9E9E9E' }}>{item.label}</p>
           </div>
         ))}
@@ -268,15 +289,6 @@ function ActiveStats({ quiz }) {
   )
 }
 
-function StatChip({ label, value, sub, muted }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-sm font-semibold" style={{ color: muted ? '#BDBDBD' : '#424242' }}>{value}</span>
-      {sub && <span className="text-xs font-medium" style={{ color: '#9E9E9E' }}>{sub}</span>}
-      <span className="text-xs" style={{ color: '#9E9E9E' }}>{label}</span>
-    </div>
-  )
-}
 
 // ─────────────────────────────── 학생 뷰 ───────────────────────────────
 function StudentQuizList() {

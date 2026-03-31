@@ -1,0 +1,134 @@
+---
+title: XN Quizzes — 교수자 퀴즈 관리 흐름
+---
+flowchart TD
+    START([교수자 진입]) --> QL["`**QuizList 교수자 뷰**
+    - 채점 필요 섹션
+    - 전체 퀴즈 목록
+    - 상태별 정렬: draft → open → closed`"]
+
+    %% ── 퀴즈 생성 흐름 ──────────────────────────
+    QL -->|새 퀴즈 버튼| QC_T1["`**QuizCreate — Tab1: 기본정보**
+    title / week / session
+    startDate / dueDate
+    timeLimitType / allowAttempts
+    scorePolicy / 체크박스 4개 / notice`"]
+
+    QC_T1 -->|다음: 문항 구성| QC_T2["`**QuizCreate — Tab2: 문항구성**
+    선택된 문항 목록 (드래그 정렬)`"]
+
+    QC_T2 -->|문제은행에서 추가| M_BANK["`**QuestionBankModal**
+    Step1: 은행 선택
+    Step2: 문항 선택 + 검색/필터`"]
+    QC_T2 -->|직접 추가| M_ADD["`**AddQuestionModal**
+    문항내용 / 유형 / 선택지 / 배점 입력`"]
+    M_BANK -->|선택 완료| QC_T2
+    M_ADD  -->|추가| QC_T2
+
+    QC_T2 -->|발행하기| NEW_QUIZ_OPEN["`퀴즈 상태: **open**
+    mockQuizzes에 추가`"]
+    NEW_QUIZ_OPEN --> QL
+
+    %% ── 퀴즈 편집 흐름 ──────────────────────────
+    QL -->|편집 버튼 draft 퀴즈| QE["`**QuizEdit**
+    문항 추가 / 제거
+    설정 패널:
+    응시시간 / 최대횟수 / 채점방식 / 체크박스`"]
+
+    QE -->|문제은행에서 추가| M_BANK
+    QE -->|직접 추가| M_ADD
+    QE -->|저장 및 발행| SAVE_QUIZ["`mockQuizzes 업데이트`"]
+    SAVE_QUIZ --> QL
+
+    %% ── 퀴즈 발행 (목록에서 직접) ──────────────
+    QL -->|발행 버튼 draft 퀴즈| CONFIRM_PUB{"`확인 다이얼로그
+    '정말 발행하시겠습니까?'`"}
+    CONFIRM_PUB -->|확인| STATUS_OPEN["`상태 변경: draft → **open**`"]
+    CONFIRM_PUB -->|취소| QL
+    STATUS_OPEN --> QL
+
+    %% ── 채점 흐름 ────────────────────────────────
+    QL -->|채점하기 링크 open 퀴즈| GD["`**GradingDashboard**
+    모드 전환 탭: 문항중심 / 학생중심`"]
+
+    GD -->|문항중심 모드| GD_Q["`문항 목록
+    - 채점 필요 섹션 접기/펼치기
+    - 채점 완료 섹션 접기/펼치기
+    - 정렬: 미채점우선 / 문항번호순`"]
+    GD_Q -->|문항 선택| GD_Q_RESP["`선택 문항 — 학생 응답 목록
+    학생별 답변 텍스트
+    점수 입력창`"]
+    GD_Q_RESP -->|점수 입력| SAVE_GRADE["`updateLocalGrades
+    localStorage 저장`"]
+    SAVE_GRADE --> GD_Q
+
+    GD -->|학생중심 모드| GD_S["`학생 목록
+    - 검색
+    - 채점 진행률 표시`"]
+    GD_S -->|학생 선택| GD_S_RESP["`선택 학생 — 전체 응답 보기
+    문항별 답변 + 점수 입력창`"]
+    GD_S_RESP -->|점수 입력| SAVE_GRADE
+
+    GD -->|답안지 다운로드| DL_ANSWER["`downloadAnswerSheetsXlsx`"]
+    GD -->|채점표 다운로드| DL_GRADING["`downloadGradingSheetXlsx`"]
+    GD -->|엑셀 업로드| M_EXCEL["`엑셀 파일 선택
+    → parseExcelOrCsv
+    → 일괄 채점 반영`"]
+
+    GD -->|퀴즈 마감 버튼| CONFIRM_CLOSE{"`확인 모달
+    '퀴즈를 마감하시겠습니까?'`"}
+    CONFIRM_CLOSE -->|확인| STATUS_CLOSED["`상태 변경: open → **closed**`"]
+    CONFIRM_CLOSE -->|취소| GD
+    STATUS_CLOSED --> QL
+
+    GD -->|목록으로| QL
+    GD -->|통계 보기| QS
+
+    %% ── 통계 조회 흐름 ───────────────────────────
+    QL -->|통계 / 결과 보기 링크| QS["`**QuizStats**`"]
+    QS -->|학생별 성적 조회 탭| QS_GRADES["`학생 테이블
+    학번 / 이름 / 응시일
+    자동채점 / 수동채점 대기 / 최종점수
+    검색 + 정렬`"]
+    QS -->|퀴즈 통계 탭| QS_STATS["`문항 분석: 정답률 / 판별도 / 난이도
+    점수 분포 막대 그래프
+    기본 통계: 평균 / 표준편차 / 최고/최저점 / 응시율`"]
+
+    QS_GRADES -->|성적표 다운로드| DL_GRADES["`downloadGradesXlsx`"]
+    QS_STATS  -->|문항분석 다운로드| DL_ITEM["`downloadItemAnalysisXlsx`"]
+    QS -->|채점 대시보드| GD
+    QS -->|목록으로| QL
+
+    %% ── 퀴즈 상태 전이 요약 ─────────────────────
+    subgraph STATUS ["퀴즈 상태 전이"]
+        direction LR
+        S_DRAFT([초안 draft]) -->|발행| S_OPEN([진행중 open])
+        S_OPEN  -->|마감| S_CLOSED([종료 closed])
+        S_OPEN  -.->|수동채점 대기 문항 존재 시| S_GRADING(["채점 필요 표시"])
+    end
+
+    %% ── 스타일 ───────────────────────────────────
+    style QL         fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QC_T1      fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QC_T2      fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QE         fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD         fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD_Q       fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD_Q_RESP  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD_S       fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD_S_RESP  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QS         fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QS_GRADES  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QS_STATS   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+
+    style M_BANK     fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style M_ADD      fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style M_EXCEL    fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+
+    style CONFIRM_PUB   fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style CONFIRM_CLOSE fill:#DCFCE7,stroke:#16A34A,color:#14532d
+
+    style STATUS_OPEN   fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style STATUS_CLOSED fill:#FEE2E2,stroke:#DC2626,color:#7f1d1d
+
+    style START fill:#F0FDF4,stroke:#22C55E,color:#14532d

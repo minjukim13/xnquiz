@@ -1,23 +1,30 @@
 import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { CheckCircle2, Download, Search } from 'lucide-react'
-import { downloadGradesXlsx } from '../utils/excelUtils'
+import { Download, Search, FileSearch } from 'lucide-react'
+import { downloadGradesXlsx, downloadItemAnalysisXlsx } from '../utils/excelUtils'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
 import Layout from '../components/Layout'
 import { mockQuizzes, mockStudents, QUIZ_TYPES, getQuizQuestions } from '../data/mockData'
 
-function TypeBadge({ type, small }) {
+function TypeBadge({ type }) {
   const cfg = QUIZ_TYPES[type] || { label: type }
   return (
     <span
-      className={`inline-block font-medium px-1.5 py-0.5 rounded ${small ? 'text-xs' : 'text-xs'}`}
+      className="inline-block font-medium px-1.5 py-0.5 rounded text-xs"
       style={{ background: '#F5F5F5', color: '#616161' }}
     >
       {cfg.label}
     </span>
   )
+}
+
+// ─── 헬퍼: 분산 계산 ─────────────────────────────────────────────
+function variance(arr) {
+  if (arr.length < 2) return 0
+  const mean = arr.reduce((a, b) => a + b, 0) / arr.length
+  return arr.reduce((a, b) => a + (b - mean) ** 2, 0) / arr.length
 }
 
 export default function QuizStats() {
@@ -52,9 +59,9 @@ export default function QuizStats() {
               <Link
                 to="/"
                 className="text-xs font-medium px-3.5 py-2 transition-colors"
-              style={{ color: '#616161', border: '1px solid #E0E0E0', borderRadius: 4 }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F5' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                style={{ color: '#616161', border: '1px solid #E0E0E0', borderRadius: 4 }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F5' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
               >
                 목록으로
               </Link>
@@ -85,7 +92,7 @@ export default function QuizStats() {
           ))}
         </div>
 
-        {activeTab === 'grades' && <GradesTab quiz={quiz} />}
+        {activeTab === 'grades' && <GradesTab quiz={quiz} quizQuestions={quizQuestions} />}
         {activeTab === 'stats'  && <StatsTab  quiz={quiz} quizQuestions={quizQuestions} />}
 
       </div>
@@ -94,17 +101,33 @@ export default function QuizStats() {
 }
 
 /* ─── Tab 1: 학생별 성적 조회 ─────────────────────────────────── */
-function GradesTab({ quiz }) {
+function GradesTab({ quiz, quizQuestions }) {
   const [search, setSearch] = useState('')
+  const [onlyUngraded, setOnlyUngraded] = useState(false)
 
   const students = mockStudents.filter(s => s.submitted)
   const gradedCount = students.filter(s => s.score !== null).length
 
-  const filtered = students.filter(s =>
-    search === '' ||
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.studentId.includes(search)
-  )
+  // 자동채점 문항 목록
+  const autoQs = quizQuestions.filter(q => q.autoGrade === true)
+  const hasAutoData = autoQs.length > 0 && students.some(s => s.autoScores?.[autoQs[0]?.id] !== undefined)
+
+  // 학생별 정답/오답 수 계산 (자동채점 문항 기준)
+  const nCorrectMap = useMemo(() => {
+    if (!hasAutoData) return {}
+    const map = {}
+    students.forEach(s => {
+      if (!s.autoScores) { map[s.id] = null; return }
+      map[s.id] = autoQs.filter(q => (s.autoScores[q.id] ?? 0) >= q.points).length
+    })
+    return map
+  }, [students, autoQs, hasAutoData])
+
+  const filtered = students.filter(s => {
+    if (onlyUngraded && s.score !== null) return false
+    if (search !== '' && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.studentId.includes(search)) return false
+    return true
+  })
 
   const downloadCSV = () => downloadGradesXlsx(quiz, students)
 
@@ -119,25 +142,39 @@ function GradesTab({ quiz }) {
           <span className="w-px h-4" style={{ background: '#EEEEEE' }} />
           <span>미채점 <strong style={{ color: '#B43200' }}>{students.length - gradedCount}명</strong></span>
         </div>
-        <button
-          onClick={downloadCSV}
-          className="btn-secondary text-xs"
-        >
+        <button onClick={downloadCSV} className="btn-secondary text-xs">
           <Download size={13} />
           성적 다운로드 (.xlsx)
         </button>
       </div>
 
-      {/* 검색 */}
-      <div className="relative max-w-xs">
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9E9E9E' }} />
-        <input
-          type="text"
-          placeholder="이름 또는 학번 검색"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="input pl-8 py-2 text-xs"
-        />
+      {/* 검색 + 필터 */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9E9E9E' }} />
+          <input
+            type="text"
+            placeholder="이름 또는 학번 검색"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="input pl-8 py-2 text-xs"
+          />
+        </div>
+        <button
+          onClick={() => setOnlyUngraded(v => !v)}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded text-xs font-medium transition-colors"
+          style={onlyUngraded
+            ? { background: '#FFF5F5', border: '1px solid #fca5a5', color: '#BF0A03' }
+            : { background: '#fff', border: '1px solid #E0E0E0', color: '#616161' }
+          }
+        >
+          미채점만 보기
+          {onlyUngraded && (
+            <span className="px-1 py-0.5 rounded text-xs font-bold" style={{ background: '#BF0A03', color: '#fff', fontSize: 10 }}>
+              {students.length - gradedCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* 학생 테이블 */}
@@ -145,64 +182,112 @@ function GradesTab({ quiz }) {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr style={{ background: '#F5F5F5', borderBottom: '1px solid #EEEEEE' }}>
+              <tr style={{ background: '#F5F5F5', borderBottom: '2px solid #E0E0E0' }}>
                 {[
-                  { label: '이름',                        center: false },
-                  { label: '학번',                        center: false },
-                  { label: '학과',                        center: false },
+                  { label: '이름',                         center: false },
+                  { label: '학번',                         center: false },
+                  { label: '학과',                         center: false },
+                  { label: '응시 일시',                    center: false },
                   { label: `점수 / ${quiz.totalPoints}점`, center: true  },
-                  { label: '상태',                        center: true  },
-                  { label: '',                            center: true  },
-                ].map(({ label, center }) => (
+                  hasAutoData
+                    ? { label: `정답/오답 (자동채점 ${autoQs.length}문항)`, center: true }
+                    : null,
+                  { label: '상태',                         center: true  },
+                  { label: '',                              center: true  },
+                ].filter(Boolean).map(({ label, center }) => (
                   <th
                     key={label}
                     className={`px-4 py-2.5 font-semibold whitespace-nowrap ${center ? 'text-center' : 'text-left'}`}
-                    style={{ color: '#616161' }}
+                    style={{ color: '#616161', fontSize: 11 }}
                   >{label}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s, i) => (
-                <tr
-                  key={s.id}
-                  className="transition-colors"
-                  style={{ borderBottom: '1px solid #EEEEEE', background: i % 2 !== 0 ? '#FAFAFA' : '#fff' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-                  onMouseLeave={e => e.currentTarget.style.background = i % 2 !== 0 ? '#FAFAFA' : '#fff'}
-                >
-                  <td className="px-4 py-2.5 font-medium" style={{ color: '#222222' }}>{s.name}</td>
-                  <td className="px-4 py-2.5 font-mono" style={{ color: '#616161' }}>{s.studentId}</td>
-                  <td className="px-4 py-2.5" style={{ color: '#616161' }}>{s.department}</td>
-                  <td className="px-4 py-2.5 text-center">
-                    {s.score !== null ? (
-                      <span className="font-bold" style={{ color: '#222222' }}>{s.score}점</span>
-                    ) : (
-                      <span style={{ color: '#BDBDBD' }}>-</span>
+              {filtered.map((s, i) => {
+                const nCorrect = nCorrectMap[s.id] ?? null
+                const nIncorrect = nCorrect !== null ? autoQs.length - nCorrect : null
+                const scorePct = s.score !== null ? Math.round((s.score / quiz.totalPoints) * 100) : null
+                const scoreColor = scorePct === null ? '#BDBDBD'
+                  : scorePct >= 80 ? '#018600'
+                  : scorePct >= 60 ? '#B46A00'
+                  : '#BF0A03'
+
+                return (
+                  <tr
+                    key={s.id}
+                    className="transition-colors"
+                    style={{ borderBottom: '1px solid #EEEEEE', background: i % 2 !== 0 ? '#FAFAFA' : '#fff' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#F0F4FF'}
+                    onMouseLeave={e => e.currentTarget.style.background = i % 2 !== 0 ? '#FAFAFA' : '#fff'}
+                  >
+                    {/* 이름 */}
+                    <td className="px-4 py-2.5 font-semibold" style={{ color: '#222222' }}>{s.name}</td>
+                    {/* 학번 */}
+                    <td className="px-4 py-2.5 font-mono" style={{ color: '#616161' }}>{s.studentId}</td>
+                    {/* 학과 */}
+                    <td className="px-4 py-2.5" style={{ color: '#616161' }}>{s.department}</td>
+                    {/* 응시 일시 */}
+                    <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: '#9E9E9E' }}>
+                      {s.startTime
+                        ? <span>{s.startTime.split(' ')[1]}{s.endTime ? ` ~ ${s.endTime.split(' ')[1]}` : ''}</span>
+                        : <span style={{ color: '#BDBDBD' }}>-</span>
+                      }
+                    </td>
+                    {/* 점수 */}
+                    <td className="px-4 py-2.5 text-center">
+                      {s.score !== null ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="font-bold" style={{ color: scoreColor }}>{s.score}점</span>
+                          <div className="w-16 h-1 rounded overflow-hidden" style={{ background: '#EEEEEE' }}>
+                            <div className="h-full rounded" style={{ width: `${scorePct}%`, background: scoreColor }} />
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: '#BDBDBD' }}>-</span>
+                      )}
+                    </td>
+                    {/* 정답/오답 */}
+                    {hasAutoData && (
+                      <td className="px-4 py-2.5 text-center">
+                        {nCorrect !== null ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="font-semibold" style={{ color: '#018600' }}>{nCorrect}정답</span>
+                            <span style={{ color: '#BDBDBD' }}>/</span>
+                            <span style={{ color: '#B43200' }}>{nIncorrect}오답</span>
+                          </span>
+                        ) : (
+                          <span style={{ color: '#BDBDBD' }}>-</span>
+                        )}
+                      </td>
                     )}
-                  </td>
-                  <td className="px-4 py-2.5 text-center">
-                    {s.score !== null ? (
-                      <span className="inline-flex items-center gap-1" style={{ color: '#018600' }}>
-                        <CheckCircle2 size={11} />채점 완료
-                      </span>
-                    ) : (
-                      <span style={{ color: '#B43200' }}>미채점</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 text-center">
-                    <Link
-                      to={`/quiz/${quiz.id}/grade`}
-                      className="font-medium text-indigo-500 hover:text-indigo-700"
-                    >
-                      답안 확인 / 점수 수정
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+                    {/* 상태 */}
+                    <td className="px-4 py-2.5 text-center">
+                      {s.score !== null ? (
+                        <span className="inline-block px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: '#E5FCE3', color: '#018600' }}>채점 완료</span>
+                      ) : (
+                        <span className="inline-block px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: '#FFF5F5', color: '#BF0A03' }}>미채점</span>
+                      )}
+                    </td>
+                    {/* 액션 버튼 */}
+                    <td className="px-4 py-2.5 text-center">
+                      <Link
+                        to={`/quiz/${quiz.id}/grade`}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors"
+                        style={{ border: '1px solid #c7d2fe', color: '#4338ca', background: '#EEF2FF' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#e0e7ff' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#EEF2FF' }}
+                      >
+                        <FileSearch size={11} />
+                        답안 확인
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center" style={{ color: '#BDBDBD' }}>검색 결과가 없습니다</td>
+                  <td colSpan={hasAutoData ? 8 : 7} className="px-4 py-8 text-center" style={{ color: '#BDBDBD' }}>검색 결과가 없습니다</td>
                 </tr>
               )}
             </tbody>
@@ -222,11 +307,7 @@ function StatsTab({ quiz, quizQuestions }) {
   const avg  = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
   const maxScore = scores.length ? Math.max(...scores) : 0
   const minScore = scores.length ? Math.min(...scores) : 0
-  const stdev = useMemo(() => {
-    if (!scores.length) return 0
-    const mean = scores.reduce((a, b) => a + b, 0) / scores.length
-    return Math.sqrt(scores.reduce((a, b) => a + (b - mean) ** 2, 0) / scores.length)
-  }, [scores])
+  const stdev = useMemo(() => Math.sqrt(variance(scores)), [scores])
 
   const submitRate = ((quiz.submitted / quiz.totalStudents) * 100).toFixed(1)
   const gradeRate  = quiz.submitted > 0 ? ((quiz.graded / quiz.submitted) * 100).toFixed(1) : 0
@@ -244,6 +325,7 @@ function StatsTab({ quiz, quizQuestions }) {
   const timeLimit = quiz.timeLimit ?? null
   const timePressureCount = timeLimit ? durations.filter(d => d >= timeLimit * 0.95).length : 0
   const timePressureRate  = durations.length ? Math.round((timePressureCount / durations.length) * 100) : 0
+
 
   const scoreFreq = {}
   scores.forEach(s => { scoreFreq[s] = (scoreFreq[s] || 0) + 1 })
@@ -269,10 +351,11 @@ function StatsTab({ quiz, quizQuestions }) {
 
   const qTableData = quizQuestions.map(q => {
     const rate = q.avgScore != null ? Math.round((q.avgScore / q.points) * 100) : null
+    // 난이도: 득점률 기준 (≥70% 쉬움 / 40~69% 보통 / <40% 어려움)
     const difficulty = rate == null ? null
-      : rate >= 80 ? { label: '쉬움', color: 'text-emerald-600 bg-emerald-50' }
-      : rate >= 60 ? { label: '보통', color: 'text-amber-600 bg-amber-50' }
-      : { label: '어려움', color: 'text-red-600 bg-red-50' }
+      : rate >= 70 ? { label: '쉬움' }
+      : rate >= 40 ? { label: '보통' }
+      : { label: '어려움' }
     return { ...q, rate, difficulty }
   })
 
@@ -286,25 +369,20 @@ function StatsTab({ quiz, quizQuestions }) {
           { label: '최저 점수', value: minScore, unit: '점' },
           { label: '표준편차', value: `±${stdev.toFixed(1)}`, unit: '점' },
           { label: '응시율', value: submitRate, unit: '%' },
+          { label: '평균 응시시간', value: avgDuration ?? '-', unit: '분' },
         ].map(item => (
-          <div key={item.label} className="bg-white p-3 text-center" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
-            <div className="text-xl font-bold leading-none" style={{ color: item.accent ? '#6366f1' : '#222222' }}>
-              {item.value}
+          <div
+            key={item.label}
+            className="bg-white p-3 text-center"
+            style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}
+          >
+            <div className="flex items-baseline justify-center gap-1 leading-none">
+              <span className="text-xl font-bold" style={{ color: item.accent ? '#6366f1' : '#222222' }}>{item.value}</span>
+              <span className="text-xs" style={{ color: '#9E9E9E' }}>{item.unit}</span>
             </div>
-            <div className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{item.unit}</div>
             <div className="text-xs mt-1.5" style={{ color: '#616161' }}>{item.label}</div>
           </div>
         ))}
-        <div className="bg-white p-3 text-center" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
-          <div className="text-xl font-bold leading-none" style={{ color: '#222222' }}>{avgDuration ?? '-'}</div>
-          <div className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>분</div>
-          <div className="text-xs mt-1.5" style={{ color: '#616161' }}>평균 응시시간</div>
-          {timeLimit && timePressureCount > 0 && (
-            <div className="mt-1.5 text-xs pt-1.5" style={{ color: '#9E9E9E', borderTop: '1px solid #EEEEEE' }}>
-              마감 임박({Math.round(timeLimit * 0.95)}분↑) {timePressureRate}%
-            </div>
-          )}
-        </div>
       </div>
 
       {/* 점수 분포 + 응시 현황 */}
@@ -406,12 +484,13 @@ function StatsTab({ quiz, quizQuestions }) {
                 `${props.payload.label} 득점률`,
               ]}
             />
-            <ReferenceLine x={60} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: '60%', position: 'right', fontSize: 10, fill: '#f59e0b' }} />
+            <ReferenceLine x={70} stroke="#34d399" strokeDasharray="3 3" label={{ value: '70%', position: 'right', fontSize: 10, fill: '#34d399' }} />
+            <ReferenceLine x={40} stroke="#f87171" strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 10, fill: '#f87171' }} />
             <Bar dataKey="rate" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 11, fill: '#94a3b8', formatter: v => `${v}%` }}>
               {qRateData.map((q, i) => (
                 <Cell
                   key={i}
-                  fill={!q.hasData ? '#e2e8f0' : q.rate >= 80 ? '#34d399' : q.rate >= 60 ? '#fbbf24' : '#f87171'}
+                  fill={!q.hasData ? '#e2e8f0' : q.rate >= 70 ? '#34d399' : q.rate >= 40 ? '#fbbf24' : '#f87171'}
                 />
               ))}
             </Bar>
@@ -419,9 +498,9 @@ function StatsTab({ quiz, quizQuestions }) {
         </ResponsiveContainer>
         <div className="flex items-center gap-4 mt-2 justify-center">
           {[
-            { color: '#01A900', label: '80% 이상 (쉬움)' },
-            { color: '#f59e0b', label: '60~79% (보통)' },
-            { color: '#EF2B2A', label: '60% 미만 (어려움)' },
+            { color: '#34d399', label: '70% 이상 (쉬움)' },
+            { color: '#fbbf24', label: '40~69% (보통)' },
+            { color: '#f87171', label: '40% 미만 (어려움)' },
             { color: '#BDBDBD', label: '채점 전' },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-1.5 text-xs" style={{ color: '#616161' }}>
@@ -436,89 +515,126 @@ function StatsTab({ quiz, quizQuestions }) {
       <div className="bg-white overflow-hidden" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
         <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
           <h3 className="text-sm font-semibold" style={{ color: '#222222' }}>문항별 상세 통계</h3>
-          <span className="text-xs" style={{ color: '#9E9E9E' }}>총 {quizQuestions.length}문항 · {quiz.totalPoints}점 만점</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs" style={{ color: '#9E9E9E' }}>총 {quizQuestions.length}문항 · {quiz.totalPoints}점 만점</span>
+            <button
+              onClick={() => downloadItemAnalysisXlsx(quiz, quizQuestions, mockStudents)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors"
+              style={{ border: '1px solid #E0E0E0', color: '#616161', background: '#fff' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F5' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
+            >
+              <Download size={12} />
+              문항 분석 (.xlsx)
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr style={{ background: '#F5F5F5', borderBottom: '1px solid #EEEEEE' }}>
+              <tr style={{ background: '#F5F5F5', borderBottom: '2px solid #E0E0E0' }}>
                 {[
-                  { label: '문항',     center: true  },
-                  { label: '유형',     center: false },
-                  { label: '배점',     center: true  },
+                  { label: '문항',      center: true  },
+                  { label: '유형',      center: false },
+                  { label: '배점',      center: true  },
                   { label: '평균 점수', center: true  },
-                  { label: '득점률',   center: false },
-                  { label: '난이도',   center: true  },
+                  { label: '득점률',    center: false },
+                  { label: '난이도',    center: true, tip: '득점률 기준: ≥70% 쉬움 / 40~69% 보통 / <40% 어려움' },
                   { label: '채점 현황', center: true  },
-                ].map(({ label, center }) => (
+                ].map(({ label, center, tip }) => (
                   <th
                     key={label}
+                    title={tip ?? ''}
                     className={`px-4 py-2.5 font-semibold whitespace-nowrap ${center ? 'text-center' : 'text-left'}`}
-                    style={{ color: '#616161' }}
-                  >{label}</th>
+                    style={{ color: '#616161', fontSize: 11, cursor: tip ? 'help' : 'default' }}
+                  >
+                    {label}{tip && <span style={{ color: '#BDBDBD', marginLeft: 2 }}>ⓘ</span>}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {qTableData.map((q, i) => (
-                <tr
-                  key={q.id}
-                  className="transition-colors"
-                  style={{ borderBottom: '1px solid #EEEEEE', background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#FAFAFA'}
-                >
-                  <td className="px-4 py-2.5 text-center font-bold" style={{ color: '#9E9E9E' }}>Q{q.order}</td>
-                  <td className="px-4 py-2.5"><TypeBadge type={q.type} small /></td>
-                  <td className="px-4 py-2.5 text-center font-medium" style={{ color: '#424242' }}>{q.points}점</td>
-                  <td className="px-4 py-2.5 text-center" style={{ color: '#424242' }}>
-                    {q.avgScore != null ? `${q.avgScore}점` : <span style={{ color: '#BDBDBD' }}>-</span>}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 rounded overflow-hidden" style={{ background: '#EEEEEE' }}>
-                        <div
-                          className="h-full rounded"
-                          style={{
-                            width: `${q.rate ?? 0}%`,
-                            background: !q.rate ? '#BDBDBD' : q.rate >= 80 ? '#01A900' : q.rate >= 60 ? '#f59e0b' : '#EF2B2A',
-                          }}
-                        />
+                  <tr
+                    key={q.id}
+                    className="transition-colors"
+                    style={{ borderBottom: '1px solid #EEEEEE', background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#F0F4FF'}
+                    onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#FAFAFA'}
+                  >
+                    {/* 문항 번호 */}
+                    <td className="px-4 py-2.5 text-center">
+                      <span className="font-bold text-xs px-1.5 py-0.5 rounded" style={{ background: '#EEF2FF', color: '#4338ca' }}>
+                        Q{q.order}
+                      </span>
+                    </td>
+
+                    {/* 유형 */}
+                    <td className="px-4 py-2.5"><TypeBadge type={q.type} /></td>
+
+                    {/* 배점 */}
+                    <td className="px-4 py-2.5 text-center font-medium" style={{ color: '#424242' }}>{q.points}점</td>
+
+                    {/* 평균 점수 */}
+                    <td className="px-4 py-2.5 text-center" style={{ color: '#424242' }}>
+                      {q.avgScore != null ? `${q.avgScore}점` : <span style={{ color: '#BDBDBD' }}>-</span>}
+                    </td>
+
+                    {/* 득점률 */}
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-1.5 rounded overflow-hidden" style={{ background: '#EEEEEE' }}>
+                          <div
+                            className="h-full rounded"
+                            style={{
+                              width: `${q.rate ?? 0}%`,
+                              background: !q.rate ? '#BDBDBD' : q.rate >= 70 ? '#01A900' : q.rate >= 40 ? '#f59e0b' : '#EF2B2A',
+                            }}
+                          />
+                        </div>
+                        <span className="font-medium" style={{ color: q.avgScore != null ? '#424242' : '#BDBDBD' }}>
+                          {q.avgScore != null ? `${q.rate}%` : '-'}
+                        </span>
                       </div>
-                      <span className="font-medium" style={{ color: q.avgScore != null ? '#424242' : '#BDBDBD' }}>
-                        {q.avgScore != null ? `${q.rate}%` : '-'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 text-center">
-                    {q.difficulty ? (
-                      <span
-                        className="px-1.5 py-0.5 rounded text-xs font-medium"
-                        style={
-                          q.difficulty.label === '쉬움' ? { background: '#E5FCE3', color: '#018600' }
-                          : q.difficulty.label === '보통' ? { background: '#FFF6F2', color: '#B43200' }
-                          : { background: '#FFF5F5', color: '#BF0A03' }
-                        }
-                      >
-                        {q.difficulty.label}
-                      </span>
-                    ) : (
-                      <span style={{ color: '#BDBDBD' }}>-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 text-center">
-                    {q.gradedCount >= q.totalCount ? (
-                      <span className="inline-flex items-center justify-center gap-1" style={{ color: '#018600' }}>
-                        <CheckCircle2 size={11} />완료
-                      </span>
-                    ) : (
-                      <span style={{ color: '#B43200' }}>{q.gradedCount}/{q.totalCount}명</span>
-                    )}
-                  </td>
-                </tr>
+                    </td>
+
+                    {/* 난이도 */}
+                    <td className="px-4 py-2.5 text-center">
+                      {q.difficulty ? (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-xs font-medium"
+                          style={
+                            q.difficulty.label === '쉬움'   ? { background: '#E5FCE3', color: '#018600' }
+                            : q.difficulty.label === '보통' ? { background: '#FFF6F2', color: '#B43200' }
+                            : { background: '#FFF5F5', color: '#BF0A03' }
+                          }
+                        >
+                          {q.difficulty.label}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#BDBDBD' }}>-</span>
+                      )}
+                    </td>
+
+                    {/* 채점 현황 */}
+                    <td className="px-4 py-2.5 text-center">
+                      {q.gradedCount >= q.totalCount ? (
+                        <span className="font-medium" style={{ color: '#018600' }}>완료</span>
+                      ) : (
+                        <span style={{ color: '#B43200' }}>{q.gradedCount}/{q.totalCount}명</span>
+                      )}
+                    </td>
+                  </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* 난이도 기준 가이드 */}
+        <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-1" style={{ borderTop: '1px solid #EEEEEE', background: '#FAFAFA' }}>
+          <span className="text-xs" style={{ color: '#9E9E9E' }}>
+            난이도(득점률 기준): <span style={{ color: '#018600' }}>≥70%</span> 쉬움 / <span style={{ color: '#B43200' }}>40~69%</span> 보통 / <span style={{ color: '#BF0A03' }}>&lt;40%</span> 어려움
+          </span>
         </div>
       </div>
     </div>

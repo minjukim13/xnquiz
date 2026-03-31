@@ -1,0 +1,106 @@
+---
+title: XN Quizzes — 문제은행 관리 흐름
+---
+flowchart TD
+    START([문제은행 진입]) --> QBL["`**QuestionBankList**
+    은행 목록 그리드
+    은행명 / 문항 수 / 사용 중인 퀴즈 수 / 마지막 수정일`"]
+
+    %% ── 은행 생성 ────────────────────────────────
+    QBL -->|새 문제은행 버튼| M_NEW_BANK["`**AddBankModal**
+    은행명 입력
+    취소 / 만들기 버튼
+    name이 비어있으면 disabled`"]
+    M_NEW_BANK -->|만들기| ADD_BANK["`addBank
+    QuestionBankContext 업데이트
+    localStorage xnq_banks 저장`"]
+    ADD_BANK --> QBL
+
+    %% ── 은행 삭제 ────────────────────────────────
+    QBL -->|삭제 버튼 hover 시 표시| DEL_BANK["`deleteBank
+    관련 문항도 함께 삭제
+    xnq_bank_questions 업데이트`"]
+    DEL_BANK --> QBL
+
+    %% ── 은행 상세 진입 ───────────────────────────
+    QBL -->|은행 카드 클릭| QB["`**QuestionBank**
+    은행명 / 문항 수 / 사용 중인 퀴즈 수`"]
+
+    QB --> FILTER["`검색창 + 유형 select 필터
+    실시간 필터링`"]
+    FILTER --> Q_LIST["`문항 목록
+    유형 배지 / 배점 / 사용 중인 퀴즈 수
+    문항 텍스트 요약
+    편집/삭제 버튼 (hover)`"]
+
+    %% ── 문항 추가 ────────────────────────────────
+    QB -->|문항 추가 버튼| M_ADD_Q["`**AddQuestionModal**
+    문항내용 textarea
+    유형 select
+    선택지 입력 (객관식인 경우)
+    배점 입력`"]
+    M_ADD_Q -->|추가| ADD_Q["`addQuestions
+    xnq_bank_questions 업데이트`"]
+    ADD_Q --> Q_LIST
+
+    %% ── 문항 편집 (인라인) ───────────────────────
+    Q_LIST -->|편집 버튼| EDIT_FORM["`**인라인 편집 폼** 펼침
+    문항내용 textarea
+    유형 / 배점 수정
+    저장 / 취소 버튼`"]
+    EDIT_FORM -->|저장| UPD_Q["`updateQuestion
+    localStorage 업데이트`"]
+    EDIT_FORM -->|취소| Q_LIST
+    UPD_Q --> Q_LIST
+
+    %% ── 문항 삭제 ────────────────────────────────
+    Q_LIST -->|삭제 버튼| DEL_Q["`deleteQuestion
+    xnq_bank_questions 업데이트`"]
+    DEL_Q --> Q_LIST
+
+    %% ── 일괄 업로드 ──────────────────────────────
+    QB -->|일괄 업로드 버튼| M_UPLOAD["`**ExcelUploadModal**
+    엑셀 템플릿 다운로드 버튼
+    파일 드래그 / 클릭 업로드`"]
+    M_UPLOAD -->|파일 선택| PARSE["`parseExcelOrCsv
+    파싱 결과 미리보기 표시`"]
+    PARSE -->|추가 버튼| ADD_BULK["`addQuestions (일괄)
+    xnq_bank_questions 업데이트`"]
+    ADD_BULK --> Q_LIST
+
+    %% ── 다른 은행에서 복사 ───────────────────────
+    QB -->|다른 은행에서 복사 버튼| M_COPY["`**CopyFromBankModal**
+    Step1: 은행 선택`"]
+    M_COPY -->|은행 선택| M_COPY2["`Step2: 문항 선택
+    검색 / 필터
+    checkbox 다중선택`"]
+    M_COPY2 -->|복사 버튼| COPY_Q["`addQuestions (복사)
+    선택 문항 현재 은행에 복사`"]
+    COPY_Q --> Q_LIST
+
+    %% ── 뒤로가기 ─────────────────────────────────
+    QB -->|뒤로가기 링크| QBL
+
+    %% ── 스타일 ───────────────────────────────────
+    style QBL      fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QB       fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style FILTER   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style Q_LIST   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style EDIT_FORM fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+
+    style M_NEW_BANK fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style M_ADD_Q    fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style M_UPLOAD   fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style M_COPY     fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style M_COPY2    fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+
+    style ADD_BANK  fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style ADD_Q     fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style UPD_Q     fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style ADD_BULK  fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style COPY_Q    fill:#DCFCE7,stroke:#16A34A,color:#14532d
+
+    style DEL_BANK fill:#FEE2E2,stroke:#DC2626,color:#7f1d1d
+    style DEL_Q    fill:#FEE2E2,stroke:#DC2626,color:#7f1d1d
+
+    style START fill:#F0FDF4,stroke:#22C55E,color:#14532d
