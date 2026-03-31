@@ -7,48 +7,7 @@ import {
 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockStudents, QUIZ_TYPES, mockQuizzes, getStudentAnswer, isAnswerCorrect, getQuizQuestions } from '../data/mockData'
-
-function downloadAnswerSheets(quizInfo, students, questions) {
-  if (!questions.length) return
-
-  // localStorage 실제 제출 답안 로드
-  let localAttempts = []
-  try {
-    const raw = localStorage.getItem('xnq_student_attempts')
-    const all = raw ? JSON.parse(raw) : {}
-    localAttempts = all[quizInfo.id] || []
-  } catch { /* ignore */ }
-
-  const bom = '\uFEFF'
-  const headers = ['이름', '학번', '학과', '제출경로', ...questions.map(q => `Q${q.order}(${q.points}점)`), '자동채점합계', '수동채점합계', '총점']
-
-  // mockStudents 행 (가상 답안)
-  const mockRows = students.map((s, idx) => {
-    const answers = questions.map(q => getStudentAnswer(idx, q.id) ?? '')
-    const autoTotal = s.autoScores ? Object.values(s.autoScores).reduce((a, b) => a + b, 0) : '-'
-    const manualTotal = s.manualScores ? Object.values(s.manualScores).reduce((a, b) => a + b, 0) : '-'
-    return [s.name, s.studentId, s.department, '기존데이터', ...answers, autoTotal, manualTotal, s.score ?? '-']
-  })
-
-  // localStorage 실제 제출 행
-  const localRows = localAttempts.map(attempt => {
-    const answers = questions.map(q => attempt.answers?.[q.id] ?? '')
-    const autoTotal = attempt.totalAutoScore ?? '-'
-    return [attempt.studentName, attempt.studentNumber, attempt.department, '학생직접제출', ...answers, autoTotal, '-', autoTotal]
-  })
-
-  const allRows = [...mockRows, ...localRows]
-  const csv = [headers, ...allRows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `답안지_${quizInfo.title}.csv`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
+import { downloadAnswerSheetsXlsx, downloadGradingSheetXlsx, parseExcelOrCsv } from '../utils/excelUtils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 
@@ -280,7 +239,7 @@ export default function GradingDashboard() {
               <span className="hidden sm:block">재채점</span>
             </button>
             <button
-              onClick={() => downloadAnswerSheets(QUIZ_INFO, mockStudents.filter(s => s.submitted), quizQuestions)}
+              onClick={() => downloadAnswerSheetsXlsx(QUIZ_INFO, mockStudents.filter(s => s.submitted), quizQuestions, { getStudentAnswer })}
               className="btn-secondary text-xs py-2 px-3"
             >
               <FileDown size={12} />
@@ -790,7 +749,7 @@ function StudentListItem({ student, selected, onClick }) {
           <p className="text-sm font-medium truncate" style={{ color: selected ? '#6366f1' : '#222222' }}>
             {student.name}
           </p>
-          <p className="text-xs" style={{ color: '#9E9E9E' }}>{student.studentId}</p>
+          <p className="text-xs" style={{ color: '#9E9E9E' }}>{student.studentId} · {student.department}</p>
         </div>
         {student.score !== null ? (
           <span className="text-sm font-bold shrink-0" style={{ color: '#018600' }}>{student.score}점</span>
@@ -1033,8 +992,10 @@ function StatsTab({ question, students }) {
 function StatCard({ label, value, unit, accent }) {
   return (
     <div className="bg-white p-3 text-center" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
-      <div className="text-xl font-bold" style={{ color: accent ? '#6366f1' : '#222222' }}>{value}</div>
-      <div className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{unit}</div>
+      <div className="flex items-baseline justify-center gap-0.5 flex-wrap">
+        <span className="text-xl font-bold" style={{ color: accent ? '#6366f1' : '#222222' }}>{value}</span>
+        {unit && <span className="text-xs" style={{ color: '#9E9E9E' }}>{unit}</span>}
+      </div>
       <div className="text-xs mt-1" style={{ color: '#616161' }}>{label}</div>
     </div>
   )
@@ -1102,38 +1063,44 @@ function ExcelModal({ question, onClose }) {
   const [errorMsg, setErrorMsg] = useState('')
 
   const handleDownload = () => {
-    setStep('downloading')
-    setTimeout(() => setStep('idle'), 1500)
+    const submittedStudents = mockStudents.filter(s => s.submitted)
+    downloadGradingSheetXlsx(question, submittedStudents)
   }
 
-  const handleUpload = (e) => {
+  const handleUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // 파일 타입/크기 검증
-    const validTypes = ['.xlsx', '.xls', '.csv']
-    const ext = file.name.toLowerCase().match(/\.[^.]+$/)
-    if (!ext || !validTypes.includes(ext[0])) {
-      setErrorMsg('xlsx, xls, csv 형식의 파일만 업로드할 수 있습니다.')
-      setStep('error')
-      return
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setErrorMsg('파일 크기는 10MB 이하여야 합니다.')
+    setStep('uploading')
+    setErrorMsg('')
+
+    const result = await parseExcelOrCsv(file)
+    if (result.error) {
+      setErrorMsg(result.error)
       setStep('error')
       return
     }
 
-    setStep('uploading')
-    setTimeout(() => {
-      // 데모: 90% 성공
-      if (Math.random() < 0.1) {
+    // 점수 유효성 검사
+    const maxPoints = question?.points ?? 0
+    for (let i = 0; i < result.rows.length; i++) {
+      const row = result.rows[i]
+      const scoreRaw = row.answer ?? ''
+      if (scoreRaw === '') continue
+      const score = Number(scoreRaw)
+      if (isNaN(score) || score < 0) {
+        setErrorMsg(`${i + 2}행: 점수는 0 이상의 숫자여야 합니다.`)
         setStep('error')
-        setErrorMsg('3행: 점수가 배점(10점)을 초과합니다. 전체 업로드가 취소되었습니다.')
-      } else {
-        setStep('success')
+        return
       }
-    }, 1800)
+      if (score > maxPoints) {
+        setErrorMsg(`${i + 2}행: 점수(${score})가 배점(${maxPoints}점)을 초과합니다. 전체 업로드가 취소되었습니다.`)
+        setStep('error')
+        return
+      }
+    }
+
+    setStep('success')
   }
 
   return (

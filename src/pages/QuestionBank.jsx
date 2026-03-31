@@ -4,46 +4,8 @@ import { Plus, Search, X, Edit2, Trash2, Upload, Download, ChevronLeft, Copy } f
 import Layout from '../components/Layout'
 import { QUIZ_TYPES } from '../data/mockData'
 import { useQuestionBank } from '../context/QuestionBankContext'
-
-// ── CSV 유틸 ─────────────────────────────────────────────────────────────────
-const CSV_TEMPLATE_HEADER = '유형,내용,배점,정답(선택)'
-const CSV_TEMPLATE_ROWS = [
-  'multiple_choice,SQL에서 테이블을 생성하는 명령어는?,5,CREATE TABLE',
-  'true_false,PRIMARY KEY는 NULL 값을 허용한다.,5,거짓',
-  'short_answer,DDL의 약자를 쓰시오.,5,Data Definition Language',
-  'essay,트랜잭션의 ACID 속성에 대해 서술하시오.,15,',
-].join('\n')
-
-function downloadCsvTemplate() {
-  const bom = '\uFEFF'
-  const blob = new Blob([bom + CSV_TEMPLATE_HEADER + '\n' + CSV_TEMPLATE_ROWS], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = '문항_업로드_템플릿.csv'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
-
-function parseCsv(text) {
-  const lines = text.trim().split('\n').filter(Boolean)
-  if (lines.length < 2) return { error: '데이터 행이 없습니다.' }
-  const validTypes = Object.keys(QUIZ_TYPES)
-  const rows = []
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''))
-    if (cols.length < 3) return { error: `${i + 1}행: 컬럼 수가 부족합니다 (최소 3개 필요).` }
-    const [type, text, pointsStr, answer = ''] = cols
-    if (!validTypes.includes(type)) return { error: `${i + 1}행: 지원하지 않는 유형 "${type}"입니다.` }
-    const points = parseInt(pointsStr, 10)
-    if (isNaN(points) || points <= 0) return { error: `${i + 1}행: 배점이 유효하지 않습니다.` }
-    if (!text) return { error: `${i + 1}행: 문항 내용이 비어있습니다.` }
-    rows.push({ type, text, points, answer })
-  }
-  return { rows }
-}
+import AddQuestionModal from '../components/AddQuestionModal'
+import { downloadQuestionTemplate, parseExcelOrCsv } from '../utils/excelUtils'
 
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 export default function QuestionBank() {
@@ -57,7 +19,7 @@ export default function QuestionBank() {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [editingId, setEditingId] = useState(null)
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
 
@@ -78,7 +40,7 @@ export default function QuestionBank() {
 
   const handleAddQuestion = (newQ) => {
     addQuestions([{ ...newQ, id: `q_${Date.now()}`, bankId: bank.id, usageCount: 0 }])
-    setShowAddForm(false)
+    setShowAddModal(false)
   }
 
   const handleCsvImport = (rows) => {
@@ -154,7 +116,7 @@ export default function QuestionBank() {
               <span className="hidden sm:block">일괄 업로드</span>
             </button>
             <button
-              onClick={() => { setShowAddForm(true); setEditingId(null) }}
+              onClick={() => { setShowAddModal(true); setEditingId(null) }}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 transition-colors"
               style={{ borderRadius: 4 }}
             >
@@ -168,16 +130,6 @@ export default function QuestionBank() {
         <p className="text-xs mb-5" style={{ color: '#9E9E9E' }}>
           문항을 수정해도 이미 생성된 퀴즈에는 자동 반영되지 않습니다.
         </p>
-
-        {/* 문항 추가 인라인 폼 */}
-        {showAddForm && (
-          <div className="mb-4">
-            <QuestionForm
-              onSave={handleAddQuestion}
-              onCancel={() => setShowAddForm(false)}
-            />
-          </div>
-        )}
 
         {/* 필터 */}
         <div className="card-flat p-4 mb-4">
@@ -217,7 +169,7 @@ export default function QuestionBank() {
               </p>
               {questions.length === 0 && (
                 <button
-                  onClick={() => setShowAddForm(true)}
+                  onClick={() => setShowAddModal(true)}
                   className="text-xs text-indigo-600 underline mt-1"
                 >
                   첫 문항 추가하기
@@ -242,8 +194,15 @@ export default function QuestionBank() {
         </div>
       </div>
 
+      {showAddModal && (
+        <AddQuestionModal
+          onClose={() => setShowAddModal(false)}
+          onAdd={handleAddQuestion}
+        />
+      )}
+
       {showUploadModal && (
-        <CsvUploadModal
+        <ExcelUploadModal
           onClose={() => setShowUploadModal(false)}
           onImport={handleCsvImport}
         />
@@ -395,28 +354,27 @@ function QuestionForm({ initial, onSave, onCancel }) {
   )
 }
 
-// ── CSV 업로드 모달 ───────────────────────────────────────────────────────────
-function CsvUploadModal({ onClose, onImport }) {
+// ── 엑셀/CSV 업로드 모달 ─────────────────────────────────────────────────────
+function ExcelUploadModal({ onClose, onImport }) {
   const fileRef = useRef(null)
   const [status, setStatus] = useState(null)
   const [preview, setPreview] = useState(null)
+  const [loading, setLoading] = useState(false)
 
-  const handleFile = (e) => {
+  const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const text = ev.target.result
-      const result = parseCsv(text)
-      if (result.error) {
-        setStatus({ type: 'error', message: result.error })
-        setPreview(null)
-      } else {
-        setStatus({ type: 'success', message: `${result.rows.length}개 문항을 인식했습니다.` })
-        setPreview(result.rows)
-      }
+    setLoading(true)
+    setStatus(null)
+    setPreview(null)
+    const result = await parseExcelOrCsv(file)
+    setLoading(false)
+    if (result.error) {
+      setStatus({ type: 'error', message: result.error })
+    } else {
+      setStatus({ type: 'success', message: `${result.rows.length}개 문항을 인식했습니다.` })
+      setPreview(result.rows)
     }
-    reader.readAsText(file, 'utf-8')
   }
 
   return (
@@ -428,19 +386,19 @@ function CsvUploadModal({ onClose, onImport }) {
         onClick={e => e.stopPropagation()}
       >
         <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
-          <h3 className="font-semibold" style={{ color: '#222222' }}>CSV 일괄 업로드</h3>
+          <h3 className="font-semibold" style={{ color: '#222222' }}>엑셀/CSV 일괄 업로드</h3>
           <button onClick={onClose} style={{ color: '#9E9E9E' }}><X size={18} /></button>
         </div>
 
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between text-xs" style={{ color: '#9E9E9E' }}>
-            <span>형식: 유형, 내용, 배점, 정답(선택)</span>
+            <span>지원 형식: .xlsx, .xls, .csv</span>
             <button
-              onClick={downloadCsvTemplate}
+              onClick={downloadQuestionTemplate}
               className="flex items-center gap-1 text-indigo-600 underline"
             >
               <Download size={12} />
-              템플릿 다운로드
+              엑셀 템플릿 다운로드
             </button>
           </div>
 
@@ -452,8 +410,10 @@ function CsvUploadModal({ onClose, onImport }) {
             onMouseLeave={e => e.currentTarget.style.borderColor = '#E0E0E0'}
           >
             <Upload size={24} style={{ color: '#BDBDBD' }} />
-            <p className="text-sm" style={{ color: '#9E9E9E' }}>CSV 파일을 클릭하여 선택</p>
-            <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFile} />
+            <p className="text-sm" style={{ color: '#9E9E9E' }}>
+              {loading ? '파일 분석 중...' : '파일을 클릭하여 선택 (.xlsx / .xls / .csv)'}
+            </p>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFile} />
           </div>
 
           {status && (
