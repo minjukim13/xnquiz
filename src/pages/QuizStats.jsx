@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { CheckCircle2, Download, Search } from 'lucide-react'
+import { downloadGradesXlsx } from '../utils/excelUtils'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
@@ -85,7 +86,7 @@ export default function QuizStats() {
         </div>
 
         {activeTab === 'grades' && <GradesTab quiz={quiz} />}
-        {activeTab === 'stats'  && <StatsTab  quiz={quiz} />}
+        {activeTab === 'stats'  && <StatsTab  quiz={quiz} quizQuestions={quizQuestions} />}
 
       </div>
     </Layout>
@@ -105,24 +106,7 @@ function GradesTab({ quiz }) {
     s.studentId.includes(search)
   )
 
-  const downloadCSV = () => {
-    const header = ['이름', '학번', '학과', `점수(/${quiz.totalPoints}점)`, '채점 상태']
-    const rows = students.map(s => [
-      s.name,
-      s.studentId,
-      s.department,
-      s.score ?? '-',
-      s.score !== null ? '채점 완료' : '미채점',
-    ])
-    const csv = [header, ...rows].map(r => r.join(',')).join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `성적_${quiz.title}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+  const downloadCSV = () => downloadGradesXlsx(quiz, students)
 
   return (
     <div className="space-y-4">
@@ -140,7 +124,7 @@ function GradesTab({ quiz }) {
           className="btn-secondary text-xs"
         >
           <Download size={13} />
-          성적 다운로드 (CSV)
+          성적 다운로드 (.xlsx)
         </button>
       </div>
 
@@ -162,8 +146,19 @@ function GradesTab({ quiz }) {
           <table className="w-full text-xs">
             <thead>
               <tr style={{ background: '#F5F5F5', borderBottom: '1px solid #EEEEEE' }}>
-                {['이름', '학번', '학과', `점수 / ${quiz.totalPoints}점`, '상태', ''].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left font-semibold whitespace-nowrap" style={{ color: '#616161' }}>{h}</th>
+                {[
+                  { label: '이름',                        center: false },
+                  { label: '학번',                        center: false },
+                  { label: '학과',                        center: false },
+                  { label: `점수 / ${quiz.totalPoints}점`, center: true  },
+                  { label: '상태',                        center: true  },
+                  { label: '',                            center: true  },
+                ].map(({ label, center }) => (
+                  <th
+                    key={label}
+                    className={`px-4 py-2.5 font-semibold whitespace-nowrap ${center ? 'text-center' : 'text-left'}`}
+                    style={{ color: '#616161' }}
+                  >{label}</th>
                 ))}
               </tr>
             </thead>
@@ -179,23 +174,23 @@ function GradesTab({ quiz }) {
                   <td className="px-4 py-2.5 font-medium" style={{ color: '#222222' }}>{s.name}</td>
                   <td className="px-4 py-2.5 font-mono" style={{ color: '#616161' }}>{s.studentId}</td>
                   <td className="px-4 py-2.5" style={{ color: '#616161' }}>{s.department}</td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 text-center">
                     {s.score !== null ? (
                       <span className="font-bold" style={{ color: '#222222' }}>{s.score}점</span>
                     ) : (
                       <span style={{ color: '#BDBDBD' }}>-</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 text-center">
                     {s.score !== null ? (
-                      <span className="flex items-center gap-1" style={{ color: '#018600' }}>
+                      <span className="inline-flex items-center gap-1" style={{ color: '#018600' }}>
                         <CheckCircle2 size={11} />채점 완료
                       </span>
                     ) : (
                       <span style={{ color: '#B43200' }}>미채점</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 text-center">
                     <Link
                       to={`/quiz/${quiz.id}/grade`}
                       className="font-medium text-indigo-500 hover:text-indigo-700"
@@ -219,7 +214,7 @@ function GradesTab({ quiz }) {
 }
 
 /* ─── Tab 2: 퀴즈 통계 ───────────────────────────────────────── */
-function StatsTab({ quiz }) {
+function StatsTab({ quiz, quizQuestions }) {
   const submitted = mockStudents.filter(s => s.submitted)
   const graded    = submitted.filter(s => s.score !== null)
   const scores    = graded.map(s => s.score)
@@ -447,8 +442,20 @@ function StatsTab({ quiz }) {
           <table className="w-full text-xs">
             <thead>
               <tr style={{ background: '#F5F5F5', borderBottom: '1px solid #EEEEEE' }}>
-                {['문항', '유형', '배점', '평균 점수', '득점률', '난이도', '채점 현황'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left font-semibold whitespace-nowrap" style={{ color: '#616161' }}>{h}</th>
+                {[
+                  { label: '문항',     center: true  },
+                  { label: '유형',     center: false },
+                  { label: '배점',     center: true  },
+                  { label: '평균 점수', center: true  },
+                  { label: '득점률',   center: false },
+                  { label: '난이도',   center: true  },
+                  { label: '채점 현황', center: true  },
+                ].map(({ label, center }) => (
+                  <th
+                    key={label}
+                    className={`px-4 py-2.5 font-semibold whitespace-nowrap ${center ? 'text-center' : 'text-left'}`}
+                    style={{ color: '#616161' }}
+                  >{label}</th>
                 ))}
               </tr>
             </thead>
@@ -461,10 +468,10 @@ function StatsTab({ quiz }) {
                   onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
                   onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#FAFAFA'}
                 >
-                  <td className="px-4 py-2.5 font-bold" style={{ color: '#9E9E9E' }}>Q{q.order}</td>
+                  <td className="px-4 py-2.5 text-center font-bold" style={{ color: '#9E9E9E' }}>Q{q.order}</td>
                   <td className="px-4 py-2.5"><TypeBadge type={q.type} small /></td>
-                  <td className="px-4 py-2.5 font-medium" style={{ color: '#424242' }}>{q.points}점</td>
-                  <td className="px-4 py-2.5" style={{ color: '#424242' }}>
+                  <td className="px-4 py-2.5 text-center font-medium" style={{ color: '#424242' }}>{q.points}점</td>
+                  <td className="px-4 py-2.5 text-center" style={{ color: '#424242' }}>
                     {q.avgScore != null ? `${q.avgScore}점` : <span style={{ color: '#BDBDBD' }}>-</span>}
                   </td>
                   <td className="px-4 py-2.5">
@@ -483,7 +490,7 @@ function StatsTab({ quiz }) {
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 text-center">
                     {q.difficulty ? (
                       <span
                         className="px-1.5 py-0.5 rounded text-xs font-medium"
@@ -499,9 +506,9 @@ function StatsTab({ quiz }) {
                       <span style={{ color: '#BDBDBD' }}>-</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 text-center">
                     {q.gradedCount >= q.totalCount ? (
-                      <span className="flex items-center gap-1" style={{ color: '#018600' }}>
+                      <span className="inline-flex items-center justify-center gap-1" style={{ color: '#018600' }}>
                         <CheckCircle2 size={11} />완료
                       </span>
                     ) : (

@@ -603,24 +603,14 @@ export default function AddQuestionModal({ onClose, onAdd }) {
       >
         {/* 헤더 */}
         <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
-          <div className="flex items-center gap-3">
-            {step === 'form' && (
-              <button onClick={handleBack} className="text-xs transition-colors"
-                style={{ color: '#9E9E9E' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#424242'}
-                onMouseLeave={e => e.currentTarget.style.color = '#9E9E9E'}>
-                ← 유형 선택
-              </button>
+          <div>
+            <h3 className="font-semibold" style={{ color: '#222222' }}>문항 직접 추가</h3>
+            {step === 'form' && typeInfo && (
+              <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: '#9E9E9E' }}>
+                <span className="w-2 h-2 rounded-full inline-block" style={{ background: typeInfo.autoGrade === false ? '#B43200' : typeInfo.autoGrade === 'partial' ? '#f59e0b' : '#01A900' }} />
+                {typeInfo.label} · {typeInfo.autoGrade === false ? '수동채점' : typeInfo.autoGrade === 'partial' ? '부분자동' : '자동채점'}
+              </p>
             )}
-            <div>
-              <h3 className="font-semibold" style={{ color: '#222222' }}>문항 직접 추가</h3>
-              {step === 'form' && typeInfo && (
-                <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: '#9E9E9E' }}>
-                  <span className="w-2 h-2 rounded-full inline-block" style={{ background: typeInfo.autoGrade === false ? '#B43200' : typeInfo.autoGrade === 'partial' ? '#f59e0b' : '#01A900' }} />
-                  {typeInfo.label} · {typeInfo.autoGrade === false ? '수동채점' : typeInfo.autoGrade === 'partial' ? '부분자동' : '자동채점'}
-                </p>
-              )}
-            </div>
           </div>
           <button onClick={onClose} style={{ color: '#9E9E9E' }}
             onMouseEnter={e => e.currentTarget.style.color = '#424242'}
@@ -710,7 +700,15 @@ export default function AddQuestionModal({ onClose, onAdd }) {
             <TypeForm type={selectedType} form={form} setForm={setForm} />
 
             {/* 하단 버튼 */}
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex items-center justify-between pt-1">
+              <button onClick={handleBack}
+                className="text-sm transition-colors"
+                style={{ color: '#9E9E9E' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#424242'}
+                onMouseLeave={e => e.currentTarget.style.color = '#9E9E9E'}>
+                ← 유형 변경
+              </button>
+              <div className="flex gap-2">
               <button onClick={onClose}
                 className="text-sm px-4 py-2 rounded transition-colors"
                 style={{ color: '#424242', border: '1px solid #E0E0E0' }}
@@ -724,6 +722,7 @@ export default function AddQuestionModal({ onClose, onAdd }) {
                 className="text-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded transition-colors font-medium">
                 추가
               </button>
+              </div>
             </div>
           </div>
         )}

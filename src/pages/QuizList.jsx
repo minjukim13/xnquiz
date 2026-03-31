@@ -42,7 +42,7 @@ function InstructorQuizList() {
 
   return (
     <Layout>
-      <div className="max-w-[1600px] mx-auto px-6 sm:px-10 xl:px-16 py-10">
+      <div className="max-w-4xl mx-auto px-6 sm:px-10 py-10">
 
         <div className="flex items-start justify-between mb-8 gap-4">
           <div>
@@ -59,8 +59,9 @@ function InstructorQuizList() {
 
         {gradingQuizzes.length > 0 && (
           <section className="mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <p className="text-xs font-semibold" style={{ color: '#B43200' }}>채점 필요 {gradingQuizzes.length}건</p>
+            <div className="flex items-center gap-2 mb-3 pl-3" style={{ borderLeft: '3px solid #B43200' }}>
+              <p className="text-sm font-semibold" style={{ color: '#B43200' }}>채점 필요</p>
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: '#FFF0EB', color: '#B43200' }}>{gradingQuizzes.length}건</span>
             </div>
             <div className="grid gap-3">
               {gradingQuizzes.map(quiz => (
@@ -71,6 +72,9 @@ function InstructorQuizList() {
         )}
 
         <section>
+          {gradingQuizzes.length > 0 && (
+            <div className="mb-6" style={{ borderTop: '1px solid #EEEEEE' }} />
+          )}
           <p className="text-xs font-semibold mb-3" style={{ color: '#9E9E9E' }}>
             전체 퀴즈 ({otherQuizzes.length})
           </p>
@@ -91,7 +95,7 @@ function QuizCard({ quiz, onPublishQuiz }) {
 
   return (
     <div className="card overflow-hidden">
-      <div className="flex items-start gap-4 px-5 pt-5 pb-4">
+      <div className="flex items-start gap-4 px-6 pt-6 pb-5">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span
@@ -185,7 +189,7 @@ function QuizCard({ quiz, onPublishQuiz }) {
         </div>
       </div>
 
-      <div className="px-5 py-3.5" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
+      <div className="px-6 py-4" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
         {quiz.status === 'closed'
           ? <ClosedSummary quiz={quiz} />
           : <ActiveStats quiz={quiz} />
@@ -234,7 +238,7 @@ function ActiveStats({ quiz }) {
           { label: '채점 완료', value: graded,        sub: null,             styleColor: '#018600' },
           { label: '미채점',    value: quiz.pendingGrade, sub: null,         styleColor: quiz.pendingGrade > 0 ? '#B43200' : '#222222' },
         ].map((item, idx) => (
-          <div key={item.label} className="text-center px-2 first:pl-0 last:pr-0" style={idx < 3 ? { borderRight: '1px solid #EEEEEE' } : {}}>
+          <div key={item.label} className="text-center px-4 first:pl-0 last:pr-0" style={idx < 3 ? { borderRight: '1px solid #EEEEEE' } : {}}>
             <p className="text-lg font-bold leading-none" style={{ color: item.styleColor }}>
               {item.value}
               {item.sub && (
