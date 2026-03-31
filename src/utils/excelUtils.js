@@ -1,6 +1,134 @@
 import * as XLSX from 'xlsx'
 import { QUIZ_TYPES } from '../data/mockData'
 
+// ── 문항 분석 다운로드 (QuizStats — StatsTab) ─────────────────────────────
+export function downloadItemAnalysisXlsx(quiz, quizQuestions, students) {
+  const graded = students.filter(s => s.submitted && s.score !== null)
+  if (!graded.length) return
+
+  const getScore = (s, qId) => {
+    if (s.autoScores?.[qId] !== undefined) return s.autoScores[qId]
+    if (s.manualScores?.[qId] !== undefined) return s.manualScores[qId]
+    return null
+  }
+
+  const totalScores = graded.map(s => s.score)
+  const meanTotal = totalScores.reduce((a, b) => a + b, 0) / totalScores.length
+  const stdTotal = Math.sqrt(totalScores.reduce((a, b) => a + (b - meanTotal) ** 2, 0) / totalScores.length)
+
+  const n27 = Math.max(1, Math.floor(graded.length * 0.27))
+  const sorted = [...graded].sort((a, b) => a.score - b.score)
+  const lower27 = sorted.slice(0, n27)
+  const upper27 = sorted.slice(sorted.length - n27)
+
+  const qMetrics = quizQuestions.map(q => {
+    const qScores = graded.map(s => getScore(s, q.id)).filter(v => v !== null)
+    const avgQ = qScores.length ? qScores.reduce((a, b) => a + b, 0) / qScores.length : null
+    const rate = avgQ != null ? Math.round((avgQ / q.points) * 100) : null
+    const difficulty = rate == null ? '-' : rate >= 70 ? '쉬움' : rate >= 40 ? '보통' : '어려움'
+
+    const correctCount = q.autoGrade
+      ? graded.filter(s => getScore(s, q.id) === q.points).length
+      : null
+    const correctRate = correctCount != null && graded.length
+      ? Math.round((correctCount / graded.length) * 100)
+      : null
+
+    const upperAvg = upper27.map(s => getScore(s, q.id) ?? 0).reduce((a, b) => a + b, 0) / upper27.length
+    const lowerAvg = lower27.map(s => getScore(s, q.id) ?? 0).reduce((a, b) => a + b, 0) / lower27.length
+    const discrimination = parseFloat(((upperAvg - lowerAvg) / q.points).toFixed(3))
+
+    let rpb = '-'
+    if (q.autoGrade && graded.length >= 2 && stdTotal > 0) {
+      const binary = graded.map(s => getScore(s, q.id) === q.points ? 1 : 0)
+      const p = binary.reduce((a, b) => a + b, 0) / binary.length
+      const qp = 1 - p
+      if (p > 0 && qp > 0) {
+        const passTotal = totalScores.filter((_, i) => binary[i] === 1)
+        const meanPass = passTotal.reduce((a, b) => a + b, 0) / passTotal.length
+        rpb = parseFloat(((meanPass - meanTotal) / stdTotal * Math.sqrt(p * qp)).toFixed(3))
+      }
+    }
+
+    return {
+      order: q.order,
+      type: QUIZ_TYPES[q.type]?.label ?? q.type,
+      points: q.points,
+      avgScore: avgQ != null ? parseFloat(avgQ.toFixed(2)) : '-',
+      rate: rate ?? '-',
+      difficulty,
+      correctCount: correctCount ?? '-',
+      correctRate: correctRate != null ? `${correctRate}%` : '-',
+      discrimination,
+      rpb,
+    }
+  })
+
+  // Cronbach α
+  let cronbach = '-'
+  const validQIds = quizQuestions.filter(q => graded.some(s => getScore(s, q.id) !== null)).map(q => q.id)
+  if (validQIds.length >= 2) {
+    const itemVars = validQIds.map(qId => {
+      const vals = graded.map(s => getScore(s, qId) ?? 0)
+      const m = vals.reduce((a, b) => a + b, 0) / vals.length
+      return vals.reduce((a, b) => a + (b - m) ** 2, 0) / vals.length
+    })
+    const compositeVals = graded.map(s => validQIds.reduce((sum, qId) => sum + (getScore(s, qId) ?? 0), 0))
+    const mC = compositeVals.reduce((a, b) => a + b, 0) / compositeVals.length
+    const totalVar = compositeVals.reduce((a, b) => a + (b - mC) ** 2, 0) / compositeVals.length
+    if (totalVar > 0) {
+      const k = validQIds.length
+      cronbach = parseFloat((k / (k - 1) * (1 - itemVars.reduce((a, b) => a + b, 0) / totalVar)).toFixed(3))
+    }
+  }
+
+  // 퀴즈 요약 지표
+  const avg = totalScores.reduce((a, b) => a + b, 0) / totalScores.length
+  const stdev = Math.sqrt(totalScores.reduce((a, b) => a + (b - avg) ** 2, 0) / totalScores.length)
+  const submitRate = ((quiz.submitted / quiz.totalStudents) * 100).toFixed(1)
+  const gradeRate = quiz.submitted > 0 ? ((quiz.graded / quiz.submitted) * 100).toFixed(1) : 0
+
+  // Sheet 1: 문항 분석
+  const headers1 = ['문항', '유형', '배점(점)', '평균점수', '득점률(%)', '난이도', '정답학생수', '정답률', '변별도 D', '이분상관계수 r_pb']
+  const rows1 = qMetrics.map(m => [
+    `Q${m.order}`, m.type, m.points, m.avgScore, m.rate,
+    m.difficulty, m.correctCount, m.correctRate, m.discrimination, m.rpb,
+  ])
+  const ws1 = XLSX.utils.aoa_to_sheet([headers1, ...rows1])
+  ws1['!cols'] = [
+    { wch: 7 }, { wch: 14 }, { wch: 9 }, { wch: 10 }, { wch: 10 },
+    { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 17 },
+  ]
+  headers1.forEach((_, i) => {
+    const cell = ws1[XLSX.utils.encode_cell({ r: 0, c: i })]
+    if (cell) cell.s = { font: { bold: true } }
+  })
+
+  // Sheet 2: 퀴즈 요약
+  const rows2 = [
+    ['항목', '값'],
+    ['퀴즈명', quiz.title],
+    ['과목', quiz.course],
+    ['만점', `${quiz.totalPoints}점`],
+    ['평균 점수', parseFloat(avg.toFixed(2))],
+    ['최고 점수', Math.max(...totalScores)],
+    ['최저 점수', Math.min(...totalScores)],
+    ['표준편차', parseFloat(stdev.toFixed(2))],
+    ['응시율', `${submitRate}%`],
+    ['채점 완료율', `${gradeRate}%`],
+    ['Cronbach α', cronbach],
+  ]
+  const ws2 = XLSX.utils.aoa_to_sheet(rows2)
+  ws2['!cols'] = [{ wch: 16 }, { wch: 30 }]
+  const hCell = ws2[XLSX.utils.encode_cell({ r: 0, c: 0 })]
+  if (hCell) hCell.s = { font: { bold: true } }
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws1, '문항 분석')
+  XLSX.utils.book_append_sheet(wb, ws2, '퀴즈 요약')
+  XLSX.writeFile(wb, `문항분석_${quiz.title}.xlsx`)
+}
+
 // ── 성적 다운로드 (QuizStats) ───────────────────────────────────────────────
 export function downloadGradesXlsx(quiz, students) {
   const headers = ['이름', '학번', '학과', `점수 (/${quiz.totalPoints}점)`, '자동채점', '수동채점', '채점 상태']

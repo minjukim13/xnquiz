@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Plus, Search, X, GripVertical, Trash2, BookOpen, Settings2, ChevronDown, ChevronLeft } from 'lucide-react'
 import Layout from '../components/Layout'
 import AddQuestionModal from '../components/AddQuestionModal'
-import { QUIZ_TYPES, mockQuizzes } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes, getQuizQuestions } from '../data/mockData'
 import { useQuestionBank } from '../context/QuestionBankContext'
 
 
@@ -13,9 +13,7 @@ export default function QuizEdit() {
   const quiz = mockQuizzes.find(q => q.id === id) ?? mockQuizzes[0]
   const [showBankModal, setShowBankModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [questions, setQuestions] = useState(() =>
-    QUESTION_BANK.slice(0, quiz.questions ?? 3)
-  )
+  const [questions, setQuestions] = useState(() => getQuizQuestions(quiz.id))
   const [timeLimit, setTimeLimit] = useState(quiz.timeLimit ?? 60)
   const [allowAttempts, setAllowAttempts] = useState(quiz.allowAttempts ?? 1)
 
