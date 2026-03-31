@@ -2,7 +2,7 @@
 title: XN Quizzes — 학생 퀴즈 응시 흐름
 ---
 flowchart TD
-    START([학생 진입]) --> QL["`**QuizList 학생 뷰**
+    START([학생 진입]) --> QL["`**퀴즈 목록 — 학생 뷰**
     안녕하세요, {학생명}님`"]
 
     QL --> SEC{퀴즈 상태 섹션}
@@ -14,7 +14,7 @@ flowchart TD
     SEC -->|종료| SEC_CLOSED["`종료 섹션 (회색)
     최종 점수 표시`"]
 
-    SEC_OPEN -->|응시하기 버튼| QA["`**QuizAttempt**
+    SEC_OPEN -->|응시하기 버튼| QA["`**퀴즈 응시 화면**
     퀴즈 제목 / 답변완료 카운트 (0/N)
     남은 시간 타이머`"]
 
@@ -24,9 +24,9 @@ flowchart TD
 
     ANS_LOOP --> Q_TYPE{문항 유형}
     Q_TYPE -->|객관식 / 참거짓| INPUT_RADIO["`라디오 버튼 선택`"]
-    Q_TYPE -->|단답형| INPUT_TEXT["`text input 입력`"]
-    Q_TYPE -->|서술형| INPUT_TEXTAREA["`textarea 입력`"]
-    Q_TYPE -->|수치형| INPUT_NUMBER["`number input 입력`"]
+    Q_TYPE -->|단답형| INPUT_TEXT["`단답 텍스트 입력`"]
+    Q_TYPE -->|서술형| INPUT_TEXTAREA["`서술 텍스트 입력`"]
+    Q_TYPE -->|수치형| INPUT_NUMBER["`숫자 입력`"]
 
     INPUT_RADIO    --> ANSWERED["`답변완료 표시
     아이콘 + 텍스트`"]
@@ -38,10 +38,9 @@ flowchart TD
 
     %% ── 타이머 경고 ──────────────────────────────
     QA --> TIMER["`타이머 카운트다운
-    quiz.timeLimit × 60초`"]
+    시간제한(분) × 60초`"]
     TIMER -->|5분 미만| TIMER_WARN["`배경/텍스트 빨간색으로 변경`"]
-    TIMER -->|0초 도달| AUTO_SUBMIT["`자동 제출
-    auto: true`"]
+    TIMER -->|0초 도달| AUTO_SUBMIT["`자동 제출 처리`"]
 
     %% ── 제출 흐름 ────────────────────────────────
     ANS_LOOP -->|제출하기 버튼| CHECK_UNANSWERED{미답변 문항 있음?}
@@ -55,9 +54,9 @@ flowchart TD
     AUTO_SUBMIT --> SUBMIT
 
     SUBMIT["`**제출 처리**
-    autoGradeAnswer 호출 (자동채점)
-    attempt 객체 구성
-    saveStudentAttempt → localStorage 저장`"]
+    자동채점 실행
+    응시 기록 구성
+    브라우저 저장소에 저장`"]
 
     SUBMIT --> RESULT_MODAL["`**제출 완료 모달**
     자동채점 점수

@@ -2,31 +2,31 @@
 title: XN Quizzes — 전체 페이지 구조 및 라우트 맵
 ---
 flowchart LR
-    START([앱 진입]) --> ROLE{역할 Context\n교수자 / 학생}
+    START([앱 진입]) --> ROLE{역할 구분\n교수자 / 학생}
 
     %% 교수자 영역
-    ROLE -->|교수자| QL_I["`**QuizList**
+    ROLE -->|교수자| QL_I["`**퀴즈 목록**
     교수자 뷰
     /`"]
 
-    QL_I --> QC["`**QuizCreate**
+    QL_I --> QC["`**퀴즈 생성**
     /quiz/new`"]
-    QL_I --> QE["`**QuizEdit**
+    QL_I --> QE["`**퀴즈 편집**
     /quiz/:id/edit`"]
-    QL_I --> GD["`**GradingDashboard**
+    QL_I --> GD["`**채점 대시보드**
     /quiz/:id/grade`"]
-    QL_I --> QS["`**QuizStats**
+    QL_I --> QS["`**퀴즈 통계**
     /quiz/:id/stats`"]
-    QL_I --> QBL["`**QuestionBankList**
+    QL_I --> QBL["`**문제은행 목록**
     /question-banks`"]
-    QBL --> QB["`**QuestionBank**
+    QBL --> QB["`**문제은행 상세**
     /question-banks/:bankId`"]
 
     %% 학생 영역
-    ROLE -->|학생| QL_S["`**QuizList**
+    ROLE -->|학생| QL_S["`**퀴즈 목록**
     학생 뷰
     /`"]
-    QL_S --> QA["`**QuizAttempt**
+    QL_S --> QA["`**퀴즈 응시**
     /quiz/:id/attempt`"]
 
     %% 페이지 간 역방향 이동
