@@ -2,64 +2,64 @@
 title: XN Quizzes — 교수자 퀴즈 관리 흐름
 ---
 flowchart TD
-    START([교수자 진입]) --> QL["`**QuizList 교수자 뷰**
+    START([교수자 진입]) --> QL["`**퀴즈 목록 — 교수자 뷰**
     - 채점 필요 섹션
     - 전체 퀴즈 목록
-    - 상태별 정렬: draft → open → closed`"]
+    - 상태별 정렬: 초안 → 진행중 → 종료`"]
 
     %% ── 퀴즈 생성 흐름 ──────────────────────────
-    QL -->|새 퀴즈 버튼| QC_T1["`**QuizCreate — Tab1: 기본정보**
-    title / week / session
-    startDate / dueDate
-    timeLimitType / allowAttempts
-    scorePolicy / 체크박스 4개 / notice`"]
+    QL -->|새 퀴즈 버튼| QC_T1["`**퀴즈 생성 — 1단계: 기본정보**
+    제목 / 주차 / 차시
+    시작일 / 마감일
+    시간제한 유형 / 최대 응시횟수
+    채점 방식 / 체크박스 4개 / 안내사항`"]
 
-    QC_T1 -->|다음: 문항 구성| QC_T2["`**QuizCreate — Tab2: 문항구성**
+    QC_T1 -->|다음: 문항 구성| QC_T2["`**퀴즈 생성 — 2단계: 문항구성**
     선택된 문항 목록 (드래그 정렬)`"]
 
-    QC_T2 -->|문제은행에서 추가| M_BANK["`**QuestionBankModal**
-    Step1: 은행 선택
-    Step2: 문항 선택 + 검색/필터`"]
-    QC_T2 -->|직접 추가| M_ADD["`**AddQuestionModal**
+    QC_T2 -->|문제은행에서 추가| M_BANK["`**문제은행 모달**
+    1단계: 은행 선택
+    2단계: 문항 선택 + 검색/필터`"]
+    QC_T2 -->|직접 추가| M_ADD["`**문항 추가 모달**
     문항내용 / 유형 / 선택지 / 배점 입력`"]
     M_BANK -->|선택 완료| QC_T2
     M_ADD  -->|추가| QC_T2
 
-    QC_T2 -->|발행하기| NEW_QUIZ_OPEN["`퀴즈 상태: **open**
-    mockQuizzes에 추가`"]
+    QC_T2 -->|발행하기| NEW_QUIZ_OPEN["`퀴즈 상태: **진행중**
+    퀴즈 목록에 추가`"]
     NEW_QUIZ_OPEN --> QL
 
     %% ── 퀴즈 편집 흐름 ──────────────────────────
-    QL -->|편집 버튼 draft 퀴즈| QE["`**QuizEdit**
+    QL -->|편집 버튼 초안 퀴즈| QE["`**퀴즈 편집**
     문항 추가 / 제거
     설정 패널:
     응시시간 / 최대횟수 / 채점방식 / 체크박스`"]
 
     QE -->|문제은행에서 추가| M_BANK
     QE -->|직접 추가| M_ADD
-    QE -->|저장 및 발행| SAVE_QUIZ["`mockQuizzes 업데이트`"]
+    QE -->|저장 및 발행| SAVE_QUIZ["`퀴즈 목록 업데이트`"]
     SAVE_QUIZ --> QL
 
     %% ── 퀴즈 발행 (목록에서 직접) ──────────────
-    QL -->|발행 버튼 draft 퀴즈| CONFIRM_PUB{"`확인 다이얼로그
+    QL -->|발행 버튼 초안 퀴즈| CONFIRM_PUB{"`확인 다이얼로그
     '정말 발행하시겠습니까?'`"}
-    CONFIRM_PUB -->|확인| STATUS_OPEN["`상태 변경: draft → **open**`"]
+    CONFIRM_PUB -->|확인| STATUS_OPEN["`상태 변경: 초안 → **진행중**`"]
     CONFIRM_PUB -->|취소| QL
     STATUS_OPEN --> QL
 
     %% ── 채점 흐름 ────────────────────────────────
-    QL -->|채점하기 링크 open 퀴즈| GD["`**GradingDashboard**
+    QL -->|채점하기 링크 진행중 퀴즈| GD["`**채점 대시보드**
     모드 전환 탭: 문항중심 / 학생중심`"]
 
     GD -->|문항중심 모드| GD_Q["`문항 목록
     - 채점 필요 섹션 접기/펼치기
     - 채점 완료 섹션 접기/펼치기
-    - 정렬: 미채점우선 / 문항번호순`"]
+    - 정렬: 미채점 우선 / 문항번호순`"]
     GD_Q -->|문항 선택| GD_Q_RESP["`선택 문항 — 학생 응답 목록
     학생별 답변 텍스트
     점수 입력창`"]
-    GD_Q_RESP -->|점수 입력| SAVE_GRADE["`updateLocalGrades
-    localStorage 저장`"]
+    GD_Q_RESP -->|점수 입력| SAVE_GRADE["`채점 결과 저장
+    브라우저 저장소에 기록`"]
     SAVE_GRADE --> GD_Q
 
     GD -->|학생중심 모드| GD_S["`학생 목록
@@ -69,15 +69,15 @@ flowchart TD
     문항별 답변 + 점수 입력창`"]
     GD_S_RESP -->|점수 입력| SAVE_GRADE
 
-    GD -->|답안지 다운로드| DL_ANSWER["`downloadAnswerSheetsXlsx`"]
-    GD -->|채점표 다운로드| DL_GRADING["`downloadGradingSheetXlsx`"]
+    GD -->|답안지 다운로드| DL_ANSWER["`답안지 엑셀 다운로드`"]
+    GD -->|채점표 다운로드| DL_GRADING["`채점표 엑셀 다운로드`"]
     GD -->|엑셀 업로드| M_EXCEL["`엑셀 파일 선택
-    → parseExcelOrCsv
+    → 파일 파싱
     → 일괄 채점 반영`"]
 
     GD -->|퀴즈 마감 버튼| CONFIRM_CLOSE{"`확인 모달
     '퀴즈를 마감하시겠습니까?'`"}
-    CONFIRM_CLOSE -->|확인| STATUS_CLOSED["`상태 변경: open → **closed**`"]
+    CONFIRM_CLOSE -->|확인| STATUS_CLOSED["`상태 변경: 진행중 → **종료**`"]
     CONFIRM_CLOSE -->|취소| GD
     STATUS_CLOSED --> QL
 
@@ -85,8 +85,8 @@ flowchart TD
     GD -->|통계 보기| QS
 
     %% ── 통계 조회 흐름 ───────────────────────────
-    QL -->|통계 / 결과 보기 링크| QS["`**QuizStats**`"]
-    QS -->|학생별 성적 조회 탭| QS_GRADES["`학생 테이블
+    QL -->|통계 / 결과 보기 링크| QS["`**퀴즈 통계**`"]
+    QS -->|학생별 성적 조회 탭| QS_GRADES["`학생 성적 테이블
     학번 / 이름 / 응시일
     자동채점 / 수동채점 대기 / 최종점수
     검색 + 정렬`"]
@@ -94,16 +94,16 @@ flowchart TD
     점수 분포 막대 그래프
     기본 통계: 평균 / 표준편차 / 최고/최저점 / 응시율`"]
 
-    QS_GRADES -->|성적표 다운로드| DL_GRADES["`downloadGradesXlsx`"]
-    QS_STATS  -->|문항분석 다운로드| DL_ITEM["`downloadItemAnalysisXlsx`"]
+    QS_GRADES -->|성적표 다운로드| DL_GRADES["`성적표 엑셀 다운로드`"]
+    QS_STATS  -->|문항분석 다운로드| DL_ITEM["`문항분석표 엑셀 다운로드`"]
     QS -->|채점 대시보드| GD
     QS -->|목록으로| QL
 
     %% ── 퀴즈 상태 전이 요약 ─────────────────────
     subgraph STATUS ["퀴즈 상태 전이"]
         direction LR
-        S_DRAFT([초안 draft]) -->|발행| S_OPEN([진행중 open])
-        S_OPEN  -->|마감| S_CLOSED([종료 closed])
+        S_DRAFT([초안]) -->|발행| S_OPEN([진행중])
+        S_OPEN  -->|마감| S_CLOSED([종료])
         S_OPEN  -.->|수동채점 대기 문항 존재 시| S_GRADING(["채점 필요 표시"])
     end
 
