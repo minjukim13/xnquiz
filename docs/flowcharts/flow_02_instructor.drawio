@@ -1,4 +1,4 @@
-<mxGraphModel dx="2400" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="2500" math="0" shadow="0">
+<mxGraphModel dx="2400" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="2680" math="0" shadow="0">
   <root>
     <mxCell id="0" />
     <mxCell id="1" parent="0" />
@@ -30,7 +30,7 @@
     <!-- ║  SECTION 2: 퀴즈 편집 흐름                      ║ -->
     <!-- ╚══════════════════════════════════════════════════╝ -->
     <mxCell id="sw2" value="퀴즈 편집 흐름" style="swimlane;startSize=30;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="20" y="500" width="1460" height="330" as="geometry" />
+      <mxGeometry x="20" y="500" width="1460" height="480" as="geometry" />
     </mxCell>
     <!-- edges -->
     <mxCell id="s2_e1" value="편집 버튼 (초안 퀴즈)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s2_ql" target="s2_qe" parent="sw2"><mxGeometry relative="1" as="geometry" /></mxCell>
@@ -41,17 +41,17 @@
     <mxCell id="s2_e6" value="저장 및 발행" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s2_qe" target="s2_save" parent="sw2"><mxGeometry relative="1" as="geometry" /></mxCell>
     <mxCell id="s2_e7" value="목록으로" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" source="s2_save" target="s2_ql" parent="sw2"><mxGeometry relative="1" as="geometry" /></mxCell>
     <!-- nodes -->
-    <mxCell id="s2_ql" value="퀴즈 목록 (교수자 뷰)" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="sw2"><mxGeometry x="40" y="130" width="200" height="70" as="geometry" /></mxCell>
-    <mxCell id="s2_qe" value="퀴즈 편집&#xa;문항 추가/제거 · 설정 패널" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="sw2"><mxGeometry x="320" y="130" width="240" height="70" as="geometry" /></mxCell>
-    <mxCell id="s2_bank" value="문제은행 모달" style="rounded=1;arcSize=10;fillColor=#FEF9C3;strokeColor=#CA8A04;fontColor=#713f12;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="sw2"><mxGeometry x="660" y="60" width="200" height="70" as="geometry" /></mxCell>
-    <mxCell id="s2_add" value="문항 추가 모달" style="rounded=1;arcSize=10;fillColor=#FEF9C3;strokeColor=#CA8A04;fontColor=#713f12;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="sw2"><mxGeometry x="660" y="210" width="200" height="70" as="geometry" /></mxCell>
-    <mxCell id="s2_save" value="퀴즈 목록 업데이트" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="sw2"><mxGeometry x="980" y="130" width="220" height="70" as="geometry" /></mxCell>
+    <mxCell id="s2_ql" value="퀴즈 목록 (교수자 뷰)" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="sw2"><mxGeometry x="40" y="205" width="200" height="70" as="geometry" /></mxCell>
+    <mxCell id="s2_qe" value="퀴즈 편집&#xa;문항 추가/제거 · 설정 패널" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="sw2"><mxGeometry x="320" y="205" width="240" height="70" as="geometry" /></mxCell>
+    <mxCell id="s2_bank" value="문제은행 모달" style="rounded=1;arcSize=10;fillColor=#FEF9C3;strokeColor=#CA8A04;fontColor=#713f12;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="sw2"><mxGeometry x="660" y="50" width="200" height="70" as="geometry" /></mxCell>
+    <mxCell id="s2_add" value="문항 추가 모달" style="rounded=1;arcSize=10;fillColor=#FEF9C3;strokeColor=#CA8A04;fontColor=#713f12;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="sw2"><mxGeometry x="660" y="360" width="200" height="70" as="geometry" /></mxCell>
+    <mxCell id="s2_save" value="퀴즈 목록 업데이트" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="sw2"><mxGeometry x="980" y="205" width="220" height="70" as="geometry" /></mxCell>
 
     <!-- ╔══════════════════════════════════════════════════╗ -->
     <!-- ║  SECTION 3: 퀴즈 발행 흐름 (목록에서 직접)     ║ -->
     <!-- ╚══════════════════════════════════════════════════╝ -->
     <mxCell id="sw3" value="퀴즈 발행 흐름 (목록에서 직접)" style="swimlane;startSize=30;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="20" y="850" width="1060" height="210" as="geometry" />
+      <mxGeometry x="20" y="1000" width="1060" height="210" as="geometry" />
     </mxCell>
     <!-- edges -->
     <mxCell id="s3_e1" value="발행 버튼 (초안 퀴즈)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s3_ql" target="s3_confirm" parent="sw3"><mxGeometry relative="1" as="geometry" /></mxCell>
@@ -67,7 +67,7 @@
     <!-- ║  SECTION 4: 채점 흐름                           ║ -->
     <!-- ╚══════════════════════════════════════════════════╝ -->
     <mxCell id="sw4" value="채점 흐름" style="swimlane;startSize=30;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="20" y="1080" width="1820" height="900" as="geometry" />
+      <mxGeometry x="20" y="1230" width="1820" height="900" as="geometry" />
     </mxCell>
     <!-- edges first -->
     <mxCell id="s4_e1" value="채점하기 (진행중 퀴즈)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s4_ql" target="s4_gd" parent="sw4"><mxGeometry relative="1" as="geometry" /></mxCell>
@@ -113,7 +113,7 @@
     <!-- ║  SECTION 5: 통계 조회 흐름                      ║ -->
     <!-- ╚══════════════════════════════════════════════════╝ -->
     <mxCell id="sw5" value="통계 조회 흐름" style="swimlane;startSize=30;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="20" y="2000" width="1560" height="400" as="geometry" />
+      <mxGeometry x="20" y="2150" width="1560" height="400" as="geometry" />
     </mxCell>
     <!-- edges -->
     <mxCell id="s5_e1" value="통계/결과 보기" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s5_ql" target="s5_qs" parent="sw5"><mxGeometry relative="1" as="geometry" /></mxCell>
