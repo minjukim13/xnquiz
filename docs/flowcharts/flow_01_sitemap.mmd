@@ -2,54 +2,40 @@
 title: XN Quizzes — 전체 페이지 구조 및 라우트 맵
 ---
 flowchart LR
-    START([앱 진입]) --> ROLE{역할 구분\n교수자 / 학생}
+    START([앱 진입]) --> ROLE{역할 구분}
 
     %% 교수자 영역
     ROLE -->|교수자| QL_I["`**퀴즈 목록**
-    교수자 뷰
-    /`"]
-
-    QL_I --> QC["`**퀴즈 생성**
+    교수자 뷰 /`"]
+    QL_I -->|새 퀴즈| QC["`**퀴즈 생성**
     /quiz/new`"]
-    QL_I --> QE["`**퀴즈 편집**
+    QL_I -->|편집| QE["`**퀴즈 편집**
     /quiz/:id/edit`"]
-    QL_I --> GD["`**채점 대시보드**
+    QL_I -->|채점하기| GD["`**채점 대시보드**
     /quiz/:id/grade`"]
-    QL_I --> QS["`**퀴즈 통계**
+    QL_I -->|통계/결과| QS["`**퀴즈 통계**
     /quiz/:id/stats`"]
-    QL_I --> QBL["`**문제은행 목록**
+    QL_I -->|문제은행| QBL["`**문제은행 목록**
     /question-banks`"]
     QBL --> QB["`**문제은행 상세**
     /question-banks/:bankId`"]
 
-    %% 학생 영역
+    %% 학생 영역 — 교수자 영역과 완전히 분리
     ROLE -->|학생| QL_S["`**퀴즈 목록**
-    학생 뷰
-    /`"]
-    QL_S --> QA["`**퀴즈 응시**
+    학생 뷰 /`"]
+    QL_S -->|응시하기| QA["`**퀴즈 응시**
     /quiz/:id/attempt`"]
 
-    %% 페이지 간 역방향 이동
-    QC -->|발행하기 / 취소| QL_I
-    QE -->|저장 및 발행 / 취소| QL_I
-    GD -->|목록으로| QL_I
-    GD -->|통계 보기| QS
-    QS -->|채점 대시보드| GD
-    QS -->|목록으로| QL_I
-    QA -->|퀴즈 목록으로| QL_S
-    QB -->|뒤로가기| QBL
-
-    %% 스타일 — 페이지 노드
+    %% 스타일
     style QL_I fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QC   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QE   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QS   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QBL  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QB   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
     style QL_S fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QC  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QE  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style GD  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QS  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QBL fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QB  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QA  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QA   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
 
-    %% 스타일 — 분기/시작
     style START fill:#F0FDF4,stroke:#22C55E,color:#14532d
     style ROLE  fill:#DCFCE7,stroke:#22C55E,color:#14532d

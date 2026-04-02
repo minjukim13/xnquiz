@@ -226,16 +226,16 @@ export function downloadGradingSheetXlsx(question, students) {
 
 // ── 문항 업로드 템플릿 다운로드 (QuestionBank) ────────────────────────────
 export function downloadQuestionTemplate() {
-  const headers = ['유형', '문항 내용', '배점', '정답(선택)', '보기1', '보기2', '보기3', '보기4', '보기5', '해설(선택)']
+  const headers = ['유형', '문항 내용', '배점', '난이도(선택)', '그룹(선택)', '정답(선택)', '보기1', '보기2', '보기3', '보기4', '보기5', '해설(선택)']
   const exampleRows = [
-    ['multiple_choice', 'SQL에서 테이블을 생성하는 명령어는?', 5, 'CREATE TABLE', 'SELECT', 'INSERT', 'CREATE TABLE', 'DROP', '', ''],
-    ['true_false', 'PRIMARY KEY는 NULL 값을 허용한다.', 5, '거짓', '', '', '', '', '', ''],
-    ['short_answer', 'DDL의 약자를 쓰시오.', 5, 'Data Definition Language', '', '', '', '', '', ''],
-    ['essay', '트랜잭션의 ACID 속성에 대해 서술하시오.', 15, '', '', '', '', '', '', ''],
+    ['multiple_choice', 'SQL에서 테이블을 생성하는 명령어는?', 5, 'medium', '1단원', 'CREATE TABLE', 'SELECT', 'INSERT', 'CREATE TABLE', 'DROP', '', ''],
+    ['true_false', 'PRIMARY KEY는 NULL 값을 허용한다.', 5, 'low', '1단원', '거짓', '', '', '', '', '', ''],
+    ['short_answer', 'DDL의 약자를 쓰시오.', 5, 'medium', '2단원', 'Data Definition Language', '', '', '', '', '', ''],
+    ['essay', '트랜잭션의 ACID 속성에 대해 서술하시오.', 15, 'high', '3단원', '', '', '', '', '', '', ''],
   ]
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleRows])
-  ws['!cols'] = [{ wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 30 }]
+  ws['!cols'] = [{ wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 25 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 30 }]
   headers.forEach((_, i) => {
     const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })]
     if (cell) cell.s = { font: { bold: true } }
@@ -251,9 +251,20 @@ export function downloadQuestionTemplate() {
   const ws2 = XLSX.utils.aoa_to_sheet([typeHeaders, ...typeRows])
   ws2['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 14 }]
 
+  // 세 번째 시트: 난이도 코드 안내
+  const diffHeaders = ['난이도 코드', '한국어 이름', '설명']
+  const diffRows = [
+    ['high', '상', '고난도 문항 (상위 개념, 응용/분석 수준)'],
+    ['medium', '중', '기본 문항 (핵심 개념 이해 수준) — 기본값'],
+    ['low', '하', '입문 문항 (단순 암기, 기초 확인 수준)'],
+  ]
+  const ws3 = XLSX.utils.aoa_to_sheet([diffHeaders, ...diffRows])
+  ws3['!cols'] = [{ wch: 16 }, { wch: 14 }, { wch: 36 }]
+
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, '문항 데이터')
   XLSX.utils.book_append_sheet(wb, ws2, '유효한 유형 코드')
+  XLSX.utils.book_append_sheet(wb, ws3, '난이도 코드')
   XLSX.writeFile(wb, '문항_업로드_템플릿.xlsx')
 }
 
@@ -281,7 +292,7 @@ export function parseExcelOrCsv(file) {
         const rows = []
 
         for (let i = 1; i < raw.length; i++) {
-          const [typeRaw, textRaw, pointsRaw, answer = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = '', explanation = ''] = raw[i].map(v => String(v ?? '').trim())
+          const [typeRaw, textRaw, pointsRaw, difficultyRaw = '', groupTagRaw = '', answer = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = '', explanation = ''] = raw[i].map(v => String(v ?? '').trim())
           const rowNum = i + 1
 
           if (!typeRaw && !textRaw && !pointsRaw) continue // 빈 행 건너뜀
@@ -300,8 +311,11 @@ export function parseExcelOrCsv(file) {
             return
           }
 
+          const validDifficulties = ['high', 'medium', 'low']
+          const difficulty = validDifficulties.includes(difficultyRaw) ? difficultyRaw : 'medium'
+
           const choices = [c1, c2, c3, c4, c5].filter(Boolean)
-          rows.push({ type: typeRaw, text: textRaw, points, answer, choices, explanation })
+          rows.push({ type: typeRaw, text: textRaw, points, difficulty, groupTag: groupTagRaw, answer, choices, explanation })
         }
 
         if (rows.length === 0) {

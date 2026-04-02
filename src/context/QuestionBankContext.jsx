@@ -17,7 +17,9 @@ export function QuestionBankProvider({ children }) {
   const [questions, setQuestions] = useState(() => {
     try {
       const raw = localStorage.getItem(LS_QUESTIONS_KEY)
-      return raw ? JSON.parse(raw) : MOCK_BANK_QUESTIONS
+      const loaded = raw ? JSON.parse(raw) : MOCK_BANK_QUESTIONS
+      // migration: difficulty/groupTag 필드 없는 기존 데이터에 기본값 주입
+      return loaded.map(q => ({ difficulty: 'medium', groupTag: '', ...q }))
     } catch { return MOCK_BANK_QUESTIONS }
   })
 
