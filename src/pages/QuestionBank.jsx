@@ -7,6 +7,12 @@ import { useQuestionBank } from '../context/QuestionBankContext'
 import AddQuestionModal from '../components/AddQuestionModal'
 import { downloadQuestionTemplate, parseExcelOrCsv } from '../utils/excelUtils'
 
+const DIFFICULTY_META = {
+  high:   { label: '상', color: '#DC2626', bg: '#FEF2F2' },
+  medium: { label: '중', color: '#D97706', bg: '#FFFBEB' },
+  low:    { label: '하', color: '#16A34A', bg: '#F0FDF4' },
+}
+
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 export default function QuestionBank() {
   const { bankId } = useParams()
@@ -18,16 +24,25 @@ export default function QuestionBank() {
 
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')
+  const [filterDifficulty, setFilterDifficulty] = useState('all')
+  const [filterGroup, setFilterGroup] = useState('all')
   const [editingId, setEditingId] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
 
+  const allGroups = useMemo(() => {
+    const groups = [...new Set(questions.map(q => q.groupTag).filter(Boolean))]
+    return groups.sort()
+  }, [questions])
+
   const filtered = useMemo(() => questions.filter(q => {
     const matchSearch = search === '' || q.text.toLowerCase().includes(search.toLowerCase())
     const matchType = filterType === 'all' || q.type === filterType
-    return matchSearch && matchType
-  }), [questions, search, filterType])
+    const matchDiff = filterDifficulty === 'all' || q.difficulty === filterDifficulty
+    const matchGroup = filterGroup === 'all' || q.groupTag === filterGroup
+    return matchSearch && matchType && matchDiff && matchGroup
+  }), [questions, search, filterType, filterDifficulty, filterGroup])
 
   const handleSaveEdit = (id, updated) => {
     updateQuestion(id, updated)
@@ -51,6 +66,8 @@ export default function QuestionBank() {
       points: row.points,
       bankId: bank.id,
       usageCount: 0,
+      difficulty: row.difficulty || 'medium',
+      groupTag: row.groupTag || '',
     }))
     addQuestions(newQuestions)
     setShowUploadModal(false)
@@ -156,6 +173,30 @@ export default function QuestionBank() {
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>
+            <select
+              value={filterDifficulty}
+              onChange={e => setFilterDifficulty(e.target.value)}
+              className="text-sm bg-white px-3 py-2 focus:outline-none focus:border-indigo-400"
+              style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#616161' }}
+            >
+              <option value="all">모든 난이도</option>
+              <option value="high">상</option>
+              <option value="medium">중</option>
+              <option value="low">하</option>
+            </select>
+            {allGroups.length > 0 && (
+              <select
+                value={filterGroup}
+                onChange={e => setFilterGroup(e.target.value)}
+                className="text-sm bg-white px-3 py-2 focus:outline-none focus:border-indigo-400"
+                style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#616161' }}
+              >
+                <option value="all">모든 그룹</option>
+                {allGroups.map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            )}
           </div>
           <p className="text-xs mt-2" style={{ color: '#9E9E9E' }}>{filtered.length}개 문항</p>
         </div>
@@ -236,6 +277,26 @@ function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast })
               {QUIZ_TYPES[question.type]?.label}
             </span>
             <span className="text-xs" style={{ color: '#9E9E9E' }}>{question.points}점</span>
+            {question.difficulty && DIFFICULTY_META[question.difficulty] && (
+              <span
+                className="text-xs px-1.5 py-0.5 font-medium"
+                style={{
+                  color: DIFFICULTY_META[question.difficulty].color,
+                  background: DIFFICULTY_META[question.difficulty].bg,
+                  borderRadius: 4,
+                }}
+              >
+                난이도 {DIFFICULTY_META[question.difficulty].label}
+              </span>
+            )}
+            {question.groupTag && (
+              <span
+                className="text-xs px-1.5 py-0.5"
+                style={{ color: '#0891B2', background: '#ECFEFF', borderRadius: 4 }}
+              >
+                {question.groupTag}
+              </span>
+            )}
             {question.usageCount > 0 && (
               <span
                 className="text-xs px-1.5 py-0.5"
@@ -287,10 +348,12 @@ function QuestionForm({ initial, onSave, onCancel }) {
   const [text, setText] = useState(initial?.text ?? '')
   const [type, setType] = useState(initial?.type ?? 'multiple_choice')
   const [points, setPoints] = useState(initial?.points ?? 5)
+  const [difficulty, setDifficulty] = useState(initial?.difficulty ?? 'medium')
+  const [groupTag, setGroupTag] = useState(initial?.groupTag ?? '')
 
   const handleSubmit = () => {
     if (!text.trim()) return
-    onSave({ text: text.trim(), type, points: Number(points) })
+    onSave({ text: text.trim(), type, points: Number(points), difficulty, groupTag: groupTag.trim() })
   }
 
   return (
@@ -328,6 +391,30 @@ function QuestionForm({ initial, onSave, onCancel }) {
             value={points}
             onChange={e => setPoints(e.target.value)}
             min={1}
+            className="w-full bg-white text-sm px-2 py-1.5 focus:outline-none focus:border-indigo-400"
+            style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#424242' }}
+          />
+        </div>
+        <div>
+          <label className="text-xs font-medium block mb-1" style={{ color: '#616161' }}>난이도</label>
+          <select
+            value={difficulty}
+            onChange={e => setDifficulty(e.target.value)}
+            className="w-full bg-white text-sm px-2 py-1.5 focus:outline-none focus:border-indigo-400"
+            style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#424242' }}
+          >
+            <option value="high">상</option>
+            <option value="medium">중</option>
+            <option value="low">하</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium block mb-1" style={{ color: '#616161' }}>그룹</label>
+          <input
+            type="text"
+            value={groupTag}
+            onChange={e => setGroupTag(e.target.value)}
+            placeholder="예: 1단원, A그룹"
             className="w-full bg-white text-sm px-2 py-1.5 focus:outline-none focus:border-indigo-400"
             style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#424242' }}
           />

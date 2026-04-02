@@ -154,14 +154,19 @@ function computeLayout(nodes, edges) {
     byLevel.get(lv).push(id);
   }
 
-  const W = 200, H = 80, HGAP = 50, VGAP = 70;
+  // 수평 레이아웃: 레벨 = X축(좌→우), 같은 레벨 노드 = Y축(위→아래)
+  const COL_W = 320;  // 레벨 간 가로 간격 (열 너비)
+  const ROW_H = 140;  // 같은 레벨 노드 간 세로 간격 (행 높이)
+  const OFFSET_X = 60;
+  const OFFSET_Y = 60;
+
   const positions = new Map();
   for (const [lv, ids] of byLevel) {
-    const totalW = ids.length * W + (ids.length - 1) * HGAP;
+    const totalH = ids.length * ROW_H;
     ids.forEach((id, i) => {
       positions.set(id, {
-        x: Math.round(-totalW / 2 + i * (W + HGAP) + W / 2 + 600),
-        y: Math.round(lv * (H + VGAP) + 40),
+        x: Math.round(lv * COL_W + OFFSET_X),
+        y: Math.round(-totalH / 2 + i * ROW_H + ROW_H / 2 + 600 + OFFSET_Y),
       });
     });
   }
@@ -183,7 +188,7 @@ function nodeStyle(shape, st) {
   const fill   = st?.fill   || '#ffffff';
   const stroke = st?.stroke || '#999999';
   const color  = st?.color  || '#000000';
-  const font   = 'fontFamily=Pretendard,sans-serif;fontSize=12;align=center;';
+  const font   = 'fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;';
   const base   = `fillColor=${fill};strokeColor=${stroke};fontColor=${color};${font}`;
 
   switch (shape) {
@@ -194,37 +199,59 @@ function nodeStyle(shape, st) {
   }
 }
 
+/** 라벨 텍스트 기준으로 노드 너비/높이 계산 */
+function calcNodeSize(label, shape) {
+  const lines = label.split('\n');
+  // 한글 1자 ≈ 12px, 영문/숫자 1자 ≈ 7px, 양쪽 패딩 40px
+  const maxLineW = Math.max(...lines.map(l => {
+    const korean = (l.match(/[가-힣]/g) || []).length;
+    const other  = l.length - korean;
+    return korean * 13 + other * 8;
+  }));
+  const minW = shape === 'diamond' ? 180 : 220;
+  const w = Math.max(minW, maxLineW + 40);
+  // 줄당 높이 20px, 상하 패딩 24px
+  const h = Math.max(shape === 'diamond' ? 80 : 50, lines.length * 20 + 24);
+  return { w, h };
+}
+
 function generateXml(nodes, edges, styles, positions) {
   let cid = 2;
   const nmap = new Map();
-  let cells = '';
+  let edgeCells = '';
+  let nodeCells = '';
 
-  for (const [id, node] of nodes) {
-    const cId = `n${cid++}`;
-    nmap.set(id, cId);
-    const pos = positions.get(id) || { x: 0, y: 0 };
-    const isMultiline = node.label.includes('\n');
-    const w = node.shape === 'diamond' ? 160 : 190;
-    const h = isMultiline ? 90 : 60;
-    cells += `    <mxCell id="${cId}" value="${esc(node.label)}" style="${nodeStyle(node.shape, styles.get(id))}" vertex="1" parent="1">
-      <mxGeometry x="${pos.x}" y="${pos.y}" width="${w}" height="${h}" as="geometry" />
-    </mxCell>\n`;
+  // 노드 ID 먼저 등록 (엣지가 source/target 참조할 수 있도록)
+  for (const [id] of nodes) {
+    nmap.set(id, `n${cid++}`);
   }
+  cid = 2 + nodes.size;
 
+  // 엣지를 먼저 (렌더링 순서: 아래쪽)
   for (const { from, to, label } of edges) {
     const src = nmap.get(from);
     const tgt = nmap.get(to);
     if (!src || !tgt) continue;
     const eId = `e${cid++}`;
-    const estyle = label
-      ? 'edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;'
-      : 'edgeStyle=orthogonalEdgeStyle;rounded=1;';
-    cells += `    <mxCell id="${eId}" value="${esc(label)}" style="${estyle}" edge="1" source="${src}" target="${tgt}" parent="1">
+    const estyle = `edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;labelPosition=center;verticalLabelPosition=center;align=center;`;
+    edgeCells += `    <mxCell id="${eId}" value="${esc(label)}" style="${estyle}" edge="1" source="${src}" target="${tgt}" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>\n`;
   }
 
-  return `<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  // 노드를 나중에 (렌더링 순서: 위쪽 — 선 위에 표시)
+  for (const [id, node] of nodes) {
+    const cId = nmap.get(id);
+    const pos = positions.get(id) || { x: 0, y: 0 };
+    const { w, h } = calcNodeSize(node.label, node.shape);
+    nodeCells += `    <mxCell id="${cId}" value="${esc(node.label)}" style="${nodeStyle(node.shape, styles.get(id))}" vertex="1" parent="1">
+      <mxGeometry x="${pos.x}" y="${pos.y}" width="${w}" height="${h}" as="geometry" />
+    </mxCell>\n`;
+  }
+
+  const cells = edgeCells + nodeCells;
+
+  return `<mxGraphModel dx="2400" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="1169" math="0" shadow="0">
   <root>
     <mxCell id="0" />
     <mxCell id="1" parent="0" />

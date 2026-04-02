@@ -1,21 +1,21 @@
 import { useState } from 'react'
-import { X, Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, Minus, AlignJustify, ChevronDown, ArrowUpDown, Paperclip } from 'lucide-react'
+import { X, Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
 
 // ── 유형별 아이콘 + 설명 메타 ──────────────────────────────────────────────
 const TYPE_META = {
-  multiple_choice:          { Icon: CircleDot,      desc: '보기 중 1개 선택',         color: '#6366f1', bg: '#EEF2FF' },
-  true_false:               { Icon: ToggleLeft,      desc: '참 또는 거짓 선택',         color: '#059669', bg: '#ECFDF5' },
-  multiple_answers:         { Icon: ListChecks,      desc: '보기 여러 개 동시 선택',     color: '#3B82F6', bg: '#EFF6FF' },
-  short_answer:             { Icon: PenLine,         desc: '짧은 텍스트로 답변',         color: '#F59E0B', bg: '#FFFBEB' },
-  essay:                    { Icon: AlignLeft,       desc: '자유롭게 서술',             color: '#EF4444', bg: '#FEF2F2' },
-  numerical:                { Icon: Hash,            desc: '숫자로 정확히 답변',         color: '#8B5CF6', bg: '#F5F3FF' },
-  matching:                 { Icon: ArrowLeftRight,  desc: '항목끼리 짝 연결',          color: '#0891B2', bg: '#ECFEFF' },
-  fill_in_blank:            { Icon: Minus,           desc: '문장 속 빈칸 채우기',        color: '#D97706', bg: '#FFFBEB' },
-  fill_in_multiple_blanks:  { Icon: AlignJustify,   desc: '여러 빈칸 순서대로 채우기',   color: '#EA580C', bg: '#FFF7ED' },
-  multiple_dropdowns:       { Icon: ChevronDown,     desc: '드롭다운에서 항목 선택',     color: '#4F46E5', bg: '#EEF2FF' },
-  ordering:                 { Icon: ArrowUpDown,     desc: '올바른 순서로 항목 배열',    color: '#0D9488', bg: '#F0FDFA' },
-  file_upload:              { Icon: Paperclip,       desc: '파일 업로드로 제출',         color: '#64748B', bg: '#F8FAFC' },
+  multiple_choice:          { Icon: CircleDot,      desc: '보기 중 1개 선택',           color: '#6366f1', bg: '#EEF2FF' },
+  true_false:               { Icon: ToggleLeft,      desc: '참 또는 거짓 선택',           color: '#059669', bg: '#ECFDF5' },
+  multiple_answers:         { Icon: ListChecks,      desc: '보기 여러 개 동시 선택',       color: '#3B82F6', bg: '#EFF6FF' },
+  short_answer:             { Icon: PenLine,         desc: '짧은 텍스트로 답변',           color: '#F59E0B', bg: '#FFFBEB' },
+  essay:                    { Icon: AlignLeft,       desc: '자유롭게 서술',               color: '#EF4444', bg: '#FEF2F2' },
+  numerical:                { Icon: Hash,            desc: '숫자 정답 + 허용 오차 설정',   color: '#8B5CF6', bg: '#F5F3FF' },
+  formula:                  { Icon: Sigma,           desc: '변수로 학생마다 다른 답 생성', color: '#0D9488', bg: '#F0FDFA' },
+  matching:                 { Icon: ArrowLeftRight,  desc: '왼쪽-오른쪽 항목 연결',       color: '#0891B2', bg: '#ECFEFF' },
+  fill_in_multiple_blanks:  { Icon: AlignJustify,   desc: '여러 빈칸 순서대로 채우기',    color: '#EA580C', bg: '#FFF7ED' },
+  multiple_dropdowns:       { Icon: ChevronDown,     desc: '드롭다운에서 항목 선택',       color: '#4F46E5', bg: '#EEF2FF' },
+  file_upload:              { Icon: Paperclip,       desc: '파일 업로드로 제출',           color: '#64748B', bg: '#F8FAFC' },
+  text:                     { Icon: Type,            desc: '채점 없는 안내문 삽입',        color: '#9E9E9E', bg: '#F5F5F5' },
 }
 
 // ── 유형별 미리보기 ────────────────────────────────────────────────────────
@@ -111,18 +111,27 @@ function TypePreview({ type }) {
             <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#F0FDF4', color: '#166534' }}>{r}</span>
           </div>
         ))}
-        <p className="text-xs mt-1.5" style={{ color: '#9E9E9E' }}>쌍 연결, 자동채점</p>
+        <p className="text-xs mt-1.5" style={{ color: '#9E9E9E' }}>항목 연결, 자동채점</p>
       </>
     ),
-    fill_in_blank: (
+    formula: (
       <>
-        <p className="text-xs font-semibold mb-2" style={{ color: '#424242' }}>Q. 빈칸을 채우세요.</p>
-        <p className="text-xs leading-relaxed mb-2" style={{ color: '#424242' }}>
-          대한민국의 수도는{' '}
-          <span className="px-1.5 py-0.5 rounded font-medium" style={{ background: '#EEF2FF', color: '#4338ca', border: '1px dashed #6366f1' }}>서울</span>
-          {' '}이다.
-        </p>
-        <p className="text-xs" style={{ color: '#9E9E9E' }}>빈칸 1개, 자동채점</p>
+        <p className="text-xs font-semibold mb-2" style={{ color: '#424242' }}>Q. a개의 과일이 b개 바구니에 담겨 있을 때, 총 과일 수는?</p>
+        <div className="rounded p-2 mb-2 space-y-1" style={{ background: '#F0FDFA', border: '1px solid #99F6E4' }}>
+          <div className="flex gap-2 text-xs">
+            <span className="font-medium" style={{ color: '#0F766E' }}>a</span>
+            <span style={{ color: '#9E9E9E' }}>= 1~10 정수</span>
+          </div>
+          <div className="flex gap-2 text-xs">
+            <span className="font-medium" style={{ color: '#0F766E' }}>b</span>
+            <span style={{ color: '#9E9E9E' }}>= 2~5 정수</span>
+          </div>
+          <div className="flex gap-1.5 items-center text-xs mt-1.5 pt-1.5" style={{ borderTop: '1px solid #99F6E4' }}>
+            <span style={{ color: '#424242' }}>수식:</span>
+            <span className="font-mono font-medium px-1.5 rounded" style={{ background: '#CCFBF1', color: '#0D9488' }}>a * b</span>
+          </div>
+        </div>
+        <p className="text-xs" style={{ color: '#9E9E9E' }}>학생마다 a, b 값 다름 → 정답 자동계산</p>
       </>
     ),
     fill_in_multiple_blanks: (
@@ -150,16 +159,12 @@ function TypePreview({ type }) {
         <p className="text-xs" style={{ color: '#9E9E9E' }}>드롭다운 선택, 자동채점</p>
       </>
     ),
-    ordering: (
+    text: (
       <>
-        <p className="text-xs font-semibold mb-2" style={{ color: '#424242' }}>Q. 올바른 순서로 배열하시오.</p>
-        {['봄', '여름', '가을', '겨울'].map((item, i) => (
-          <div key={i} className="flex items-center gap-1.5 py-0.5">
-            <span className="text-xs w-3 text-center" style={{ color: '#9E9E9E' }}>≡</span>
-            <span className="text-xs px-2 py-0.5 rounded" style={{ background: '#F5F5F5', color: '#424242' }}>{i + 1}. {item}</span>
-          </div>
-        ))}
-        <p className="text-xs mt-1.5" style={{ color: '#9E9E9E' }}>순서 배열, 자동채점</p>
+        <div className="rounded px-3 py-2.5 mb-2 text-xs leading-relaxed" style={{ background: '#F5F5F5', color: '#424242', border: '1px solid #E0E0E0' }}>
+          이번 시험은 총 10문항으로 구성되어 있습니다. 계산기 사용은 허용되지 않으며, 모든 풀이 과정을 작성해 주세요.
+        </div>
+        <p className="text-xs" style={{ color: '#9E9E9E' }}>채점 없음, 학생에게 안내문으로 표시</p>
       </>
     ),
     file_upload: (
@@ -186,57 +191,78 @@ function TypePreview({ type }) {
 
 // ── 폼 초기값 ───────────────────────────────────────────────────────────────
 function initForm(type) {
-  const base = { text: '', points: 5 }
+  const base = { text: '', points: 5, difficulty: 'medium', groupTag: '' }
   switch (type) {
-    case 'multiple_choice':      return { ...base, options: ['', '', '', ''], correctIdx: 0 }
-    case 'true_false':           return { ...base, correctBool: true }
-    case 'multiple_answers':     return { ...base, options: ['', '', '', ''], correctIdxs: [] }
-    case 'short_answer':         return { ...base, acceptedAnswers: [''] }
-    case 'essay':                return { ...base, rubric: '' }
-    case 'numerical':            return { ...base, correctNum: '', tolerance: '0' }
-    case 'matching':             return { ...base, pairs: [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }] }
-    case 'fill_in_blank':        return { ...base, blankAnswer: '' }
+    case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
+    case 'true_false':              return { ...base, correctBool: true }
+    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], correctIdxs: [] }
+    case 'short_answer':            return { ...base, acceptedAnswers: [''] }
+    case 'essay':                   return { ...base, rubric: '' }
+    case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
+    case 'formula':                 return { ...base, variables: [{ name: '', min: '1', max: '10', decimals: '0' }], formula: '', tolerance: '0' }
+    case 'matching':                return { ...base, pairs: [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }] }
     case 'fill_in_multiple_blanks': return { ...base, blanks: ['', ''] }
-    case 'multiple_dropdowns':   return { ...base, dropdowns: [{ label: '', options: ['', ''], answerIdx: 0 }] }
-    case 'ordering':             return { ...base, items: ['', '', '', ''] }
-    case 'file_upload':          return base
-    default:                     return base
+    case 'multiple_dropdowns':      return { ...base, dropdowns: [{ label: '', options: ['', ''], answerIdx: 0 }] }
+    case 'file_upload':             return base
+    case 'text':                    return { text: '', points: 0, difficulty: 'medium', groupTag: '' }
+    default:                        return base
   }
 }
 
 // ── 폼 → 문항 객체 ─────────────────────────────────────────────────────────
 function buildQuestion(type, form) {
-  const base = { type, text: form.text.trim(), points: Number(form.points) || 5 }
+  const base = { type, text: form.text.trim(), points: Number(form.points) || 5, difficulty: form.difficulty || 'medium', groupTag: (form.groupTag || '').trim() }
   switch (type) {
-    case 'multiple_choice':      return { ...base, options: form.options.filter(o => o.trim()), correctAnswer: form.correctIdx }
-    case 'true_false':           return { ...base, correctAnswer: form.correctBool }
-    case 'multiple_answers':     return { ...base, options: form.options.filter(o => o.trim()), correctAnswer: form.correctIdxs }
-    case 'short_answer':         return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
-    case 'essay':                return { ...base, rubric: form.rubric }
-    case 'numerical':            return { ...base, correctAnswer: Number(form.correctNum), tolerance: Number(form.tolerance) || 0 }
-    case 'matching':             return { ...base, pairs: form.pairs.filter(p => p.left.trim() && p.right.trim()) }
-    case 'fill_in_blank':        return { ...base, correctAnswer: form.blankAnswer.trim() }
+    case 'multiple_choice':         return { ...base, options: form.options.filter(o => o.trim()), correctAnswer: form.correctIdx }
+    case 'true_false':              return { ...base, correctAnswer: form.correctBool }
+    case 'multiple_answers':        return { ...base, options: form.options.filter(o => o.trim()), correctAnswer: form.correctIdxs }
+    case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
+    case 'essay':                   return { ...base, rubric: form.rubric }
+    case 'numerical':               return { ...base, correctAnswer: Number(form.correctNum), tolerance: Number(form.tolerance) || 0 }
+    case 'formula':                 return { ...base, variables: form.variables.filter(v => v.name.trim()), formula: form.formula.trim(), tolerance: Number(form.tolerance) || 0 }
+    case 'matching':                return { ...base, pairs: form.pairs.filter(p => p.left.trim() && p.right.trim()) }
     case 'fill_in_multiple_blanks': return { ...base, correctAnswer: form.blanks.filter(b => b.trim()) }
-    case 'multiple_dropdowns':   return { ...base, dropdowns: form.dropdowns }
-    case 'ordering':             return { ...base, items: form.items.filter(i => i.trim()) }
-    case 'file_upload':          return base
-    default:                     return base
+    case 'multiple_dropdowns':      return { ...base, dropdowns: form.dropdowns }
+    case 'file_upload':             return base
+    case 'text':                    return { type, text: form.text.trim(), points: 0, difficulty: 'medium', groupTag: '' }
+    default:                        return base
   }
 }
 
 // ── 유효성 검사 ─────────────────────────────────────────────────────────────
+function evalFormulaPreview(formula, variables) {
+  try {
+    const validVars = variables.filter(v => v.name.trim())
+    if (!validVars.length || !formula.trim()) return null
+    let expr = formula.trim()
+    for (const v of validVars) {
+      const mid = ((Number(v.min) || 1) + (Number(v.max) || 10)) / 2
+      expr = expr.replace(new RegExp(`\\b${v.name}\\b`, 'g'), String(mid))
+    }
+    expr = expr.replace(/\^/g, '**')
+    if (/[^0-9+\-*/().\s*]/.test(expr.replace(/\*\*/g, 'XX'))) return null
+    // eslint-disable-next-line no-new-func
+    const result = Function('"use strict"; return (' + expr + ')')()
+    return isNaN(result) || !isFinite(result) ? null : result
+  } catch { return null }
+}
+
 function isValid(type, form) {
+  if (type === 'text') return form.text?.trim().length > 0
   if (!form.text?.trim()) return false
   switch (type) {
-    case 'multiple_choice':      return form.options.filter(o => o.trim()).length >= 2
-    case 'multiple_answers':     return form.options.filter(o => o.trim()).length >= 2 && form.correctIdxs.length >= 1
-    case 'short_answer':         return form.acceptedAnswers.some(a => a.trim())
-    case 'numerical':            return form.correctNum !== '' && !isNaN(Number(form.correctNum))
-    case 'matching':             return form.pairs.filter(p => p.left.trim() && p.right.trim()).length >= 2
-    case 'fill_in_blank':        return form.blankAnswer.trim().length > 0
+    case 'multiple_choice':         return form.options.filter(o => o.trim()).length >= 2
+    case 'multiple_answers':        return form.options.filter(o => o.trim()).length >= 2 && form.correctIdxs.length >= 1
+    case 'short_answer':            return form.acceptedAnswers.some(a => a.trim())
+    case 'numerical':               return form.correctNum !== '' && !isNaN(Number(form.correctNum))
+    case 'formula': {
+      const validVars = (form.variables || []).filter(v => v.name.trim())
+      if (validVars.length === 0 || !form.formula?.trim()) return false
+      return evalFormulaPreview(form.formula, validVars) !== null
+    }
+    case 'matching':                return form.pairs.filter(p => p.left.trim() && p.right.trim()).length >= 2
     case 'fill_in_multiple_blanks': return form.blanks.some(b => b.trim())
-    case 'ordering':             return form.items.filter(i => i.trim()).length >= 2
-    default:                     return true
+    default:                        return true
   }
 }
 
@@ -417,7 +443,7 @@ function TypeForm({ type, form, setForm }) {
     case 'matching':
       return (
         <div className="space-y-3">
-          <Label required>연결 쌍</Label>
+          <Label required>연결 항목</Label>
           <div className="space-y-2">
             {form.pairs.map((pair, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -432,22 +458,103 @@ function TypeForm({ type, form, setForm }) {
               </div>
             ))}
           </div>
-          {form.pairs.length < 8 && <AddBtn onClick={() => upd('pairs', [...form.pairs, { left: '', right: '' }])} label="쌍 추가" />}
+          {form.pairs.length < 8 && <AddBtn onClick={() => upd('pairs', [...form.pairs, { left: '', right: '' }])} label="항목 추가" />}
         </div>
       )
 
-    case 'fill_in_blank':
+    case 'formula': {
+      const vars = (form.variables || [])
+      const preview = evalFormulaPreview(form.formula, vars.filter(v => v.name.trim()))
+      const exampleLabel = vars.filter(v => v.name.trim()).map(v => {
+        const mid = ((Number(v.min) || 1) + (Number(v.max) || 10)) / 2
+        return `${v.name}=${mid}`
+      }).join(', ')
       return (
-        <div className="space-y-2">
-          <Label required>정답</Label>
-          <input type="text" value={form.blankAnswer} placeholder="빈칸에 들어갈 정답"
-            onChange={e => upd('blankAnswer', e.target.value)}
-            className="w-full text-sm px-2.5 py-1.5 bg-white focus:outline-none"
-            style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
-            onFocus={focusBorder} onBlur={blurBorder} />
-          <p className="text-xs" style={{ color: '#9E9E9E' }}>문제 텍스트에 [빈칸] 또는 ___로 빈칸 위치를 표시하세요</p>
+        <div className="space-y-4">
+          {/* 변수 설정 */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label required>변수 설정</Label>
+              <span className="text-xs" style={{ color: '#9E9E9E' }}>학생마다 범위 안에서 무작위 값 부여</span>
+            </div>
+            <div className="grid gap-1 mb-1 px-0.5" style={{ gridTemplateColumns: '2.5rem 1fr auto 1fr 2.5rem 1.5rem' }}>
+              {['변수명', '최솟값', '', '최댓값', '소수점', ''].map((h, i) => (
+                <span key={i} className="text-xs" style={{ color: '#9E9E9E' }}>{h}</span>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              {vars.map((v, i) => (
+                <div key={i} className="grid items-center gap-1.5" style={{ gridTemplateColumns: '2.5rem 1fr auto 1fr 2.5rem 1.5rem' }}>
+                  <input type="text" value={v.name} placeholder="a"
+                    maxLength={4}
+                    onChange={e => { const n = [...vars]; n[i] = { ...n[i], name: e.target.value }; upd('variables', n) }}
+                    className="text-sm px-2 py-1.5 bg-white font-mono text-center focus:outline-none"
+                    style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#0D9488' }}
+                    onFocus={focusBorder} onBlur={blurBorder} />
+                  <input type="number" value={v.min} placeholder="1"
+                    onChange={e => { const n = [...vars]; n[i] = { ...n[i], min: e.target.value }; upd('variables', n) }}
+                    className="text-sm px-2 py-1.5 bg-white text-center focus:outline-none"
+                    style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
+                    onFocus={focusBorder} onBlur={blurBorder} />
+                  <span className="text-xs text-center" style={{ color: '#9E9E9E' }}>~</span>
+                  <input type="number" value={v.max} placeholder="10"
+                    onChange={e => { const n = [...vars]; n[i] = { ...n[i], max: e.target.value }; upd('variables', n) }}
+                    className="text-sm px-2 py-1.5 bg-white text-center focus:outline-none"
+                    style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
+                    onFocus={focusBorder} onBlur={blurBorder} />
+                  <input type="number" value={v.decimals} placeholder="0" min="0" max="4"
+                    onChange={e => { const n = [...vars]; n[i] = { ...n[i], decimals: e.target.value }; upd('variables', n) }}
+                    className="text-sm px-2 py-1.5 bg-white text-center focus:outline-none"
+                    style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
+                    onFocus={focusBorder} onBlur={blurBorder} />
+                  {vars.length > 1
+                    ? <TrashBtn onClick={() => upd('variables', vars.filter((_, j) => j !== i))} />
+                    : <span />}
+                </div>
+              ))}
+            </div>
+            {vars.length < 4 && (
+              <AddBtn onClick={() => upd('variables', [...vars, { name: '', min: '1', max: '10', decimals: '0' }])} label="변수 추가" />
+            )}
+          </div>
+
+          {/* 수식 입력 */}
+          <div>
+            <Label required>수식</Label>
+            <p className="text-xs mb-1.5" style={{ color: '#9E9E9E' }}>위에서 정의한 변수명을 그대로 입력하세요. 사칙연산(+, -, *, /) 및 ^(거듭제곱) 사용 가능</p>
+            <input type="text" value={form.formula} placeholder="예: a * b + 10"
+              onChange={e => upd('formula', e.target.value)}
+              className="w-full text-sm px-2.5 py-1.5 bg-white font-mono focus:outline-none"
+              style={{ border: `1px solid ${form.formula && preview === null ? '#EF4444' : '#E0E0E0'}`, borderRadius: 4, color: '#222222' }}
+              onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+              onBlur={e => e.currentTarget.style.borderColor = (form.formula && preview === null) ? '#EF4444' : '#E0E0E0'} />
+            {form.formula && preview !== null && exampleLabel && (
+              <div className="mt-1.5 px-2.5 py-1.5 rounded text-xs flex items-center gap-1.5" style={{ background: '#F0FDFA', border: '1px solid #99F6E4' }}>
+                <span style={{ color: '#0F766E' }}>예시 ({exampleLabel})</span>
+                <span style={{ color: '#9E9E9E' }}>→</span>
+                <span className="font-medium font-mono" style={{ color: '#0D9488' }}>정답 = {Number(preview.toFixed(6))}</span>
+              </div>
+            )}
+            {form.formula && preview === null && (
+              <p className="mt-1 text-xs" style={{ color: '#EF4444' }}>수식을 확인해 주세요 (변수명 오타, 잘못된 기호 등)</p>
+            )}
+          </div>
+
+          {/* 허용 오차 */}
+          <div>
+            <Label>허용 오차</Label>
+            <div className="flex items-center gap-2">
+              <input type="number" value={form.tolerance} min="0" placeholder="0"
+                onChange={e => upd('tolerance', e.target.value)}
+                className="w-28 text-sm px-2.5 py-1.5 bg-white focus:outline-none"
+                style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
+                onFocus={focusBorder} onBlur={blurBorder} />
+              <span className="text-xs" style={{ color: '#9E9E9E' }}>계산 결과 ± 이 값 범위 내면 정답 처리 (0 = 완전 일치)</span>
+            </div>
+          </div>
         </div>
       )
+    }
 
     case 'fill_in_multiple_blanks':
       return (
@@ -532,23 +639,10 @@ function TypeForm({ type, form, setForm }) {
         </div>
       )
 
-    case 'ordering':
+    case 'text':
       return (
-        <div className="space-y-3">
-          <Label required>항목 (정답 순서대로 입력)</Label>
-          <div className="space-y-2">
-            {form.items.map((item, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-xs w-5 text-center flex-shrink-0 font-medium" style={{ color: '#9E9E9E' }}>{i + 1}</span>
-                <input type="text" value={item} placeholder={`${i + 1}번 항목`}
-                  onChange={e => { const n = [...form.items]; n[i] = e.target.value; upd('items', n) }}
-                  className={inputCls} style={inputStyle} onFocus={focusBorder} onBlur={blurBorder} />
-                {form.items.length > 2 && <TrashBtn onClick={() => upd('items', form.items.filter((_, j) => j !== i))} />}
-              </div>
-            ))}
-          </div>
-          {form.items.length < 8 && <AddBtn onClick={() => upd('items', [...form.items, ''])} label="항목 추가" />}
-          <p className="text-xs" style={{ color: '#9E9E9E' }}>정답이 되는 올바른 순서대로 입력하세요</p>
+        <div className="rounded p-3 text-xs" style={{ background: '#F5F5F5', border: '1px solid #E0E0E0', color: '#9E9E9E' }}>
+          위 안내문 내용만 입력하면 됩니다. 배점, 난이도, 그룹은 적용되지 않습니다.
         </div>
       )
 
@@ -607,8 +701,8 @@ export default function AddQuestionModal({ onClose, onAdd }) {
             <h3 className="font-semibold" style={{ color: '#222222' }}>문항 직접 추가</h3>
             {step === 'form' && typeInfo && (
               <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: '#9E9E9E' }}>
-                <span className="w-2 h-2 rounded-full inline-block" style={{ background: typeInfo.autoGrade === false ? '#B43200' : typeInfo.autoGrade === 'partial' ? '#f59e0b' : '#01A900' }} />
-                {typeInfo.label} · {typeInfo.autoGrade === false ? '수동채점' : typeInfo.autoGrade === 'partial' ? '부분자동' : '자동채점'}
+                <span className="w-2 h-2 rounded-full inline-block" style={{ background: typeInfo.autoGrade === null ? '#9E9E9E' : typeInfo.autoGrade === false ? '#B43200' : typeInfo.autoGrade === 'partial' ? '#f59e0b' : '#01A900' }} />
+                {typeInfo.label} · {typeInfo.autoGrade === null ? '채점 없음' : typeInfo.autoGrade === false ? '수동채점' : typeInfo.autoGrade === 'partial' ? '부분자동' : '자동채점'}
               </p>
             )}
           </div>
@@ -667,12 +761,19 @@ export default function AddQuestionModal({ onClose, onAdd }) {
             {/* 문제 내용 */}
             <div>
               <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>
-                문제 내용 <span style={{ color: '#EF2B2A' }}>*</span>
+                {selectedType === 'text' ? '안내문 내용' : selectedType === 'formula' ? '문제 설명' : '문제 내용'}
+                {' '}<span style={{ color: '#EF2B2A' }}>*</span>
               </label>
               <textarea
                 value={form.text}
                 onChange={e => setForm(prev => ({ ...prev, text: e.target.value }))}
-                placeholder="문제를 입력하세요..."
+                placeholder={
+                  selectedType === 'text'
+                    ? '학생에게 표시할 안내문을 입력하세요 (예: 이번 시험은 오픈북으로 진행됩니다.)'
+                    : selectedType === 'formula'
+                    ? '예: a명의 학생이 b권의 책을 가지고 있을 때, 총 책의 수는?  (변수는 아래에서 정의)'
+                    : '문제를 입력하세요...'
+                }
                 rows={3}
                 autoFocus
                 className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none resize-none"
@@ -682,19 +783,46 @@ export default function AddQuestionModal({ onClose, onAdd }) {
               />
             </div>
 
-            {/* 배점 */}
-            <div className="w-32">
-              <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>배점</label>
-              <input type="number" value={form.points} min={1}
-                onChange={e => setForm(prev => ({ ...prev, points: e.target.value }))}
-                className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none"
-                style={{ border: '1px solid #E0E0E0', color: '#222222' }}
-                onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
-                onBlur={e => e.currentTarget.style.borderColor = '#E0E0E0'}
-              />
-            </div>
+            {/* 배점 / 난이도 / 그룹 — text 유형은 숨김 */}
+            {selectedType !== 'text' && <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>배점</label>
+                <input type="number" value={form.points} min={1}
+                  onChange={e => setForm(prev => ({ ...prev, points: e.target.value }))}
+                  className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none"
+                  style={{ border: '1px solid #E0E0E0', color: '#222222' }}
+                  onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                  onBlur={e => e.currentTarget.style.borderColor = '#E0E0E0'}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>난이도</label>
+                <select value={form.difficulty || 'medium'}
+                  onChange={e => setForm(prev => ({ ...prev, difficulty: e.target.value }))}
+                  className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none"
+                  style={{ border: '1px solid #E0E0E0', color: '#222222' }}
+                  onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                  onBlur={e => e.currentTarget.style.borderColor = '#E0E0E0'}
+                >
+                  <option value="high">상</option>
+                  <option value="medium">중</option>
+                  <option value="low">하</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>그룹</label>
+                <input type="text" value={form.groupTag || ''}
+                  onChange={e => setForm(prev => ({ ...prev, groupTag: e.target.value }))}
+                  placeholder="예: 1단원"
+                  className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none"
+                  style={{ border: '1px solid #E0E0E0', color: '#222222' }}
+                  onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                  onBlur={e => e.currentTarget.style.borderColor = '#E0E0E0'}
+                />
+              </div>
+            </div>}
 
-            <div style={{ borderTop: '1px solid #EEEEEE' }} />
+            {selectedType !== 'text' && <div style={{ borderTop: '1px solid #EEEEEE' }} />}
 
             {/* 유형별 전용 폼 */}
             <TypeForm type={selectedType} form={form} setForm={setForm} />

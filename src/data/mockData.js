@@ -6,12 +6,12 @@ export const QUIZ_TYPES = {
   short_answer:           { label: '단답형',           autoGrade: 'partial' },
   essay:                  { label: '서술형',           autoGrade: false },
   numerical:              { label: '수치형',           autoGrade: true },
-  matching:               { label: '연결하기',         autoGrade: true },
-  fill_in_blank:          { label: '빈칸 채우기',      autoGrade: true },
+  formula:                { label: '수식형',           autoGrade: true },
+  matching:               { label: '연결형',           autoGrade: true },
   fill_in_multiple_blanks:{ label: '다중 빈칸 채우기', autoGrade: true },
   multiple_dropdowns:     { label: '드롭다운 선택',    autoGrade: true },
-  ordering:               { label: '순서 배열',        autoGrade: true },
   file_upload:            { label: '파일 첨부',        autoGrade: false },
+  text:                   { label: '텍스트',           autoGrade: null },
 }
 
 export const mockQuizzes = [
@@ -382,14 +382,28 @@ export const MOCK_BANKS = [
   { id: 'bank4', name: '트랜잭션', updatedAt: '2026-03-10', usedInQuizIds: ['1', '4'] },
 ]
 
-export const MOCK_BANK_QUESTIONS = Array.from({ length: 60 }, (_, i) => ({
-  id: `bank_q${i + 1}`,
-  text: BANK_QUESTION_TEXTS[i % 10] + (i >= 10 ? ` (${Math.floor(i / 10) + 1})` : ''),
-  type: Object.keys(QUIZ_TYPES)[i % Object.keys(QUIZ_TYPES).length],
-  points: [3, 5, 8, 10, 15][i % 5],
-  bankId: ['bank1', 'bank2', 'bank3', 'bank4'][i % 4],
-  usageCount: [0, 2, 5, 1, 3, 8, 0, 4][i % 8],
-}))
+const BANK_GROUP_MAP = {
+  bank1: ['1단원', '2단원', '3단원'],
+  bank2: ['A그룹', 'B그룹', 'C그룹'],
+  bank3: ['설계 기초', '설계 심화'],
+  bank4: ['기초', '심화'],
+}
+const DIFFICULTIES = ['high', 'medium', 'low']
+
+export const MOCK_BANK_QUESTIONS = Array.from({ length: 60 }, (_, i) => {
+  const bankId = ['bank1', 'bank2', 'bank3', 'bank4'][i % 4]
+  const groups = BANK_GROUP_MAP[bankId]
+  return {
+    id: `bank_q${i + 1}`,
+    text: BANK_QUESTION_TEXTS[i % 10] + (i >= 10 ? ` (${Math.floor(i / 10) + 1})` : ''),
+    type: Object.keys(QUIZ_TYPES)[i % Object.keys(QUIZ_TYPES).length],
+    points: [3, 5, 8, 10, 15][i % 5],
+    bankId,
+    usageCount: [0, 2, 5, 1, 3, 8, 0, 4][i % 8],
+    difficulty: DIFFICULTIES[i % 3],
+    groupTag: groups[i % groups.length],
+  }
+})
 
 // 데모용 가상 데이터 — 실제 개인정보 아님
 // Q3 단답형(10점) 개별 점수
