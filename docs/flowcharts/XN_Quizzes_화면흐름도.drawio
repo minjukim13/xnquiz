@@ -6,47 +6,49 @@
     <mxCell id="1" parent="0" />
 
     <mxCell id="start" value="앱 진입" style="ellipse;fillColor=#F0FDF4;strokeColor=#22C55E;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-      <mxGeometry x="60" y="580" width="160" height="70" as="geometry" />
+      <mxGeometry x="60" y="640" width="160" height="70" as="geometry" />
     </mxCell>
     <mxCell id="role" value="역할 구분&#xa;교수자 / 학생" style="rhombus;fillColor=#DCFCE7;strokeColor=#22C55E;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-      <mxGeometry x="290" y="550" width="180" height="130" as="geometry" />
+      <mxGeometry x="290" y="610" width="180" height="130" as="geometry" />
     </mxCell>
 
-    <!-- 교수자 swimlane -->
+    <!-- 교수자 swimlane: 두 행 (퀴즈관리 + 문제은행) -->
     <mxCell id="lane_i" value="교수자" style="swimlane;startSize=40;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="550" y="60" width="1200" height="820" as="geometry" />
+      <mxGeometry x="550" y="60" width="1300" height="900" as="geometry" />
     </mxCell>
 
-    <!-- ql_i: 좌측, 세로 중앙 -->
+    <!-- 좌측 컬럼: 퀴즈 목록 + 문제은행 목록 (같은 depth, x=60) -->
     <mxCell id="ql_i" value="퀴즈 목록&#xa;교수자 뷰  /" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="lane_i">
-      <mxGeometry x="60" y="355" width="220" height="70" as="geometry" />
+      <mxGeometry x="60" y="200" width="220" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="qbl" value="문제은행 목록&#xa;/question-banks" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="lane_i">
+      <mxGeometry x="60" y="620" width="220" height="70" as="geometry" />
     </mxCell>
 
-    <!-- 2열: 각 목적지, 세로 간격 160px, ql_i 중심(390)과 겹치지 않도록 배치 -->
+    <!-- 중간 컬럼: 퀴즈 목록의 하위 페이지들 -->
     <mxCell id="qc"  value="퀴즈 생성&#xa;/quiz/new"            style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="lane_i">
       <mxGeometry x="420" y="60"  width="220" height="70" as="geometry" />
     </mxCell>
     <mxCell id="qe"  value="퀴즈 편집&#xa;/quiz/:id/edit"       style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="lane_i">
-      <mxGeometry x="420" y="220" width="220" height="70" as="geometry" />
+      <mxGeometry x="420" y="180" width="220" height="70" as="geometry" />
     </mxCell>
     <mxCell id="gd"  value="채점 대시보드&#xa;/quiz/:id/grade"  style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="lane_i">
-      <mxGeometry x="420" y="380" width="220" height="70" as="geometry" />
-    </mxCell>
-    <mxCell id="qbl" value="문제은행 목록&#xa;/question-banks"  style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="lane_i">
-      <mxGeometry x="420" y="540" width="220" height="70" as="geometry" />
+      <mxGeometry x="420" y="300" width="220" height="70" as="geometry" />
     </mxCell>
 
-    <!-- 3열: gd, qbl 의 오른쪽에만 연결 (ql_i 에서 직접 연결 없음 → 선 교차 방지) -->
-    <mxCell id="qs"  value="퀴즈 통계&#xa;/quiz/:id/stats"      style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="lane_i">
-      <mxGeometry x="800" y="380" width="220" height="70" as="geometry" />
-    </mxCell>
+    <!-- 중간 컬럼: 문제은행 목록의 하위 페이지 -->
     <mxCell id="qb"  value="문제은행 상세&#xa;/question-banks/:bankId" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="lane_i">
-      <mxGeometry x="800" y="540" width="240" height="70" as="geometry" />
+      <mxGeometry x="420" y="620" width="240" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- 우측 컬럼 -->
+    <mxCell id="qs"  value="퀴즈 통계&#xa;/quiz/:id/stats"      style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="lane_i">
+      <mxGeometry x="800" y="300" width="220" height="70" as="geometry" />
     </mxCell>
 
     <!-- 학생 swimlane -->
     <mxCell id="lane_s" value="학생" style="swimlane;startSize=40;fillColor=#F0FDF4;strokeColor=#22C55E;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="550" y="960" width="660" height="200" as="geometry" />
+      <mxGeometry x="550" y="1040" width="660" height="200" as="geometry" />
     </mxCell>
     <mxCell id="ql_s" value="퀴즈 목록&#xa;학생 뷰  /" style="rounded=1;arcSize=10;fillColor=#F0FDF4;strokeColor=#22C55E;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=13;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="lane_s">
       <mxGeometry x="60" y="70" width="220" height="70" as="geometry" />
@@ -59,21 +61,26 @@
     <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="start" target="role" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
+    <!-- role → 퀴즈 목록 (교수자) -->
     <mxCell id="e2" value="교수자" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;fontFamily=Pretendard,sans-serif;" edge="1" source="role" target="ql_i" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
+    <!-- role → 문제은행 목록 (교수자, 같은 depth) -->
+    <mxCell id="e2b" value="교수자" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;fontFamily=Pretendard,sans-serif;" edge="1" source="role" target="qbl" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- role → 학생 -->
     <mxCell id="e3" value="학생" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;fontFamily=Pretendard,sans-serif;" edge="1" source="role" target="ql_s" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
 
-    <!-- 교수자 내부: ql_i → 2열 (수평, 같은 Y 없음) -->
+    <!-- 교수자 내부: ql_i → 하위 페이지 -->
     <mxCell id="e4" value="새 퀴즈"  style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="ql_i" target="qc"  parent="lane_i"><mxGeometry relative="1" as="geometry" /></mxCell>
     <mxCell id="e5" value="편집"     style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="ql_i" target="qe"  parent="lane_i"><mxGeometry relative="1" as="geometry" /></mxCell>
     <mxCell id="e6" value="채점하기" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="ql_i" target="gd"  parent="lane_i"><mxGeometry relative="1" as="geometry" /></mxCell>
-    <mxCell id="e7" value="문제은행" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="ql_i" target="qbl" parent="lane_i"><mxGeometry relative="1" as="geometry" /></mxCell>
-
-    <!-- 2열 → 3열 -->
     <mxCell id="e8" value="통계 보기" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="gd"  target="qs" parent="lane_i"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+    <!-- 문제은행: qbl → qb -->
     <mxCell id="e9" value="은행 선택" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;fontFamily=Pretendard,sans-serif;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="qbl" target="qb" parent="lane_i"><mxGeometry relative="1" as="geometry" /></mxCell>
 
     <!-- 학생 내부 -->
