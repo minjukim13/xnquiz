@@ -392,9 +392,12 @@ export default function GradingDashboard() {
                 <div className="flex-1 overflow-y-auto scrollbar-thin space-y-1 pr-1">
                   {ungradedStudentList.length > 0 && (
                     <div className="mb-2">
-                      <p className="text-xs font-medium px-2 py-1.5 rounded mb-1 flex items-center gap-1.5" style={{ color: '#B43200', background: '#FFF6F2' }}>
-                        <AlertCircle size={11} />미채점 ({ungradedStudentList.length}명)
-                      </p>
+                      <div className="px-1 pt-1 pb-1.5 flex items-center gap-2 mb-1">
+                        <AlertCircle size={11} style={{ color: '#B43200', flexShrink: 0 }} />
+                        <span className="text-xs font-semibold" style={{ color: '#B43200' }}>미채점</span>
+                        <span className="text-xs" style={{ color: '#BDBDBD' }}>{ungradedStudentList.length}명</span>
+                        <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
+                      </div>
                       {ungradedStudentList.map(s => (
                         <StudentListItem
                           key={s.id} student={s}
@@ -406,9 +409,12 @@ export default function GradingDashboard() {
                   )}
                   {gradedStudentList.length > 0 && (
                     <div>
-                      <p className="text-xs font-medium px-2 py-1.5 rounded mb-1 flex items-center gap-1.5" style={{ color: '#018600', background: '#E5FCE3' }}>
-                        <CheckCircle2 size={11} />채점 완료 ({gradedStudentList.length}명)
-                      </p>
+                      <div className="px-1 pt-1 pb-1.5 flex items-center gap-2 mb-1">
+                        <CheckCircle2 size={11} style={{ color: '#018600', flexShrink: 0 }} />
+                        <span className="text-xs font-semibold" style={{ color: '#018600' }}>채점 완료</span>
+                        <span className="text-xs" style={{ color: '#BDBDBD' }}>{gradedStudentList.length}명</span>
+                        <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
+                      </div>
                       {gradedStudentList.map(s => (
                         <StudentListItem
                           key={s.id} student={s}
@@ -574,8 +580,11 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {ungradedStudents.length > 0 && (
           <div>
-            <div className="px-3 py-2 text-xs font-medium flex items-center gap-1.5" style={{ color: '#B43200', background: '#FFF6F2', borderBottom: '1px solid #EEEEEE' }}>
-              <AlertCircle size={11} />미채점 ({ungradedStudents.length}명)
+            <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
+              <AlertCircle size={11} style={{ color: '#B43200', flexShrink: 0 }} />
+              <span className="text-xs font-semibold" style={{ color: '#B43200' }}>미채점</span>
+              <span className="text-xs" style={{ color: '#BDBDBD' }}>{ungradedStudents.length}명</span>
+              <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
             </div>
             {ungradedStudents.map(s => (
               <StudentRow key={s.id} student={s} question={question} quizId={quizId} onGradeSaved={onGradeSaved} />
@@ -584,8 +593,11 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
         )}
         {gradedStudents.length > 0 && (
           <div>
-            <div className="px-3 py-2 text-xs font-medium flex items-center gap-1.5" style={{ color: '#018600', background: '#E5FCE3', borderBottom: '1px solid #EEEEEE' }}>
-              <CheckCircle2 size={11} />채점 완료 ({gradedStudents.length}명)
+            <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
+              <CheckCircle2 size={11} style={{ color: '#018600', flexShrink: 0 }} />
+              <span className="text-xs font-semibold" style={{ color: '#018600' }}>채점 완료</span>
+              <span className="text-xs" style={{ color: '#BDBDBD' }}>{gradedStudents.length}명</span>
+              <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
             </div>
             {gradedStudents.map(s => (
               <StudentRow key={s.id} student={s} question={question} quizId={quizId} onGradeSaved={onGradeSaved} />
@@ -615,107 +627,97 @@ function StudentRow({ student, question, quizId, onGradeSaved }) {
   const answer = student.response || getStudentAnswer(parseInt(student.id.replace('s', '')), question.id)
   const autoCorrect = question.autoGrade ? isAnswerCorrect(answer, question.id) : null
 
+  const handleSave = () => {
+    const grades = getLocalGrades()
+    grades[storageKey] = Number(score)
+    setLocalGrades(grades)
+    if (!student.manualScores) student.manualScores = {}
+    student.manualScores[question.id] = Number(score)
+    const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
+    const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
+    student.score = autoTotal + manualTotal
+    setSaved(true)
+    onGradeSaved?.()
+  }
+
   return (
-    <div className="transition-colors" style={{ borderBottom: '1px solid #EEEEEE' }}
-      onMouseEnter={e => e.currentTarget.style.background = '#FAFAFA'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <div
-        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer"
-        onClick={() => setExpanded(!expanded)}
-      >
+    <div style={{ borderBottom: '1px solid #EEEEEE' }}>
+      {/* 인라인 행 */}
+      <div className="flex items-center gap-3 px-3 py-2.5">
+        {/* 아바타 */}
         <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0" style={{ background: '#EEEEEE', color: '#616161' }}>
           {student.name[0]}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium" style={{ color: '#222222' }}>{student.name}</span>
-            <span className="text-xs" style={{ color: '#9E9E9E' }}>{student.studentId}</span>
+
+        {/* 이름/학번 */}
+        <div className="w-28 shrink-0">
+          <p className="text-sm font-medium truncate" style={{ color: '#222222' }}>{student.name}</p>
+          <p className="text-xs truncate" style={{ color: '#9E9E9E' }}>{student.studentId}</p>
+        </div>
+
+        {/* 답안 미리보기 (클릭하면 전체 펼침) */}
+        <button
+          className="flex-1 min-w-0 text-left flex items-center gap-1"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <p className="text-xs truncate flex-1" style={{ color: expanded ? '#424242' : '#9E9E9E' }}>
+            {answer || '(답안 없음)'}
+          </p>
+          {expanded
+            ? <ChevronUp size={12} style={{ color: '#BDBDBD', flexShrink: 0 }} />
+            : <ChevronDown size={12} style={{ color: '#BDBDBD', flexShrink: 0 }} />
+          }
+        </button>
+
+        {/* 채점 영역 */}
+        {!question.autoGrade ? (
+          <div className="flex items-center gap-1.5 shrink-0">
+            {saved && (
+              <CheckCircle2 size={13} style={{ color: '#018600' }} />
+            )}
+            <input
+              type="number"
+              value={score}
+              onChange={e => { setScore(e.target.value); setSaved(false) }}
+              placeholder="—"
+              min={0}
+              max={question.points}
+              className="w-14 bg-white text-xs px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
+              style={{ border: '1px solid #E0E0E0', color: '#222222' }}
+              onKeyDown={e => { if (e.key === 'Enter' && !(score === '' || Number(score) > question.points || Number(score) < 0)) handleSave() }}
+            />
+            <span className="text-xs" style={{ color: '#BDBDBD' }}>/ {question.points}</span>
+            <button
+              onClick={handleSave}
+              disabled={score === '' || Number(score) > question.points || Number(score) < 0}
+              className="text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1.5 rounded transition-colors font-medium"
+            >
+              저장
+            </button>
           </div>
-          {expanded && (
-            <p className="text-xs truncate mt-0.5" style={{ color: '#9E9E9E' }}>{answer}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {isGraded ? (
-            <span className="text-sm font-bold" style={{ color: '#018600' }}>{score || student.score}점</span>
-          ) : (
-            <span className="text-xs px-2 py-0.5 rounded" style={{ color: '#B43200', background: '#FFF6F2', border: '1px solid #ffcdbf' }}>미채점</span>
-          )}
-          {expanded ? <ChevronUp size={13} style={{ color: '#9E9E9E' }} /> : <ChevronDown size={13} style={{ color: '#9E9E9E' }} />}
-        </div>
+        ) : (
+          <div className="shrink-0">
+            {autoCorrect !== null && (
+              <span className="text-xs px-2 py-0.5 rounded"
+                style={autoCorrect
+                  ? { color: '#018600', background: '#E5FCE3' }
+                  : { color: '#B43200', background: '#FFF5F5' }
+                }>
+                {autoCorrect ? '정답' : '오답'}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
+      {/* 확장: 전체 답안 */}
       {expanded && (
-        <div className="px-3 pb-3">
-          <div className="p-3 text-sm rounded" style={{ background: '#FAFAFA', border: '1px solid #E0E0E0' }}>
-            {/* 제출 답안 */}
-            <div className="mb-3">
-              <p className="text-xs font-medium mb-1.5" style={{ color: '#616161' }}>제출 답안</p>
-              <p className="leading-relaxed bg-white px-3 py-2 rounded" style={{ color: '#424242', border: '1px solid #E0E0E0' }}>
-                {answer}
-              </p>
-            </div>
-
-            {/* 자동채점 결과 표시 */}
-            {question.autoGrade && autoCorrect !== null && (
-              <div
-                className="flex items-center gap-2 text-xs mb-3 px-3 py-2 rounded"
-                style={autoCorrect
-                  ? { background: '#E5FCE3', border: '1px solid #a7f3d0', color: '#018600' }
-                  : { background: '#FFF5F5', border: '1px solid #FFBFBF', color: '#BF0A03' }
-                }
-              >
-                {autoCorrect ? <CheckCircle2 size={13} /> : <X size={13} />}
-                {autoCorrect ? '정답' : '오답'}
-                {question.correctAnswer && !autoCorrect && (
-                  <span className="ml-1">· 정답: {question.correctAnswer}</span>
-                )}
-              </div>
+        <div className="px-3 pb-3 ml-10">
+          <div className="p-3 rounded text-xs" style={{ background: '#FAFAFA', border: '1px solid #E0E0E0' }}>
+            <p className="leading-relaxed" style={{ color: '#424242' }}>{answer}</p>
+            {question.autoGrade && autoCorrect !== null && !autoCorrect && question.correctAnswer && (
+              <p className="mt-2" style={{ color: '#9E9E9E' }}>정답: {question.correctAnswer}</p>
             )}
-
-            {/* 채점 입력 (수동채점 문항) */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: '#9E9E9E' }}>제출: {student.endTime || '-'}</span>
-              {!question.autoGrade && (
-                <div className="flex items-center gap-2">
-                  {saved && (
-                    <span className="text-xs flex items-center gap-1" style={{ color: '#018600' }}>
-                      <CheckCircle2 size={11} />저장됨
-                    </span>
-                  )}
-                  <input
-                    type="number"
-                    value={score}
-                    onChange={e => { setScore(e.target.value); setSaved(false) }}
-                    placeholder="점수"
-                    min={0}
-                    max={question.points}
-                    className="w-16 bg-white text-xs px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
-                    style={{ border: '1px solid #E0E0E0', color: '#222222' }}
-                  />
-                  <span className="text-xs" style={{ color: '#9E9E9E' }}>/ {question.points}</span>
-                  <button
-                    onClick={() => {
-                      const grades = getLocalGrades()
-                      grades[storageKey] = Number(score)
-                      setLocalGrades(grades)
-                      if (!student.manualScores) student.manualScores = {}
-                      student.manualScores[question.id] = Number(score)
-                      const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
-                      const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
-                      student.score = autoTotal + manualTotal
-                      setSaved(true)
-                      onGradeSaved?.()
-                    }}
-                    disabled={score === '' || Number(score) > question.points || Number(score) < 0}
-                    className="text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded transition-colors font-medium"
-                  >
-                    저장
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}
@@ -837,62 +839,81 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
 
   const answer = getStudentAnswer(studentIdx, question.id)
   const autoCorrect = question.autoGrade ? isAnswerCorrect(answer, question.id) : null
+  const [answerExpanded, setAnswerExpanded] = useState(false)
+
+  const correctAnswer = question.correctAnswer ?? ''
+  const isLongAnswer = correctAnswer.length > 30
 
   return (
     <div className="bg-white p-4" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
       {/* 문항 헤더 */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-bold" style={{ color: '#9E9E9E' }}>Q{question.order}</span>
-          <TypeBadge type={question.type} small />
-          <span className="text-xs" style={{ color: '#9E9E9E' }}>{question.points}점</span>
-          {question.autoGrade && (
-            <span className="text-xs px-1.5 py-0.5 rounded" style={{ color: '#018600', background: '#E5FCE3' }}>자동채점</span>
-          )}
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-xs font-bold" style={{ color: '#9E9E9E' }}>Q{question.order}</span>
+            <TypeBadge type={question.type} small />
+          </div>
+          <p className="text-xs leading-relaxed" style={{ color: '#424242' }}>{question.text}</p>
         </div>
-        {/* 점수 표시 */}
-        <div className="flex items-center gap-1.5">
+        {/* 점수 / 배점 */}
+        <div className="shrink-0 text-right">
           {question.autoGrade ? (
-            <span className="text-sm font-bold" style={{ color: autoCorrect ? '#018600' : '#EF2B2A' }}>
-              {autoCorrect ? question.points : 0}점
+            <span className="text-sm font-bold" style={{ color: autoCorrect ? '#018600' : '#424242' }}>
+              {autoCorrect ? question.points : 0}
+              <span className="text-xs font-normal" style={{ color: '#BDBDBD' }}> / {question.points}</span>
             </span>
           ) : saved && score !== '' ? (
-            <span className="text-sm font-bold" style={{ color: '#018600' }}>{score}점</span>
+            <span className="text-sm font-bold" style={{ color: '#222222' }}>
+              {score}
+              <span className="text-xs font-normal" style={{ color: '#BDBDBD' }}> / {question.points}</span>
+            </span>
           ) : (
-            <span className="text-xs px-2 py-0.5 rounded" style={{ color: '#B43200', background: '#FFF6F2' }}>미채점</span>
+            <span className="text-xs" style={{ color: '#B43200' }}>미채점</span>
           )}
         </div>
       </div>
 
-      {/* 문항 텍스트 */}
-      <p className="text-xs mb-2 leading-relaxed" style={{ color: '#616161' }}>{question.text}</p>
-
-      {/* 답안 */}
-      <div className="px-3 py-2 text-sm mb-2 leading-relaxed rounded" style={{ background: '#FAFAFA', border: '1px solid #E0E0E0', color: '#424242' }}>
-        {answer}
+      {/* 답안 박스 — left border로 상태 표시 */}
+      <div
+        className="px-3 py-2 text-xs leading-relaxed rounded flex items-start justify-between gap-2"
+        style={{
+          background: '#FAFAFA',
+          color: '#424242',
+          border: '1px solid #E0E0E0',
+        }}
+      >
+        <span className="flex-1">{answer}</span>
+        {question.autoGrade && autoCorrect !== null && (
+          autoCorrect
+            ? <CheckCircle2 size={13} className="shrink-0 mt-px" style={{ color: '#018600' }} />
+            : <X size={13} className="shrink-0 mt-px" style={{ color: '#B43200' }} />
+        )}
       </div>
 
-      {/* 자동채점: 정답/오답 배지 */}
-      {question.autoGrade && autoCorrect !== null && (
-        <div
-          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded mb-2"
-          style={autoCorrect
-            ? { background: '#E5FCE3', border: '1px solid #a7f3d0', color: '#018600' }
-            : { background: '#FFF5F5', border: '1px solid #FFBFBF', color: '#BF0A03' }
-          }
-        >
-          {autoCorrect ? <CheckCircle2 size={12} /> : <X size={12} />}
-          {autoCorrect ? '정답' : '오답'}
-          {question.correctAnswer && !autoCorrect && (
-            <span className="ml-1" style={{ color: '#616161' }}>· 정답: {question.correctAnswer}</span>
+      {/* 오답: 정답 표시 (긴 경우 접기/펼치기) */}
+      {question.autoGrade && autoCorrect === false && correctAnswer && (
+        <div className="mt-1.5 pl-1 flex items-start gap-1">
+          <span className="text-xs shrink-0" style={{ color: '#9E9E9E' }}>정답:</span>
+          {isLongAnswer ? (
+            <span className="text-xs" style={{ color: '#424242' }}>
+              {answerExpanded ? correctAnswer : `${correctAnswer.slice(0, 30)}…`}
+              <button
+                onClick={() => setAnswerExpanded(v => !v)}
+                className="ml-1 text-xs"
+                style={{ color: '#6366f1' }}
+              >
+                {answerExpanded ? '접기' : '더보기'}
+              </button>
+            </span>
+          ) : (
+            <span className="text-xs" style={{ color: '#424242' }}>{correctAnswer}</span>
           )}
         </div>
       )}
 
       {/* 수동채점 입력 */}
       {!question.autoGrade && (
-        <div className="flex items-center gap-2 pt-1">
-          <label className="text-xs" style={{ color: '#616161' }}>점수</label>
+        <div className="flex items-center gap-2 pt-2">
           <input
             type="number"
             value={score}
@@ -900,7 +921,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
             min={0}
             max={question.points}
             placeholder="0"
-            className="w-16 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
+            className="w-16 bg-white text-xs px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
             style={{ border: '1px solid #E0E0E0', color: '#222222' }}
           />
           <span className="text-xs" style={{ color: '#9E9E9E' }}>/ {question.points}</span>
@@ -923,8 +944,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
               onSaved?.()
             }}
             disabled={score === '' || Number(score) > question.points || Number(score) < 0}
-            className="ml-auto text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 transition-colors font-medium"
-            style={{ borderRadius: 4 }}
+            className="ml-auto text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded transition-colors font-medium"
           >
             저장
           </button>
@@ -1035,7 +1055,7 @@ function TabBtn({ active, onClick, children }) {
       onClick={onClick}
       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors"
       style={active
-        ? { background: '#fff', color: '#222222', fontWeight: 500, border: '1px solid #E0E0E0' }
+        ? { background: '#fff', color: '#222222', fontWeight: 600, border: '1px solid #E0E0E0' }
         : { color: '#9E9E9E', border: '1px solid transparent' }
       }
     >
@@ -1142,7 +1162,7 @@ function ExcelModal({ question, onClose }) {
         </div>
 
         {step === 'error' && (
-          <div className="p-3 text-xs rounded" style={{ background: '#FFF5F5', border: '1px solid #FFBFBF', color: '#BF0A03' }}>
+          <div className="p-3 text-xs rounded" style={{ background: '#FFF5F5', border: '1px solid #FFBFBF', color: '#B43200' }}>
             <div className="font-medium mb-1 flex items-center gap-1.5"><AlertCircle size={13} />업로드 실패</div>
             <p>{errorMsg}</p>
             <button className="mt-2 text-red-600 hover:text-red-800 underline" onClick={() => setStep('idle')}>
@@ -1229,7 +1249,7 @@ function RegradeModal({ onClose }) {
         <div className="p-3 text-sm rounded" style={{ background: '#FFF6F2', border: '1px solid #ffcdbf', color: '#B43200' }}>
           <p className="font-medium mb-1">재채점 시 주의사항</p>
           <p className="text-xs">정답 기준을 수정하면 해당 문항에 응시한 <span className="font-bold">82명 전원</span>의 점수가 즉시 재계산됩니다.</p>
-          <p className="text-xs mt-1.5" style={{ color: '#DA4000' }}>자동채점 문항만 재산출되며, 수동채점(주관식·서술형) 점수는 변경되지 않습니다.</p>
+          <p className="text-xs mt-1.5" style={{ color: '#B43200' }}>자동채점 문항만 재산출되며, 수동채점(주관식·서술형) 점수는 변경되지 않습니다.</p>
           <p className="text-xs mt-1">점수 변경 시 해당 학생에게 LMS 메시지 알림이 발송됩니다.</p>
         </div>
 
