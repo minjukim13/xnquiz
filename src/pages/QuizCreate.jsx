@@ -174,20 +174,40 @@ export default function QuizCreate() {
                     mockQuizzes.push({
                       id: String(Date.now()),
                       title: form.title,
+                      description: form.description,
                       course: 'CS301 데이터베이스',
+                      quizMode: form.quizMode,
                       status: 'open',
                       startDate: form.startDate,
                       dueDate: form.dueDate,
                       week: form.week || 1,
                       session: form.session || 1,
+                      timeLimit: form.timeLimitType === -1
+                        ? Number(form.timeLimitCustom) || 0
+                        : form.timeLimitType,
+                      allowAttempts: form.allowAttempts,
+                      scorePolicy: form.allowAttempts >= 2 || form.allowAttempts === -1
+                        ? form.scorePolicy
+                        : null,
+                      shuffleChoices: form.shuffleChoices,
+                      shuffleQuestions: form.shuffleQuestions,
+                      showWrongAnswer: form.showWrongAnswer,
+                      showWrongAnswerOnce: form.showWrongAnswerOnce,
+                      showScore: form.showScore,
+                      showAnswer: form.showScore && form.showAnswer,
+                      scoreRevealStartDate: form.scoreRevealStartDate || null,
+                      scoreRevealEndDate: form.scoreRevealEndDate || null,
+                      accessCode: form.accessCode || null,
+                      ipRestriction: form.ipRestriction || null,
+                      assignments: form.assignments.filter(a => a.assignTo.length > 0),
+                      allowLateSubmit: form.allowLateSubmit,
+                      notice: form.notice,
                       totalStudents: 0,
                       submitted: 0,
                       graded: 0,
                       pendingGrade: 0,
                       questions: questions.length,
                       totalPoints,
-                      scorePolicy: form.scorePolicy,
-                      allowAttempts: form.allowAttempts,
                     })
                     navigate('/')
                   }
