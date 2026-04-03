@@ -873,13 +873,15 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
         </div>
       </div>
 
-      {/* 답안 박스 — left border로 상태 표시 */}
+      {/* 답안 박스 — 자동채점 배경 틴트로 정오답 표시 */}
       <div
         className="px-3 py-2 text-xs leading-relaxed rounded flex items-start justify-between gap-2"
         style={{
-          background: '#FAFAFA',
           color: '#424242',
           border: '1px solid #E0E0E0',
+          background: question.autoGrade && autoCorrect !== null
+            ? autoCorrect ? '#F0FFF4' : '#FFF6F2'
+            : '#FAFAFA',
         }}
       >
         <span className="flex-1">{answer}</span>
@@ -890,23 +892,31 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
         )}
       </div>
 
-      {/* 오답: 정답 표시 (긴 경우 접기/펼치기) */}
-      {question.autoGrade && autoCorrect === false && correctAnswer && (
-        <div className="mt-1.5 pl-1 flex items-start gap-1">
-          <span className="text-xs shrink-0" style={{ color: '#9E9E9E' }}>정답:</span>
-          {isLongAnswer ? (
-            <span className="text-xs" style={{ color: '#424242' }}>
-              {answerExpanded ? correctAnswer : `${correctAnswer.slice(0, 30)}…`}
-              <button
-                onClick={() => setAnswerExpanded(v => !v)}
-                className="ml-1 text-xs"
-                style={{ color: '#6366f1' }}
-              >
-                {answerExpanded ? '접기' : '더보기'}
-              </button>
-            </span>
+      {/* 자동채점 하단 고정 영역 — 정오답 모두 동일 높이 유지 */}
+      {question.autoGrade && autoCorrect !== null && (
+        <div className="mt-1.5 pl-1 flex items-start gap-1 min-h-[16px]">
+          {autoCorrect ? (
+            <span className="text-xs" style={{ color: '#9E9E9E' }}>정답</span>
+          ) : correctAnswer ? (
+            <>
+              <span className="text-xs shrink-0" style={{ color: '#9E9E9E' }}>정답:</span>
+              {isLongAnswer ? (
+                <span className="text-xs" style={{ color: '#424242' }}>
+                  {answerExpanded ? correctAnswer : `${correctAnswer.slice(0, 30)}…`}
+                  <button
+                    onClick={() => setAnswerExpanded(v => !v)}
+                    className="ml-1 text-xs"
+                    style={{ color: '#6366f1' }}
+                  >
+                    {answerExpanded ? '접기' : '더보기'}
+                  </button>
+                </span>
+              ) : (
+                <span className="text-xs" style={{ color: '#424242' }}>{correctAnswer}</span>
+              )}
+            </>
           ) : (
-            <span className="text-xs" style={{ color: '#424242' }}>{correctAnswer}</span>
+            <span className="text-xs" style={{ color: '#9E9E9E' }}>오답</span>
           )}
         </div>
       )}
@@ -930,6 +940,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
               <CheckCircle2 size={11} />저장됨
             </span>
           )}
+          {score !== '' && (
           <button
             onClick={() => {
               const grades = getLocalGrades()
@@ -943,11 +954,12 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
               setSaved(true)
               onSaved?.()
             }}
-            disabled={score === '' || Number(score) > question.points || Number(score) < 0}
+            disabled={Number(score) > question.points || Number(score) < 0}
             className="ml-auto text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded transition-colors font-medium"
           >
             저장
           </button>
+          )}
         </div>
       )}
     </div>
