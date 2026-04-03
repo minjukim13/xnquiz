@@ -27,11 +27,17 @@
   .input {
     @apply w-full bg-white text-sm px-3.5 py-2.5 rounded
     focus:outline-none focus:ring-2 focus:ring-indigo-100
-    placeholder:text-[#9E9E9E] transition-all;
+    transition-all;
     color: #222222;
     border: 1px solid #E0E0E0;
   }
   .input:focus { border-color: #6366f1; }
+  .input::placeholder {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #9E9E9E;
+  }
 
   /* 카드 */
   .card {

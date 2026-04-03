@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, GripVertical, Trash2, X, Search, ChevronLeft } from 'lucide-react'
+import { Plus, BookOpen, GripVertical, Trash2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
 import AddQuestionModal from '../components/AddQuestionModal'
-import { QUIZ_TYPES, mockQuizzes } from '../data/mockData'
-import { useQuestionBank } from '../context/QuestionBankContext'
+import QuestionBankModal from '../components/QuestionBankModal'
+import { QUIZ_TYPES, mockQuizzes, mockStudents } from '../data/mockData'
+import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 
 // ── 옵션 상수 ──────────────────────────────────────────────────────────────
 const WEEK_OPTIONS = Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` }))
@@ -48,15 +49,40 @@ export default function QuizCreate() {
     scorePolicy: '최고 점수 유지',
     shuffleChoices: false,
     shuffleQuestions: false,
-    showAnswerAfter: true,
+    showWrongAnswer: false,
+    showWrongAnswerOnce: false,
+    showScore: false,
+    showAnswer: false,
+    scoreRevealStartDate: '',
+    scoreRevealEndDate: '',
+    quizMode: 'graded',
+    accessCode: '',
+    ipRestriction: '',
+    assignments: [],
     allowLateSubmit: false,
     notice: DEFAULT_NOTICE,
   })
   const [questions, setQuestions] = useState([])
   const [showBankModal, setShowBankModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState(null) // { title, message, onConfirm }
+  const [alertDialog, setAlertDialog] = useState(null)    // { title, message, variant }
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
+
+  const addAssignment = () => setForm(prev => ({
+    ...prev,
+    assignments: [...prev.assignments, { id: `a${Date.now()}`, assignTo: [], dueDate: '', availableFrom: '', availableUntil: '' }],
+  }))
+  const removeAssignment = (id) => setForm(prev => ({
+    ...prev,
+    assignments: prev.assignments.filter(a => a.id !== id),
+  }))
+  const updateAssignment = (id, field, val) => setForm(prev => ({
+    ...prev,
+    assignments: prev.assignments.map(a => a.id === id ? { ...a, [field]: val } : a),
+  }))
+
   const isFormValid = form.title && form.startDate && form.dueDate
     && new Date(form.dueDate) > new Date(form.startDate)
     && questions.length > 0
@@ -70,6 +96,14 @@ export default function QuizCreate() {
   }, [])
 
   const removeQuestion = (qId) => setQuestions(prev => prev.filter(q => q.id !== qId))
+  const moveQuestion = useCallback((fromIdx, toIdx) => {
+    setQuestions(prev => {
+      const next = [...prev]
+      const [moved] = next.splice(fromIdx, 1)
+      next.splice(toIdx, 0, moved)
+      return next
+    })
+  }, [])
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
 
   return (
@@ -89,7 +123,7 @@ export default function QuizCreate() {
         </div>
 
         {tab === 'info' ? (
-          <InfoTab form={form} set={set} />
+          <InfoTab form={form} set={set} addAssignment={addAssignment} removeAssignment={removeAssignment} updateAssignment={updateAssignment} />
         ) : (
           <QuestionsTab
             questions={questions}
@@ -97,6 +131,7 @@ export default function QuizCreate() {
             onShowBank={() => setShowBankModal(true)}
             onShowAdd={() => setShowAddModal(true)}
             onRemove={removeQuestion}
+            onMove={moveQuestion}
           />
         )}
 
@@ -121,25 +156,50 @@ export default function QuizCreate() {
               <button
                 disabled={!isFormValid}
                 onClick={() => {
-                  mockQuizzes.push({
-                    id: String(Date.now()),
-                    title: form.title,
-                    course: 'CS301 데이터베이스',
-                    status: 'open',
-                    startDate: form.startDate,
-                    dueDate: form.dueDate,
-                    week: form.week || 1,
-                    session: form.session || 1,
-                    totalStudents: 0,
-                    submitted: 0,
-                    graded: 0,
-                    pendingGrade: 0,
-                    questions: questions.length,
-                    totalPoints,
-                    scorePolicy: form.scorePolicy,
-                    allowAttempts: form.allowAttempts,
-                  })
-                  navigate('/')
+                  // 중복 학생 검사
+                  const allSelected = form.assignments.flatMap(a => a.assignTo.map(s => s.id))
+                  const hasDuplicate = allSelected.length !== new Set(allSelected).size
+                  if (hasDuplicate) {
+                    setAlertDialog({
+                      title: '중복 학생 설정',
+                      message: '동일한 학생이 여러 추가 기간 설정에 포함되어 있습니다.\n각 학생은 하나의 설정에만 포함될 수 있습니다.',
+                      variant: 'warning',
+                    })
+                    return
+                  }
+
+                  const isMultiAttempt = form.allowAttempts >= 2 || form.allowAttempts === -1
+                  const noRevealPeriod = form.showScore && !form.scoreRevealStartDate && !form.scoreRevealEndDate
+                  const doPublish = () => {
+                    mockQuizzes.push({
+                      id: String(Date.now()),
+                      title: form.title,
+                      course: 'CS301 데이터베이스',
+                      status: 'open',
+                      startDate: form.startDate,
+                      dueDate: form.dueDate,
+                      week: form.week || 1,
+                      session: form.session || 1,
+                      totalStudents: 0,
+                      submitted: 0,
+                      graded: 0,
+                      pendingGrade: 0,
+                      questions: questions.length,
+                      totalPoints,
+                      scorePolicy: form.scorePolicy,
+                      allowAttempts: form.allowAttempts,
+                    })
+                    navigate('/')
+                  }
+                  if (isMultiAttempt && noRevealPeriod) {
+                    setConfirmDialog({
+                      title: '점수 공개 기간 미설정',
+                      message: '재응시가 허용된 퀴즈에서 점수 공개 기간이 설정되지 않으면, 1차 응시 마감 직후 점수(및 정답)가 공개되어 학생이 2차 응시 전에 정답을 확인할 수 있습니다.\n\n점수 공개 기간을 설정하지 않고 발행하시겠습니까?',
+                      onConfirm: doPublish,
+                    })
+                  } else {
+                    doPublish()
+                  }
                 }}
                 className="btn-primary text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -163,6 +223,22 @@ export default function QuizCreate() {
           onAdd={addNewQuestion}
         />
       )}
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
+      {alertDialog && (
+        <AlertDialog
+          title={alertDialog.title}
+          message={alertDialog.message}
+          variant={alertDialog.variant}
+          onClose={() => setAlertDialog(null)}
+        />
+      )}
     </Layout>
   )
 }
@@ -184,9 +260,39 @@ function TabBtn({ active, onClick, children }) {
 }
 
 // ── 기본 정보 탭 ───────────────────────────────────────────────────────────
-function InfoTab({ form, set }) {
+function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment }) {
   return (
     <div className="space-y-5">
+
+      {/* 퀴즈 유형 */}
+      <Section title="퀴즈 유형">
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { value: 'graded', label: '평가용 퀴즈', desc: '성적에 반영됩니다' },
+            { value: 'practice', label: '연습용 퀴즈', desc: '성적에 반영되지 않습니다' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => set('quizMode', opt.value)}
+              className="text-left p-3 rounded transition-all"
+              style={{
+                border: form.quizMode === opt.value ? '2px solid #6366f1' : '1px solid #E0E0E0',
+                background: form.quizMode === opt.value ? '#EEF2FF' : '#fff',
+                marginTop: form.quizMode === opt.value ? 0 : '1px',
+              }}
+            >
+              <p className="text-sm font-semibold" style={{ color: form.quizMode === opt.value ? '#4338CA' : '#424242' }}>{opt.label}</p>
+              <p className="text-xs mt-0.5" style={{ color: form.quizMode === opt.value ? '#6366f1' : '#9E9E9E' }}>{opt.desc}</p>
+            </button>
+          ))}
+        </div>
+        {form.quizMode === 'practice' && (
+          <div className="flex items-start gap-2 p-2.5 rounded text-xs" style={{ background: '#FFF9E6', border: '1px solid #FBBF24', color: '#92400E' }}>
+            <span className="shrink-0 font-bold mt-0.5">!</span>
+            <span>연습용 퀴즈는 성적부에 반영되지 않으며, 학생이 반복 응시하여 학습 용도로 활용할 수 있습니다.</span>
+          </div>
+        )}
+      </Section>
 
       {/* 기본 정보 */}
       <Section title="기본 정보">
@@ -220,31 +326,12 @@ function InfoTab({ form, set }) {
             />
           </Field>
           <Field label="차시">
-            <div className="flex gap-2 flex-wrap h-10 items-center">
-              {SESSION_OPTIONS.map(s => (
-                <label key={s.value} className="flex items-center gap-1.5 cursor-pointer">
-                  <div
-                    onClick={() => set('session', s.value)}
-                    className="w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all"
-                    style={{
-                      borderColor: form.session === s.value ? '#6366f1' : '#BDBDBD',
-                      background: form.session === s.value ? '#6366f1' : '#fff',
-                    }}
-                  >
-                    {form.session === s.value && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                    )}
-                  </div>
-                  <span
-                    onClick={() => set('session', s.value)}
-                    className="text-sm cursor-pointer transition-colors"
-                    style={{ color: form.session === s.value ? '#4338ca' : '#616161', fontWeight: form.session === s.value ? 500 : 400 }}
-                  >
-                    {s.label}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <CustomSelect
+              value={form.session}
+              onChange={v => set('session', v)}
+              options={SESSION_OPTIONS}
+              placeholder="차시 선택"
+            />
           </Field>
         </div>
       </Section>
@@ -303,13 +390,15 @@ function InfoTab({ form, set }) {
             />
           </Field>
         </div>
-        <Field label="복수 응시 시 채점 방식">
-          <CustomSelect
-            value={form.scorePolicy}
-            onChange={v => set('scorePolicy', v)}
-            options={SCORE_POLICIES}
-          />
-        </Field>
+        {(form.allowAttempts >= 2 || form.allowAttempts === -1) && (
+          <Field label="복수 응시 시 채점 방식">
+            <CustomSelect
+              value={form.scorePolicy}
+              onChange={v => set('scorePolicy', v)}
+              options={SCORE_POLICIES}
+            />
+          </Field>
+        )}
       </Section>
 
       {/* 표시 설정 */}
@@ -317,8 +406,156 @@ function InfoTab({ form, set }) {
         <div className="space-y-3">
           <Toggle checked={form.shuffleChoices} onChange={v => set('shuffleChoices', v)} label="선택지 무작위 배열" description="학생마다 선택지 순서가 달라집니다" />
           <Toggle checked={form.shuffleQuestions} onChange={v => set('shuffleQuestions', v)} label="문항 순서 무작위" description="학생마다 문항 순서가 달라집니다" />
-          <Toggle checked={form.showAnswerAfter} onChange={v => set('showAnswerAfter', v)} label="제출 후 정답 공개" description="응시 완료 후 학생에게 정답을 표시합니다" />
+
+          {/* 오답 여부 표시 */}
+          <div className="space-y-2">
+            <Toggle checked={form.showWrongAnswer} onChange={v => set('showWrongAnswer', v)} label="오답 여부 표시" description="제출 후 학생에게 틀린 문항을 표시합니다" />
+            {form.showWrongAnswer && (
+              <div className="ml-12 pl-3 py-2.5 space-y-2" style={{ borderLeft: '2px solid #E0E0E0' }}>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.showWrongAnswerOnce}
+                    onChange={e => set('showWrongAnswerOnce', e.target.checked)}
+                    className="rounded"
+                    style={{ accentColor: '#6366f1' }}
+                  />
+                  <span className="text-sm" style={{ color: '#424242' }}>응시 직후 1회만 표시</span>
+                </label>
+                <p className="text-xs" style={{ color: '#9E9E9E' }}>
+                  {form.showWrongAnswerOnce
+                    ? '응시 완료 직후에만 오답을 확인할 수 있으며, 이후 재방문 시에는 표시되지 않습니다.'
+                    : '응시 완료 후 언제든지 오답을 확인할 수 있습니다.'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* 점수 공개 */}
+          <div className="space-y-2">
+            <Toggle checked={form.showScore} onChange={v => set('showScore', v)} label="점수 공개" description="학생에게 점수 및 채점 결과를 공개합니다" />
+            {form.showScore && (
+              <div className="ml-12 pl-3 py-3 space-y-3" style={{ borderLeft: '2px solid #E0E0E0' }}>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.showAnswer}
+                    onChange={e => set('showAnswer', e.target.checked)}
+                    className="rounded"
+                    style={{ accentColor: '#6366f1' }}
+                  />
+                  <span className="text-sm" style={{ color: '#424242' }}>정답 공개</span>
+                  <span className="text-xs" style={{ color: '#9E9E9E' }}>점수와 함께 정답을 함께 공개합니다</span>
+                </label>
+                <div>
+                  <p className="text-xs font-medium mb-2" style={{ color: '#616161' }}>공개 기간 (선택)</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
+                      <input
+                        type="datetime-local"
+                        value={form.scoreRevealStartDate}
+                        onChange={e => set('scoreRevealStartDate', e.target.value)}
+                        className="input text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 마감일</label>
+                      <input
+                        type="datetime-local"
+                        value={form.scoreRevealEndDate}
+                        onChange={e => set('scoreRevealEndDate', e.target.value)}
+                        className="input text-sm"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs mt-1.5" style={{ color: '#9E9E9E' }}>
+                    기간을 설정하지 않으면 퀴즈 마감 후 즉시 공개됩니다.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+      </Section>
+
+      {/* 추가 기간 설정 */}
+      <Section title="추가 기간 설정">
+        <p className="text-xs -mt-1" style={{ color: '#9E9E9E' }}>
+          특정 학생에게 기본 응시 기간과 다른 마감일 또는 열람 기간을 개별 설정합니다. 설정된 학생은 기본 기간보다 이 설정이 우선 적용됩니다.
+        </p>
+        <div className="space-y-2">
+          {form.assignments.map((a, idx) => (
+            <div key={a.id} className="p-3 rounded space-y-3" style={{ border: '1px solid #E0E0E0', background: '#FAFAFA' }}>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold" style={{ color: '#424242' }}>추가 대상 {idx + 1}</p>
+                <button
+                  onClick={() => removeAssignment(a.id)}
+                  className="text-xs transition-colors px-2 py-0.5 rounded"
+                  style={{ color: '#9E9E9E' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#EF2B2A'; e.currentTarget.style.background = '#FFF0EF' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#9E9E9E'; e.currentTarget.style.background = 'transparent' }}
+                >
+                  삭제
+                </button>
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>대상 학생</label>
+                <AssignToSelector
+                  selected={a.assignTo}
+                  onChange={val => updateAssignment(a.id, 'assignTo', val)}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>마감 일시</label>
+                  <input type="datetime-local" value={a.dueDate} onChange={e => updateAssignment(a.id, 'dueDate', e.target.value)} className="input text-xs" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>열람 시작</label>
+                  <input type="datetime-local" value={a.availableFrom} onChange={e => updateAssignment(a.id, 'availableFrom', e.target.value)} className="input text-xs" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>열람 마감</label>
+                  <input type="datetime-local" value={a.availableUntil} onChange={e => updateAssignment(a.id, 'availableUntil', e.target.value)} className="input text-xs" />
+                </div>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={addAssignment}
+            className="w-full text-sm py-2 rounded transition-colors"
+            style={{ border: '1px dashed #BDBDBD', color: '#9E9E9E' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.color = '#6366f1'; e.currentTarget.style.background = '#F5F3FF' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#BDBDBD'; e.currentTarget.style.color = '#9E9E9E'; e.currentTarget.style.background = 'transparent' }}
+          >
+            + 학생 추가
+          </button>
+        </div>
+      </Section>
+
+      {/* 퀴즈 접근 제한 */}
+      <Section title="퀴즈 접근 제한">
+        <Field label="액세스 코드">
+          <input
+            type="text"
+            value={form.accessCode}
+            onChange={e => set('accessCode', e.target.value)}
+            placeholder="코드를 입력하면 응시 시 코드 입력이 필요합니다"
+            className="input"
+          />
+          <p className="text-xs mt-1.5" style={{ color: '#9E9E9E' }}>비워두면 액세스 코드 없이 응시 가능합니다.</p>
+        </Field>
+        <Field label="접근 가능한 IP 주소">
+          <textarea
+            value={form.ipRestriction}
+            onChange={e => set('ipRestriction', e.target.value)}
+            placeholder={'허용할 IP 주소를 한 줄에 하나씩 입력하세요\n예) 192.168.1.0/24\n    203.0.113.10'}
+            rows={3}
+            className="input resize-none text-sm font-mono"
+          />
+          <p className="text-xs mt-1.5" style={{ color: '#9E9E9E' }}>비워두면 모든 IP에서 접근 가능합니다. CIDR 표기법 지원.</p>
+        </Field>
       </Section>
 
       {/* 퀴즈 안내사항 */}
@@ -338,7 +575,19 @@ function InfoTab({ form, set }) {
 }
 
 // ── 문항 구성 탭 ───────────────────────────────────────────────────────────
-function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove }) {
+function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove, onMove }) {
+  const [dragIdx, setDragIdx] = useState(null)
+  const [overIdx, setOverIdx] = useState(null)
+
+  const handleDragStart = (i) => setDragIdx(i)
+  const handleDragOver = (e, i) => { e.preventDefault(); setOverIdx(i) }
+  const handleDrop = (i) => {
+    if (dragIdx !== null && dragIdx !== i) onMove(dragIdx, i)
+    setDragIdx(null)
+    setOverIdx(null)
+  }
+  const handleDragEnd = () => { setDragIdx(null); setOverIdx(null) }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -382,13 +631,22 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove 
       ) : (
         <div className="space-y-2">
           {questions.map((q, i) => (
-            <div key={q.id} className="flex items-start gap-2 bg-white p-3 group transition-all rounded"
-              style={{ border: '1px solid #E0E0E0' }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = '#BDBDBD'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = '#E0E0E0'}
+            <div
+              key={q.id}
+              draggable
+              onDragStart={() => handleDragStart(i)}
+              onDragOver={e => handleDragOver(e, i)}
+              onDrop={() => handleDrop(i)}
+              onDragEnd={handleDragEnd}
+              className="flex items-start gap-2 bg-white p-3 group transition-all rounded"
+              style={{
+                border: overIdx === i && dragIdx !== i ? '1px solid #6366f1' : '1px solid #E0E0E0',
+                opacity: dragIdx === i ? 0.4 : 1,
+                background: overIdx === i && dragIdx !== i ? '#F5F3FF' : '#fff',
+              }}
             >
               <div className="flex items-center gap-2 shrink-0 mt-0.5">
-                <GripVertical size={14} className="cursor-grab" style={{ color: '#BDBDBD' }} />
+                <GripVertical size={14} className="cursor-grab active:cursor-grabbing" style={{ color: '#BDBDBD' }} />
                 <span className="text-xs font-bold w-5 text-center" style={{ color: '#9E9E9E' }}>{i + 1}</span>
               </div>
               <div className="flex-1 min-w-0">
@@ -418,6 +676,95 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove 
             </div>
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+// ── Canvas 스타일 대상 학생 선택기 ─────────────────────────────────────────
+const STUDENT_OPTIONS = mockStudents.slice(0, 30).map(s => ({
+  id: s.id,
+  label: s.name,
+  sub: s.studentId,
+}))
+
+function AssignToSelector({ selected, onChange }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+
+  const filtered = STUDENT_OPTIONS.filter(opt => {
+    if (selected.find(s => s.id === opt.id)) return false
+    if (query === '') return true
+    return opt.label.toLowerCase().includes(query.toLowerCase()) || opt.sub.includes(query)
+  })
+
+  const addItem = (opt) => {
+    onChange([...selected, { id: opt.id, label: opt.label }])
+    setQuery('')
+  }
+
+  const removeItem = (id) => onChange(selected.filter(s => s.id !== id))
+
+  return (
+    <div className="relative">
+      <div
+        className="min-h-10 flex flex-wrap gap-1.5 items-center px-2.5 py-1.5 cursor-text"
+        style={{ border: '1px solid #E0E0E0', borderRadius: 6, background: '#fff' }}
+        onClick={() => setOpen(true)}
+      >
+        {selected.map(s => (
+          <span
+            key={s.id}
+            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+            style={{ background: '#EEF2FF', color: '#4338CA', border: '1px solid #c7d2fe' }}
+          >
+            {s.label}
+            <button
+              onClick={e => { e.stopPropagation(); removeItem(s.id) }}
+              className="ml-0.5 leading-none"
+              style={{ color: 'inherit', opacity: 0.6 }}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={query}
+          onChange={e => { setQuery(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          placeholder={selected.length === 0 ? '학생 이름 또는 학번 검색' : ''}
+          className="flex-1 min-w-24 text-sm bg-transparent focus:outline-none py-0.5"
+          style={{ color: '#222222' }}
+        />
+      </div>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setQuery('') }} />
+          <div
+            className="absolute z-20 w-full mt-1 bg-white rounded overflow-hidden"
+            style={{ border: '1px solid #E0E0E0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxHeight: 200, overflowY: 'auto' }}
+          >
+            {filtered.length === 0 ? (
+              <div className="px-3 py-4 text-sm text-center" style={{ color: '#9E9E9E' }}>검색 결과 없음</div>
+            ) : (
+              filtered.map(opt => (
+                <button
+                  key={opt.id}
+                  onMouseDown={e => { e.preventDefault(); addItem(opt) }}
+                  className="w-full text-left px-3 py-2 text-sm flex items-center justify-between transition-colors"
+                  style={{ color: '#222222' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span>{opt.label}</span>
+                  <span className="text-xs" style={{ color: '#9E9E9E' }}>{opt.sub}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </>
       )}
     </div>
   )
@@ -461,168 +808,4 @@ function Toggle({ checked, onChange, label, description }) {
   )
 }
 
-// ── 문제은행에서 추가 모달 (은행 선택 → 문항 선택 2단계) ────────────────────
-function QuestionBankModal({ onClose, onAdd, added }) {
-  const { banks, getBankQuestions } = useQuestionBank()
-  const [selectedBankId, setSelectedBankId] = useState(null)
-  const [search, setSearch] = useState('')
-  const [filterType, setFilterType] = useState('all')
-  const [visibleCount, setVisibleCount] = useState(15)
 
-  const selectedBank = banks.find(b => b.id === selectedBankId)
-  const bankQuestions = selectedBankId ? getBankQuestions(selectedBankId) : []
-
-  const filtered = bankQuestions.filter(q => {
-    const matchSearch = search === '' || q.text.toLowerCase().includes(search.toLowerCase())
-    const matchType = filterType === 'all' || q.type === filterType
-    return matchSearch && matchType
-  })
-
-  const visible = filtered.slice(0, visibleCount)
-  const hasMore = visibleCount < filtered.length
-
-  const handleBack = () => {
-    setSelectedBankId(null)
-    setSearch('')
-    setFilterType('all')
-    setVisibleCount(15)
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30" />
-      <div
-        className="relative w-full sm:max-w-2xl bg-white flex flex-col"
-        style={{ maxHeight: '85vh', border: '1px solid #E0E0E0', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* 헤더 */}
-        <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
-          <div className="flex items-center gap-2">
-            {selectedBankId && (
-              <button
-                onClick={handleBack}
-                className="p-1 transition-colors"
-                style={{ color: '#9E9E9E', borderRadius: 4 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#424242'}
-                onMouseLeave={e => e.currentTarget.style.color = '#9E9E9E'}
-              >
-                <ChevronLeft size={16} />
-              </button>
-            )}
-            <h3 className="font-semibold" style={{ color: '#222222' }}>
-              {selectedBank ? selectedBank.name : '문제은행에서 추가'}
-            </h3>
-            {selectedBank && (
-              <span className="text-xs" style={{ color: '#9E9E9E' }}>{bankQuestions.length}개 문항</span>
-            )}
-          </div>
-          <button onClick={onClose} style={{ color: '#9E9E9E' }}><X size={18} /></button>
-        </div>
-
-        {/* Step 1: 은행 선택 */}
-        {!selectedBankId ? (
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            <p className="text-xs mb-3" style={{ color: '#9E9E9E' }}>문제를 가져올 은행을 선택하세요</p>
-            {banks.map(b => {
-              const count = getBankQuestions(b.id).length
-              return (
-                <button
-                  key={b.id}
-                  onClick={() => setSelectedBankId(b.id)}
-                  className="w-full flex items-center justify-between p-3 text-left transition-colors"
-                  style={{ border: '1px solid #E0E0E0', borderRadius: 6 }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#FAFAFA' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#E0E0E0'; e.currentTarget.style.background = 'transparent' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <BookOpen size={14} style={{ color: '#9E9E9E' }} />
-                    <span className="text-sm font-medium" style={{ color: '#222222' }}>{b.name}</span>
-                  </div>
-                  <span className="text-xs" style={{ color: '#9E9E9E' }}>{count}개 문항</span>
-                </button>
-              )
-            })}
-          </div>
-        ) : (
-          <>
-            {/* Step 2: 문항 선택 */}
-            <div className="p-3 space-y-2" style={{ borderBottom: '1px solid #EEEEEE' }}>
-              <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9E9E9E' }} />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={e => { setSearch(e.target.value); setVisibleCount(15) }}
-                  placeholder="문항 내용 검색..."
-                  className="w-full text-sm pl-9 pr-3 py-2 focus:outline-none"
-                  style={{ background: '#FAFAFA', border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={filterType}
-                  onChange={e => { setFilterType(e.target.value); setVisibleCount(15) }}
-                  className="text-xs bg-white px-2 py-1.5 focus:outline-none shrink-0"
-                  style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#616161' }}
-                >
-                  <option value="all">모든 유형</option>
-                  {Object.entries(QUIZ_TYPES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
-                <span className="text-xs ml-auto" style={{ color: '#9E9E9E' }}>{filtered.length}개</span>
-              </div>
-            </div>
-
-            <div
-              className="flex-1 overflow-y-auto p-3 space-y-2"
-              onScroll={e => {
-                const el = e.target
-                if (el.scrollHeight - el.scrollTop - el.clientHeight < 80 && hasMore) setVisibleCount(c => c + 10)
-              }}
-            >
-              {visible.map(q => {
-                const isAdded = added.includes(q.id)
-                return (
-                  <div
-                    key={q.id}
-                    className="flex items-start gap-3 p-3 transition-all"
-                    style={{
-                      border: isAdded ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
-                      borderRadius: 6,
-                      background: isAdded ? '#EEF2FF' : '#fff',
-                    }}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-xs px-1.5 py-0.5 font-medium" style={{ background: '#F5F5F5', color: '#616161', borderRadius: 4 }}>
-                          {QUIZ_TYPES[q.type]?.label}
-                        </span>
-                        <span className="text-xs" style={{ color: '#9E9E9E' }}>{q.points}점</span>
-                      </div>
-                      <p className="text-sm leading-relaxed" style={{ color: '#424242' }}>{q.text}</p>
-                    </div>
-                    <button
-                      onClick={() => !isAdded && onAdd({ ...q, bankName: selectedBank?.name })}
-                      className="shrink-0 text-xs font-medium px-3 py-1.5 transition-colors"
-                      style={{
-                        borderRadius: 4,
-                        background: isAdded ? '#EEF2FF' : '#F5F5F5',
-                        color: isAdded ? '#6366f1' : '#424242',
-                        cursor: isAdded ? 'default' : 'pointer',
-                      }}
-                    >
-                      {isAdded ? '추가됨' : '추가'}
-                    </button>
-                  </div>
-                )
-              })}
-              {hasMore && <div className="py-4 text-center text-xs" style={{ color: '#9E9E9E' }}>스크롤하면 더 불러옵니다...</div>}
-              {!hasMore && filtered.length > 0 && <div className="py-4 text-center text-xs" style={{ color: '#BDBDBD' }}>모든 문항을 불러왔습니다</div>}
-              {filtered.length === 0 && <div className="py-10 text-center text-sm" style={{ color: '#BDBDBD' }}>검색 결과가 없습니다</div>}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}

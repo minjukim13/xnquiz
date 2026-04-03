@@ -4,6 +4,7 @@ import { Clock, ChevronRight, CheckCircle2, AlertCircle, Send } from 'lucide-rea
 import Layout from '../components/Layout'
 import { mockQuizzes, getQuizQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
+import { AlertDialog } from '../components/ConfirmDialog'
 
 export default function QuizAttempt() {
   const { id } = useParams()
@@ -17,6 +18,7 @@ export default function QuizAttempt() {
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
   const [timeRemaining, setTimeRemaining] = useState((quiz?.timeLimit ?? 30) * 60) // 초 단위
+  const [alertDialog, setAlertDialog] = useState(null)
 
   // 학생 모드가 아니면 홈으로
   useEffect(() => {
@@ -89,7 +91,7 @@ export default function QuizAttempt() {
       saveStudentAttempt(id, attempt)
     } catch (err) {
       console.error('[xnquiz] 제출 저장 실패:', err)
-      alert('응시 기록 저장에 실패했습니다. 브라우저 저장 공간을 확인해주세요.')
+      setAlertDialog({ title: '저장 실패', message: '응시 기록 저장에 실패했습니다.\n브라우저 저장 공간을 확인해주세요.', variant: 'error' })
     }
     setResult(attempt)
   }, [answers, questions, id, currentStudent, timeRemaining, submitted])
@@ -173,6 +175,14 @@ export default function QuizAttempt() {
 
       {/* 제출 완료 결과 모달 */}
       {result && <ResultModal result={result} quiz={quiz} questions={questions} onClose={() => navigate('/')} />}
+      {alertDialog && (
+        <AlertDialog
+          title={alertDialog.title}
+          message={alertDialog.message}
+          variant={alertDialog.variant}
+          onClose={() => setAlertDialog(null)}
+        />
+      )}
     </Layout>
   )
 }
