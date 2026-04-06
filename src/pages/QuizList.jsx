@@ -1,11 +1,93 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Clock, FileText, CheckCircle2, AlertCircle, Send, Eye } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { getStudentAttempts } from '../data/mockData'
-import CustomSelect from '../components/CustomSelect'
+// ─────────────────────────────── 필터 전용 소형 드롭다운 ───────────────────────────────
+function FilterSelect({ value, onChange, options }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const selected = options.find(o => String(o.value) === String(value))
+  const isActive = selected && selected.value !== 'all'
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 transition-all focus:outline-none"
+        style={{
+          height: 30,
+          padding: '0 10px',
+          fontSize: 12,
+          fontWeight: isActive ? 600 : 400,
+          borderRadius: 6,
+          border: isActive ? '1.5px solid #6366f1' : '1px solid #E0E0E0',
+          background: isActive ? '#EEF2FF' : '#fff',
+          color: isActive ? '#4338ca' : '#616161',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span>{selected?.label ?? options[0]?.label}</span>
+        <svg
+          width="11" height="11" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          style={{ opacity: 0.6, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 bg-white z-50 py-1"
+          style={{
+            border: '1px solid #E0E0E0',
+            borderRadius: 6,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.09)',
+            minWidth: 110,
+          }}
+        >
+          {options.map(o => {
+            const isSel = String(o.value) === String(value)
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => { onChange(o.value); setOpen(false) }}
+                className="w-full flex items-center justify-between px-3 py-1.5 transition-colors"
+                style={{
+                  fontSize: 12,
+                  background: isSel ? '#EEF2FF' : 'transparent',
+                  color: isSel ? '#4338ca' : '#424242',
+                  fontWeight: isSel ? 600 : 400,
+                }}
+                onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = '#F5F5F5' }}
+                onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent' }}
+              >
+                <span>{o.label}</span>
+                {isSel && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ─────────────────────────────── 공통: 주차/차시 드롭다운 필터 ───────────────────────────────
 function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, onSessionChange, hideUnassigned = false }) {
@@ -33,19 +115,15 @@ function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, o
 
   return (
     <div className="flex gap-2">
-      <CustomSelect
+      <FilterSelect
         value={filterWeek}
         onChange={v => { onWeekChange(v); onSessionChange('all') }}
         options={weekOptions}
-        placeholder="주차 선택"
-        className="w-32"
       />
-      <CustomSelect
+      <FilterSelect
         value={filterSession}
         onChange={onSessionChange}
         options={sessionOptions}
-        placeholder="차시 선택"
-        className="w-28"
       />
     </div>
   )
