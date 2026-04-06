@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, GripVertical, Trash2 } from 'lucide-react'
+import { GripVertical, Trash2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
 import AddQuestionModal from '../components/AddQuestionModal'
@@ -9,8 +9,14 @@ import { QUIZ_TYPES, mockQuizzes, mockStudents } from '../data/mockData'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 
 // ── 옵션 상수 ──────────────────────────────────────────────────────────────
-const WEEK_OPTIONS = Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` }))
-const SESSION_OPTIONS = [1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` }))
+const WEEK_OPTIONS = [
+  { value: 0, label: '연결 안함' },
+  ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` })),
+]
+const SESSION_OPTIONS = [
+  { value: 0, label: '연결 안함' },
+  ...[1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` })),
+]
 const TIME_LIMIT_OPTIONS = [
   { value: 0,   label: '제한 없음' },
   { value: 30,  label: '30분' },
@@ -50,9 +56,14 @@ export default function QuizCreate() {
     shuffleChoices: false,
     shuffleQuestions: false,
     showWrongAnswer: false,
-    showWrongAnswerOnce: false,
-    showScore: false,
+    wrongAnswerRevealTiming: 'immediately', // 'immediately' | 'after_due' | 'period'
+    wrongAnswerRevealStart: '',
+    wrongAnswerRevealEnd: '',
     showAnswer: false,
+    answerRevealTiming: 'same', // 'same' | 'after_due' | 'period'
+    answerRevealStart: '',
+    answerRevealEnd: '',
+    showScore: false,
     scoreRevealStartDate: '',
     scoreRevealEndDate: '',
     quizMode: 'graded',
@@ -180,8 +191,8 @@ export default function QuizCreate() {
                       status: 'open',
                       startDate: form.startDate,
                       dueDate: form.dueDate,
-                      week: form.week || 1,
-                      session: form.session || 1,
+                      week: form.week || null,
+                      session: form.session || null,
                       timeLimit: form.timeLimitType === -1
                         ? Number(form.timeLimitCustom) || 0
                         : form.timeLimitType,
@@ -192,9 +203,14 @@ export default function QuizCreate() {
                       shuffleChoices: form.shuffleChoices,
                       shuffleQuestions: form.shuffleQuestions,
                       showWrongAnswer: form.showWrongAnswer,
-                      showWrongAnswerOnce: form.showWrongAnswerOnce,
+                      wrongAnswerRevealTiming: form.showWrongAnswer ? form.wrongAnswerRevealTiming : null,
+                      wrongAnswerRevealStart: (form.showWrongAnswer && form.wrongAnswerRevealTiming === 'period') ? form.wrongAnswerRevealStart || null : null,
+                      wrongAnswerRevealEnd: (form.showWrongAnswer && form.wrongAnswerRevealTiming === 'period') ? form.wrongAnswerRevealEnd || null : null,
+                      showAnswer: form.showWrongAnswer && form.showAnswer,
+                      answerRevealTiming: (form.showWrongAnswer && form.showAnswer) ? form.answerRevealTiming : null,
+                      answerRevealStart: (form.showWrongAnswer && form.showAnswer && form.answerRevealTiming === 'period') ? form.answerRevealStart || null : null,
+                      answerRevealEnd: (form.showWrongAnswer && form.showAnswer && form.answerRevealTiming === 'period') ? form.answerRevealEnd || null : null,
                       showScore: form.showScore,
-                      showAnswer: form.showScore && form.showAnswer,
                       scoreRevealStartDate: form.scoreRevealStartDate || null,
                       scoreRevealEndDate: form.scoreRevealEndDate || null,
                       accessCode: form.accessCode || null,
@@ -235,6 +251,7 @@ export default function QuizCreate() {
           onClose={() => setShowBankModal(false)}
           onAdd={addQuestion}
           added={questions.map(q => q.id)}
+          currentCourse="CS301 데이터베이스"
         />
       )}
       {showAddModal && (
@@ -427,35 +444,13 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
           <Toggle checked={form.shuffleChoices} onChange={v => set('shuffleChoices', v)} label="선택지 무작위 배열" description="학생마다 선택지 순서가 달라집니다" />
           <Toggle checked={form.shuffleQuestions} onChange={v => set('shuffleQuestions', v)} label="문항 순서 무작위" description="학생마다 문항 순서가 달라집니다" />
 
-          {/* 오답 여부 표시 */}
+          {/* 정오답/정답 공개 */}
           <div className="space-y-2">
-            <Toggle checked={form.showWrongAnswer} onChange={v => set('showWrongAnswer', v)} label="오답 여부 표시" description="제출 후 학생에게 틀린 문항을 표시합니다" />
+            <Toggle checked={form.showWrongAnswer} onChange={v => set('showWrongAnswer', v)} label="정오답 여부 공개" description="학생에게 맞힌 문항과 틀린 문항을 표시합니다" />
             {form.showWrongAnswer && (
-              <div className="ml-12 pl-3 py-2.5 space-y-2" style={{ borderLeft: '2px solid #E0E0E0' }}>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.showWrongAnswerOnce}
-                    onChange={e => set('showWrongAnswerOnce', e.target.checked)}
-                    className="rounded"
-                    style={{ accentColor: '#6366f1' }}
-                  />
-                  <span className="text-sm" style={{ color: '#424242' }}>응시 직후 1회만 표시</span>
-                </label>
-                <p className="text-xs" style={{ color: '#9E9E9E' }}>
-                  {form.showWrongAnswerOnce
-                    ? '응시 완료 직후에만 오답을 확인할 수 있으며, 이후 재방문 시에는 표시되지 않습니다.'
-                    : '응시 완료 후 언제든지 오답을 확인할 수 있습니다.'}
-                </p>
-              </div>
-            )}
-          </div>
+              <div className="ml-12 pl-3 py-3 space-y-4" style={{ borderLeft: '2px solid #E0E0E0' }}>
 
-          {/* 점수 공개 */}
-          <div className="space-y-2">
-            <Toggle checked={form.showScore} onChange={v => set('showScore', v)} label="점수 공개" description="학생에게 점수 및 채점 결과를 공개합니다" />
-            {form.showScore && (
-              <div className="ml-12 pl-3 py-3 space-y-3" style={{ borderLeft: '2px solid #E0E0E0' }}>
+                {/* 정답 공개 여부 */}
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -465,8 +460,89 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
                     style={{ accentColor: '#6366f1' }}
                   />
                   <span className="text-sm" style={{ color: '#424242' }}>정답 공개</span>
-                  <span className="text-xs" style={{ color: '#9E9E9E' }}>점수와 함께 정답을 함께 공개합니다</span>
+                  <span className="text-xs" style={{ color: '#9E9E9E' }}>정오답과 함께 실제 정답을 표시합니다</span>
                 </label>
+
+                {/* 정오답 공개 시기 */}
+                <div>
+                  <p className="text-xs font-medium mb-2" style={{ color: '#616161' }}>정오답 공개 시기</p>
+                  <div className="space-y-1.5">
+                    {[
+                      { value: 'immediately', label: '제출 즉시' },
+                      { value: 'after_due', label: '마감 후' },
+                      { value: 'period', label: '기간 설정' },
+                    ].map(opt => (
+                      <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="wrongAnswerRevealTiming"
+                          checked={form.wrongAnswerRevealTiming === opt.value}
+                          onChange={() => set('wrongAnswerRevealTiming', opt.value)}
+                          style={{ accentColor: '#6366f1' }}
+                        />
+                        <span className="text-sm" style={{ color: '#424242' }}>{opt.label}</span>
+                      </label>
+                    ))}
+                    {form.wrongAnswerRevealTiming === 'period' && (
+                      <div className="grid grid-cols-2 gap-3 mt-2">
+                        <div>
+                          <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
+                          <input type="datetime-local" value={form.wrongAnswerRevealStart} onChange={e => set('wrongAnswerRevealStart', e.target.value)} className="input text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 종료일</label>
+                          <input type="datetime-local" value={form.wrongAnswerRevealEnd} onChange={e => set('wrongAnswerRevealEnd', e.target.value)} className="input text-sm" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 정답 공개 시기 (정답 공개 선택 시) */}
+                {form.showAnswer && (
+                  <div>
+                    <p className="text-xs font-medium mb-2" style={{ color: '#616161' }}>정답 공개 시기</p>
+                    <div className="space-y-1.5">
+                      {[
+                        { value: 'same', label: '정오답 공개와 동시' },
+                        { value: 'after_due', label: '마감 후' },
+                        { value: 'period', label: '기간 설정' },
+                      ].map(opt => (
+                        <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="answerRevealTiming"
+                            checked={form.answerRevealTiming === opt.value}
+                            onChange={() => set('answerRevealTiming', opt.value)}
+                            style={{ accentColor: '#6366f1' }}
+                          />
+                          <span className="text-sm" style={{ color: '#424242' }}>{opt.label}</span>
+                        </label>
+                      ))}
+                      {form.answerRevealTiming === 'period' && (
+                        <div className="grid grid-cols-2 gap-3 mt-2">
+                          <div>
+                            <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
+                            <input type="datetime-local" value={form.answerRevealStart} onChange={e => set('answerRevealStart', e.target.value)} className="input text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 종료일</label>
+                            <input type="datetime-local" value={form.answerRevealEnd} onChange={e => set('answerRevealEnd', e.target.value)} className="input text-sm" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 점수 공개 */}
+          <div className="space-y-2">
+            <Toggle checked={form.showScore} onChange={v => set('showScore', v)} label="점수 공개" description="학생에게 점수 및 채점 결과를 공개합니다" />
+            {form.showScore && (
+              <div className="ml-12 pl-3 py-3 space-y-3" style={{ borderLeft: '2px solid #E0E0E0' }}>
                 <div>
                   <p className="text-xs font-medium mb-2" style={{ color: '#616161' }}>공개 기간 (선택)</p>
                   <div className="grid grid-cols-2 gap-3">
@@ -618,19 +694,17 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove,
         <div className="flex items-center gap-2">
           <button
             onClick={onShowBank}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors"
+            className="text-xs px-3 py-1.5 rounded transition-colors"
             style={{ color: '#424242', border: '1px solid #E0E0E0' }}
             onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
-            <BookOpen size={13} />
             문제은행에서 추가
           </button>
           <button
             onClick={onShowAdd}
-            className="flex items-center gap-1.5 text-xs text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded transition-colors"
+            className="text-xs text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded transition-colors"
           >
-            <Plus size={13} />
             직접 추가
           </button>
         </div>
@@ -646,6 +720,7 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove,
             <button onClick={onShowAdd} className="text-xs text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded transition-colors">
               직접 추가
             </button>
+
           </div>
         </div>
       ) : (

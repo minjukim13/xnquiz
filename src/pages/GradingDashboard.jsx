@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockStudents, QUIZ_TYPES, mockQuizzes, getStudentAnswer, isAnswerCorrect, getQuizQuestions } from '../data/mockData'
-import { downloadAnswerSheetsXlsx, downloadGradingSheetXlsx, parseExcelOrCsv } from '../utils/excelUtils'
+import { downloadAnswerSheetsXlsx, downloadGradingSheetXlsx, parseExcelOrCsv, parseGradingSheet } from '../utils/excelUtils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 
@@ -440,7 +440,7 @@ export default function GradingDashboard() {
         </div>
       </div>
 
-      {showExcelModal && <ExcelModal question={selectedQ} onClose={() => setShowExcelModal(false)} />}
+      {showExcelModal && <ExcelModal question={selectedQ} onClose={() => setShowExcelModal(false)} onUploaded={onGradeSaved} />}
       {showPdfModal && <PdfModal onClose={() => setShowPdfModal(false)} />}
       {showRegradeModal && <RegradeModal onClose={() => setShowRegradeModal(false)} />}
     </Layout>
@@ -1090,9 +1090,10 @@ function EmptyState({ message }) {
 }
 
 // ─── 모달 ──────────────────────────────────────────────────────────────────
-function ExcelModal({ question, onClose }) {
+function ExcelModal({ question, onClose, onUploaded }) {
   const [step, setStep] = useState('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [appliedCount, setAppliedCount] = useState(0)
 
   const handleDownload = () => {
     const submittedStudents = mockStudents.filter(s => s.submitted)
@@ -1106,32 +1107,43 @@ function ExcelModal({ question, onClose }) {
     setStep('uploading')
     setErrorMsg('')
 
-    const result = await parseExcelOrCsv(file)
+    const result = await parseGradingSheet(file)
     if (result.error) {
       setErrorMsg(result.error)
       setStep('error')
       return
     }
 
-    // 점수 유효성 검사
+    // 배점 초과 검사
     const maxPoints = question?.points ?? 0
-    for (let i = 0; i < result.rows.length; i++) {
-      const row = result.rows[i]
-      const scoreRaw = row.answer ?? ''
-      if (scoreRaw === '') continue
-      const score = Number(scoreRaw)
-      if (isNaN(score) || score < 0) {
-        setErrorMsg(`${i + 2}행: 점수는 0 이상의 숫자여야 합니다.`)
-        setStep('error')
-        return
-      }
-      if (score > maxPoints) {
-        setErrorMsg(`${i + 2}행: 점수(${score})가 배점(${maxPoints}점)을 초과합니다. 전체 업로드가 취소되었습니다.`)
+    for (const row of result.rows) {
+      if (row.score > maxPoints) {
+        setErrorMsg(`학번 ${row.studentId}: 점수(${row.score})가 배점(${maxPoints}점)을 초과합니다. 전체 업로드가 취소되었습니다.`)
         setStep('error')
         return
       }
     }
 
+    // 학번 전체 매칭 사전 검증 (1건이라도 미매칭 시 전체 중단)
+    for (const row of result.rows) {
+      const found = mockStudents.find(s => s.studentId === row.studentId)
+      if (!found) {
+        setErrorMsg(`학번 "${row.studentId}"(이)가 수강생 목록에 없습니다. 채점 양식을 수정하지 마세요. 전체 업로드가 취소되었습니다.`)
+        setStep('error')
+        return
+      }
+    }
+
+    // 학번 기준으로 mockStudents 매칭 후 localStorage 수동 채점 반영
+    const grades = getLocalGrades()
+    for (const row of result.rows) {
+      const student = mockStudents.find(s => s.studentId === row.studentId)
+      if (!grades[student.id]) grades[student.id] = {}
+      grades[student.id][question.id] = row.score
+    }
+    setLocalGrades(grades)
+    setAppliedCount(result.rows.length)
+    onUploaded?.()
     setStep('success')
   }
 
@@ -1186,7 +1198,7 @@ function ExcelModal({ question, onClose }) {
         {step === 'success' && (
           <div className="p-3 text-xs rounded" style={{ background: '#E5FCE3', border: '1px solid #a7f3d0', color: '#018600' }}>
             <div className="font-medium flex items-center gap-1.5"><CheckCircle2 size={13} />채점 완료</div>
-            <p className="mt-1">82명의 점수가 성공적으로 반영되었습니다.</p>
+            <p className="mt-1">{appliedCount}명의 점수가 성공적으로 반영되었습니다.</p>
           </div>
         )}
       </div>

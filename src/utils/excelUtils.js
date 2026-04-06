@@ -224,32 +224,92 @@ export function downloadGradingSheetXlsx(question, students) {
   XLSX.writeFile(wb, `채점양식_Q${question.order}.xlsx`)
 }
 
+// ── 채점 양식 파싱 (ExcelModal 업로드) ───────────────────────────────────
+// 반환: Promise<{ rows: [{studentId, name, score}], error }>
+// 채점 양식 컬럼: 이름(0), 학번(1), 학과(2), 현재점수(3), 새점수(4)
+export function parseGradingSheet(file) {
+  return new Promise((resolve) => {
+    if (file.size > 5 * 1024 * 1024) {
+      resolve({ error: '파일 크기가 5MB를 초과합니다.' })
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: 'array' })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+        if (raw.length < 2) {
+          resolve({ error: '데이터 행이 없습니다.' })
+          return
+        }
+        const rows = []
+        for (let i = 1; i < raw.length; i++) {
+          const row = raw[i].map(v => String(v ?? '').trim())
+          const name = row[0]
+          const studentId = row[1]
+          const newScoreRaw = row[4]
+          if (!name && !studentId) continue // 빈 행
+          if (newScoreRaw === '' || newScoreRaw === undefined) continue // 점수 미입력 행 건너뜀
+          const score = Number(newScoreRaw)
+          if (isNaN(score) || score < 0) {
+            resolve({ error: `${i + 1}행: 점수는 0 이상의 숫자여야 합니다.` })
+            return
+          }
+          rows.push({ name, studentId, score })
+        }
+        if (rows.length === 0) {
+          resolve({ error: '새 점수가 입력된 행이 없습니다.' })
+          return
+        }
+        resolve({ rows })
+      } catch {
+        resolve({ error: '파일을 읽을 수 없습니다.' })
+      }
+    }
+    reader.readAsArrayBuffer(file)
+  })
+}
+
 // ── 문항 업로드 템플릿 다운로드 (QuestionBank) ────────────────────────────
+
+// 엑셀 업로드로 지원하는 유형 (단순 행 구조로 표현 가능한 유형만)
+const EXCEL_SUPPORTED_TYPES = ['multiple_choice', 'true_false', 'short_answer', 'essay']
+
 export function downloadQuestionTemplate() {
-  const headers = ['유형', '문항 내용', '배점', '난이도(선택)', '그룹(선택)', '정답(선택)', '보기1', '보기2', '보기3', '보기4', '보기5', '해설(선택)']
+  const headers = ['유형', '문항 내용', '배점', '난이도(선택)', '그룹(선택)', '정답(선택)', '보기1', '보기2', '보기3', '보기4', '보기5']
   const exampleRows = [
-    ['multiple_choice', 'SQL에서 테이블을 생성하는 명령어는?', 5, 'medium', '1단원', 'CREATE TABLE', 'SELECT', 'INSERT', 'CREATE TABLE', 'DROP', '', ''],
-    ['true_false', 'PRIMARY KEY는 NULL 값을 허용한다.', 5, 'low', '1단원', '거짓', '', '', '', '', '', ''],
-    ['short_answer', 'DDL의 약자를 쓰시오.', 5, 'medium', '2단원', 'Data Definition Language', '', '', '', '', '', ''],
-    ['essay', '트랜잭션의 ACID 속성에 대해 서술하시오.', 15, 'high', '3단원', '', '', '', '', '', '', ''],
+    ['multiple_choice', 'SQL에서 테이블을 생성하는 명령어는?', 5, 'medium', '1단원', 'CREATE TABLE', 'SELECT', 'INSERT', 'CREATE TABLE', 'DROP', ''],
+    ['true_false', 'PRIMARY KEY는 NULL 값을 허용한다.', 5, 'low', '1단원', '거짓', '', '', '', '', ''],
+    ['short_answer', 'DDL의 약자를 쓰시오.', 5, 'medium', '2단원', 'Data Definition Language', '', '', '', '', ''],
+    ['essay', '트랜잭션의 ACID 속성에 대해 서술하시오.', 15, 'high', '3단원', '', '', '', '', '', ''],
   ]
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleRows])
-  ws['!cols'] = [{ wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 25 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 30 }]
+  ws['!cols'] = [{ wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 25 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
   headers.forEach((_, i) => {
     const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })]
     if (cell) cell.s = { font: { bold: true } }
   })
 
-  // 두 번째 시트: 유효한 유형 코드
-  const typeHeaders = ['유형 코드', '한국어 이름', '자동채점 여부']
-  const typeRows = Object.entries(QUIZ_TYPES).map(([k, v]) => [
+  // 두 번째 시트: 엑셀 업로드 지원 유형 코드
+  const typeHeaders = ['유형 코드', '한국어 이름', '자동채점 여부', '비고']
+  const supportedRows = EXCEL_SUPPORTED_TYPES.map(k => [
     k,
-    v.label,
-    v.autoGrade === true ? '자동' : v.autoGrade === 'partial' ? '부분 자동' : '수동',
+    QUIZ_TYPES[k].label,
+    QUIZ_TYPES[k].autoGrade === true ? '자동' : QUIZ_TYPES[k].autoGrade === 'partial' ? '부분 자동' : '수동',
+    '',
   ])
-  const ws2 = XLSX.utils.aoa_to_sheet([typeHeaders, ...typeRows])
-  ws2['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 14 }]
+  const unsupportedRows = Object.entries(QUIZ_TYPES)
+    .filter(([k]) => !EXCEL_SUPPORTED_TYPES.includes(k))
+    .map(([k, v]) => [
+      k,
+      v.label,
+      v.autoGrade === true ? '자동' : v.autoGrade === 'partial' ? '부분 자동' : '수동',
+      'UI 에디터에서만 생성 가능',
+    ])
+  const ws2 = XLSX.utils.aoa_to_sheet([typeHeaders, ...supportedRows, ...unsupportedRows])
+  ws2['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 14 }, { wch: 28 }]
 
   // 세 번째 시트: 난이도 코드 안내
   const diffHeaders = ['난이도 코드', '한국어 이름', '설명']
@@ -288,17 +348,19 @@ export function parseExcelOrCsv(file) {
           return
         }
 
-        const validTypes = Object.keys(QUIZ_TYPES)
+        const validTypes = Object.keys(QUIZ_TYPES) // 전체 유형 (오류 메시지 힌트용)
         const rows = []
 
         for (let i = 1; i < raw.length; i++) {
-          const [typeRaw, textRaw, pointsRaw, difficultyRaw = '', groupTagRaw = '', answer = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = '', explanation = ''] = raw[i].map(v => String(v ?? '').trim())
+          const [typeRaw, textRaw, pointsRaw, difficultyRaw = '', groupTagRaw = '', answer = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = ''] = raw[i].map(v => String(v ?? '').trim())
           const rowNum = i + 1
 
           if (!typeRaw && !textRaw && !pointsRaw) continue // 빈 행 건너뜀
 
-          if (!validTypes.includes(typeRaw)) {
-            resolve({ error: `${rowNum}행: 지원하지 않는 유형 "${typeRaw}"입니다.` })
+          if (!EXCEL_SUPPORTED_TYPES.includes(typeRaw)) {
+            const isKnownType = validTypes.includes(typeRaw)
+            const hint = isKnownType ? ' (이 유형은 UI 에디터에서만 생성 가능합니다)' : ''
+            resolve({ error: `${rowNum}행: 지원하지 않는 유형 "${typeRaw}"입니다.${hint}` })
             return
           }
           if (!textRaw) {
@@ -311,11 +373,24 @@ export function parseExcelOrCsv(file) {
             return
           }
 
+          if (typeRaw === 'multiple_choice') {
+            const choices = [c1, c2, c3, c4, c5].filter(Boolean)
+            if (choices.length < 2) {
+              resolve({ error: `${rowNum}행: 객관식 문항은 보기를 2개 이상 입력해야 합니다.` })
+              return
+            }
+          }
+
+          if (typeRaw === 'short_answer' && !answer) {
+            resolve({ error: `${rowNum}행: 단답형 문항은 정답을 입력해야 합니다.` })
+            return
+          }
+
           const validDifficulties = ['high', 'medium', 'low']
           const difficulty = validDifficulties.includes(difficultyRaw) ? difficultyRaw : 'medium'
 
           const choices = [c1, c2, c3, c4, c5].filter(Boolean)
-          rows.push({ type: typeRaw, text: textRaw, points, difficulty, groupTag: groupTagRaw, answer, choices, explanation })
+          rows.push({ type: typeRaw, text: textRaw, points, difficulty, groupTag: groupTagRaw, answer, choices })
         }
 
         if (rows.length === 0) {

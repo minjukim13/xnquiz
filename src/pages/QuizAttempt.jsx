@@ -14,10 +14,11 @@ export default function QuizAttempt() {
   const quiz = mockQuizzes.find(q => q.id === id)
   const questions = getQuizQuestions(id)
 
+  const noTimeLimit = quiz?.timeLimit === 0
   const [answers, setAnswers] = useState({})
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
-  const [timeRemaining, setTimeRemaining] = useState((quiz?.timeLimit ?? 30) * 60) // 초 단위
+  const [timeRemaining, setTimeRemaining] = useState(noTimeLimit ? null : (quiz?.timeLimit ?? 30) * 60) // null = 제한 없음
   const [alertDialog, setAlertDialog] = useState(null)
 
   // 학생 모드가 아니면 홈으로
@@ -25,9 +26,9 @@ export default function QuizAttempt() {
     if (role !== 'student') navigate('/', { replace: true })
   }, [role])
 
-  // 타이머
+  // 타이머 (제한 없음인 경우 실행하지 않음)
   useEffect(() => {
-    if (submitted || timeRemaining <= 0) return
+    if (submitted || noTimeLimit || timeRemaining <= 0) return
     const timer = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
@@ -82,7 +83,7 @@ export default function QuizAttempt() {
       totalPossibleAuto: questions.filter(q => q.autoGrade).reduce((s, q) => s + q.points, 0),
       manualPending,
       submittedAt: new Date().toLocaleString('ko-KR'),
-      timeTaken: Math.ceil(((quiz?.timeLimit ?? 30) * 60 - timeRemaining) / 60),
+      timeTaken: noTimeLimit ? null : Math.ceil(((quiz?.timeLimit ?? 30) * 60 - (timeRemaining ?? 0)) / 60),
       autoSubmitted: auto,
       scorePolicy: quiz?.scorePolicy ?? '최고 점수 유지',
     }
@@ -95,6 +96,32 @@ export default function QuizAttempt() {
     }
     setResult(attempt)
   }, [answers, questions, id, currentStudent, timeRemaining, submitted])
+
+  if (quiz && quiz.status !== 'open') {
+    const statusMsg = {
+      draft: '아직 발행되지 않은 퀴즈입니다.',
+      grading: '채점 중인 퀴즈로 응시가 마감되었습니다.',
+      closed: '종료된 퀴즈입니다.',
+    }[quiz.status] ?? '현재 응시할 수 없는 퀴즈입니다.'
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <AlertCircle size={36} className="mx-auto mb-3" style={{ color: '#BDBDBD' }} />
+          <p className="text-base font-semibold mb-1" style={{ color: '#424242' }}>응시 불가</p>
+          <p className="text-sm mb-5" style={{ color: '#9E9E9E' }}>{statusMsg}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm px-4 py-2 rounded transition-colors"
+            style={{ border: '1px solid #E0E0E0', color: '#424242' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            퀴즈 목록으로
+          </button>
+        </div>
+      </Layout>
+    )
+  }
 
   if (!quiz || questions.length === 0) {
     return (
@@ -123,17 +150,27 @@ export default function QuizAttempt() {
                 {answeredCount}<span className="text-xs font-normal" style={{ color: '#9E9E9E' }}>/{questions.length}</span>
               </p>
             </div>
-            <div
-              className="flex items-center gap-1.5 px-3 py-2 rounded text-sm font-bold"
-              style={{
-                background: timeRemaining < 300 ? '#FFF5F5' : '#F5F5F5',
-                color: timeRemaining < 300 ? '#BF0A03' : '#424242',
-                border: `1px solid ${timeRemaining < 300 ? '#FFBFBF' : '#E0E0E0'}`,
-              }}
-            >
-              <Clock size={13} />
-              {formatTime(timeRemaining)}
-            </div>
+            {noTimeLimit ? (
+              <div
+                className="flex items-center gap-1.5 px-3 py-2 rounded text-sm font-bold"
+                style={{ background: '#F5F5F5', color: '#424242', border: '1px solid #E0E0E0' }}
+              >
+                <Clock size={13} />
+                제한 없음
+              </div>
+            ) : (
+              <div
+                className="flex items-center gap-1.5 px-3 py-2 rounded text-sm font-bold"
+                style={{
+                  background: timeRemaining < 300 ? '#FFF5F5' : '#F5F5F5',
+                  color: timeRemaining < 300 ? '#BF0A03' : '#424242',
+                  border: `1px solid ${timeRemaining < 300 ? '#FFBFBF' : '#E0E0E0'}`,
+                }}
+              >
+                <Clock size={13} />
+                {formatTime(timeRemaining)}
+              </div>
+            )}
           </div>
         </div>
 
@@ -294,14 +331,48 @@ function QuestionCard({ question, index, value, onChange, disabled }) {
 function ResultModal({ result, quiz, questions, onClose }) {
   const autoTotal = result.totalAutoScore
   const autoMax = result.totalPossibleAuto
-  const scorePercent = Math.round((autoTotal / autoMax) * 100)
+  const hasAutoGrade = autoMax > 0
+  const scorePercent = hasAutoGrade ? Math.round((autoTotal / autoMax) * 100) : null
+
+  // 공개 타이밍 판단
+  const now = new Date()
+  const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null
+  const isTimingMet = (timing, start, end) => {
+    if (timing === 'immediately') return true
+    if (timing === 'after_due') return dueDate && now >= dueDate
+    if (timing === 'period') {
+      const s = start ? new Date(start) : null
+      const e = end ? new Date(end) : null
+      return (!s || now >= s) && (!e || now <= e)
+    }
+    return false
+  }
+
+  // quiz.showScore === undefined → 기존 mock 퀴즈 (하위 호환: 항상 표시)
+  const showScoreNow = quiz.showScore === undefined
+    ? true
+    : quiz.showScore && (
+      (!quiz.scoreRevealStartDate || now >= new Date(quiz.scoreRevealStartDate)) &&
+      (!quiz.scoreRevealEndDate || now <= new Date(quiz.scoreRevealEndDate))
+    )
+
+  const showWrongAnswerNow = quiz.showWrongAnswer &&
+    isTimingMet(quiz.wrongAnswerRevealTiming, quiz.wrongAnswerRevealStart, quiz.wrongAnswerRevealEnd)
+
+  const showAnswerNow = showWrongAnswerNow && quiz.showAnswer && (
+    quiz.answerRevealTiming === 'same' ||
+    isTimingMet(quiz.answerRevealTiming, quiz.answerRevealStart, quiz.answerRevealEnd)
+  )
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.45)' }}
     >
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+      <div
+        className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
+        style={{ maxHeight: '90vh', overflowY: 'auto' }}
+      >
         {/* 헤더 */}
         <div className="px-6 py-5 text-center" style={{ background: '#EEF2FF', borderBottom: '1px solid #c7d2fe' }}>
           <CheckCircle2 size={32} className="mx-auto mb-2" style={{ color: '#4f46e5' }} />
@@ -317,17 +388,29 @@ function ResultModal({ result, quiz, questions, onClose }) {
           <div className="p-4 rounded-lg" style={{ background: '#F5F5F5' }}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold" style={{ color: '#424242' }}>자동채점 결과</p>
-              <p className="text-xl font-bold" style={{ color: '#4f46e5' }}>
-                {autoTotal}<span className="text-sm font-normal ml-1" style={{ color: '#9E9E9E' }}>/ {autoMax}점</span>
-              </p>
+              {!hasAutoGrade ? (
+                <p className="text-sm font-medium" style={{ color: '#9E9E9E' }}>점수 없음</p>
+              ) : showScoreNow ? (
+                <p className="text-xl font-bold" style={{ color: '#4f46e5' }}>
+                  {autoTotal}<span className="text-sm font-normal ml-1" style={{ color: '#9E9E9E' }}>/ {autoMax}점</span>
+                </p>
+              ) : (
+                <p className="text-sm font-medium" style={{ color: '#9E9E9E' }}>
+                  {quiz.showScore ? '공개 예정' : '점수 비공개'}
+                </p>
+              )}
             </div>
-            <div className="h-2 rounded overflow-hidden" style={{ background: '#E0E0E0' }}>
-              <div
-                className="h-full rounded transition-all"
-                style={{ width: `${scorePercent}%`, background: scorePercent >= 80 ? '#018600' : scorePercent >= 60 ? '#f59e0b' : '#BF0A03' }}
-              />
-            </div>
-            <p className="text-xs mt-1.5 text-right" style={{ color: '#9E9E9E' }}>{scorePercent}% 정답</p>
+            {hasAutoGrade && showScoreNow && (
+              <>
+                <div className="h-2 rounded overflow-hidden" style={{ background: '#E0E0E0' }}>
+                  <div
+                    className="h-full rounded transition-all"
+                    style={{ width: `${scorePercent}%`, background: scorePercent >= 80 ? '#018600' : scorePercent >= 60 ? '#f59e0b' : '#BF0A03' }}
+                  />
+                </div>
+                <p className="text-xs mt-1.5 text-right" style={{ color: '#9E9E9E' }}>{scorePercent}% 정답</p>
+              </>
+            )}
           </div>
 
           {/* 수동채점 안내 */}
@@ -343,9 +426,64 @@ function ResultModal({ result, quiz, questions, onClose }) {
             </div>
           )}
 
+          {/* 문항별 채점 결과 (정오답 공개 설정 활성 시) */}
+          {showWrongAnswerNow && (
+            <div>
+              <p className="text-sm font-semibold mb-2" style={{ color: '#424242' }}>문항별 채점 결과</p>
+              <div className="space-y-2">
+                {questions.map((q, idx) => {
+                  const scored = result.autoScores[q.id]
+                  const isAutoGraded = scored !== undefined
+                  const isCorrect = isAutoGraded && scored === q.points
+                  const isPartial = isAutoGraded && scored > 0 && scored < q.points
+                  return (
+                    <div
+                      key={q.id}
+                      className="p-3 rounded-lg text-sm"
+                      style={{
+                        background: !isAutoGraded ? '#F5F5F5' : isCorrect ? '#F0FDF4' : isPartial ? '#FFFBEB' : '#FFF5F5',
+                        border: `1px solid ${!isAutoGraded ? '#E0E0E0' : isCorrect ? '#bbf7d0' : isPartial ? '#fde68a' : '#fecaca'}`,
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs font-bold shrink-0" style={{ color: '#9E9E9E' }}>Q{idx + 1}</span>
+                          <span className="text-xs truncate" style={{ color: '#424242' }}>{q.text}</span>
+                        </div>
+                        <span
+                          className="text-xs font-semibold shrink-0 px-1.5 py-0.5 rounded"
+                          style={
+                            !isAutoGraded
+                              ? { background: '#EEEEEE', color: '#757575' }
+                              : isCorrect
+                              ? { background: '#DCFCE7', color: '#15803d' }
+                              : isPartial
+                              ? { background: '#FEF9C3', color: '#a16207' }
+                              : { background: '#FEE2E2', color: '#dc2626' }
+                          }
+                        >
+                          {!isAutoGraded ? '채점 대기' : isCorrect ? '정답' : isPartial ? `부분점수 ${scored}/${q.points}` : '오답'}
+                        </span>
+                      </div>
+                      {showAnswerNow && isAutoGraded && !isCorrect && q.correctAnswer && (
+                        <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                          <p className="text-xs" style={{ color: '#6b7280' }}>
+                            정답: <span className="font-medium" style={{ color: '#374151' }}>
+                              {Array.isArray(q.correctAnswer) ? q.correctAnswer.join(', ') : q.correctAnswer}
+                            </span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* 응시 정보 */}
           <div className="flex items-center justify-between text-xs" style={{ color: '#9E9E9E' }}>
-            <span>응시시간 {result.timeTaken}분</span>
+            <span>{result.timeTaken != null ? `응시시간 ${result.timeTaken}분` : '시간 제한 없음'}</span>
             <span>총 {quiz.questions}문항 · {quiz.totalPoints}점 만점</span>
           </div>
         </div>
