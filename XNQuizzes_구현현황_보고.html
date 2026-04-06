@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>XN Quizzes — 구현 현황 보고</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<style>
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --indigo-600: #4f46e5;
+    --indigo-500: #6366f1;
+    --indigo-100: #e0e7ff;
+    --indigo-50:  #eef2ff;
+    --slate-900: #0f172a;
+    --slate-700: #334155;
+    --slate-500: #64748b;
+    --slate-300: #cbd5e1;
+    --slate-100: #f1f5f9;
+    --slate-50:  #f8fafc;
+    --white: #ffffff;
+    --orange: #ea580c;
+    --orange-bg: #fff7ed;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+  }
+
+  html { font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; background: #e2e8f0; }
+
+  /* ── 슬라이드 컨테이너 ── */
+  .slides { display: flex; flex-direction: column; gap: 32px; padding: 32px; max-width: 1200px; margin: 0 auto; }
+
+  .slide {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--white);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    page-break-after: always;
+  }
+
+  /* ── 표지 ── */
+  .slide-cover {
+    background: linear-gradient(135deg, #312e81 0%, #4f46e5 60%, #818cf8 100%);
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 6% 8%;
+  }
+  .cover-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    color: #c7d2fe;
+    font-size: 0.78em;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    letter-spacing: 0.05em;
+  }
+  .cover-title {
+    font-size: 3.2em;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.15;
+    margin-bottom: 14px;
+  }
+  .cover-sub {
+    font-size: 1.1em;
+    color: #c7d2fe;
+    font-weight: 500;
+    margin-bottom: 32px;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .cover-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cover-meta-label { font-size: 0.72em; color: #a5b4fc; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .cover-meta-value { font-size: 0.9em; color: var(--white); font-weight: 600; }
+
+  .cover-deco {
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+  .cover-deco2 {
+    position: absolute;
+    top: 40px; right: 80px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* ── 일반 슬라이드 레이아웃 ── */
+  .slide-header {
+    padding: 28px 40px 20px;
+    border-bottom: 1px solid var(--slate-100);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .slide-header-left { display: flex; flex-direction: column; gap: 6px; }
+  .slide-number {
+    font-size: 0.7em;
+    font-weight: 700;
+    color: var(--indigo-500);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .slide-title {
+    font-size: 1.45em;
+    font-weight: 800;
+    color: var(--slate-900);
+    line-height: 1.25;
+  }
+  .slide-desc {
+    font-size: 0.78em;
+    color: var(--slate-500);
+    margin-top: 2px;
+  }
+  .req-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.7em;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .req-badge.green  { background: var(--green-bg);  color: var(--green); }
+  .req-badge.orange { background: var(--orange-bg); color: var(--orange); }
+  .req-badge.indigo { background: var(--indigo-50); color: var(--indigo-600); }
+
+  .slide-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+  .slide-body.full { grid-template-columns: 1fr; }
+  .slide-body.col-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .panel {
+    padding: 20px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .panel-right {
+    background: var(--slate-50);
+    border-left: 1px solid var(--slate-100);
+  }
+  .panel-label {
+    font-size: 0.65em;
+    font-weight: 700;
+    color: var(--slate-500);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  /* ── 화면 캡처 자리 ── */
+  .screenshot-box {
+    flex: 1;
+    border: 2px dashed var(--slate-300);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--white);
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .screenshot-box img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+  .screenshot-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .screenshot-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: var(--indigo-50);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .screenshot-icon svg { color: var(--indigo-500); }
+  .screenshot-hint { font-size: 0.7em; color: var(--slate-300); font-weight: 600; text-align: center; line-height: 1.4; }
+  .screenshot-route { font-size: 0.62em; color: var(--indigo-500); font-weight: 700; background: var(--indigo-50); padding: 2px 8px; border-radius: 4px; }
+
+  /* ── 포인트 리스트 ── */
+  .point-list { display: flex; flex-direction: column; gap: 8px; }
+  .point-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--white);
+    border: 1px solid var(--slate-100);
+  }
+  .point-dot {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--indigo-50);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.68em;
+    font-weight: 800;
+    color: var(--indigo-600);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .point-text { font-size: 0.75em; color: var(--slate-700); line-height: 1.5; font-weight: 500; }
+  .point-text strong { color: var(--slate-900); font-weight: 700; }
+
+  /* ── 요구사항 박스 ── */
+  .req-box {
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: #fafafa;
+    border: 1px solid var(--slate-100);
+    border-left: 3px solid var(--indigo-500);
+  }
+  .req-box-label { font-size: 0.62em; font-weight: 700; color: var(--indigo-600); margin-bottom: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .req-box-text { font-size: 0.73em; color: var(--slate-700); line-height: 1.55; font-weight: 500; }
+
+  /* ── 상태 뱃지 ── */
+  .status-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.65em; font-weight: 700;
+    padding: 3px 8px; border-radius: 12px;
+  }
+  .status-chip.done   { background: #dcfce7; color: #15803d; }
+  .status-chip.partial{ background: #fef9c3; color: #a16207; }
+  .status-chip.todo   { background: var(--slate-100); color: var(--slate-500); }
+
+  /* ── 요약 슬라이드 ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 24px 40px;
+  }
+  .summary-card {
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid var(--slate-100);
+  }
+  .summary-card.done { background: #f0fdf4; border-color: #bbf7d0; }
+  .summary-card.partial { background: #fffbeb; border-color: #fde68a; }
+  .summary-card.todo { background: var(--slate-50); border-color: var(--slate-200); }
+  .summary-count { font-size: 2.2em; font-weight: 900; line-height: 1; }
+  .summary-card.done .summary-count { color: #15803d; }
+  .summary-card.partial .summary-count { color: #a16207; }
+  .summary-card.todo .summary-count { color: var(--slate-500); }
+  .summary-label { font-size: 0.78em; font-weight: 700; color: var(--slate-700); }
+  .summary-items { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+  .summary-item { font-size: 0.65em; color: var(--slate-600); line-height: 1.4; display: flex; align-items: flex-start; gap: 5px; }
+  .summary-item::before { content: "·"; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+  .roadmap-row {
+    display: flex; gap: 12px; padding: 0 40px 24px; flex-wrap: wrap;
+  }
+  .roadmap-item {
+    flex: 1; min-width: 160px;
+    border-radius: 8px;
+    padding: 12px 14px;
+    border: 1px solid var(--slate-200);
+  }
+  .roadmap-item.next { background: var(--indigo-50); border-color: #c7d2fe; }
+  .roadmap-tag { font-size: 0.6em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .roadmap-item.next .roadmap-tag { color: var(--indigo-600); }
+  .roadmap-item .roadmap-tag { color: var(--slate-500); }
+  .roadmap-list { display: flex; flex-direction: column; gap: 3px; }
+  .roadmap-list li { font-size: 0.68em; color: var(--slate-700); line-height: 1.45; list-style: none; display: flex; gap: 5px; }
+  .roadmap-list li::before { content: "→"; color: var(--indigo-500); flex-shrink: 0; font-size: 0.85em; margin-top: 1px; }
+
+  /* ── 인쇄 ── */
+  @media print {
+    html { background: white; }
+    .slides { gap: 0; padding: 0; max-width: none; }
+    .slide {
+      border-radius: 0;
+      box-shadow: none;
+      aspect-ratio: 16 / 9;
+      page-break-after: always;
+      break-after: page;
+    }
+    .print-guide { display: none; }
+  }
+
+  /* ── 샘플 다운로드 버튼 ── */
+  .sample-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.72em; font-weight: 700;
+    padding: 6px 12px; border-radius: 6px;
+    border: 1.5px solid #c7d2fe;
+    background: var(--indigo-50); color: var(--indigo-600);
+    cursor: pointer; transition: all 0.15s;
+    text-decoration: none;
+  }
+  .sample-btn:hover { background: #e0e7ff; border-color: var(--indigo-500); }
+  .sample-btn svg { flex-shrink: 0; }
+  .sample-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="slides">
+
+  <!-- ── 슬라이드 1: 표지 ── -->
+  <div class="slide slide-cover">
+    <div class="cover-deco"></div>
+    <div class="cover-deco2"></div>
+    <div>
+      <div class="cover-badge">INTERNAL REVIEW · 2026.04.06</div>
+      <div class="cover-title">XN Quizzes<br>구현 현황 보고</div>
+      <div class="cover-sub">고객사 요구사항 기반 프로토타입 중간점검</div>
+      <div class="cover-meta">
+        <div class="cover-meta-item">
+          <span class="cover-meta-label">Stack</span>
+          <span class="cover-meta-value">React 19 + Vite + Tailwind v4</span>
+        </div>
+        <div class="cover-meta-item">
+          <span class="cover-meta-label">고객사</span>
+          <span class="cover-meta-value">경북대 · 인제대 · 다수 학교</span>
+        </div>
+        <div class="cover-meta-item">
+          <span class="cover-meta-label">구현 완료</span>
+          <span class="cover-meta-value">7건 구현 · 4건 부분 구현</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 슬라이드: 전체 요구사항 현황 참조 ── -->
+  <div class="slide" style="aspect-ratio: unset; min-height: 660px;">
+    <div class="slide-header" style="padding: 22px 36px 16px;">
+      <div class="slide-header-left">
+        <span class="slide-number">Reference · 전체 요구사항 현황</span>
+        <span class="slide-title">고객사 요구사항 구현 현황 — 전체 목록</span>
+        <span class="slide-desc">이 슬라이드의 # 코드(예: 3-2, 2-1)가 이후 슬라이드에서 언급되는 요구사항 번호입니다</span>
+        <span style="display:inline-flex; align-items:center; gap:5px; margin-top:4px; font-size:0.7em; font-weight:700; color:#0369a1; background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; padding:3px 10px;">
+          ※ 상단 교수자/학생 토글은 UX 검토용 프로토타입 전용 장치 — 실제 구현 범위 아님
+        </span>
+      </div>
+      <div style="display:flex; gap:8px; flex-shrink:0; align-items:center; flex-wrap:wrap;">
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.65em;font-weight:700;padding:3px 9px;border-radius:10px;background:#dcfce7;color:#15803d;">● 구현</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.65em;font-weight:700;padding:3px 9px;border-radius:10px;background:#fef9c3;color:#a16207;">● 부분 구현</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.65em;font-weight:700;padding:3px 9px;border-radius:10px;background:#fee2e2;color:#b91c1c;">● 미구현</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.65em;font-weight:700;padding:3px 9px;border-radius:10px;background:#f1f5f9;color:#64748b;">● 미결</span>
+      </div>
+    </div>
+
+    <div style="padding: 0 36px 24px; overflow-x: auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:0.7em;">
+        <colgroup>
+          <col style="width:52px">
+          <col style="width:auto">
+          <col style="width:64px">
+          <col style="width:72px">
+        </colgroup>
+        <thead>
+          <tr style="background:var(--slate-50);">
+            <th style="padding:7px 10px; text-align:left; font-size:0.85em; font-weight:700; color:var(--slate-500); border-bottom:2px solid var(--slate-200); white-space:nowrap;">#</th>
+            <th style="padding:7px 10px; text-align:left; font-size:0.85em; font-weight:700; color:var(--slate-500); border-bottom:2px solid var(--slate-200);">요구사항</th>
+            <th style="padding:7px 10px; text-align:left; font-size:0.85em; font-weight:700; color:var(--slate-500); border-bottom:2px solid var(--slate-200); white-space:nowrap;">요청</th>
+            <th style="padding:7px 10px; text-align:center; font-size:0.85em; font-weight:700; color:var(--slate-500); border-bottom:2px solid var(--slate-200); white-space:nowrap;">구현 상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- 섹션 1 -->
+          <tr><td colspan="4" style="padding:8px 10px 4px; font-size:0.85em; font-weight:800; color:var(--indigo-600); background:var(--indigo-50); border-top:1px solid #c7d2fe;">1. 문제은행 및 문항 자산 관리</td></tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-1-a</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">문항/문제은행 그룹에 난이도 정보 포함</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#15803d;font-weight:700;white-space:nowrap;">구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-1-b</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">복수 문제은행 선택 + 그룹별 출제 수 지정</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-1-c</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">난이도별 배점 달리하여 랜덤 출제</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-2-a</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">개별 문항 복사 (동일 은행 내)</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-2-b</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">문제은행 간 문항 이동/복사</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#15803d;font-weight:700;white-space:nowrap;">구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-3</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">엑셀 기반 문항 일괄 업로드</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">다수</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">디벨롭 예정</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-4</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">문항 내 답변/항목 순서 고정</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#15803d;font-weight:700;white-space:nowrap;">구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-5</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">문제명 변경 시 응시 화면 즉시 반영</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#f1f5f9;color:#64748b;font-weight:700;white-space:nowrap;">미결</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-6</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">빈칸채우기 대소문자 구분/알파벳 일치 설정</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+
+          <!-- 섹션 2 -->
+          <tr><td colspan="4" style="padding:8px 10px 4px; font-size:0.85em; font-weight:800; color:var(--indigo-600); background:var(--indigo-50); border-top:1px solid #c7d2fe;">2. 시험 설계 및 랜덤 출제</td></tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-1</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">복수 문제은행 선택 + 그룹별 출제 수/배점 설정</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-2</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">시험 출제 화면 탭 명칭/흐름 직관성 개선</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">부분 구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-3-a</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">시험 자체(설정 포함) 복제 기능</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-3-b</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">타 과목 이관 (보내기/가져오기)</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-3-c</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">문제/문제은행 사람 간 전달 (조교→교수)</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-4</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">주차/차시별 퀴즈 목록 보기</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">인제대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#15803d;font-weight:700;white-space:nowrap;">구현</span></td>
+          </tr>
+
+          <!-- 섹션 3 -->
+          <tr><td colspan="4" style="padding:8px 10px 4px; font-size:0.85em; font-weight:800; color:var(--indigo-600); background:var(--indigo-50); border-top:1px solid #c7d2fe;">3. 출력 및 문서화</td></tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">3-1</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">시험 문제 PDF 다운로드</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">다수</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">3-2</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">학생 개인별 답안지 PDF 다운로드</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">다수</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">부분 구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">3-3</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">다수 학생 답안지 일괄 다운로드</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">다수</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">부분 구현</span></td>
+          </tr>
+
+          <!-- 섹션 4 -->
+          <tr><td colspan="4" style="padding:8px 10px 4px; font-size:0.85em; font-weight:800; color:var(--indigo-600); background:var(--indigo-50); border-top:1px solid #c7d2fe;">4. 채점·성적·재응시</td></tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">4-1-a</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">부분 점수 적용 여부 선택 옵션</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">4-1-b</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">부분 점수 방식 선택 옵션</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">4-2</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">정오답/정답/점수 공개 시점 설정</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#15803d;font-weight:700;white-space:nowrap;">구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">4-3</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">조건부 재응시 (점수 미달/미응시자 자동 선별)</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">인제대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+
+          <!-- 섹션 5 -->
+          <tr><td colspan="4" style="padding:8px 10px 4px; font-size:0.85em; font-weight:800; color:var(--indigo-600); background:var(--indigo-50); border-top:1px solid #c7d2fe;">5. 제출물·목록 관리</td></tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">5-1-a</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">파일 업로드 유형 문항별 제출물 개별 다운로드</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">다수</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">5-1-b</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">일괄 다운로드 시 문항별 폴더 구분</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">다수</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">5-2</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">주차/차시별 시험 목록 전용 메뉴</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">인제대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">부분 구현</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── 슬라이드 2: 주차/차시별 퀴즈 목록 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">기능 01 · 제출물·목록 관리</span>
+        <span class="slide-title">주차/차시별 퀴즈 목록 관리</span>
+        <span class="slide-desc">교수자가 한 화면에서 전체 퀴즈의 주차·차시·상태를 파악할 수 있는 목록 뷰</span>
+      </div>
+      <span class="req-badge indigo">📋 인제대 요청 · #2-4</span>
+    </div>
+    <div class="slide-body">
+      <div class="panel">
+        <div class="panel-label">화면 캡처</div>
+        <div class="screenshot-box">
+          <div class="screenshot-placeholder">
+            <div class="screenshot-icon">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </div>
+            <div class="screenshot-hint">퀴즈 목록 화면<br>캡처 삽입</div>
+            <div class="screenshot-route">/ (QuizList)</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-label">구현 포인트</div>
+        <div class="point-list">
+          <div class="point-item">
+            <div class="point-dot">1</div>
+            <div class="point-text"><strong>주차/차시 필터</strong> — 주차·차시 기준으로 퀴즈를 필터링해 특정 주차 퀴즈만 모아볼 수 있음. 교수자가 원하는 주차의 퀴즈를 즉시 탐색</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">2</div>
+            <div class="point-text"><strong>상태 구분 섹션</strong> — 채점 필요(주황 강조) / 전체 퀴즈 자동 분리. 진행중·초안·종료 배지 구분</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">3</div>
+            <div class="point-text"><strong>즉시 발행</strong> — 초안 상태에서 "발행" 버튼 클릭 시 확인 다이얼로그 후 상태 전환 (draft → open)</div>
+          </div>
+        </div>
+
+        <!-- 프로토타입 전용 안내 -->
+        <div style="padding:10px 13px; border-radius:8px; background:#f0f9ff; border:1px solid #bae6fd; border-left:3px solid #0284c7; margin-top:4px;">
+          <p style="font-size:0.65em; font-weight:800; color:#0369a1; margin-bottom:3px;">프로토타입 전용 기능 안내</p>
+          <p style="font-size:0.65em; color:#0c4a6e; line-height:1.55;">상단 <strong>교수자 / 학생 토글</strong>은 UX 검토 목적으로만 추가된 프로토타입 전용 장치입니다. 실제 서비스에서는 별도 로그인 인증을 통해 역할이 부여되며, 이 토글은 실제 구현 범위에 포함되지 않습니다.</p>
+        </div>
+
+        <div class="req-box" style="margin-top: auto;">
+          <div class="req-box-label">요구사항 원문</div>
+          <div class="req-box-text">각 불러온 시험이 몇 주차 몇 차시에 등록되어 있는지, 주차/차시별로 어떤 시험들이 등록되어 있는지 확인 가능한 기능</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 슬라이드 3: 복수 응시·점수 정책 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">기능 02 · 응시 설정</span>
+        <span class="slide-title">복수 응시 횟수 및 점수 정책 설정</span>
+        <span class="slide-desc">재응시 허용 횟수와 복수 응시 시 어떤 점수를 최종 성적으로 반영할지 설정</span>
+      </div>
+      <span class="req-badge green">✓ 구현 완료</span>
+    </div>
+    <div class="slide-body">
+      <div class="panel">
+        <div class="panel-label">화면 캡처</div>
+        <div class="screenshot-box">
+          <div class="screenshot-placeholder">
+            <div class="screenshot-icon">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <div class="screenshot-hint">퀴즈 생성 &gt; 기본 정보<br>"응시 설정" 섹션 캡처</div>
+            <div class="screenshot-route">/quiz/new → 기본 정보 탭</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-label">구현 포인트</div>
+        <div class="point-list">
+          <div class="point-item">
+            <div class="point-dot">1</div>
+            <div class="point-text"><strong>응시 횟수 선택</strong> — 1회 / 2회 / 3회 / 무제한 드롭다운 설정</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">2</div>
+            <div class="point-text"><strong>점수 정책 3종</strong> — 복수 응시 설정 시 자동 노출: 최고 점수 유지 / 최신 점수 / 평균 점수</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">3</div>
+            <div class="point-text"><strong>발행 전 경고</strong> — 재응시 허용 + 점수 공개 기간 미설정 시 "정답 유출 가능" 확인 다이얼로그 표시</div>
+          </div>
+        </div>
+        <div class="req-box" style="margin-top: auto;">
+          <div class="req-box-label">연계 정책</div>
+          <div class="req-box-text">학생 뷰에서 남은 응시 횟수 실시간 표시. 응시 완료 후 "재응시" 버튼 자동 전환.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 슬라이드 4: 문항 난이도·그룹 분류 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">기능 03 · 문제은행</span>
+        <span class="slide-title">문항 난이도 · 그룹 분류 및 필터</span>
+        <span class="slide-desc">문제은행 내 모든 문항에 난이도(상/중/하)와 그룹 태그를 부여하고 필터로 즉시 탐색</span>
+      </div>
+      <span class="req-badge indigo">경북대 요청 · #1-1-a</span>
+    </div>
+    <div class="slide-body">
+      <div class="panel">
+        <div class="panel-label">화면 캡처</div>
+        <div class="screenshot-box">
+          <div class="screenshot-placeholder">
+            <div class="screenshot-icon">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h8m-8 6h16"/></svg>
+            </div>
+            <div class="screenshot-hint">문제은행 상세 화면<br>난이도 배지 + 필터 캡처</div>
+            <div class="screenshot-route">/question-banks/:bankId</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-label">구현 포인트</div>
+        <div class="point-list">
+          <div class="point-item">
+            <div class="point-dot">1</div>
+            <div class="point-text"><strong>난이도 3단계</strong> — 상(빨강)/중(노랑)/하(초록) 배지. 문항 생성·편집·엑셀 업로드 시 설정 가능</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">2</div>
+            <div class="point-text"><strong>그룹 태그</strong> — "1단원", "2단원" 등 자유 입력. 문제은행 내 고유 그룹 자동 집계·표시</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">3</div>
+            <div class="point-text"><strong>복합 필터</strong> — 키워드 검색 + 유형 + 난이도 + 그룹 4가지 필터 조합 가능. 실시간 결과 반영</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">4</div>
+            <div class="point-text"><strong>문항 추가 모달 연동</strong> — 퀴즈 생성 시 "문제은행에서 추가" 모달에서도 동일한 필터로 문항 탐색 가능</div>
+          </div>
+        </div>
+        <div class="req-box" style="margin-top: auto;">
+          <div class="req-box-label">요구사항 원문 (경북대)</div>
+          <div class="req-box-text">문제 개별 및 문제은행 그룹에 난이도 정보를 포함할 수 있어야 함. 문제은행은 단순 저장소가 아니라 문제 복사, 재사용, 버전 관리, 메타데이터 관리가 가능한 구조여야 한다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 슬라이드 6: 엑셀 문항 일괄 업로드 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">기능 04 · 문항 등록 효율화</span>
+        <span class="slide-title">엑셀 기반 문항 일괄 업로드</span>
+        <span class="slide-desc">정해진 양식의 엑셀/CSV 파일로 문항을 대량 등록. 개별 입력 대비 작업 시간 대폭 단축</span>
+      </div>
+      <span class="req-badge orange">디벨롭 예정 · #1-3</span>
+    </div>
+    <div class="slide-body">
+      <div class="panel">
+        <div class="panel-label">화면 캡처</div>
+        <div class="screenshot-box">
+          <div class="screenshot-placeholder">
+            <div class="screenshot-icon">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <div class="screenshot-hint">문제은행 상세 &gt; 업로드 버튼<br>+ 업로드 모달 캡처</div>
+            <div class="screenshot-route">/question-banks/:bankId → 업로드</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-label">구현 포인트</div>
+        <div class="point-list">
+          <div class="point-item">
+            <div class="point-dot">1</div>
+            <div class="point-text"><strong>템플릿 다운로드</strong> — 유형 코드 안내 시트 + 난이도 코드 안내 시트 포함 3-sheet xlsx 제공</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">2</div>
+            <div class="point-text"><strong>지원 유형 4종</strong> — 객관식·참거짓·단답형·서술형. 행 단위 구조로 표현 가능한 유형만 지원</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">3</div>
+            <div class="point-text"><strong>유효성 검사</strong> — 행별 유형 코드 오류·필수값 누락·배점 비정상 시 오류 행 번호와 사유 안내</div>
+          </div>
+        </div>
+        <div class="req-box">
+          <div class="req-box-label">요구사항 원문</div>
+          <div class="req-box-text">현재 개별 입력 방식만 있어 문항 수가 많을수록 작업 시간과 피로도가 큼 → 정해진 양식의 엑셀 기반 문항 일괄 업로드 필요</div>
+        </div>
+        <div class="req-box" style="border-left-color: #f59e0b; background: #fffbeb;">
+          <div class="req-box-label" style="color: #b45309;">디벨롭 예정</div>
+          <div class="req-box-text">현재 기본 동작 구현 완료. 지원 유형 범위·양식 세부 정책 등은 PD와 논의 후 추가 디벨롭 예정</div>
+        </div>
+        <div class="sample-btn-row" style="margin-top: auto;">
+          <button class="sample-btn" onclick="downloadUploadTemplate()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3"/></svg>
+            업로드 템플릿 샘플 다운로드
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 슬라이드 7: 문제은행 간 문항 복사 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">기능 05 · 문항 재사용</span>
+        <span class="slide-title">문제은행 간 문항 복사</span>
+        <span class="slide-desc">다른 문제은행의 문항을 선택해 현재 은행으로 복사. 이동/복사 흐름 단순화</span>
+      </div>
+      <span class="req-badge indigo">경북대 요청 · #1-2-b</span>
+    </div>
+    <div class="slide-body">
+      <div class="panel">
+        <div class="panel-label">화면 캡처</div>
+        <div class="screenshot-box">
+          <div class="screenshot-placeholder">
+            <div class="screenshot-icon">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </div>
+            <div class="screenshot-hint">문제은행 &gt; "다른 은행에서 복사"<br>모달 캡처</div>
+            <div class="screenshot-route">/question-banks/:bankId → 다른 은행에서 복사</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-label">구현 포인트</div>
+        <div class="point-list">
+          <div class="point-item">
+            <div class="point-dot">1</div>
+            <div class="point-text"><strong>은행 선택 → 문항 체크</strong> — 2단계 흐름. 다른 은행 목록에서 선택 후 문항 개별 체크</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">2</div>
+            <div class="point-text"><strong>복사 시 독립 객체 생성</strong> — 원본과 연결 끊김. 복사 후 수정해도 원본 은행에 영향 없음</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">3</div>
+            <div class="point-text"><strong>메타데이터 보존</strong> — 난이도·그룹 태그·유형 그대로 복사. ID만 새로 발급</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">4</div>
+            <div class="point-text"><strong>현재 은행 자신 제외</strong> — 목록에서 자기 자신은 표시 안 함. 무한 복사 방지</div>
+          </div>
+        </div>
+        <div class="req-box" style="margin-top: auto;">
+          <div class="req-box-label">요구사항 원문</div>
+          <div class="req-box-text">문제은행 간 문제 이동/복사 흐름이 너무 복잡하지 않도록 단순화 필요 (경북대)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 슬라이드 8: 답안지 xlsx 다운로드 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">기능 06 · 출력 및 문서화</span>
+        <span class="slide-title">답안지 / 성적 / 문항 분석 다운로드</span>
+        <span class="slide-desc">채점 완료 후 학생 답안·점수·문항 분석 지표를 xlsx로 일괄 다운로드</span>
+      </div>
+      <span class="req-badge orange">부분 구현 · #3-2/3-3</span>
+    </div>
+    <div class="slide-body">
+      <div class="panel">
+        <div class="panel-label">화면 캡처</div>
+        <div class="screenshot-box">
+          <div class="screenshot-placeholder">
+            <div class="screenshot-icon">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <div class="screenshot-hint">채점 대시보드 / 퀴즈 통계<br>다운로드 버튼 + 결과 xlsx 캡처</div>
+            <div class="screenshot-route">/quiz/:id/grade · /quiz/:id/stats</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-label">구현된 다운로드 종류</div>
+        <div class="point-list">
+          <div class="point-item">
+            <div class="point-dot">A</div>
+            <div class="point-text"><strong>성적 xlsx</strong> — 이름·학번·학과·총점·자동채점합계·수동채점합계·채점 상태 포함</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">B</div>
+            <div class="point-text"><strong>답안지 xlsx</strong> — 학생별 문항 응답 전체 + 자동/수동 점수. mock 데이터 + localStorage 실제 제출 응답 통합</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">C</div>
+            <div class="point-text"><strong>문항 분석 xlsx</strong> — 난이도·변별도·이분상관계수(r_pb)·Cronbach α 2-sheet 구조로 제공. <span style="color:#b45309; font-weight:700;">r_pb·Cronbach α는 기존 Canvas LMS에서도 제공하던 표준 문항 분석 지표를 동일하게 반영한 것</span></div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">D</div>
+            <div class="point-text"><strong>PDF 다운로드</strong> — 모달 UI 존재. 실제 생성 로직 구현 예정 (페이지네이션 포함, 답변 중간 절단 방지)</div>
+          </div>
+        </div>
+        <div class="req-box" style="margin-top: 8px;">
+          <div class="req-box-label">요구사항 원문</div>
+          <div class="req-box-text">학생 개인별 시험 답안지 다운로드 · 여러 학생의 시험 답안지 일괄 다운로드 및 출력 기능 (다수 학교)</div>
+        </div>
+        <div class="sample-btn-row">
+          <button class="sample-btn" onclick="downloadAnswerSample()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3"/></svg>
+            답안지 샘플 다운로드
+          </button>
+          <button class="sample-btn" onclick="downloadGradeSample()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3"/></svg>
+            성적 샘플 다운로드
+          </button>
+          <button class="sample-btn" onclick="downloadAnalysisSample()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3"/></svg>
+            문항 분석 샘플 다운로드
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 슬라이드: 다음 구현 예정 — 복수 문제은행 랜덤 출제 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">다음 구현 예정 · 문제은행</span>
+        <span class="slide-title">복수 문제은행 기반 랜덤 출제 고도화</span>
+        <span class="slide-desc">현재 단일 은행·전체 삽입 방식에서, 복수 은행을 조합해 출제 정책을 세밀하게 설정하는 방식으로 확장</span>
+      </div>
+      <span class="req-badge orange">구현 예정 · 경북대 요청</span>
+    </div>
+    <div class="slide-body" style="grid-template-columns: 1fr 1fr 1fr;">
+
+      <!-- 현재 방식 -->
+      <div class="panel" style="border-right: 1px solid var(--slate-100);">
+        <div class="panel-label" style="color: #b45309;">현재 방식 (AS-IS)</div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
+          <div style="padding:14px; border-radius:8px; background:#fff7ed; border:1px solid #fed7aa;">
+            <p style="font-size:0.72em; font-weight:700; color:#9a3412; margin-bottom:8px;">문제은행에서 문항 추가 시</p>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <div style="font-size:0.7em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">① 문제은행 1개만 선택 가능</div>
+              <div style="font-size:0.7em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">② 해당 은행 문항 중 개별 체크 후 추가</div>
+              <div style="font-size:0.7em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">③ 모든 문항 배점 일괄 적용 (차등 불가)</div>
+              <div style="font-size:0.7em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">④ 난이도별 비율 설정 불가</div>
+            </div>
+          </div>
+          <div class="req-box" style="border-left-color: #f97316;">
+            <div class="req-box-label" style="color:#9a3412;">요구사항 원문 (경북대)</div>
+            <div class="req-box-text">문제은행에서 임의 문제 출제 시 현재는 일일이 하나씩 그룹을 선택하고 배점을 설정해야 하여 번거로움</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 개선 방향 -->
+      <div class="panel" style="border-right: 1px solid var(--slate-100); background: var(--slate-50);">
+        <div class="panel-label" style="color: var(--indigo-600);">개선 방향 (TO-BE) · 2단계 모달</div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+          <div style="padding:12px 14px; border-radius:8px; background:var(--indigo-50); border:1px solid #c7d2fe;">
+            <p style="font-size:0.68em; font-weight:800; color:var(--indigo-600); margin-bottom:6px;">1단계 — 문제은행 복수 선택</p>
+            <p style="font-size:0.68em; color:#4338ca; line-height:1.5;">전체 선택/해제 포함 모달로 다수 과목·단원의 은행을 한 번에 선택</p>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; color:var(--slate-300); font-size:1.2em; font-weight:700;">↓</div>
+          <div style="padding:12px 14px; border-radius:8px; background:var(--indigo-50); border:1px solid #c7d2fe;">
+            <p style="font-size:0.68em; font-weight:800; color:var(--indigo-600); margin-bottom:6px;">2단계 — 은행별 출제 옵션 설정</p>
+            <p style="font-size:0.68em; color:#4338ca; line-height:1.5;">선택한 각 은행에서 <strong>출제 문항 수</strong>와 <strong>적용 배점</strong>을 각각 지정. 난이도별 차등 배점 설정 가능</p>
+          </div>
+          <div style="padding:10px 12px; border-radius:6px; background:white; border:1px solid var(--slate-100); margin-top:auto;">
+            <p style="font-size:0.65em; font-weight:700; color:var(--slate-500); margin-bottom:4px;">예시 설정</p>
+            <p style="font-size:0.65em; color:var(--slate-700); line-height:1.6;">1단원 20문제 중 5문제 / 2단원 20문제 중 5문제 / 3단원 40문제 중 10문제 → 총 20문제 랜덤 출제</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 해결되는 요구사항 -->
+      <div class="panel">
+        <div class="panel-label">이 기능으로 해결되는 요구사항</div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+          <div style="padding:11px 13px; border-radius:8px; background:white; border:1px solid var(--slate-100); border-left:3px solid var(--indigo-500);">
+            <p style="font-size:0.67em; font-weight:800; color:var(--slate-900); margin-bottom:3px;">복수 문제은행 선택</p>
+            <p style="font-size:0.65em; color:var(--slate-600); line-height:1.5;">요구사항 1-1-b · 2-1 — 복수의 문제은행을 한 번에 선택하고, 그룹별로 일정 수의 문제를 출제</p>
+          </div>
+          <div style="padding:11px 13px; border-radius:8px; background:white; border:1px solid var(--slate-100); border-left:3px solid var(--indigo-500);">
+            <p style="font-size:0.67em; font-weight:800; color:var(--slate-900); margin-bottom:3px;">난이도별 배점 차등</p>
+            <p style="font-size:0.65em; color:var(--slate-600); line-height:1.5;">요구사항 1-1-c — 난이도 상·중·하 각각 다른 배점을 적용해 랜덤 출제 (예: 상 6점·중 5점·하 4점)</p>
+          </div>
+          <div style="padding:11px 13px; border-radius:8px; background:white; border:1px solid var(--slate-100); border-left:3px solid var(--indigo-500);">
+            <p style="font-size:0.67em; font-weight:800; color:var(--slate-900); margin-bottom:3px;">문항 미리보기</p>
+            <p style="font-size:0.65em; color:var(--slate-600); line-height:1.5;">선택 전 은행 내 실제 문항(내용·난이도)을 팝업으로 미리 확인 가능하도록 지원 예정</p>
+          </div>
+          <div style="margin-top:auto; padding:10px 12px; border-radius:6px; background:#fffbeb; border:1px solid #fde68a;">
+            <p style="font-size:0.65em; color:#92400e; line-height:1.5;"><strong>선행 조건</strong> — 문항·문제은행 그룹에 난이도 정보가 포함되어 있어야 하며, 이는 기능 03에서 이미 구현 완료</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 슬라이드 9: 구현 현황 요약 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">Summary</span>
+        <span class="slide-title">구현 현황 요약 및 다음 스텝</span>
+        <span class="slide-desc">2026-04-06 기준 · 고객사 요구사항 30건 대비</span>
+      </div>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-card done">
+        <div class="summary-count">7</div>
+        <div class="summary-label">구현 완료</div>
+        <div class="summary-items">
+          <div class="summary-item">문항 난이도/그룹 분류 (1-1-a)</div>
+          <div class="summary-item">문제은행 간 문항 복사 (1-2-b)</div>
+          <div class="summary-item">엑셀 문항 일괄 업로드 (1-3)</div>
+          <div class="summary-item">문항 순서 고정 (1-4)</div>
+          <div class="summary-item">주차/차시 퀴즈 목록 (2-4)</div>
+          <div class="summary-item">복수 응시·점수 정책 설정</div>
+          <div class="summary-item">정오답/정답/점수 공개 시점 (4-2)</div>
+        </div>
+      </div>
+      <div class="summary-card partial">
+        <div class="summary-count">4</div>
+        <div class="summary-label">부분 구현</div>
+        <div class="summary-items">
+          <div class="summary-item">시험 출제 탭 UX (2-2) — 구조는 있으나 가이드 미흡</div>
+          <div class="summary-item">답안지 PDF 다운로드 (3-2) — UI만, 생성 로직 예정</div>
+          <div class="summary-item">일괄 PDF 다운로드 (3-3) — xlsx 완료, PDF 예정</div>
+          <div class="summary-item">주차/차시 전용 메뉴 (5-2) — 목록 표시만</div>
+        </div>
+      </div>
+      <div class="summary-card todo">
+        <div class="summary-count">15</div>
+        <div class="summary-label">미구현 (예정)</div>
+        <div class="summary-items">
+          <div class="summary-item">복수 문제은행 랜덤 출제 (1-1-b·c, 2-1) — 2단계 모달 설계 확정</div>
+          <div class="summary-item">PDF 생성 로직 (3-2·3-3) — 구현 예정</div>
+          <div class="summary-item">조건부 재응시 (4-3) — 인제대</div>
+          <div class="summary-item">퀴즈 복제 (2-3-a) — 경북대</div>
+          <div class="summary-item">부분 점수 정책 (4-1) — 경북대</div>
+        </div>
+      </div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-item next">
+        <div class="roadmap-tag">다음 구현 예정</div>
+        <ul class="roadmap-list">
+          <li>복수 문제은행 2단계 모달 (1-1-b·c·2-1)</li>
+          <li>PDF 생성 + 페이지네이션 (3-2·3-3)</li>
+          <li>조건부 재응시 UI (4-3)</li>
+        </ul>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-tag">정책 결정 후 착수</div>
+        <ul class="roadmap-list">
+          <li>문제은행-퀴즈 연동 방식 (논의필요 3-2)</li>
+          <li>부분 점수 방식 선택 (논의필요)</li>
+          <li>지각 제출 감점 세부 정책</li>
+        </ul>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-tag">MVP2 후보</div>
+        <ul class="roadmap-list">
+          <li>퀴즈/문항 복제 (2-3-a)</li>
+          <li>타 과목 이관 (2-3-b)</li>
+          <li>파일 업로드 제출물 관리 (5-1)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /slides -->
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+// ── 업로드 템플릿 샘플 ──────────────────────────────────────────
+function downloadUploadTemplate() {
+  const XLSX = window.XLSX
+  const headers = ['유형', '문항 내용', '배점', '난이도(선택)', '그룹(선택)', '정답(선택)', '보기1', '보기2', '보기3', '보기4']
+  const rows = [
+    ['multiple_choice', 'SQL에서 테이블을 생성하는 명령어는?', 5, 'medium', '1단원', 'CREATE TABLE', 'SELECT', 'INSERT', 'CREATE TABLE', 'DROP'],
+    ['true_false', 'PRIMARY KEY는 NULL 값을 허용한다.', 5, 'low', '1단원', '거짓', '', '', '', ''],
+    ['short_answer', 'DDL의 약자를 쓰시오.', 5, 'medium', '2단원', 'Data Definition Language', '', '', '', ''],
+    ['essay', '트랜잭션의 ACID 속성에 대해 서술하시오.', 15, 'high', '3단원', '', '', '', '', ''],
+  ]
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+  ws['!cols'] = [{ wch: 20 }, { wch: 40 }, { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 26 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
+
+  const typeHeaders = ['유형 코드', '한국어 이름', '자동채점']
+  const typeRows = [
+    ['multiple_choice', '객관식', '자동'],
+    ['true_false', '참/거짓', '자동'],
+    ['multiple_answers', '복수 선택', '자동'],
+    ['short_answer', '단답형', '자동'],
+    ['essay', '서술형', '수동'],
+    ['numerical', '수치형', '자동'],
+    ['matching', '연결형', '자동'],
+    ['fill_in_multiple_blanks', '다중 빈칸 채우기', '자동'],
+    ['file_upload', '파일 첨부', '수동'],
+  ]
+  const ws2 = XLSX.utils.aoa_to_sheet([typeHeaders, ...typeRows])
+  ws2['!cols'] = [{ wch: 28 }, { wch: 18 }, { wch: 12 }]
+
+  const diffHeaders = ['난이도 코드', '표시', '설명']
+  const diffRows = [
+    ['high', '상', '고난도 — 응용·분석 수준'],
+    ['medium', '중', '기본 — 핵심 개념 이해 수준 (기본값)'],
+    ['low', '하', '입문 — 단순 암기·기초 확인'],
+  ]
+  const ws3 = XLSX.utils.aoa_to_sheet([diffHeaders, ...diffRows])
+  ws3['!cols'] = [{ wch: 14 }, { wch: 8 }, { wch: 32 }]
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '문항 데이터')
+  XLSX.utils.book_append_sheet(wb, ws2, '유효한 유형 코드')
+  XLSX.utils.book_append_sheet(wb, ws3, '난이도 코드')
+  XLSX.writeFile(wb, '[샘플] 문항_업로드_템플릿.xlsx')
+}
+
+// ── 답안지 샘플 ─────────────────────────────────────────────────
+function downloadAnswerSample() {
+  const XLSX = window.XLSX
+  const questions = ['Q1 객관식(5점)', 'Q2 객관식(5점)', 'Q3 단답형(10점)', 'Q4 복수선택(10점)', 'Q5 서술형(20점)']
+  const headers = ['이름', '학번', '학과', '제출경로', ...questions, '자동채점합계', '수동채점합계', '총점']
+  const students = [
+    ['학생 A', '2022001', '컴퓨터공학과', '학생직접제출', 'SELECT', '데이터 중복 최소화', '외래키', 'CREATE, ALTER, DROP', 'ACID는 원자성, 일관성, 격리성, 지속성...', 30, 28, 58],
+    ['학생 B', '2022002', '소프트웨어학과', '학생직접제출', 'SELECT', '처리 속도 증가', 'Foreign Key', 'CREATE, DROP', 'B-Tree 인덱스는 범위 검색에 유리하고...', 25, 20, 45],
+    ['학생 C', '2022003', '정보통신공학과', '학생직접제출', 'INSERT', '데이터 중복 최소화', '참조키', 'CREATE, ALTER, DROP', '트랜잭션의 ACID 속성은...', 30, 35, 65],
+  ]
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...students])
+  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, ...questions.map(() => ({ wch: 30 })), { wch: 14 }, { wch: 14 }, { wch: 8 }]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '답안지')
+  XLSX.writeFile(wb, '[샘플] 답안지_중간고사.xlsx')
+}
+
+// ── 성적 샘플 ────────────────────────────────────────────────────
+function downloadGradeSample() {
+  const XLSX = window.XLSX
+  const headers = ['이름', '학번', '학과', '점수 (/100점)', '자동채점', '수동채점', '채점 상태']
+  const rows = [
+    ['학생 A', '2022001', '컴퓨터공학과', 87, 45, 42, '채점 완료'],
+    ['학생 B', '2022002', '소프트웨어학과', 91, 40, 51, '채점 완료'],
+    ['학생 C', '2022003', '정보통신공학과', 78, 35, 43, '채점 완료'],
+    ['학생 D', '2022004', '데이터사이언스학과', null, 30, null, '미채점'],
+    ['학생 E', '2022005', '컴퓨터공학과', null, 25, null, '미채점'],
+  ]
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '성적')
+  XLSX.writeFile(wb, '[샘플] 성적_중간고사.xlsx')
+}
+
+// ── 문항 분석 샘플 ───────────────────────────────────────────────
+function downloadAnalysisSample() {
+  const XLSX = window.XLSX
+  const headers1 = ['문항', '유형', '배점(점)', '평균점수', '득점률(%)', '난이도', '정답학생수', '정답률', '변별도 D', '이분상관계수 r_pb']
+  const rows1 = [
+    ['Q1', '객관식', 5, 4.2, 84, '쉬움', 69, '84%', 0.312, 0.428],
+    ['Q2', '객관식', 5, 3.8, 76, '쉬움', 62, '76%', 0.289, 0.391],
+    ['Q3', '단답형', 10, 7.6, 76, '쉬움', '-', '-', 0.241, '-'],
+    ['Q4', '복수선택', 10, 6.9, 69, '보통', 45, '55%', 0.334, 0.412],
+    ['Q5', '서술형', 20, 14.8, 74, '보통', '-', '-', 0.198, '-'],
+  ]
+  const ws1 = XLSX.utils.aoa_to_sheet([headers1, ...rows1])
+  ws1['!cols'] = [{ wch: 7 }, { wch: 14 }, { wch: 9 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 20 }]
+
+  const rows2 = [
+    ['항목', '값'],
+    ['퀴즈명', '중간고사 - 데이터베이스 설계 및 SQL'],
+    ['과목', 'CS301 데이터베이스'],
+    ['만점', '100점'],
+    ['평균 점수', 82.4],
+    ['최고 점수', 97],
+    ['최저 점수', 58],
+    ['표준편차', 9.3],
+    ['응시율', '94.3%'],
+    ['채점 완료율', '54.9%'],
+    ['Cronbach α', 0.731],
+    ['', ''],
+    ['※ r_pb(이분상관계수), Cronbach α는 기존 Canvas LMS에서 제공하던 표준 문항 분석 지표와 동일한 방식으로 산출', ''],
+  ]
+  const ws2 = XLSX.utils.aoa_to_sheet(rows2)
+  ws2['!cols'] = [{ wch: 60 }, { wch: 30 }]
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws1, '문항 분석')
+  XLSX.utils.book_append_sheet(wb, ws2, '퀴즈 요약')
+  XLSX.writeFile(wb, '[샘플] 문항분석_중간고사.xlsx')
+}
+</script>
+
+</body>
+</html>
