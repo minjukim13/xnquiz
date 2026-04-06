@@ -189,24 +189,27 @@ function InstructorQuizList() {
     <Layout>
       <div className="max-w-4xl mx-auto px-6 sm:px-10 py-10">
 
-        <div className="flex items-end justify-between mb-6 gap-4">
+        {/* 헤더: 제목 + 새 퀴즈 */}
+        <div className="flex items-center justify-between mb-4 gap-4">
           <div>
             <p className="text-xs font-medium mb-1" style={{ color: '#9E9E9E' }}>CS301 데이터베이스 · 2026년 1학기</p>
             <h1 className="text-2xl font-bold" style={{ color: '#222222' }}>퀴즈 관리</h1>
           </div>
-          <div className="flex items-end gap-3 shrink-0">
-            <WeekSessionFilter
-              quizzes={quizzes}
-              filterWeek={filterWeek}
-              filterSession={filterSession}
-              onWeekChange={setFilterWeek}
-              onSessionChange={setFilterSession}
-            />
-            <Link to="/quiz/new" className="btn-primary" style={{ height: 38, whiteSpace: 'nowrap' }}>
-              <Plus size={14} />
-              새 퀴즈
-            </Link>
-          </div>
+          <Link to="/quiz/new" className="btn-primary shrink-0">
+            <Plus size={14} />
+            새 퀴즈
+          </Link>
+        </div>
+
+        {/* 필터 툴바 */}
+        <div className="mb-6">
+          <WeekSessionFilter
+            quizzes={quizzes}
+            filterWeek={filterWeek}
+            filterSession={filterSession}
+            onWeekChange={setFilterWeek}
+            onSessionChange={setFilterSession}
+          />
         </div>
 
         {gradingQuizzes.length > 0 && (
@@ -228,9 +231,10 @@ function InstructorQuizList() {
             {gradingQuizzes.length > 0 && (
               <div className="mb-6" style={{ borderTop: '1px solid #EEEEEE' }} />
             )}
-            <p className="text-xs font-semibold mb-3" style={{ color: '#9E9E9E' }}>
-              {filterLabel} ({otherQuizzes.length})
-            </p>
+            <div className="flex items-center gap-2 mb-3 pl-3" style={{ borderLeft: '3px solid #BDBDBD' }}>
+              <p className="text-sm font-semibold" style={{ color: '#616161' }}>{filterLabel}</p>
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: '#F5F5F5', color: '#9E9E9E' }}>{otherQuizzes.length}건</span>
+            </div>
             <div className="grid gap-3">
               {otherQuizzes.map(quiz => (
                 <QuizCard key={quiz.id} quiz={quiz} onPublishQuiz={handlePublishQuiz} />
