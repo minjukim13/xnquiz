@@ -32,25 +32,21 @@ function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, o
   }, [quizzes, filterWeek])
 
   return (
-    <div className="flex gap-3">
-      <div style={{ width: 160 }}>
-        <p className="text-xs font-medium mb-1.5" style={{ color: '#616161' }}>주차</p>
-        <CustomSelect
-          value={filterWeek}
-          onChange={v => { onWeekChange(v); onSessionChange('all') }}
-          options={weekOptions}
-          placeholder="주차 선택"
-        />
-      </div>
-      <div style={{ width: 160 }}>
-        <p className="text-xs font-medium mb-1.5" style={{ color: '#616161' }}>차시</p>
-        <CustomSelect
-          value={filterSession}
-          onChange={onSessionChange}
-          options={sessionOptions}
-          placeholder="차시 선택"
-        />
-      </div>
+    <div className="flex gap-2">
+      <CustomSelect
+        value={filterWeek}
+        onChange={v => { onWeekChange(v); onSessionChange('all') }}
+        options={weekOptions}
+        placeholder="주차 선택"
+        className="w-32"
+      />
+      <CustomSelect
+        value={filterSession}
+        onChange={onSessionChange}
+        options={sessionOptions}
+        placeholder="차시 선택"
+        className="w-28"
+      />
     </div>
   )
 }
@@ -115,28 +111,24 @@ function InstructorQuizList() {
     <Layout>
       <div className="max-w-4xl mx-auto px-6 sm:px-10 py-10">
 
-        <div className="flex items-start justify-between mb-5 gap-4">
+        <div className="flex items-end justify-between mb-6 gap-4">
           <div>
             <p className="text-xs font-medium mb-1" style={{ color: '#9E9E9E' }}>CS301 데이터베이스 · 2026년 1학기</p>
             <h1 className="text-2xl font-bold" style={{ color: '#222222' }}>퀴즈 관리</h1>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Link to="/quiz/new" className="btn-primary">
+          <div className="flex items-end gap-3 shrink-0">
+            <WeekSessionFilter
+              quizzes={quizzes}
+              filterWeek={filterWeek}
+              filterSession={filterSession}
+              onWeekChange={setFilterWeek}
+              onSessionChange={setFilterSession}
+            />
+            <Link to="/quiz/new" className="btn-primary" style={{ height: 38, whiteSpace: 'nowrap' }}>
               <Plus size={14} />
               새 퀴즈
             </Link>
           </div>
-        </div>
-
-        {/* 주차/차시 드롭다운 필터 */}
-        <div className="mb-6">
-          <WeekSessionFilter
-            quizzes={quizzes}
-            filterWeek={filterWeek}
-            filterSession={filterSession}
-            onWeekChange={setFilterWeek}
-            onSessionChange={setFilterSession}
-          />
         </div>
 
         {gradingQuizzes.length > 0 && (
@@ -412,12 +404,8 @@ function StudentQuizList() {
   return (
     <Layout>
       <div className="max-w-[760px] mx-auto px-6 sm:px-10 py-10">
-        <div className="flex items-center justify-between mb-5 gap-4">
+        <div className="flex items-end justify-between mb-6 gap-4">
           <h1 className="text-2xl font-bold" style={{ color: '#1a1a1a' }}>내 퀴즈</h1>
-        </div>
-
-        {/* 주차/차시 드롭다운 필터 */}
-        <div className="mb-6">
           <WeekSessionFilter
             quizzes={allQuizzes}
             filterWeek={filterWeek}
