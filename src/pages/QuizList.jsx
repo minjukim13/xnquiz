@@ -7,8 +7,8 @@ import { useRole } from '../context/RoleContext'
 import { getStudentAttempts } from '../data/mockData'
 
 // ─────────────────────────────── 공통: 주차/차시 드롭다운 필터 ───────────────────────────────
-function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, onSessionChange }) {
-  const hasUnassigned = quizzes.some(q => !q.week || q.week === 0)
+function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, onSessionChange, hideUnassigned = false }) {
+  const hasUnassigned = !hideUnassigned && quizzes.some(q => !q.week || q.week === 0)
 
   const availableWeeks = useMemo(() => {
     const weeks = [...new Set(quizzes.map(q => q.week).filter(w => w && w > 0))]
@@ -433,6 +433,7 @@ function StudentQuizList() {
             filterSession={filterSession}
             onWeekChange={setFilterWeek}
             onSessionChange={setFilterSession}
+            hideUnassigned
           />
         </div>
 
