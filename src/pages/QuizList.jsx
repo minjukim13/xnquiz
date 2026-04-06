@@ -169,28 +169,20 @@ function InstructorQuizList() {
     setQuizzes(updated)
   }
 
-  const filteredQuizzes = useMemo(
-    () => applyWeekSessionFilter(quizzes, filterWeek, filterSession),
+  // 최근 생성 순(id 내림차순) 단일 목록
+  const sortedQuizzes = useMemo(
+    () => applyWeekSessionFilter(quizzes, filterWeek, filterSession)
+      .slice()
+      .sort((a, b) => Number(b.id) - Number(a.id)),
     [quizzes, filterWeek, filterSession]
   )
-
-  const gradingQuizzes = filteredQuizzes.filter(q => q.status === 'grading')
-  const otherQuizzes   = filteredQuizzes
-    .filter(q => q.status !== 'grading')
-    .sort((a, b) => (STATUS_SORT[a.status] ?? 99) - (STATUS_SORT[b.status] ?? 99))
-
-  const isEmpty = gradingQuizzes.length === 0 && otherQuizzes.length === 0
-
-  const filterLabel = filterWeek === 'all' ? '전체 퀴즈'
-    : filterWeek === 'unassigned' ? `미지정 퀴즈`
-    : `${filterWeek}주차${filterSession !== 'all' ? ` ${filterSession}차시` : ''} 퀴즈`
 
   return (
     <Layout>
       <div className="max-w-4xl mx-auto px-6 sm:px-10 py-10">
 
         {/* 헤더: 제목 + 새 퀴즈 */}
-        <div className="flex items-center justify-between mb-4 gap-4">
+        <div className="flex items-center justify-between mb-5 gap-4">
           <div>
             <p className="text-xs font-medium mb-1" style={{ color: '#9E9E9E' }}>CS301 데이터베이스 · 2026년 1학기</p>
             <h1 className="text-2xl font-bold" style={{ color: '#222222' }}>퀴즈 관리</h1>
@@ -201,8 +193,11 @@ function InstructorQuizList() {
           </Link>
         </div>
 
-        {/* 필터 툴바 */}
-        <div className="mb-6">
+        {/* 툴바: 좌측 건수 / 우측 필터 */}
+        <div className="flex items-center justify-between mb-5 gap-4">
+          <p className="text-sm font-medium" style={{ color: '#9E9E9E' }}>
+            퀴즈 <span className="font-bold" style={{ color: '#424242' }}>{sortedQuizzes.length}</span>건
+          </p>
           <WeekSessionFilter
             quizzes={quizzes}
             filterWeek={filterWeek}
@@ -212,39 +207,16 @@ function InstructorQuizList() {
           />
         </div>
 
-        {gradingQuizzes.length > 0 && (
-          <section className="mb-8">
-            <div className="flex items-center gap-2 mb-3 pl-3" style={{ borderLeft: '3px solid #B43200' }}>
-              <p className="text-sm font-semibold" style={{ color: '#B43200' }}>채점 필요</p>
-              <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: '#FFF0EB', color: '#B43200' }}>{gradingQuizzes.length}건</span>
-            </div>
-            <div className="grid gap-3">
-              {gradingQuizzes.map(quiz => (
-                <QuizCard key={quiz.id} quiz={quiz} onPublishQuiz={handlePublishQuiz} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {!isEmpty ? (
-          <section>
-            {gradingQuizzes.length > 0 && (
-              <div className="mb-6" style={{ borderTop: '1px solid #EEEEEE' }} />
-            )}
-            <div className="flex items-center gap-2 mb-3 pl-3" style={{ borderLeft: '3px solid #BDBDBD' }}>
-              <p className="text-sm font-semibold" style={{ color: '#616161' }}>{filterLabel}</p>
-              <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: '#F5F5F5', color: '#9E9E9E' }}>{otherQuizzes.length}건</span>
-            </div>
-            <div className="grid gap-3">
-              {otherQuizzes.map(quiz => (
-                <QuizCard key={quiz.id} quiz={quiz} onPublishQuiz={handlePublishQuiz} />
-              ))}
-            </div>
-          </section>
+        {sortedQuizzes.length > 0 ? (
+          <div className="grid gap-3">
+            {sortedQuizzes.map(quiz => (
+              <QuizCard key={quiz.id} quiz={quiz} onPublishQuiz={handlePublishQuiz} />
+            ))}
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16" style={{ color: '#BDBDBD' }}>
             <FileText size={32} className="mb-3 opacity-40" />
-            <p className="text-sm">{filterLabel}에 해당하는 퀴즈가 없습니다.</p>
+            <p className="text-sm">해당 조건에 맞는 퀴즈가 없습니다.</p>
           </div>
         )}
       </div>
@@ -252,9 +224,29 @@ function InstructorQuizList() {
   )
 }
 
+// 날짜 기반 진행 상태 계산
+function getProgressBadge(quiz) {
+  if (quiz.status === 'draft') return null // 초안은 날짜 배지 불필요
+  const now = new Date()
+  const start = quiz.startDate ? new Date(quiz.startDate) : null
+  const due   = quiz.dueDate   ? new Date(quiz.dueDate)   : null
+
+  if (start && now < start) {
+    const diff = Math.ceil((start - now) / 86400000)
+    return { label: `예정 · D-${diff}`, color: '#6366f1', bg: '#EEF2FF' }
+  }
+  if (due && now <= due) {
+    const diff = Math.ceil((due - now) / 86400000)
+    if (diff === 0) return { label: 'D-0', color: '#B43200', bg: '#FFF6F2' }
+    return { label: `진행중 · D-${diff}`, color: '#018600', bg: '#E5FCE3' }
+  }
+  return { label: '마감', color: '#9E9E9E', bg: '#F5F5F5' }
+}
+
 function QuizCard({ quiz, onPublishQuiz }) {
   const cfg = STATUS_CONFIG[quiz.status]
   const [confirmPublish, setConfirmPublish] = useState(false)
+  const progressBadge = getProgressBadge(quiz)
 
   return (
     <div className="card overflow-hidden">
@@ -267,13 +259,24 @@ function QuizCard({ quiz, onPublishQuiz }) {
             >
               {cfg.label}
             </span>
-            <span className="text-xs" style={{ color: '#9E9E9E' }}>{quiz.week}주차 {quiz.session}차시</span>
-            {quiz.status === 'draft' && (
-              <span className="text-xs px-2 py-0.5 rounded" style={{ color: '#9E9E9E', background: '#F5F5F5' }}>미발행</span>
+            {(quiz.week > 0 || quiz.session > 0) && (
+              <span className="text-xs" style={{ color: '#9E9E9E' }}>
+                {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
+              </span>
             )}
           </div>
           <h3 className="text-base font-semibold leading-snug mb-1 truncate" style={{ color: '#222222' }}>{quiz.title}</h3>
-          <p className="text-xs" style={{ color: '#9E9E9E' }}>{quiz.startDate} ~ {quiz.dueDate}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-xs" style={{ color: '#BDBDBD' }}>{quiz.startDate} ~ {quiz.dueDate}</p>
+            {progressBadge && (
+              <span
+                className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                style={{ color: progressBadge.color, background: progressBadge.bg }}
+              >
+                {progressBadge.label}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0 mt-0.5">
