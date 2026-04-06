@@ -49,12 +49,12 @@ function FilterSelect({ value, onChange, options }) {
 
       {open && (
         <div
-          className="absolute right-0 top-full mt-1 bg-white z-50 py-1"
+          className="absolute left-0 top-full mt-1 bg-white z-50 py-1"
           style={{
             border: '1px solid #E0E0E0',
             borderRadius: 6,
             boxShadow: '0 4px 12px rgba(0,0,0,0.09)',
-            minWidth: 110,
+            minWidth: '100%',
           }}
         >
           {options.map(o => {
@@ -145,7 +145,7 @@ const STATUS_SORT = { draft: 0, open: 1, closed: 2 }
 const STATUS_CONFIG = {
   open:    { label: '진행중', badge: 'text-[#018600]',  bgStyle: { background: '#E5FCE3' } },
   grading: { label: '채점중', badge: 'text-[#B43200]',  bgStyle: { background: '#FFF6F2' } },
-  closed:  { label: '종료',   badge: 'text-[#616161]',  bgStyle: { background: '#F5F5F5' } },
+  closed:  { label: '채점완료', badge: 'text-[#616161]',  bgStyle: { background: '#F5F5F5' } },
   draft:   { label: '초안',   badge: 'text-indigo-600', bgStyle: { background: '#EEF2FF' } },
 }
 
