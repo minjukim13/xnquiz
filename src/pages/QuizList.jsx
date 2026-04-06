@@ -143,10 +143,10 @@ function applyWeekSessionFilter(quizzes, filterWeek, filterSession) {
 const STATUS_SORT = { draft: 0, open: 1, closed: 2 }
 
 const STATUS_CONFIG = {
-  open:    { label: '진행중', badge: 'text-[#018600]',  bgStyle: { background: '#E5FCE3' } },
-  grading: { label: '채점중', badge: 'text-[#B43200]',  bgStyle: { background: '#FFF6F2' } },
-  closed:  { label: '채점완료', badge: 'text-[#616161]',  bgStyle: { background: '#F5F5F5' } },
-  draft:   { label: '초안',   badge: 'text-indigo-600', bgStyle: { background: '#EEF2FF' } },
+  open:    { label: '응시중',   badge: 'text-[#018600]',  bgStyle: { background: '#E5FCE3' } },
+  grading: { label: '채점중',   badge: 'text-[#B43200]',  bgStyle: { background: '#FFF6F2' } },
+  closed:  { label: '완료',    badge: 'text-[#616161]',  bgStyle: { background: '#F5F5F5' } },
+  draft:   { label: '발행 전', badge: 'text-indigo-600', bgStyle: { background: '#EEF2FF' } },
 }
 
 export default function QuizList() {
@@ -224,29 +224,22 @@ function InstructorQuizList() {
   )
 }
 
-// 날짜 기반 진행 상태 계산
-function getProgressBadge(quiz) {
-  if (quiz.status === 'draft') return null // 초안은 날짜 배지 불필요
+// 응시중일 때만 D-day 배지 반환
+function getDdayBadge(quiz) {
+  if (quiz.status !== 'open') return null
   const now = new Date()
-  const start = quiz.startDate ? new Date(quiz.startDate) : null
-  const due   = quiz.dueDate   ? new Date(quiz.dueDate)   : null
-
-  if (start && now < start) {
-    const diff = Math.ceil((start - now) / 86400000)
-    return { label: `예정 · D-${diff}`, color: '#6366f1', bg: '#EEF2FF' }
-  }
-  if (due && now <= due) {
-    const diff = Math.ceil((due - now) / 86400000)
-    if (diff === 0) return { label: 'D-0', color: '#B43200', bg: '#FFF6F2' }
-    return { label: `진행중 · D-${diff}`, color: '#018600', bg: '#E5FCE3' }
-  }
-  return { label: '마감', color: '#9E9E9E', bg: '#F5F5F5' }
+  const due = quiz.dueDate ? new Date(quiz.dueDate) : null
+  if (!due) return null
+  const diff = Math.ceil((due - now) / 86400000)
+  if (diff < 0) return null
+  if (diff === 0) return { label: 'D-0', color: '#B43200', bg: '#FFF6F2' }
+  return { label: `D-${diff}`, color: '#B45309', bg: '#FFF9E6' }
 }
 
 function QuizCard({ quiz, onPublishQuiz }) {
   const cfg = STATUS_CONFIG[quiz.status]
   const [confirmPublish, setConfirmPublish] = useState(false)
-  const progressBadge = getProgressBadge(quiz)
+  const ddayBadge = getDdayBadge(quiz)
 
   return (
     <div className="card overflow-hidden">
@@ -268,12 +261,12 @@ function QuizCard({ quiz, onPublishQuiz }) {
           <h3 className="text-base font-semibold leading-snug mb-1 truncate" style={{ color: '#222222' }}>{quiz.title}</h3>
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xs" style={{ color: '#BDBDBD' }}>{quiz.startDate} ~ {quiz.dueDate}</p>
-            {progressBadge && (
+            {ddayBadge && (
               <span
                 className="text-xs font-semibold px-1.5 py-0.5 rounded"
-                style={{ color: progressBadge.color, background: progressBadge.bg }}
+                style={{ color: ddayBadge.color, background: ddayBadge.bg }}
               >
-                {progressBadge.label}
+                {ddayBadge.label}
               </span>
             )}
           </div>
@@ -368,82 +361,45 @@ function QuizCard({ quiz, onPublishQuiz }) {
       </div>
 
       <div className="px-6 py-4" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
-        {quiz.status === 'closed'
-          ? <ClosedSummary quiz={quiz} />
-          : <ActiveStats quiz={quiz} />
-        }
+        <ActiveStats quiz={quiz} />
       </div>
     </div>
   )
 }
 
-function ClosedSummary({ quiz }) {
-  const submitRate  = Math.round((quiz.submitted / quiz.totalStudents) * 100)
-  const unsubmitted = quiz.totalStudents - quiz.submitted
-
-  return (
-    <div className="flex items-center gap-5 flex-wrap">
-      {quiz.avgScore != null && (
-        <>
-          <div>
-            <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>평균 점수</p>
-            <div className="flex items-baseline gap-1">
-              <span className="text-sm font-bold" style={{ color: '#222222' }}>{quiz.avgScore}점</span>
-              <span className="text-xs" style={{ color: '#BDBDBD' }}>/ {quiz.totalPoints}점 만점</span>
-            </div>
-          </div>
-          <div className="w-px h-7 shrink-0" style={{ background: '#EEEEEE' }} />
-        </>
-      )}
-      <div>
-        <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>응시율</p>
-        <span className="text-sm font-bold" style={{ color: '#424242' }}>{submitRate}%</span>
-      </div>
-      <div className="w-px h-7 shrink-0" style={{ background: '#EEEEEE' }} />
-      <div>
-        <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>응시인원</p>
-        <span className="text-sm font-bold" style={{ color: '#424242' }}>{quiz.submitted}명</span>
-      </div>
-      <div className="w-px h-7 shrink-0" style={{ background: '#EEEEEE' }} />
-      <div>
-        <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>채점 완료</p>
-        <span className="text-sm font-bold" style={{ color: '#424242' }}>{quiz.graded}명</span>
-      </div>
-      {unsubmitted > 0 && (
-        <>
-          <div className="w-px h-7 shrink-0" style={{ background: '#EEEEEE' }} />
-          <div>
-            <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>미제출</p>
-            <span className="text-sm font-bold" style={{ color: '#BDBDBD' }}>{unsubmitted}명</span>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
 
 function ActiveStats({ quiz }) {
-  // localStorage에서 신규 응시 데이터 반영
   const newAttempts = getStudentAttempts(quiz.id)
   const submitted = quiz.submitted + newAttempts.length
-  const graded = quiz.graded + newAttempts.length // 자동채점이므로 즉시 채점 완료
-
+  const graded = quiz.graded + newAttempts.length
   const gradeProgress = submitted > 0 ? Math.round((graded / submitted) * 100) : 0
-  const submitRate    = Math.round((submitted / quiz.totalStudents) * 100)
-  const unsubmitted   = Math.max(0, quiz.totalStudents - submitted)
+  const submitRate = Math.round((submitted / quiz.totalStudents) * 100)
+  const unsubmitted = Math.max(0, quiz.totalStudents - submitted)
+  const isClosed = quiz.status === 'closed'
+
+  // 완료 상태는 미채점 대신 평균점수 표시
+  const cols = isClosed
+    ? [
+        { label: '응시율',    value: `${submitRate}%`,   color: '#222222' },
+        { label: '응시인원',  value: `${submitted}명`,   color: '#222222' },
+        { label: '미제출',    value: `${unsubmitted}명`, color: '#9E9E9E' },
+        { label: '채점완료',  value: `${graded}명`,      color: '#018600' },
+        { label: '평균점수',  value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', color: '#4f46e5' },
+      ]
+    : [
+        { label: '응시율',    value: `${submitRate}%`,   color: '#222222' },
+        { label: '응시인원',  value: `${submitted}명`,   color: '#222222' },
+        { label: '미제출',    value: `${unsubmitted}명`, color: unsubmitted > 0 ? '#B43200' : '#222222' },
+        { label: '채점완료',  value: `${graded}명`,      color: '#018600' },
+        { label: '미채점',    value: `${quiz.pendingGrade}명`, color: quiz.pendingGrade > 0 ? '#B43200' : '#222222' },
+      ]
 
   return (
     <>
       <div className="grid grid-cols-5">
-        {[
-          { label: '응시율',    value: `${submitRate}%`, styleColor: '#222222' },
-          { label: '응시인원',  value: `${submitted}명`, styleColor: '#222222' },
-          { label: '미제출',    value: `${unsubmitted}명`, styleColor: unsubmitted > 0 && quiz.status !== 'closed' ? '#B43200' : '#222222' },
-          { label: '채점 완료', value: `${graded}명`,    styleColor: '#018600' },
-          { label: '미채점',    value: `${quiz.pendingGrade}명`, styleColor: quiz.pendingGrade > 0 ? '#B43200' : '#222222' },
-        ].map((item, idx) => (
+        {cols.map((item, idx) => (
           <div key={item.label} className="text-center px-4 first:pl-0 last:pr-0" style={idx < 4 ? { borderRight: '1px solid #EEEEEE' } : {}}>
-            <p className="text-lg font-bold leading-none" style={{ color: item.styleColor }}>{item.value}</p>
+            <p className="text-lg font-bold leading-none" style={{ color: item.color }}>{item.value}</p>
             <p className="text-xs mt-1" style={{ color: '#9E9E9E' }}>{item.label}</p>
           </div>
         ))}
@@ -456,10 +412,7 @@ function ActiveStats({ quiz }) {
             <span className="text-xs font-semibold" style={{ color: '#424242' }}>{gradeProgress}%</span>
           </div>
           <div className="h-[4px] rounded overflow-hidden" style={{ background: '#EEEEEE' }}>
-            <div
-              className="h-full rounded transition-all bg-indigo-500"
-              style={{ width: `${gradeProgress}%` }}
-            />
+            <div className="h-full rounded transition-all bg-indigo-500" style={{ width: `${gradeProgress}%` }} />
           </div>
         </div>
       )}
