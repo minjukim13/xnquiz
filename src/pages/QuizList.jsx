@@ -6,7 +6,7 @@ import { mockQuizzes } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { getStudentAttempts } from '../data/mockData'
 // ─────────────────────────────── 필터 전용 소형 드롭다운 ───────────────────────────────
-function FilterSelect({ value, onChange, options }) {
+function FilterSelect({ value, onChange, options, placeholder = '전체', disabled = false }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -17,13 +17,13 @@ function FilterSelect({ value, onChange, options }) {
   }, [])
 
   const selected = options.find(o => String(o.value) === String(value))
-  const isActive = selected && selected.value !== 'all'
+  const isActive = selected && selected.value !== 'all' && !disabled
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => !disabled && setOpen(o => !o)}
         className="flex items-center gap-1.5 transition-all focus:outline-none"
         style={{
           height: 30,
@@ -32,12 +32,13 @@ function FilterSelect({ value, onChange, options }) {
           fontWeight: isActive ? 600 : 400,
           borderRadius: 6,
           border: isActive ? '1.5px solid #6366f1' : '1px solid #E0E0E0',
-          background: isActive ? '#EEF2FF' : '#fff',
-          color: isActive ? '#4338ca' : '#616161',
+          background: disabled ? '#FAFAFA' : isActive ? '#EEF2FF' : '#fff',
+          color: disabled ? '#BDBDBD' : isActive ? '#4338ca' : '#616161',
           whiteSpace: 'nowrap',
+          cursor: disabled ? 'not-allowed' : 'pointer',
         }}
       >
-        <span>{selected?.label ?? options[0]?.label}</span>
+        <span>{disabled ? placeholder : (selected?.label ?? placeholder)}</span>
         <svg
           width="11" height="11" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -47,7 +48,7 @@ function FilterSelect({ value, onChange, options }) {
         </svg>
       </button>
 
-      {open && (
+      {open && options.length > 0 && (
         <div
           className="absolute left-0 top-full mt-1 bg-white z-50 py-1"
           style={{
@@ -90,27 +91,25 @@ function FilterSelect({ value, onChange, options }) {
 }
 
 // ─────────────────────────────── 공통: 주차/차시 드롭다운 필터 ───────────────────────────────
+const WEEK_OPTIONS = [
+  { value: 'all', label: '전체 주차' },
+  { value: 'unassigned', label: '미지정' },
+  ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` })),
+]
+
 function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, onSessionChange, hideUnassigned = false }) {
-  const hasUnassigned = !hideUnassigned && quizzes.some(q => !q.week || q.week === 0)
+  const weekOptions = hideUnassigned
+    ? WEEK_OPTIONS.filter(o => o.value !== 'unassigned')
+    : WEEK_OPTIONS
 
-  const weekOptions = useMemo(() => {
-    const weeks = [...new Set(quizzes.map(q => q.week).filter(w => w && w > 0))].sort((a, b) => a - b)
-    return [
-      { value: 'all', label: '전체 주차' },
-      ...(hasUnassigned ? [{ value: 'unassigned', label: '미지정' }] : []),
-      ...weeks.map(w => ({ value: w, label: `${w}주차` })),
-    ]
-  }, [quizzes, hasUnassigned])
-
+  // 선택한 주차에 실제 퀴즈가 있는 차시만 표시. 주차 미선택이면 빈 목록.
   const sessionOptions = useMemo(() => {
+    if (filterWeek === 'all') return []
     let base = quizzes
     if (filterWeek === 'unassigned') base = quizzes.filter(q => !q.week || q.week === 0)
-    else if (filterWeek !== 'all') base = quizzes.filter(q => q.week === filterWeek)
+    else base = quizzes.filter(q => q.week === filterWeek)
     const sessions = [...new Set(base.map(q => q.session).filter(s => s && s > 0))].sort((a, b) => a - b)
-    return [
-      { value: 'all', label: '전체 차시' },
-      ...sessions.map(s => ({ value: s, label: `${s}차시` })),
-    ]
+    return sessions.map(s => ({ value: s, label: `${s}차시` }))
   }, [quizzes, filterWeek])
 
   return (
@@ -124,6 +123,8 @@ function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, o
         value={filterSession}
         onChange={onSessionChange}
         options={sessionOptions}
+        placeholder="차시 선택"
+        disabled={filterWeek === 'all'}
       />
     </div>
   )
