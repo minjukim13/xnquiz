@@ -5,61 +5,52 @@ import Layout from '../components/Layout'
 import { mockQuizzes } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { getStudentAttempts } from '../data/mockData'
+import CustomSelect from '../components/CustomSelect'
 
 // ─────────────────────────────── 공통: 주차/차시 드롭다운 필터 ───────────────────────────────
 function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, onSessionChange, hideUnassigned = false }) {
   const hasUnassigned = !hideUnassigned && quizzes.some(q => !q.week || q.week === 0)
 
-  const availableWeeks = useMemo(() => {
-    const weeks = [...new Set(quizzes.map(q => q.week).filter(w => w && w > 0))]
-    return weeks.sort((a, b) => a - b)
-  }, [quizzes])
+  const weekOptions = useMemo(() => {
+    const weeks = [...new Set(quizzes.map(q => q.week).filter(w => w && w > 0))].sort((a, b) => a - b)
+    return [
+      { value: 'all', label: '전체 주차' },
+      ...(hasUnassigned ? [{ value: 'unassigned', label: '미지정' }] : []),
+      ...weeks.map(w => ({ value: w, label: `${w}주차` })),
+    ]
+  }, [quizzes, hasUnassigned])
 
-  const availableSessions = useMemo(() => {
+  const sessionOptions = useMemo(() => {
     let base = quizzes
     if (filterWeek === 'unassigned') base = quizzes.filter(q => !q.week || q.week === 0)
     else if (filterWeek !== 'all') base = quizzes.filter(q => q.week === filterWeek)
-    const sessions = [...new Set(base.map(q => q.session).filter(s => s && s > 0))]
-    return sessions.sort((a, b) => a - b)
+    const sessions = [...new Set(base.map(q => q.session).filter(s => s && s > 0))].sort((a, b) => a - b)
+    return [
+      { value: 'all', label: '전체 차시' },
+      ...sessions.map(s => ({ value: s, label: `${s}차시` })),
+    ]
   }, [quizzes, filterWeek])
 
-  const selectStyle = {
-    padding: '6px 28px 6px 10px',
-    fontSize: '12px',
-    fontWeight: 500,
-    border: '1px solid #E0E0E0',
-    borderRadius: 8,
-    background: '#fff',
-    color: '#424242',
-    appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239E9E9E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 8px center',
-    cursor: 'pointer',
-    outline: 'none',
-  }
-
   return (
-    <div className="flex items-center gap-2">
-      <select
-        value={filterWeek}
-        onChange={e => { onWeekChange(e.target.value === 'all' ? 'all' : e.target.value === 'unassigned' ? 'unassigned' : Number(e.target.value)); onSessionChange('all') }}
-        style={selectStyle}
-      >
-        <option value="all">전체 주차</option>
-        {hasUnassigned && <option value="unassigned">미지정</option>}
-        {availableWeeks.map(w => <option key={w} value={w}>{w}주차</option>)}
-      </select>
-
-      <select
-        value={filterSession}
-        onChange={e => onSessionChange(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-        style={selectStyle}
-        disabled={availableSessions.length === 0}
-      >
-        <option value="all">전체 차시</option>
-        {availableSessions.map(s => <option key={s} value={s}>{s}차시</option>)}
-      </select>
+    <div className="flex gap-3">
+      <div style={{ width: 160 }}>
+        <p className="text-xs font-medium mb-1.5" style={{ color: '#616161' }}>주차</p>
+        <CustomSelect
+          value={filterWeek}
+          onChange={v => { onWeekChange(v); onSessionChange('all') }}
+          options={weekOptions}
+          placeholder="주차 선택"
+        />
+      </div>
+      <div style={{ width: 160 }}>
+        <p className="text-xs font-medium mb-1.5" style={{ color: '#616161' }}>차시</p>
+        <CustomSelect
+          value={filterSession}
+          onChange={onSessionChange}
+          options={sessionOptions}
+          placeholder="차시 선택"
+        />
+      </div>
     </div>
   )
 }
