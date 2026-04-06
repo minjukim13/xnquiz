@@ -363,7 +363,7 @@ function QuizCard({ quiz, onPublishQuiz }) {
       <div className="px-6 py-4" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
         {quiz.status === 'draft' ? (
           <p style={{ fontSize: 12, color: '#BDBDBD' }}>
-            {quiz.questions}문항 · {quiz.totalPoints}점 · {quiz.timeLimit === 0 ? '시간 제한 없음' : `${quiz.timeLimit}분`}
+            문항 {quiz.questions}개 · 총점 {quiz.totalPoints}점 · 제한시간 {quiz.timeLimit === 0 ? '없음' : `${quiz.timeLimit}분`}
           </p>
         ) : (
           <ActiveStats quiz={quiz} />
