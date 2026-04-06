@@ -22,6 +22,7 @@ export default function QuizAttempt() {
   const [result, setResult] = useState(null)
   const [timeRemaining, setTimeRemaining] = useState(noTimeLimit ? null : (quiz?.timeLimit ?? 30) * 60)
   const [alertDialog, setAlertDialog] = useState(null)
+  const [showAnswerPreview, setShowAnswerPreview] = useState(false)
 
   // 미리보기 모드가 아니고 학생이 아니면 홈으로
   useEffect(() => {
@@ -142,24 +143,45 @@ export default function QuizAttempt() {
         {/* 미리보기 배너 */}
         {isPreview && (
           <div
-            className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg mb-5"
+            className="px-4 py-3 rounded-lg mb-5"
             style={{ background: '#FFF9E6', border: '1px solid #FDE68A' }}
           >
-            <div className="flex items-center gap-2">
-              <Eye size={15} style={{ color: '#D97706' }} />
-              <span className="text-sm font-semibold" style={{ color: '#92400E' }}>미리보기 모드</span>
-              <span className="text-xs" style={{ color: '#B45309' }}>학생에게 보이는 화면입니다. 실제 제출은 불가합니다.</span>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Eye size={15} style={{ color: '#D97706' }} />
+                <span className="text-sm font-semibold" style={{ color: '#92400E' }}>미리보기 모드</span>
+                <span className="text-xs" style={{ color: '#B45309' }}>학생에게 보이는 화면입니다. 실제 제출은 불가합니다.</span>
+              </div>
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded transition-colors shrink-0"
+                style={{ color: '#92400E', border: '1px solid #FCD34D' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#FEF3C7'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <X size={12} />
+                미리보기 종료
+              </button>
             </div>
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded transition-colors"
-              style={{ color: '#92400E', border: '1px solid #FCD34D' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#FEF3C7'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <X size={12} />
-              미리보기 종료
-            </button>
+            {/* 정답 표시 토글 */}
+            <div className="flex items-center gap-2 mt-2.5 pt-2.5" style={{ borderTop: '1px solid #FDE68A' }}>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <div
+                  onClick={() => setShowAnswerPreview(v => !v)}
+                  className="relative w-8 h-4 rounded-full transition-colors"
+                  style={{ background: showAnswerPreview ? '#D97706' : '#E0E0E0' }}
+                >
+                  <div
+                    className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all"
+                    style={{ left: showAnswerPreview ? '18px' : '2px' }}
+                  />
+                </div>
+                <span className="text-xs font-medium" style={{ color: '#92400E' }}>정답 함께 표시</span>
+              </label>
+              {showAnswerPreview && (
+                <span className="text-xs" style={{ color: '#B45309' }}>각 문항 하단에 정답이 표시됩니다.</span>
+              )}
+            </div>
           </div>
         )}
 
@@ -210,6 +232,7 @@ export default function QuizAttempt() {
               value={answers[q.id] ?? ''}
               onChange={val => !isPreview && setAnswers(prev => ({ ...prev, [q.id]: val }))}
               disabled={submitted || isPreview}
+              showAnswer={isPreview && showAnswerPreview}
             />
           ))}
         </div>
@@ -262,7 +285,7 @@ export default function QuizAttempt() {
   )
 }
 
-function QuestionCard({ question, index, value, onChange, disabled }) {
+function QuestionCard({ question, index, value, onChange, disabled, showAnswer = false }) {
   const typeLabels = {
     multiple_choice: '객관식', true_false: '참/거짓', short_answer: '단답형',
     essay: '서술형', numerical: '수치형', fill_in_blank: '빈칸 채우기',
@@ -354,12 +377,31 @@ function QuestionCard({ question, index, value, onChange, disabled }) {
       </div>
 
       {/* 답변 완료 표시 */}
-      {isAnswered && (
+      {isAnswered && !showAnswer && (
         <div className="px-5 py-2" style={{ background: '#F5F7FF', borderTop: '1px solid #E8EBFF' }}>
           <p className="text-xs flex items-center gap-1.5" style={{ color: '#4f46e5' }}>
             <CheckCircle2 size={11} />
             답변 완료
           </p>
+        </div>
+      )}
+
+      {/* 정답 표시 (미리보기 모드 전용) */}
+      {showAnswer && question.correctAnswer != null && (
+        <div className="px-5 py-2.5" style={{ background: '#F0FDF4', borderTop: '1px solid #BBF7D0' }}>
+          <p className="text-xs font-medium" style={{ color: '#15803D' }}>
+            정답:&nbsp;
+            <span className="font-semibold">
+              {Array.isArray(question.correctAnswer)
+                ? question.correctAnswer.join(', ')
+                : String(question.correctAnswer)}
+            </span>
+          </p>
+        </div>
+      )}
+      {showAnswer && question.correctAnswer == null && (
+        <div className="px-5 py-2.5" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
+          <p className="text-xs" style={{ color: '#9E9E9E' }}>정답 없음 (수동 채점 문항)</p>
         </div>
       )}
     </div>
