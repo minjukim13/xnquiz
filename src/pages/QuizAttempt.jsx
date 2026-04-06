@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { Clock, ChevronRight, CheckCircle2, AlertCircle, Send, Eye, X } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, getQuizQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
@@ -23,11 +23,6 @@ export default function QuizAttempt() {
   const [timeRemaining, setTimeRemaining] = useState(noTimeLimit ? null : (quiz?.timeLimit ?? 30) * 60)
   const [alertDialog, setAlertDialog] = useState(null)
   const [showAnswerPreview, setShowAnswerPreview] = useState(false)
-
-  // 미리보기 모드가 아니고 학생이 아니면 홈으로
-  useEffect(() => {
-    if (!isPreview && role !== 'student') navigate('/', { replace: true })
-  }, [role, isPreview])
 
   // 타이머 (미리보기 모드 및 제한 없음인 경우 실행하지 않음)
   useEffect(() => {
@@ -99,6 +94,9 @@ export default function QuizAttempt() {
     }
     setResult(attempt)
   }, [answers, questions, id, currentStudent, timeRemaining, submitted])
+
+  // 미리보기 모드가 아니고 학생이 아니면 홈으로 (useEffect 대신 렌더 시점에 처리)
+  if (!isPreview && role !== 'student') return <Navigate to="/" replace />
 
   if (!isPreview && quiz && quiz.status !== 'open') {
     const statusMsg = {
