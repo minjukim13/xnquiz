@@ -377,28 +377,28 @@ function ActiveStats({ quiz }) {
   const unsubmitted = Math.max(0, quiz.totalStudents - submitted)
   const isClosed = quiz.status === 'closed'
 
-  // 완료 상태는 미채점 대신 평균점수 표시
   const cols = isClosed
     ? [
-        { label: '응시율',    value: `${submitRate}%`,   color: '#222222' },
-        { label: '응시인원',  value: `${submitted}명`,   color: '#222222' },
-        { label: '미제출',    value: `${unsubmitted}명`, color: '#9E9E9E' },
-        { label: '채점완료',  value: `${graded}명`,      color: '#018600' },
-        { label: '평균점수',  value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', color: '#4f46e5' },
+        { label: '응시율',   value: `${submitRate}%`,   color: '#222222' },
+        { label: '응시인원', value: `${submitted}명`,   color: '#222222' },
+        { label: '미제출',   value: `${unsubmitted}명`, color: '#9E9E9E' },
+        { label: '채점완료', value: `${graded}명`,      color: '#018600' },
+        { label: '미채점',   value: `${quiz.pendingGrade}명`, color: '#9E9E9E' },
+        { label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', color: '#4f46e5' },
       ]
     : [
-        { label: '응시율',    value: `${submitRate}%`,   color: '#222222' },
-        { label: '응시인원',  value: `${submitted}명`,   color: '#222222' },
-        { label: '미제출',    value: `${unsubmitted}명`, color: unsubmitted > 0 ? '#B43200' : '#222222' },
-        { label: '채점완료',  value: `${graded}명`,      color: '#018600' },
-        { label: '미채점',    value: `${quiz.pendingGrade}명`, color: quiz.pendingGrade > 0 ? '#B43200' : '#222222' },
+        { label: '응시율',   value: `${submitRate}%`,   color: '#222222' },
+        { label: '응시인원', value: `${submitted}명`,   color: '#222222' },
+        { label: '미제출',   value: `${unsubmitted}명`, color: unsubmitted > 0 ? '#B43200' : '#222222' },
+        { label: '채점완료', value: `${graded}명`,      color: '#018600' },
+        { label: '미채점',   value: `${quiz.pendingGrade}명`, color: quiz.pendingGrade > 0 ? '#B43200' : '#222222' },
       ]
 
   return (
     <>
-      <div className="grid grid-cols-5">
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}>
         {cols.map((item, idx) => (
-          <div key={item.label} className="text-center px-4 first:pl-0 last:pr-0" style={idx < 4 ? { borderRight: '1px solid #EEEEEE' } : {}}>
+          <div key={item.label} className="text-center px-4 first:pl-0 last:pr-0" style={idx < cols.length - 1 ? { borderRight: '1px solid #EEEEEE' } : {}}>
             <p className="text-lg font-bold leading-none" style={{ color: item.color }}>{item.value}</p>
             <p className="text-xs mt-1" style={{ color: '#9E9E9E' }}>{item.label}</p>
           </div>
