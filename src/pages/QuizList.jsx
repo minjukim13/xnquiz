@@ -521,66 +521,76 @@ function StudentQuizList() {
 function StudentQuizCard({ quiz, studentId }) {
   const attempts = getStudentAttempts(quiz.id)
   const myAttempts = attempts.filter(a => a.studentId === studentId)
-  const myAttempt = myAttempts[myAttempts.length - 1] ?? null // 가장 최근 응시
+  const myAttempt = myAttempts[myAttempts.length - 1] ?? null
   const attemptCount = myAttempts.length
   const maxAttempts = quiz.allowAttempts ?? 1
   const isAttemptExceeded = maxAttempts !== -1 && attemptCount >= maxAttempts
   const isOpen    = quiz.status === 'open'
   const isGrading = quiz.status === 'grading'
   const isClosed  = quiz.status === 'closed'
+  const ddayBadge = getDdayBadge(quiz)
+
+  // 퀴즈 상태 뱃지 (1레이어)
+  const statusBadge = isOpen
+    ? { label: '응시중', color: '#018600', bg: '#E5FCE3' }
+    : isGrading
+      ? { label: '채점중', color: '#B43200', bg: '#FFF6F2' }
+      : { label: '종료', color: '#9E9E9E', bg: '#F5F5F5' }
+
+  // 내 응시 상태 뱃지 (2레이어: 내가 어떤 상태인지)
+  const myBadge = (() => {
+    if (!myAttempt) {
+      if (isOpen) return null // 아직 미응시 → 버튼으로 유도
+      return { label: '미제출', color: '#9E9E9E', bg: '#F5F5F5', icon: false }
+    }
+    if (myAttempt.manualPending > 0) return { label: '채점 대기', color: '#B45309', bg: '#FFF9E6', icon: false }
+    return { label: '채점 완료', color: '#4f46e5', bg: '#EEF2FF', icon: true }
+  })()
 
   return (
     <div className="card overflow-hidden">
       <div className="px-5 pt-5 pb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
+            {/* 뱃지 행 */}
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              {/* 배지 */}
-              {isOpen && !myAttempt && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: '#E5FCE3', color: '#018600' }}>응시 가능</span>
-              )}
-              {isOpen && myAttempt && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1" style={{ background: '#EEF2FF', color: '#4f46e5' }}>
-                  <CheckCircle2 size={11} />제출 완료
+              <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ color: statusBadge.color, background: statusBadge.bg }}>
+                {statusBadge.label}
+              </span>
+              {myBadge && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1" style={{ color: myBadge.color, background: myBadge.bg }}>
+                  {myBadge.icon && <CheckCircle2 size={11} />}
+                  {myBadge.label}
                 </span>
               )}
-              {isGrading && myAttempt && myAttempt.manualPending > 0 && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: '#FFF6F2', color: '#B43200' }}>채점 중</span>
-              )}
-              {isGrading && myAttempt && !myAttempt.manualPending && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1" style={{ background: '#EEF2FF', color: '#4f46e5' }}>
-                  <CheckCircle2 size={11} />채점 완료
-                </span>
-              )}
-              {isGrading && !myAttempt && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: '#F5F5F5', color: '#9E9E9E' }}>미제출 마감</span>
-              )}
-              {isClosed && myAttempt && myAttempt.manualPending > 0 && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: '#FFF6F2', color: '#B43200' }}>채점 중</span>
-              )}
-              {isClosed && myAttempt && !myAttempt.manualPending && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1" style={{ background: '#EEF2FF', color: '#4f46e5' }}>
-                  <CheckCircle2 size={11} />채점 완료
-                </span>
-              )}
-              {isClosed && !myAttempt && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: '#F5F5F5', color: '#9E9E9E' }}>종료</span>
-              )}
-              {(quiz.week || quiz.session) && (
+              {(quiz.week > 0 || quiz.session > 0) && (
                 <span className="text-xs" style={{ color: '#9E9E9E' }}>
-                  {quiz.week ? `${quiz.week}주차` : ''}{quiz.week && quiz.session ? ' ' : ''}{quiz.session ? `${quiz.session}차시` : ''}
+                  {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
                 </span>
               )}
             </div>
-            <h3 className="text-base font-semibold mb-1 truncate" style={{ color: '#222222' }}>{quiz.title}</h3>
-            <div className="flex items-center gap-3 text-xs" style={{ color: '#9E9E9E' }}>
-              <span className="flex items-center gap-1"><Clock size={11} />{quiz.timeLimit ?? 30}분</span>
+
+            <h3 className="text-base font-semibold mb-1.5 truncate" style={{ color: '#222222' }}>{quiz.title}</h3>
+
+            {/* 기간 + D-day */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-xs" style={{ color: '#BDBDBD' }}>{quiz.startDate} ~ {quiz.dueDate}</p>
+              {ddayBadge && (
+                <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={{ color: ddayBadge.color, background: ddayBadge.bg }}>
+                  {ddayBadge.label}
+                </span>
+              )}
+            </div>
+
+            {/* 스펙 */}
+            <div className="flex items-center gap-3 mt-1.5 text-xs" style={{ color: '#9E9E9E' }}>
+              <span className="flex items-center gap-1"><Clock size={11} />{quiz.timeLimit === 0 ? '시간 제한 없음' : `${quiz.timeLimit ?? 30}분`}</span>
               <span>{quiz.questions}문항 · {quiz.totalPoints}점</span>
-              <span>마감 {quiz.dueDate}</span>
+              {maxAttempts !== -1 && <span>응시 {attemptCount}/{maxAttempts}회</span>}
             </div>
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 mt-0.5">
             {isOpen && !isAttemptExceeded && (
               <Link
                 to={`/quiz/${quiz.id}/attempt`}
@@ -594,17 +604,10 @@ function StudentQuizCard({ quiz, studentId }) {
             )}
             {isOpen && isAttemptExceeded && (
               <div className="relative group">
-                <button
-                  disabled
-                  className="text-xs font-semibold px-4 py-2 rounded cursor-not-allowed"
-                  style={{ background: '#E0E0E0', color: '#9E9E9E' }}
-                >
+                <button disabled className="text-xs font-semibold px-4 py-2 rounded cursor-not-allowed" style={{ background: '#E0E0E0', color: '#9E9E9E' }}>
                   응시하기
                 </button>
-                <div
-                  className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10"
-                  style={{ background: '#424242', color: '#fff' }}
-                >
+                <div className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10" style={{ background: '#424242', color: '#fff' }}>
                   응시 가능 횟수({maxAttempts}회)를 초과했습니다
                 </div>
               </div>
@@ -613,7 +616,7 @@ function StudentQuizCard({ quiz, studentId }) {
         </div>
       </div>
 
-      {/* 제출 결과 미리보기 */}
+      {/* 내 응시 결과 */}
       {myAttempt && (
         <div className="px-5 py-3" style={{ background: '#F5F7FF', borderTop: '1px solid #E8EBFF' }}>
           <div className="flex items-center gap-4 text-xs">
