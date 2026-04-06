@@ -360,9 +360,11 @@ function QuizCard({ quiz, onPublishQuiz }) {
         </div>
       </div>
 
-      <div className="px-6 py-4" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
-        <ActiveStats quiz={quiz} />
-      </div>
+      {quiz.status !== 'draft' && (
+        <div className="px-6 py-4" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
+          <ActiveStats quiz={quiz} />
+        </div>
+      )}
     </div>
   )
 }
