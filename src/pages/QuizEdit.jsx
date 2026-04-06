@@ -383,6 +383,7 @@ export default function QuizEdit() {
           onClose={() => setShowBankModal(false)}
           onAdd={addQuestion}
           added={questions.map(q => q.id)}
+          currentCourse={quiz?.course}
         />
       )}
       {showAddModal && (

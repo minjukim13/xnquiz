@@ -10,9 +10,10 @@ const DIFFICULTY_COLORS = {
   low:    { bg: '#F0FDF4', text: '#166534' },
 }
 
-export default function QuestionBankModal({ onClose, onAdd, added }) {
+export default function QuestionBankModal({ onClose, onAdd, added, currentCourse }) {
   const { banks, getBankQuestions } = useQuestionBank()
   const [selectedBankId, setSelectedBankId] = useState(null)
+  const [showOtherCourses, setShowOtherCourses] = useState(false)
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
@@ -84,6 +85,7 @@ export default function QuestionBankModal({ onClose, onAdd, added }) {
     setFilterGroup('all')
     setVisibleCount(15)
     setChecked(new Set())
+    setShowOtherCourses(false)
   }
 
   const handleScroll = useCallback((e) => {
@@ -127,27 +129,100 @@ export default function QuestionBankModal({ onClose, onAdd, added }) {
 
         {/* Step 1: 은행 선택 */}
         {!selectedBankId ? (
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            <p className="text-xs mb-3" style={{ color: '#9E9E9E' }}>문제를 가져올 은행을 선택하세요</p>
-            {banks.map(b => {
-              const count = getBankQuestions(b.id).length
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <p className="text-xs" style={{ color: '#9E9E9E' }}>문제를 가져올 은행을 선택하세요</p>
+
+            {/* 현재 과목 은행 */}
+            {(() => {
+              const currentBanks = currentCourse
+                ? banks.filter(b => b.course === currentCourse)
+                : banks
               return (
-                <button
-                  key={b.id}
-                  onClick={() => setSelectedBankId(b.id)}
-                  className="w-full flex items-center justify-between p-3 text-left transition-colors"
-                  style={{ border: '1px solid #E0E0E0', borderRadius: 6 }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#FAFAFA' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#E0E0E0'; e.currentTarget.style.background = 'transparent' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <BookOpen size={14} style={{ color: '#9E9E9E' }} />
-                    <span className="text-sm font-medium" style={{ color: '#222222' }}>{b.name}</span>
-                  </div>
-                  <span className="text-xs" style={{ color: '#9E9E9E' }}>{count}개 문항</span>
-                </button>
+                <div className="space-y-2">
+                  {currentCourse && (
+                    <p className="text-xs font-medium" style={{ color: '#616161' }}>{currentCourse}</p>
+                  )}
+                  {currentBanks.length === 0 ? (
+                    <p className="text-xs py-3 text-center" style={{ color: '#BDBDBD' }}>이 과목에 등록된 문제은행이 없습니다</p>
+                  ) : (
+                    currentBanks.map(b => {
+                      const count = getBankQuestions(b.id).length
+                      return (
+                        <button
+                          key={b.id}
+                          onClick={() => setSelectedBankId(b.id)}
+                          className="w-full flex items-center justify-between p-3 text-left transition-colors"
+                          style={{ border: '1px solid #E0E0E0', borderRadius: 6 }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#FAFAFA' }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = '#E0E0E0'; e.currentTarget.style.background = 'transparent' }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <BookOpen size={14} style={{ color: '#9E9E9E' }} />
+                            <span className="text-sm font-medium" style={{ color: '#222222' }}>{b.name}</span>
+                          </div>
+                          <span className="text-xs" style={{ color: '#9E9E9E' }}>{count}개 문항</span>
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
               )
-            })}
+            })()}
+
+            {/* 다른 과목 은행 */}
+            {currentCourse && banks.some(b => b.course !== currentCourse) && (
+              <div>
+                <button
+                  onClick={() => setShowOtherCourses(v => !v)}
+                  className="flex items-center gap-1.5 text-xs mb-2 transition-colors"
+                  style={{ color: showOtherCourses ? '#6366f1' : '#9E9E9E' }}
+                >
+                  <ChevronLeft
+                    size={13}
+                    style={{ transform: showOtherCourses ? 'rotate(-90deg)' : 'rotate(-180deg)', transition: 'transform 0.15s' }}
+                  />
+                  다른 과목 문제은행
+                </button>
+                {showOtherCourses && (() => {
+                  const otherBanks = banks.filter(b => b.course !== currentCourse)
+                  // 과목별 그룹핑
+                  const grouped = otherBanks.reduce((acc, b) => {
+                    const key = b.course ?? '기타'
+                    if (!acc[key]) acc[key] = []
+                    acc[key].push(b)
+                    return acc
+                  }, {})
+                  return (
+                    <div className="space-y-3">
+                      {Object.entries(grouped).map(([course, courseBanks]) => (
+                        <div key={course} className="space-y-2">
+                          <p className="text-xs font-medium" style={{ color: '#616161' }}>{course}</p>
+                          {courseBanks.map(b => {
+                            const count = getBankQuestions(b.id).length
+                            return (
+                              <button
+                                key={b.id}
+                                onClick={() => setSelectedBankId(b.id)}
+                                className="w-full flex items-center justify-between p-3 text-left transition-colors"
+                                style={{ border: '1px solid #E0E0E0', borderRadius: 6 }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#FAFAFA' }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E0E0E0'; e.currentTarget.style.background = 'transparent' }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <BookOpen size={14} style={{ color: '#9E9E9E' }} />
+                                  <span className="text-sm font-medium" style={{ color: '#222222' }}>{b.name}</span>
+                                </div>
+                                <span className="text-xs" style={{ color: '#9E9E9E' }}>{count}개 문항</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
           </div>
         ) : (
           <>

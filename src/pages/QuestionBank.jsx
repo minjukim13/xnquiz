@@ -68,6 +68,8 @@ export default function QuestionBank() {
       usageCount: 0,
       difficulty: row.difficulty || 'medium',
       groupTag: row.groupTag || '',
+      correctAnswer: row.answer || '',
+      choices: row.choices || [],
     }))
     addQuestions(newQuestions)
     setShowUploadModal(false)
@@ -479,10 +481,13 @@ function ExcelUploadModal({ onClose, onImport }) {
 
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between text-xs" style={{ color: '#9E9E9E' }}>
-            <span>지원 형식: .xlsx, .xls, .csv</span>
+            <span>
+              지원 형식: .xlsx, .xls, .csv<br />
+              지원 유형: 객관식, 참/거짓, 단답형, 서술형
+            </span>
             <button
               onClick={downloadQuestionTemplate}
-              className="flex items-center gap-1 text-indigo-600 underline"
+              className="flex items-center gap-1 text-indigo-600 border border-indigo-300 rounded px-2 py-1 text-xs hover:bg-indigo-50 transition-colors"
             >
               <Download size={12} />
               엑셀 템플릿 다운로드

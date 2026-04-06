@@ -376,10 +376,10 @@ const BANK_QUESTION_TEXTS = [
 ]
 
 export const MOCK_BANKS = [
-  { id: 'bank1', name: 'DB 기초', updatedAt: '2026-03-20', usedInQuizIds: ['1', '2'] },
-  { id: 'bank2', name: 'SQL 심화', updatedAt: '2026-03-24', usedInQuizIds: ['1'] },
-  { id: 'bank3', name: '설계 원칙', updatedAt: '2026-03-15', usedInQuizIds: ['4'] },
-  { id: 'bank4', name: '트랜잭션', updatedAt: '2026-03-10', usedInQuizIds: ['1', '4'] },
+  { id: 'bank1', name: 'DB 기초', course: 'CS301 데이터베이스', updatedAt: '2026-03-20', usedInQuizIds: ['1', '2'] },
+  { id: 'bank2', name: 'SQL 심화', course: 'CS301 데이터베이스', updatedAt: '2026-03-24', usedInQuizIds: ['1'] },
+  { id: 'bank3', name: '프로세스 관리', course: 'CS201 운영체제', updatedAt: '2026-03-15', usedInQuizIds: [] },
+  { id: 'bank4', name: '메모리 관리', course: 'CS201 운영체제', updatedAt: '2026-03-10', usedInQuizIds: [] },
 ]
 
 const BANK_GROUP_MAP = {

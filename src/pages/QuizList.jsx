@@ -302,9 +302,7 @@ function StudentQuizList() {
     <Layout>
       <div className="max-w-[760px] mx-auto px-6 sm:px-10 py-10">
         <div className="mb-8">
-          <p className="text-xs font-medium mb-1" style={{ color: '#9E9E9E' }}>CS301 데이터베이스 · 2026년 1학기</p>
-          <h1 className="text-2xl font-bold mb-1" style={{ color: '#222222' }}>내 퀴즈</h1>
-          <p className="text-sm" style={{ color: '#616161' }}>안녕하세요, {currentStudent.name}님</p>
+          <h1 className="text-2xl font-bold" style={{ color: '#1a1a1a' }}>내 퀴즈</h1>
         </div>
 
         {/* 응시 가능한 퀴즈 */}
@@ -356,7 +354,11 @@ function StudentQuizList() {
 
 function StudentQuizCard({ quiz, studentId }) {
   const attempts = getStudentAttempts(quiz.id)
-  const myAttempt = attempts.find(a => a.studentId === studentId)
+  const myAttempts = attempts.filter(a => a.studentId === studentId)
+  const myAttempt = myAttempts[myAttempts.length - 1] ?? null // 가장 최근 응시
+  const attemptCount = myAttempts.length
+  const maxAttempts = quiz.allowAttempts ?? 1
+  const isAttemptExceeded = maxAttempts !== -1 && attemptCount >= maxAttempts
   const isOpen    = quiz.status === 'open'
   const isGrading = quiz.status === 'grading'
   const isClosed  = quiz.status === 'closed'
@@ -398,7 +400,11 @@ function StudentQuizCard({ quiz, studentId }) {
               {isClosed && !myAttempt && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: '#F5F5F5', color: '#9E9E9E' }}>종료</span>
               )}
-              <span className="text-xs" style={{ color: '#9E9E9E' }}>{quiz.week}주차 {quiz.session}차시</span>
+              {(quiz.week || quiz.session) && (
+                <span className="text-xs" style={{ color: '#9E9E9E' }}>
+                  {quiz.week ? `${quiz.week}주차` : ''}{quiz.week && quiz.session ? ' ' : ''}{quiz.session ? `${quiz.session}차시` : ''}
+                </span>
+              )}
             </div>
             <h3 className="text-base font-semibold mb-1 truncate" style={{ color: '#222222' }}>{quiz.title}</h3>
             <div className="flex items-center gap-3 text-xs" style={{ color: '#9E9E9E' }}>
@@ -409,7 +415,7 @@ function StudentQuizCard({ quiz, studentId }) {
           </div>
 
           <div className="shrink-0">
-            {isOpen && !myAttempt && (
+            {isOpen && !isAttemptExceeded && (
               <Link
                 to={`/quiz/${quiz.id}/attempt`}
                 className="text-xs font-semibold text-white px-4 py-2 rounded transition-colors"
@@ -417,8 +423,25 @@ function StudentQuizCard({ quiz, studentId }) {
                 onMouseEnter={e => e.currentTarget.style.background = '#4338ca'}
                 onMouseLeave={e => e.currentTarget.style.background = '#4f46e5'}
               >
-                응시하기
+                {attemptCount > 0 ? '재응시' : '응시하기'}
               </Link>
+            )}
+            {isOpen && isAttemptExceeded && (
+              <div className="relative group">
+                <button
+                  disabled
+                  className="text-xs font-semibold px-4 py-2 rounded cursor-not-allowed"
+                  style={{ background: '#E0E0E0', color: '#9E9E9E' }}
+                >
+                  응시하기
+                </button>
+                <div
+                  className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10"
+                  style={{ background: '#424242', color: '#fff' }}
+                >
+                  응시 가능 횟수({maxAttempts}회)를 초과했습니다
+                </div>
+              </div>
             )}
           </div>
         </div>
