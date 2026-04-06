@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Clock, ChevronRight, CheckCircle2, AlertCircle, Send } from 'lucide-react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { Clock, ChevronRight, CheckCircle2, AlertCircle, Send, Eye, X } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, getQuizQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -9,24 +9,26 @@ import { AlertDialog } from '../components/ConfirmDialog'
 export default function QuizAttempt() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const isPreview = searchParams.get('preview') === 'true'
   const { role, currentStudent } = useRole()
 
   const quiz = mockQuizzes.find(q => q.id === id)
   const questions = getQuizQuestions(id)
 
-  const noTimeLimit = quiz?.timeLimit === 0
+  const noTimeLimit = quiz?.timeLimit === 0 || isPreview
   const [answers, setAnswers] = useState({})
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
-  const [timeRemaining, setTimeRemaining] = useState(noTimeLimit ? null : (quiz?.timeLimit ?? 30) * 60) // null = 제한 없음
+  const [timeRemaining, setTimeRemaining] = useState(noTimeLimit ? null : (quiz?.timeLimit ?? 30) * 60)
   const [alertDialog, setAlertDialog] = useState(null)
 
-  // 학생 모드가 아니면 홈으로
+  // 미리보기 모드가 아니고 학생이 아니면 홈으로
   useEffect(() => {
-    if (role !== 'student') navigate('/', { replace: true })
-  }, [role])
+    if (!isPreview && role !== 'student') navigate('/', { replace: true })
+  }, [role, isPreview])
 
-  // 타이머 (제한 없음인 경우 실행하지 않음)
+  // 타이머 (미리보기 모드 및 제한 없음인 경우 실행하지 않음)
   useEffect(() => {
     if (submitted || noTimeLimit || timeRemaining <= 0) return
     const timer = setInterval(() => {
@@ -97,7 +99,7 @@ export default function QuizAttempt() {
     setResult(attempt)
   }, [answers, questions, id, currentStudent, timeRemaining, submitted])
 
-  if (quiz && quiz.status !== 'open') {
+  if (!isPreview && quiz && quiz.status !== 'open') {
     const statusMsg = {
       draft: '아직 발행되지 않은 퀴즈입니다.',
       grading: '채점 중인 퀴즈로 응시가 마감되었습니다.',
@@ -134,8 +136,32 @@ export default function QuizAttempt() {
   }
 
   return (
-    <Layout breadcrumbs={[{ label: '퀴즈 참여', href: '/' }, { label: quiz.title }]}>
+    <Layout breadcrumbs={[{ label: isPreview ? '퀴즈 관리' : '퀴즈 참여', href: '/' }, { label: quiz.title }]}>
       <div className="max-w-[760px] mx-auto px-4 sm:px-6 py-6">
+
+        {/* 미리보기 배너 */}
+        {isPreview && (
+          <div
+            className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg mb-5"
+            style={{ background: '#FFF9E6', border: '1px solid #FDE68A' }}
+          >
+            <div className="flex items-center gap-2">
+              <Eye size={15} style={{ color: '#D97706' }} />
+              <span className="text-sm font-semibold" style={{ color: '#92400E' }}>미리보기 모드</span>
+              <span className="text-xs" style={{ color: '#B45309' }}>학생에게 보이는 화면입니다. 실제 제출은 불가합니다.</span>
+            </div>
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded transition-colors"
+              style={{ color: '#92400E', border: '1px solid #FCD34D' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#FEF3C7'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <X size={12} />
+              미리보기 종료
+            </button>
+          </div>
+        )}
 
         {/* 퀴즈 헤더 */}
         <div className="card p-4 mb-5 flex items-center justify-between gap-4">
@@ -182,14 +208,14 @@ export default function QuizAttempt() {
               question={q}
               index={idx}
               value={answers[q.id] ?? ''}
-              onChange={val => setAnswers(prev => ({ ...prev, [q.id]: val }))}
-              disabled={submitted}
+              onChange={val => !isPreview && setAnswers(prev => ({ ...prev, [q.id]: val }))}
+              disabled={submitted || isPreview}
             />
           ))}
         </div>
 
         {/* 제출 버튼 */}
-        {!submitted && (
+        {!submitted && !isPreview && (
           <div className="mt-6 flex items-center justify-between gap-4">
             <p className="text-xs" style={{ color: '#9E9E9E' }}>
               {questions.length - answeredCount > 0
@@ -205,6 +231,18 @@ export default function QuizAttempt() {
             >
               <Send size={14} />
               제출하기
+            </button>
+          </div>
+        )}
+        {isPreview && (
+          <div className="mt-6 flex justify-end">
+            <button
+              disabled
+              className="flex items-center gap-2 px-5 py-2.5 rounded text-sm font-semibold cursor-not-allowed"
+              style={{ background: '#E0E0E0', color: '#9E9E9E' }}
+            >
+              <Send size={14} />
+              제출하기 (미리보기 전용)
             </button>
           </div>
         )}
