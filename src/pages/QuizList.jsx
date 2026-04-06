@@ -360,11 +360,21 @@ function QuizCard({ quiz, onPublishQuiz }) {
         </div>
       </div>
 
-      {quiz.status !== 'draft' && (
-        <div className="px-6 py-4" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
+      <div className="px-6 py-4" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
+        {quiz.status === 'draft' ? (
+          <div className="flex items-center gap-5 text-sm" style={{ color: '#616161' }}>
+            <span>문항 <strong style={{ color: '#222222' }}>{quiz.questions}</strong>개</span>
+            <span style={{ color: '#EEEEEE' }}>|</span>
+            <span>총점 <strong style={{ color: '#222222' }}>{quiz.totalPoints}</strong>점</span>
+            <span style={{ color: '#EEEEEE' }}>|</span>
+            <span>제한시간 <strong style={{ color: '#222222' }}>{quiz.timeLimit === 0 ? '없음' : `${quiz.timeLimit}분`}</strong></span>
+            <span style={{ color: '#EEEEEE' }}>|</span>
+            <span>응시횟수 <strong style={{ color: '#222222' }}>{quiz.allowAttempts === -1 ? '무제한' : `${quiz.allowAttempts}회`}</strong></span>
+          </div>
+        ) : (
           <ActiveStats quiz={quiz} />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
