@@ -583,11 +583,9 @@ function StudentQuizCard({ quiz, studentId }) {
             </div>
 
             {/* 스펙 */}
-            <div className="flex items-center gap-3 mt-1.5 text-xs" style={{ color: '#9E9E9E' }}>
-              <span className="flex items-center gap-1"><Clock size={11} />{quiz.timeLimit === 0 ? '시간 제한 없음' : `${quiz.timeLimit ?? 30}분`}</span>
-              <span>{quiz.questions}문항 · {quiz.totalPoints}점</span>
-              {maxAttempts !== -1 && <span>응시 {attemptCount}/{maxAttempts}회</span>}
-            </div>
+            <p className="mt-1.5" style={{ fontSize: 11, color: '#BDBDBD' }}>
+              {quiz.questions}문항 · {quiz.totalPoints}점 · {quiz.timeLimit === 0 ? '시간 제한 없음' : `${quiz.timeLimit ?? 30}분`}
+            </p>
           </div>
 
           <div className="shrink-0 mt-0.5">
