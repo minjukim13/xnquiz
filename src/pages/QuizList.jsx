@@ -1,94 +1,11 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus, Clock, FileText, CheckCircle2, AlertCircle, Send, Eye } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Plus, Clock, FileText, CheckCircle2, AlertCircle, Send } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { getStudentAttempts } from '../data/mockData'
-// ─────────────────────────────── 필터 전용 소형 드롭다운 ───────────────────────────────
-function FilterSelect({ value, onChange, options, placeholder = '전체', disabled = false }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-
-  useEffect(() => {
-    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  const selected = options.find(o => String(o.value) === String(value))
-  const isActive = selected && selected.value !== 'all' && !disabled
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => !disabled && setOpen(o => !o)}
-        className="flex items-center gap-1.5 transition-all focus:outline-none"
-        style={{
-          height: 30,
-          padding: '0 10px',
-          fontSize: 12,
-          fontWeight: isActive ? 600 : 400,
-          borderRadius: 6,
-          border: isActive ? '1.5px solid #6366f1' : '1px solid #E0E0E0',
-          background: disabled ? '#FAFAFA' : isActive ? '#EEF2FF' : '#fff',
-          color: disabled ? '#BDBDBD' : isActive ? '#4338ca' : '#616161',
-          whiteSpace: 'nowrap',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-        }}
-      >
-        <span>{disabled ? placeholder : (selected?.label ?? placeholder)}</span>
-        <svg
-          width="11" height="11" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-          style={{ opacity: 0.6, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-
-      {open && options.length > 0 && (
-        <div
-          className="absolute left-0 top-full mt-1 bg-white z-50 py-1"
-          style={{
-            border: '1px solid #E0E0E0',
-            borderRadius: 6,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.09)',
-            minWidth: '100%',
-          }}
-        >
-          {options.map(o => {
-            const isSel = String(o.value) === String(value)
-            return (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => { onChange(o.value); setOpen(false) }}
-                className="w-full flex items-center justify-between px-3 py-1.5 transition-colors"
-                style={{
-                  fontSize: 12,
-                  background: isSel ? '#EEF2FF' : 'transparent',
-                  color: isSel ? '#4338ca' : '#424242',
-                  fontWeight: isSel ? 600 : 400,
-                }}
-                onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = '#F5F5F5' }}
-                onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent' }}
-              >
-                <span>{o.label}</span>
-                {isSel && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
+import { DropdownSelect } from '../components/DropdownSelect'
 
 // ─────────────────────────────── 공통: 주차/차시 드롭다운 필터 ───────────────────────────────
 const WEEK_OPTIONS = [
@@ -102,29 +19,40 @@ function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, o
     ? WEEK_OPTIONS.filter(o => o.value !== 'unassigned')
     : WEEK_OPTIONS
 
-  // 선택한 주차에 실제 퀴즈가 있는 차시만 표시. 주차 미선택이면 빈 목록.
+  // 선택한 주차에 실제 퀴즈가 있는 차시 표시. 번호 주차는 1차시 항상 포함. 주차 미선택이면 빈 목록.
   const sessionOptions = useMemo(() => {
     if (filterWeek === 'all') return []
     let base = quizzes
     if (filterWeek === 'unassigned') base = quizzes.filter(q => !q.week || q.week === 0)
     else base = quizzes.filter(q => q.week === filterWeek)
-    const sessions = [...new Set(base.map(q => q.session).filter(s => s && s > 0))].sort((a, b) => a - b)
-    return sessions.map(s => ({ value: s, label: `${s}차시` }))
+    const fromQuizzes = base.map(q => q.session).filter(s => s && s > 0)
+    const withDefault = filterWeek !== 'unassigned' ? [1, ...fromQuizzes] : fromQuizzes
+    const sessions = [...new Set(withDefault)].sort((a, b) => a - b)
+    return [
+      { value: 'all', label: '전체 차시' },
+      ...sessions.map(s => ({ value: s, label: `${s}차시` })),
+    ]
   }, [quizzes, filterWeek])
 
   return (
     <div className="flex gap-2">
-      <FilterSelect
+      <DropdownSelect
         value={filterWeek}
         onChange={v => { onWeekChange(v); onSessionChange('all') }}
         options={weekOptions}
+        size="md"
+        filterMode
+        style={{ width: 120 }}
       />
-      <FilterSelect
+      <DropdownSelect
         value={filterSession}
         onChange={onSessionChange}
         options={sessionOptions}
         placeholder="차시 선택"
         disabled={filterWeek === 'all'}
+        size="md"
+        filterMode
+        style={{ width: 108 }}
       />
     </div>
   )
@@ -140,14 +68,12 @@ function applyWeekSessionFilter(quizzes, filterWeek, filterSession) {
   })
 }
 
-// 상태 표시 우선순위: draft(작성중) > open(진행중) > closed(종료)
-const STATUS_SORT = { draft: 0, open: 1, closed: 2 }
-
 const STATUS_CONFIG = {
-  open:    { label: '응시중',   badge: 'text-[#018600]',  bgStyle: { background: '#E5FCE3' } },
-  grading: { label: '채점중',   badge: 'text-[#B43200]',  bgStyle: { background: '#FFF6F2' } },
-  closed:  { label: '완료',    badge: 'text-[#616161]',  bgStyle: { background: '#F5F5F5' } },
-  draft:   { label: '발행 전', badge: 'text-indigo-600', bgStyle: { background: '#EEF2FF' } },
+  open:    { label: '진행중',  badge: 'text-[#16A34A]', bgStyle: { background: '#F0FDF4' } },
+  grading: { label: '진행중',  badge: 'text-[#16A34A]', bgStyle: { background: '#F0FDF4' } },
+  closed:  { label: '마감',   badge: 'text-[#6B7280]', bgStyle: { background: '#F3F4F6' } },
+  draft:   { label: '발행 전', badge: 'text-[#6366F1]', bgStyle: { background: '#EEF2FF' } },
+  scheduled: { label: '예정', badge: 'text-[#D97706]', bgStyle: { background: '#FFFBEB' } },
 }
 
 export default function QuizList() {
@@ -180,25 +106,21 @@ function InstructorQuizList() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto px-6 sm:px-10 py-10">
+      <div className="max-w-4xl mx-auto px-6 sm:px-10 py-6">
 
         {/* 헤더: 제목 + 새 퀴즈 */}
-        <div className="flex items-center justify-between mb-5 gap-4">
+        <div className="flex items-end justify-between mb-5 gap-4">
           <div>
-            <p className="text-xs font-medium mb-1" style={{ color: '#9E9E9E' }}>CS301 데이터베이스 · 2026년 1학기</p>
-            <h1 className="text-2xl font-bold" style={{ color: '#222222' }}>퀴즈 관리</h1>
+            <h1 className="text-xl font-bold leading-tight" style={{ color: '#222222' }}>퀴즈 관리</h1>
           </div>
           <Link to="/quiz/new" className="btn-primary shrink-0">
-            <Plus size={14} />
+            <Plus size={15} />
             새 퀴즈
           </Link>
         </div>
 
-        {/* 툴바: 좌측 건수 / 우측 필터 */}
-        <div className="flex items-center justify-between mb-5 gap-4">
-          <p className="text-sm font-medium" style={{ color: '#9E9E9E' }}>
-            퀴즈 <span className="font-bold" style={{ color: '#424242' }}>{sortedQuizzes.length}</span>건
-          </p>
+        {/* 툴바: 필터 */}
+        <div className="flex items-center mb-3 gap-2">
           <WeekSessionFilter
             quizzes={quizzes}
             filterWeek={filterWeek}
@@ -241,9 +163,24 @@ function QuizCard({ quiz, onPublishQuiz }) {
   const cfg = STATUS_CONFIG[quiz.status]
   const [confirmPublish, setConfirmPublish] = useState(false)
   const ddayBadge = getDdayBadge(quiz)
+  const navigate = useNavigate()
+
+  const cardTarget = (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
+    ? `/quiz/${quiz.id}/grade`
+    : null
 
   return (
-    <div className="card overflow-hidden">
+    <div
+      className="card overflow-hidden transition-shadow"
+      style={{
+        cursor: cardTarget ? 'pointer' : 'default',
+        background: quiz.status === 'draft' ? '#F9FAFB' : '#fff',
+        opacity: quiz.status === 'draft' ? 0.85 : 1,
+      }}
+      onClick={() => cardTarget && navigate(cardTarget)}
+      onMouseEnter={e => { if (cardTarget) e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)' }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = '' }}
+    >
       <div className="flex items-start gap-4 px-6 pt-6 pb-5">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -273,98 +210,84 @@ function QuizCard({ quiz, onPublishQuiz }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 mt-0.5">
-          {/* 미리보기 버튼 (항상 표시) */}
-          <Link
-            to={`/quiz/${quiz.id}/attempt?preview=true`}
-            className="flex items-center gap-1 text-xs font-medium px-2.5 py-2 rounded transition-colors"
-            style={{ color: '#9E9E9E' }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F5'; e.currentTarget.style.color = '#616161' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9E9E9E' }}
-            title="학생 화면 미리보기"
-          >
-            <Eye size={13} />
-            미리보기
-          </Link>
+        <div className="flex items-center shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
+          {/* 텍스트 버튼 그룹: 미리보기, 편집 */}
+          <div className="flex items-center">
+            <Link
+              to={`/quiz/${quiz.id}/attempt?preview=true`}
+              className="text-xs font-medium px-2.5 py-2 rounded transition-colors"
+              style={{ color: '#9E9E9E' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F5'; e.currentTarget.style.color = '#616161' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9E9E9E' }}
+            >
+              미리보기
+            </Link>
+            <Link
+              to={`/quiz/${quiz.id}/edit`}
+              className="text-xs font-medium px-2.5 py-2 rounded transition-colors"
+              style={{ color: '#9E9E9E' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F5'; e.currentTarget.style.color = '#616161' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9E9E9E' }}
+            >
+              편집
+            </Link>
+          </div>
 
-          {quiz.status === 'grading' && (
+          {/* 구분선 */}
+          {(quiz.status === 'draft' || quiz.status !== 'draft') && (
+            <span className="w-px h-4 mx-2" style={{ background: '#E5E7EB' }} />
+          )}
+
+          {/* 주요 액션 버튼 */}
+          {quiz.status === 'draft' && !confirmPublish && (
+            <button
+              onClick={() => setConfirmPublish(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors"
+              style={{ background: '#16A34A', color: '#fff' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#15803D' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#16A34A' }}
+            >
+              <Send size={11} />
+              발행
+            </button>
+          )}
+          {quiz.status === 'draft' && confirmPublish && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: '#616161' }}>발행할까요?</span>
+              <button
+                onClick={() => { onPublishQuiz(quiz.id); setConfirmPublish(false) }}
+                className="text-xs font-semibold text-white px-2.5 py-1.5 rounded transition-colors"
+                style={{ background: '#16A34A' }}
+              >
+                확인
+              </button>
+              <button
+                onClick={() => setConfirmPublish(false)}
+                className="text-xs px-2 py-1.5 rounded"
+                style={{ color: '#616161', border: '1px solid #E0E0E0' }}
+              >
+                취소
+              </button>
+            </div>
+          )}
+          {quiz.status !== 'draft' && (
             <Link
               to={`/quiz/${quiz.id}/grade`}
-              className="text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded transition-colors"
+              className="text-xs font-semibold px-3.5 py-2 rounded-md transition-colors"
+              style={{ background: '#4F46E5', color: '#fff' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#4338CA' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#4F46E5' }}
             >
-              채점하기
+              채점
             </Link>
-          )}
-          {quiz.status === 'closed' ? (
-            <Link
-              to={`/quiz/${quiz.id}/stats`}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 px-3.5 py-2 rounded transition-colors"
-              style={{ border: '1px solid #c7d2fe' }}
-            >
-              결과 보기
-            </Link>
-          ) : (
-            <>
-              {quiz.status === 'draft' && !confirmPublish && (
-                <button
-                  onClick={() => setConfirmPublish(true)}
-                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded transition-colors"
-                  style={{ color: '#018600', border: '1px solid #b7f0b3' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#E5FCE3' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-                >
-                  <Send size={12} />
-                  발행
-                </button>
-              )}
-              {quiz.status === 'draft' && confirmPublish && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs" style={{ color: '#616161' }}>발행할까요?</span>
-                  <button
-                    onClick={() => { onPublishQuiz(quiz.id); setConfirmPublish(false) }}
-                    className="text-xs font-semibold text-white px-2.5 py-1.5 rounded transition-colors"
-                    style={{ background: '#018600' }}
-                  >
-                    확인
-                  </button>
-                  <button
-                    onClick={() => setConfirmPublish(false)}
-                    className="text-xs px-2 py-1.5 rounded"
-                    style={{ color: '#616161', border: '1px solid #E0E0E0' }}
-                  >
-                    취소
-                  </button>
-                </div>
-              )}
-              {quiz.status !== 'draft' && (
-                <Link
-                  to={`/quiz/${quiz.id}/stats`}
-                  className="text-xs font-medium px-3 py-2 rounded transition-colors"
-                  style={{ color: '#616161' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  통계
-                </Link>
-              )}
-              <Link
-                to={`/quiz/${quiz.id}/edit`}
-                className="text-xs font-medium px-3 py-2 rounded transition-colors"
-                style={{ color: '#616161' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
-                편집
-              </Link>
-            </>
           )}
         </div>
       </div>
 
-      <div className="px-6 py-4" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
+      <div className="px-6 py-4" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }} onClick={e => e.stopPropagation()}>
         {quiz.status === 'draft' ? (
-          <p style={{ fontSize: 12, color: '#BDBDBD' }}>
-            문항 {quiz.questions}개 · 총점 {quiz.totalPoints}점 · 제한시간 {quiz.timeLimit === 0 ? '없음' : `${quiz.timeLimit}분`}
+          <p style={{ fontSize: 12, color: '#757575' }}>
+            문항 {quiz.questions}개 | 총점 {quiz.totalPoints}점 | 제한시간 {quiz.timeLimit === 0 ? '없음' : `${quiz.timeLimit}분`}
           </p>
         ) : (
           <ActiveStats quiz={quiz} />
@@ -382,48 +305,24 @@ function ActiveStats({ quiz }) {
   const gradeProgress = submitted > 0 ? Math.round((graded / submitted) * 100) : 0
   const submitRate = Math.round((submitted / quiz.totalStudents) * 100)
   const unsubmitted = Math.max(0, quiz.totalStudents - submitted)
-  const isClosed = quiz.status === 'closed'
+  const isClosed = quiz.status === 'closed' || quiz.status === 'grading'
 
-  const cols = isClosed
-    ? [
-        { label: '응시율',   value: `${submitRate}%`,   color: '#222222' },
-        { label: '응시인원', value: `${submitted}명`,   color: '#222222' },
-        { label: '미제출',   value: `${unsubmitted}명`, color: '#9E9E9E' },
-        { label: '채점완료', value: `${graded}명`,      color: '#018600' },
-        { label: '미채점',   value: `${quiz.pendingGrade}명`, color: '#9E9E9E' },
-        { label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', color: '#4f46e5' },
-      ]
-    : [
-        { label: '응시율',   value: `${submitRate}%`,   color: '#222222' },
-        { label: '응시인원', value: `${submitted}명`,   color: '#222222' },
-        { label: '미제출',   value: `${unsubmitted}명`, color: unsubmitted > 0 ? '#B43200' : '#222222' },
-        { label: '채점완료', value: `${graded}명`,      color: '#018600' },
-        { label: '미채점',   value: `${quiz.pendingGrade}명`, color: quiz.pendingGrade > 0 ? '#B43200' : '#222222' },
-      ]
+  const cols = [
+    { label: '응시율',   value: `${submitRate}%`,   color: '#222222' },
+    { label: '응시인원', value: `${submitted}명`,   color: '#222222' },
+    { label: '미제출',   value: `${unsubmitted}명`, color: unsubmitted > 0 ? '#EF4444' : '#9E9E9E' },
+    ...(isClosed ? [{ label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', color: '#4f46e5' }] : []),
+  ]
 
   return (
-    <>
-      <div className="grid" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}>
-        {cols.map((item, idx) => (
-          <div key={item.label} className="text-center px-4 first:pl-0 last:pr-0" style={idx < cols.length - 1 ? { borderRight: '1px solid #EEEEEE' } : {}}>
-            <p className="text-lg font-bold leading-none" style={{ color: item.color }}>{item.value}</p>
-            <p className="text-xs mt-1" style={{ color: '#9E9E9E' }}>{item.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {quiz.status === 'grading' && (
-        <div className="mt-3">
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="text-xs" style={{ color: '#9E9E9E' }}>채점 진행률</span>
-            <span className="text-xs font-semibold" style={{ color: '#424242' }}>{gradeProgress}%</span>
-          </div>
-          <div className="h-[4px] rounded overflow-hidden" style={{ background: '#EEEEEE' }}>
-            <div className="h-full rounded transition-all bg-indigo-500" style={{ width: `${gradeProgress}%` }} />
-          </div>
+    <div className="grid" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}>
+      {cols.map((item, idx) => (
+        <div key={item.label} className="text-center px-4 first:pl-0 last:pr-0" style={idx < cols.length - 1 ? { borderRight: '1px solid #EEEEEE' } : {}}>
+          <p className="text-lg font-bold leading-none" style={{ color: item.color }}>{item.value}</p>
+          <p className="text-xs mt-1" style={{ color: '#9E9E9E' }}>{item.label}</p>
         </div>
-      )}
-    </>
+      ))}
+    </div>
   )
 }
 
@@ -441,9 +340,8 @@ function StudentQuizList() {
     [filterWeek, filterSession]
   )
 
-  const openQuizzes    = filteredAll.filter(q => q.status === 'open')
-  const gradingQuizzes = filteredAll.filter(q => q.status === 'grading')
-  const closedQuizzes  = filteredAll.filter(q => q.status === 'closed')
+  const openQuizzes   = filteredAll.filter(q => q.status === 'open')
+  const closedQuizzes = filteredAll.filter(q => q.status === 'closed' || q.status === 'grading')
   const hasAny = filteredAll.length > 0
 
   return (
@@ -457,7 +355,6 @@ function StudentQuizList() {
             filterSession={filterSession}
             onWeekChange={setFilterWeek}
             onSessionChange={setFilterSession}
-            hideUnassigned
           />
         </div>
 
@@ -467,18 +364,6 @@ function StudentQuizList() {
             <p className="text-xs font-semibold mb-3" style={{ color: '#018600' }}>응시 가능 ({openQuizzes.length})</p>
             <div className="space-y-3">
               {openQuizzes.map(quiz => (
-                <StudentQuizCard key={quiz.id} quiz={quiz} studentId={currentStudent.id} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* 채점 중인 퀴즈 */}
-        {gradingQuizzes.length > 0 && (
-          <section className="mb-8">
-            <p className="text-xs font-semibold mb-3" style={{ color: '#B43200' }}>채점 중 ({gradingQuizzes.length})</p>
-            <div className="space-y-3">
-              {gradingQuizzes.map(quiz => (
                 <StudentQuizCard key={quiz.id} quiz={quiz} studentId={currentStudent.id} />
               ))}
             </div>
@@ -520,17 +405,14 @@ function StudentQuizCard({ quiz, studentId }) {
   const attemptCount = myAttempts.length
   const maxAttempts = quiz.allowAttempts ?? 1
   const isAttemptExceeded = maxAttempts !== -1 && attemptCount >= maxAttempts
-  const isOpen    = quiz.status === 'open'
-  const isGrading = quiz.status === 'grading'
-  const isClosed  = quiz.status === 'closed'
+  const isOpen   = quiz.status === 'open'
+  const isClosed = quiz.status === 'closed' || quiz.status === 'grading'
   const ddayBadge = getDdayBadge(quiz)
 
   // 퀴즈 상태 뱃지 (1레이어)
   const statusBadge = isOpen
     ? { label: '응시중', color: '#018600', bg: '#E5FCE3' }
-    : isGrading
-      ? { label: '채점중', color: '#B43200', bg: '#FFF6F2' }
-      : { label: '종료', color: '#9E9E9E', bg: '#F5F5F5' }
+    : { label: '종료', color: '#9E9E9E', bg: '#F5F5F5' }
 
   // 내 응시 상태 뱃지 (2레이어: 내가 어떤 상태인지)
   const myBadge = (() => {
@@ -579,7 +461,7 @@ function StudentQuizCard({ quiz, studentId }) {
 
             {/* 스펙 */}
             <p className="mt-1.5" style={{ fontSize: 11, color: '#BDBDBD' }}>
-              {quiz.questions}문항 · {quiz.totalPoints}점 · {quiz.timeLimit === 0 ? '시간 제한 없음' : `${quiz.timeLimit ?? 30}분`}
+              {quiz.questions}문항 | {quiz.totalPoints}점 | {quiz.timeLimit === 0 ? '시간 제한 없음' : `${quiz.timeLimit ?? 30}분`}
             </p>
           </div>
 

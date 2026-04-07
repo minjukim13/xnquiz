@@ -18,6 +18,7 @@ export const mockQuizzes = [
   {
     id: '1',
     title: '중간고사 - 데이터베이스 설계 및 SQL',
+    description: 'ERD 설계, SQL 쿼리 작성, 정규화 전 범위를 다룹니다. 오픈북 불가, 제한 시간 내 제출하세요.',
     course: 'CS301 데이터베이스',
     status: 'grading',
     startDate: '2026-04-03 09:00',
@@ -37,6 +38,7 @@ export const mockQuizzes = [
   {
     id: '2',
     title: '1차 형성평가 - SQL 기초',
+    description: 'SELECT, WHERE, JOIN 등 SQL 기초 구문을 다룹니다. 강의 3~4주차 내용 기반으로 출제됩니다.',
     course: 'CS301 데이터베이스',
     status: 'closed',
     startDate: '2026-03-24 09:00',
@@ -87,6 +89,83 @@ export const mockQuizzes = [
     questions: 25,
     totalPoints: 100,
     timeLimit: 120,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
+  },
+  {
+    id: '5',
+    title: '주차별 퀴즈 5-1 - ER 다이어그램',
+    course: 'CS301 데이터베이스',
+    status: 'closed',
+    startDate: '2026-03-17 09:00',
+    dueDate: '2026-03-17 23:59',
+    week: 5,
+    session: 1,
+    totalStudents: 120,
+    submitted: 115,
+    graded: 115,
+    pendingGrade: 0,
+    questions: 10,
+    totalPoints: 20,
+    avgScore: 15.4,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 2,
+  },
+  {
+    id: '6',
+    title: '5주차 형성평가 - 관계 대수',
+    course: 'CS301 데이터베이스',
+    status: 'closed',
+    startDate: '2026-03-17 10:00',
+    dueDate: '2026-03-17 23:59',
+    week: 5,
+    session: 1,
+    totalStudents: 120,
+    submitted: 109,
+    graded: 109,
+    pendingGrade: 0,
+    questions: 5,
+    totalPoints: 10,
+    avgScore: 7.8,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
+  },
+  {
+    id: '7',
+    title: '5주차 서술형 과제 - 정규화 단계 분석',
+    course: 'CS301 데이터베이스',
+    status: 'grading',
+    startDate: '2026-03-17 09:00',
+    dueDate: '2026-03-21 23:59',
+    week: 5,
+    session: 1,
+    totalStudents: 120,
+    submitted: 117,
+    graded: 60,
+    pendingGrade: 57,
+    questions: 3,
+    totalPoints: 30,
+    timeLimit: null,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
+  },
+  {
+    id: '8',
+    title: '2차 형성평가 - 데이터베이스 설계 & 정규화',
+    description: '관계형 데이터베이스 설계 원칙과 1NF~3NF 정규화 과정을 평가합니다. 강의 6~7주차 내용 기반으로 출제됩니다.',
+    course: 'CS301 데이터베이스',
+    status: 'closed',
+    startDate: '2026-03-31 09:00',
+    dueDate: '2026-03-31 23:59',
+    week: 7,
+    session: 2,
+    totalStudents: 120,
+    submitted: 116,
+    graded: 116,
+    pendingGrade: 0,
+    questions: 10,
+    totalPoints: 50,
+    avgScore: 34.9,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
   },
@@ -177,6 +256,17 @@ const ANSWER_POOL = {
   ],
   q9: ['15', '15개', '15 rows'],
   q10: ['SELECT-데이터 조회, INSERT-데이터 삽입, UPDATE-데이터 수정', '모두 올바르게 연결', '일부 연결'],
+  // 퀴즈 8 답안 풀 (2차 형성평가 - 데이터베이스 설계 & 정규화)
+  q8_1: ['원자값으로만 구성된 도메인', '부분 함수적 종속 제거', 'BCNF 만족', '이행적 함수 종속 제거'],
+  q8_2: ['정수 0과 동일한 값이다', '값이 존재하지 않음을 의미한다', '아직 알려지지 않은 값을 나타낸다', 'IS NULL로 비교해야 한다'],
+  q8_3: ['참', '거짓', '참', '참'],
+  q8_4: ['부분 함수 종속', '이행적 함수 종속', '완전 함수 종속', '다치 종속'],
+  q8_5: ['식별 관계(Identifying Relationship)', '기본키', '다중값 속성', '파생 속성'],
+  q8_6: ['참', '거짓', '참', '거짓'],
+  q8_7: ['이행적 함수 종속', '부분 함수 종속', '완전 함수 종속', '다치 종속'],
+  q8_8: ['분해된 릴레이션의 공통 속성이 어느 한쪽의 슈퍼키여야 한다', '분해된 릴레이션의 행 수가 동일해야 한다', '분해된 릴레이션의 속성 수가 동일해야 한다', '분해된 릴레이션이 같은 도메인을 가져야 한다'],
+  q8_9: ['삽입 이상, 삭제 이상, 갱신 이상', '삽입이상·삭제이상·갱신이상', '삽입 이상과 삭제 이상, 갱신 이상'],
+  q8_10: ['1NF는 원자값 조건을 만족해야 합니다. 2NF는 1NF를 만족하고 부분 함수 종속을 제거해야 합니다. 예시로 (학번, 과목코드, 성적, 학과명) 테이블에서 학과명이 학번에만 종속되므로 분리해야 합니다.', 'BCNF는 모든 결정자가 후보키여야 하는 조건입니다. 예를 들어 수강(학번, 과목, 교수) 테이블에서 교수→과목 종속이 있으면 1NF→2NF→3NF→BCNF 단계로 분해합니다.', '정규화 각 단계: 1NF 원자값 보장, 2NF 부분 종속 제거, 3NF 이행 종속 제거, BCNF 모든 결정자가 후보키. 과도한 정규화 시 JOIN 연산이 증가하여 성능 저하가 발생할 수 있습니다.'],
 }
 
 // 문항별 자동채점 정답 판별
@@ -275,10 +365,365 @@ const AUTO_CORRECT_Q3 = {
   q3_10: ['INSERT/UPDATE/DELETE가 매우 빈번한 테이블'],
 }
 
+// 퀴즈2 문항 (1차 형성평가 - SQL 기초, 총 50점 / 20문항)
+// q2_1~q2_10: 2pt, q2_11~q2_20: 3pt
+export const mockQuiz2Questions = [
+  {
+    id: 'q2_1', order: 1, type: 'multiple_choice',
+    text: 'SQL에서 테이블의 모든 행을 삭제하되 테이블 구조는 유지하는 명령어는?',
+    points: 2, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.6,
+    correctAnswer: 'TRUNCATE', choices: ['DELETE', 'TRUNCATE', 'DROP', 'REMOVE'],
+  },
+  {
+    id: 'q2_2', order: 2, type: 'multiple_choice',
+    text: 'SELECT 문에서 결과를 정렬할 때 사용하는 절은?',
+    points: 2, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.9,
+    correctAnswer: 'ORDER BY', choices: ['GROUP BY', 'ORDER BY', 'SORT BY', 'ARRANGE BY'],
+  },
+  {
+    id: 'q2_3', order: 3, type: 'true_false',
+    text: 'WHERE 절은 GROUP BY 절보다 먼저 실행된다.',
+    points: 2, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.5,
+    correctAnswer: '참', choices: ['참', '거짓'],
+  },
+  {
+    id: 'q2_4', order: 4, type: 'multiple_choice',
+    text: 'INNER JOIN의 결과로 반환되는 행은?',
+    points: 2, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.7,
+    correctAnswer: '두 테이블 모두에 일치하는 행',
+    choices: ['두 테이블 모두에 일치하는 행', '왼쪽 테이블의 모든 행', '오른쪽 테이블의 모든 행', '두 테이블의 모든 행'],
+  },
+  {
+    id: 'q2_5', order: 5, type: 'multiple_choice',
+    text: 'NULL 값과의 비교에서 올바른 SQL 표현식은?',
+    points: 2, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.4,
+    correctAnswer: 'IS NULL', choices: ['= NULL', '== NULL', 'IS NULL', 'EQUALS NULL'],
+  },
+  {
+    id: 'q2_6', order: 6, type: 'true_false',
+    text: 'HAVING 절은 그룹화된 결과에 조건을 적용할 때 사용한다.',
+    points: 2, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.6,
+    correctAnswer: '참', choices: ['참', '거짓'],
+  },
+  {
+    id: 'q2_7', order: 7, type: 'multiple_choice',
+    text: '다음 중 집계 함수가 아닌 것은?',
+    points: 2, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.8,
+    correctAnswer: 'CONCAT', choices: ['COUNT', 'SUM', 'AVG', 'CONCAT'],
+  },
+  {
+    id: 'q2_8', order: 8, type: 'multiple_choice',
+    text: 'SELECT DISTINCT 의 역할은?',
+    points: 2, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.9,
+    correctAnswer: '중복 행 제거', choices: ['중복 행 제거', 'NULL 행 제거', '정렬 수행', '행 수 반환'],
+  },
+  {
+    id: 'q2_9', order: 9, type: 'true_false',
+    text: 'LEFT JOIN은 오른쪽 테이블에 일치하는 행이 없어도 왼쪽 테이블의 모든 행을 반환한다.',
+    points: 2, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.5,
+    correctAnswer: '참', choices: ['참', '거짓'],
+  },
+  {
+    id: 'q2_10', order: 10, type: 'multiple_choice',
+    text: 'DML(Data Manipulation Language)에 해당하지 않는 명령어는?',
+    points: 2, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.6,
+    correctAnswer: 'CREATE', choices: ['SELECT', 'INSERT', 'UPDATE', 'CREATE'],
+  },
+  {
+    id: 'q2_11', order: 11, type: 'multiple_choice',
+    text: '서브쿼리(Subquery)가 반드시 단일 값을 반환해야 하는 경우는?',
+    points: 3, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 2.1,
+    correctAnswer: '비교 연산자(=, >, <)와 함께 사용될 때',
+    choices: ['IN 연산자와 함께 사용될 때', 'EXISTS 연산자와 함께 사용될 때', '비교 연산자(=, >, <)와 함께 사용될 때', 'FROM 절에 사용될 때'],
+  },
+  {
+    id: 'q2_12', order: 12, type: 'multiple_choice',
+    text: 'AUTO_INCREMENT 속성의 역할은?',
+    points: 3, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 2.5,
+    correctAnswer: '새 행 삽입 시 자동으로 증가하는 고유 정수 값 생성',
+    choices: ['새 행 삽입 시 자동으로 증가하는 고유 정수 값 생성', '컬럼 값을 자동으로 정렬', 'NULL 값을 자동으로 0으로 변환', '기본키를 자동으로 설정'],
+  },
+  {
+    id: 'q2_13', order: 13, type: 'true_false',
+    text: 'UNION은 두 SELECT 결과를 합칠 때 중복 행을 자동으로 제거한다.',
+    points: 3, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 2.0,
+    correctAnswer: '참', choices: ['참', '거짓'],
+  },
+  {
+    id: 'q2_14', order: 14, type: 'multiple_choice',
+    text: 'LIKE 연산자에서 임의의 단일 문자를 의미하는 와일드카드는?',
+    points: 3, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 2.2,
+    correctAnswer: '_', choices: ['%', '_', '*', '?'],
+  },
+  {
+    id: 'q2_15', order: 15, type: 'multiple_choice',
+    text: 'BETWEEN A AND B 조건과 동일한 표현식은?',
+    points: 3, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 2.3,
+    correctAnswer: '>= A AND <= B',
+    choices: ['> A AND < B', '>= A AND <= B', '>= A AND < B', '> A AND <= B'],
+  },
+  {
+    id: 'q2_16', order: 16, type: 'true_false',
+    text: 'COUNT(*) 는 NULL 값을 포함한 모든 행의 수를 반환한다.',
+    points: 3, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.8,
+    correctAnswer: '참', choices: ['참', '거짓'],
+  },
+  {
+    id: 'q2_17', order: 17, type: 'multiple_choice',
+    text: 'FOREIGN KEY 제약 조건에 ON DELETE CASCADE를 설정하면?',
+    points: 3, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 2.0,
+    correctAnswer: '부모 행 삭제 시 자식 행도 자동으로 삭제',
+    choices: ['부모 행 삭제 시 오류 발생', '부모 행 삭제 시 자식 행도 자동으로 삭제', '부모 행 삭제 시 자식 행의 값이 NULL로 변경', '자식 행 삭제 시 부모 행도 자동으로 삭제'],
+  },
+  {
+    id: 'q2_18', order: 18, type: 'multiple_choice',
+    text: '뷰(View)에 대한 설명으로 옳지 않은 것은?',
+    points: 3, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.9,
+    correctAnswer: '뷰는 항상 물리적으로 데이터를 저장한다',
+    choices: ['논리적 테이블이다', '기반 테이블의 데이터를 참조한다', '뷰는 항상 물리적으로 데이터를 저장한다', '보안을 위해 특정 컬럼만 노출할 수 있다'],
+  },
+  {
+    id: 'q2_19', order: 19, type: 'true_false',
+    text: 'GROUP BY 없이 HAVING 절을 단독으로 사용할 수 없다.',
+    points: 3, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 1.7,
+    correctAnswer: '거짓', choices: ['참', '거짓'],
+  },
+  {
+    id: 'q2_20', order: 20, type: 'multiple_choice',
+    text: '트랜잭션을 취소하고 이전 상태로 되돌리는 명령어는?',
+    points: 3, autoGrade: true, gradedCount: 118, totalCount: 118, avgScore: 2.4,
+    correctAnswer: 'ROLLBACK', choices: ['COMMIT', 'ROLLBACK', 'SAVEPOINT', 'UNDO'],
+  },
+]
+
+// quiz2 자동채점 정답 맵
+const AUTO_CORRECT_Q2 = {
+  q2_1: ['TRUNCATE'],
+  q2_2: ['ORDER BY'],
+  q2_3: ['참', 'true'],
+  q2_4: ['두 테이블 모두에 일치하는 행'],
+  q2_5: ['IS NULL'],
+  q2_6: ['참', 'true'],
+  q2_7: ['CONCAT'],
+  q2_8: ['중복 행 제거'],
+  q2_9: ['참', 'true'],
+  q2_10: ['CREATE'],
+  q2_11: ['비교 연산자(=, >, <)와 함께 사용될 때'],
+  q2_12: ['새 행 삽입 시 자동으로 증가하는 고유 정수 값 생성'],
+  q2_13: ['참', 'true'],
+  q2_14: ['_'],
+  q2_15: ['>= A AND <= B'],
+  q2_16: ['참', 'true'],
+  q2_17: ['부모 행 삭제 시 자식 행도 자동으로 삭제'],
+  q2_18: ['뷰는 항상 물리적으로 데이터를 저장한다'],
+  q2_19: ['거짓', 'false'],
+  q2_20: ['ROLLBACK'],
+}
+
+// 퀴즈4 문항 (기말고사 - 데이터베이스 심화, 총 100점 / 25문항)
+// q4_1~q4_12: 2pt, q4_13~q4_20: 4pt, q4_21~q4_23: 8pt, q4_24~q4_25: 10pt
+export const mockQuiz4Questions = [
+  {
+    id: 'q4_1', order: 1, type: 'multiple_choice',
+    text: '데이터베이스 스키마(Schema)의 정의로 가장 적절한 것은?',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '데이터베이스의 구조와 제약 조건을 정의한 명세',
+    choices: ['데이터베이스의 구조와 제약 조건을 정의한 명세', '저장된 데이터의 실제 집합', '데이터 접근 권한 목록', '쿼리 실행 계획'],
+  },
+  {
+    id: 'q4_2', order: 2, type: 'multiple_choice',
+    text: '3NF(제3정규형)를 만족하기 위한 조건은?',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '2NF 만족 + 이행적 함수 종속 제거',
+    choices: ['1NF 만족 + 부분 함수 종속 제거', '2NF 만족 + 이행적 함수 종속 제거', '2NF 만족 + 결정자가 모두 후보키', '3NF 만족 + 다치 종속 제거'],
+  },
+  {
+    id: 'q4_3', order: 3, type: 'true_false',
+    text: 'BCNF(보이스-코드 정규형)는 항상 3NF보다 강력한 정규형이다.',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '참', choices: ['참', '거짓'],
+  },
+  {
+    id: 'q4_4', order: 4, type: 'multiple_choice',
+    text: '동시성 제어에서 팬텀 리드(Phantom Read)란?',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '같은 트랜잭션 내에서 동일 쿼리를 반복할 때 이전에 없던 행이 나타나는 현상',
+    choices: ['커밋되지 않은 데이터를 읽는 현상', '한 트랜잭션이 읽은 데이터를 다른 트랜잭션이 수정한 현상', '같은 트랜잭션 내에서 동일 쿼리를 반복할 때 이전에 없던 행이 나타나는 현상', '데드락으로 인해 쿼리가 차단되는 현상'],
+  },
+  {
+    id: 'q4_5', order: 5, type: 'multiple_choice',
+    text: '분산 데이터베이스의 CAP 정리에서 C, A, P가 의미하는 것은?',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '일관성(Consistency), 가용성(Availability), 분할 내성(Partition Tolerance)',
+    choices: ['일관성, 가용성, 분할 내성', '동시성, 원자성, 내구성', '무결성, 정확성, 성능', '보안, 가용성, 성능'],
+  },
+  {
+    id: 'q4_6', order: 6, type: 'true_false',
+    text: '클러스터드 인덱스(Clustered Index)는 테이블당 하나만 생성할 수 있다.',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '참', choices: ['참', '거짓'],
+  },
+  {
+    id: 'q4_7', order: 7, type: 'multiple_choice',
+    text: '데드락(Deadlock)을 예방하는 방법으로 적절하지 않은 것은?',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '모든 트랜잭션에 동일한 타임아웃 적용',
+    choices: ['항상 동일한 순서로 자원 잠금', '타임아웃 설정 후 롤백', '모든 트랜잭션에 동일한 타임아웃 적용', '선점(Preemption) 기법 사용'],
+  },
+  {
+    id: 'q4_8', order: 8, type: 'multiple_choice',
+    text: 'NoSQL 데이터베이스 중 키-값(Key-Value) 저장소에 해당하는 것은?',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: 'Redis', choices: ['MongoDB', 'Cassandra', 'Redis', 'Neo4j'],
+  },
+  {
+    id: 'q4_9', order: 9, type: 'true_false',
+    text: '트랜잭션 격리 수준을 높일수록 동시 처리 성능은 향상된다.',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '거짓', choices: ['참', '거짓'],
+  },
+  {
+    id: 'q4_10', order: 10, type: 'multiple_choice',
+    text: 'SQL 인젝션 공격을 방어하는 가장 효과적인 방법은?',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '준비된 구문(Prepared Statement) 사용',
+    choices: ['입력 길이 제한', '준비된 구문(Prepared Statement) 사용', '에러 메시지 숨기기', '데이터베이스 계정 비밀번호 복잡도 강화'],
+  },
+  {
+    id: 'q4_11', order: 11, type: 'multiple_choice',
+    text: '파티셔닝(Partitioning)과 샤딩(Sharding)의 차이로 올바른 것은?',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '파티셔닝은 단일 DB 내 분할, 샤딩은 다수 DB 서버 간 분산',
+    choices: ['파티셔닝은 수직 분할만 가능, 샤딩은 수평 분할만 가능', '파티셔닝은 NoSQL 전용, 샤딩은 RDB 전용', '파티셔닝은 단일 DB 내 분할, 샤딩은 다수 DB 서버 간 분산', '샤딩은 읽기 성능만 향상, 파티셔닝은 쓰기 성능만 향상'],
+  },
+  {
+    id: 'q4_12', order: 12, type: 'true_false',
+    text: '뷰(View)를 통해 항상 INSERT, UPDATE, DELETE가 가능하다.',
+    points: 2, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '거짓', choices: ['참', '거짓'],
+  },
+  {
+    id: 'q4_13', order: 13, type: 'multiple_choice',
+    text: '트랜잭션 격리 수준 중 Dirty Read, Non-Repeatable Read, Phantom Read 모두 방지하는 수준은?',
+    points: 4, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: 'SERIALIZABLE',
+    choices: ['READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE'],
+  },
+  {
+    id: 'q4_14', order: 14, type: 'multiple_choice',
+    text: '다음 중 관계 대수(Relational Algebra)의 기본 연산에 해당하지 않는 것은?',
+    points: 4, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '나누기(Division)',
+    choices: ['선택(Selection)', '프로젝션(Projection)', '합집합(Union)', '나누기(Division)'],
+  },
+  {
+    id: 'q4_15', order: 15, type: 'multiple_choice',
+    text: 'WAL(Write-Ahead Logging)의 주요 목적은?',
+    points: 4, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '장애 발생 시 데이터 복구를 위한 트랜잭션 로그 기록',
+    choices: ['쿼리 성능 최적화', '인덱스 자동 생성', '장애 발생 시 데이터 복구를 위한 트랜잭션 로그 기록', '동시 접속 사용자 수 제어'],
+  },
+  {
+    id: 'q4_16', order: 16, type: 'multiple_choice',
+    text: '다음 중 옵티마이저(Optimizer)가 쿼리 실행 계획을 결정할 때 고려하는 요소가 아닌 것은?',
+    points: 4, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '쿼리를 작성한 개발자의 경력',
+    choices: ['통계 정보(Statistics)', '인덱스 존재 여부', '테이블 크기', '쿼리를 작성한 개발자의 경력'],
+  },
+  {
+    id: 'q4_17', order: 17, type: 'multiple_choice',
+    text: 'MVCC(Multi-Version Concurrency Control)의 핵심 개념은?',
+    points: 4, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '데이터 읽기 시 잠금 없이 이전 버전의 스냅샷을 제공',
+    choices: ['모든 읽기 연산에 공유 잠금 적용', '데이터 읽기 시 잠금 없이 이전 버전의 스냅샷을 제공', '쓰기 연산을 직렬화하여 충돌 방지', '자동으로 트랜잭션을 롤백'],
+  },
+  {
+    id: 'q4_18', order: 18, type: 'multiple_choice',
+    text: '데이터베이스 이중화에서 Active-Standby 구성의 단점은?',
+    points: 4, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '장애 발생 시 Standby로 전환되는 동안 일시적 서비스 중단 발생',
+    choices: ['쓰기 성능이 절반으로 감소', '장애 발생 시 Standby로 전환되는 동안 일시적 서비스 중단 발생', '데이터 정합성 보장이 불가', '읽기 분산이 불가능'],
+  },
+  {
+    id: 'q4_19', order: 19, type: 'multiple_choice',
+    text: '다음 중 연결형 서브쿼리(Correlated Subquery)의 특징은?',
+    points: 4, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '외부 쿼리의 각 행에 대해 서브쿼리가 반복 실행',
+    choices: ['한 번만 실행되어 결과를 캐시', '항상 단일 값을 반환', '외부 쿼리의 각 행에 대해 서브쿼리가 반복 실행', 'FROM 절에만 사용 가능'],
+  },
+  {
+    id: 'q4_20', order: 20, type: 'multiple_choice',
+    text: 'DB 정규화 시 분해가 무손실(Lossless Decomposition)이 되려면?',
+    points: 4, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '분해된 릴레이션의 공통 속성이 어느 한쪽의 키여야 한다',
+    choices: ['분해된 릴레이션을 단순히 UNION으로 합칠 수 있으면 된다', '분해된 릴레이션의 공통 속성이 어느 한쪽의 키여야 한다', '분해된 릴레이션의 행 수 합이 원본과 같아야 한다', '분해된 릴레이션이 항상 같은 수의 컬럼을 가져야 한다'],
+  },
+  {
+    id: 'q4_21', order: 21, type: 'short_answer',
+    text: '트랜잭션의 ACID 속성 중, 트랜잭션이 완전히 수행되거나 전혀 수행되지 않아야 함을 보장하는 속성의 이름을 영문으로 쓰시오.',
+    points: 8, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: 'Atomicity',
+  },
+  {
+    id: 'q4_22', order: 22, type: 'short_answer',
+    text: '데이터베이스에서 두 개 이상의 트랜잭션이 서로 상대방이 점유한 자원을 기다리며 무한정 대기하는 상황을 무엇이라 하는가?',
+    points: 8, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: '데드락',
+  },
+  {
+    id: 'q4_23', order: 23, type: 'short_answer',
+    text: '쿼리 최적화 도구로, 특정 SQL의 실행 계획을 확인하기 위해 앞에 붙이는 키워드를 쓰시오.',
+    points: 8, autoGrade: true, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: 'EXPLAIN',
+  },
+  {
+    id: 'q4_24', order: 24, type: 'essay',
+    text: '정규화(Normalization)의 목적과 단계(1NF~BCNF)를 설명하고, 과도한 정규화의 문제점과 역정규화(Denormalization)를 적용하는 상황을 구체적인 예시와 함께 서술하시오.',
+    points: 10, autoGrade: false, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: null,
+  },
+  {
+    id: 'q4_25', order: 25, type: 'essay',
+    text: '대규모 서비스 환경에서 데이터베이스 성능을 향상시키기 위한 방법을 인덱스 전략, 캐싱, 읽기/쓰기 분리(Read Replica), 파티셔닝 관점에서 각각 설명하고, 실제 적용 시 고려해야 할 트레이드오프를 서술하시오.',
+    points: 10, autoGrade: false, gradedCount: 0, totalCount: 0, avgScore: 0,
+    correctAnswer: null,
+  },
+]
+
+// quiz4 자동채점 정답 맵
+const AUTO_CORRECT_Q4 = {
+  q4_1: ['데이터베이스의 구조와 제약 조건을 정의한 명세'],
+  q4_2: ['2NF 만족 + 이행적 함수 종속 제거'],
+  q4_3: ['참', 'true'],
+  q4_4: ['같은 트랜잭션 내에서 동일 쿼리를 반복할 때 이전에 없던 행이 나타나는 현상'],
+  q4_5: ['일관성(Consistency), 가용성(Availability), 분할 내성(Partition Tolerance)', '일관성, 가용성, 분할 내성'],
+  q4_6: ['참', 'true'],
+  q4_7: ['모든 트랜잭션에 동일한 타임아웃 적용'],
+  q4_8: ['Redis'],
+  q4_9: ['거짓', 'false'],
+  q4_10: ['준비된 구문(Prepared Statement) 사용'],
+  q4_11: ['파티셔닝은 단일 DB 내 분할, 샤딩은 다수 DB 서버 간 분산'],
+  q4_12: ['거짓', 'false'],
+  q4_13: ['SERIALIZABLE'],
+  q4_14: ['나누기(Division)'],
+  q4_15: ['장애 발생 시 데이터 복구를 위한 트랜잭션 로그 기록'],
+  q4_16: ['쿼리를 작성한 개발자의 경력'],
+  q4_17: ['데이터 읽기 시 잠금 없이 이전 버전의 스냅샷을 제공'],
+  q4_18: ['장애 발생 시 Standby로 전환되는 동안 일시적 서비스 중단 발생'],
+  q4_19: ['외부 쿼리의 각 행에 대해 서브쿼리가 반복 실행'],
+  q4_20: ['분해된 릴레이션의 공통 속성이 어느 한쪽의 키여야 한다'],
+  q4_21: ['Atomicity', 'atomicity', '원자성'],
+  q4_22: ['데드락', 'deadlock', 'Deadlock'],
+  q4_23: ['EXPLAIN', 'explain'],
+}
+
 // 퀴즈 ID별 문항 반환 — GradingDashboard에서 사용
 export function getQuizQuestions(quizId) {
   if (quizId === '1') return mockQuestions
+  if (quizId === '2') return mockQuiz2Questions
   if (quizId === '3') return mockQuiz3Questions
+  if (quizId === '4') return mockQuiz4Questions
+  if (quizId === '8') return mockQuiz8Questions
   return []
 }
 
@@ -343,7 +788,12 @@ export function gradeQuiz3Answer(questionId, answer) {
 
 export function autoGradeAnswer(question, answer) {
   if (!answer && answer !== 0) return 0
-  const correctMap = question.id.startsWith('q3_') ? AUTO_CORRECT_Q3 : AUTO_CORRECT_ANSWERS
+  let correctMap
+  if (question.id.startsWith('q2_')) correctMap = AUTO_CORRECT_Q2
+  else if (question.id.startsWith('q3_')) correctMap = AUTO_CORRECT_Q3
+  else if (question.id.startsWith('q4_')) correctMap = AUTO_CORRECT_Q4
+  else if (question.id.startsWith('q8_')) correctMap = AUTO_CORRECT_Q8_MAP
+  else correctMap = AUTO_CORRECT_ANSWERS
   const correct = correctMap?.[question.id]
   if (!correct) return null // 수동채점 필요
   const isCorrect = correct.some(c => String(answer).trim().toLowerCase() === c.toLowerCase().trim())
@@ -352,7 +802,8 @@ export function autoGradeAnswer(question, answer) {
 
 export function getStudentAnswer(studentIdx, questionId) {
   const pool = ANSWER_POOL[questionId] || ['답안 없음']
-  return pool[(studentIdx * 3 + parseInt(questionId.replace('q', ''))) % pool.length]
+  const idNum = questionId.split('_').reduce((acc, p) => acc + parseInt(p.replace(/\D/g, '') || '0'), 0)
+  return pool[(studentIdx * 3 + idNum) % pool.length]
 }
 
 export function isAnswerCorrect(answer, questionId) {
@@ -376,23 +827,41 @@ const BANK_QUESTION_TEXTS = [
   'GROUP BY 절의 사용 방법을 예시와 함께 설명하시오.',
 ]
 
+export const MOCK_COURSES = [
+  { id: 'cs301', name: 'CS301 데이터베이스' },
+  { id: 'cs201', name: 'CS201 운영체제' },
+  { id: 'cs401', name: 'CS401 알고리즘' },
+  { id: 'cs102', name: 'CS102 자료구조' },
+]
+
 export const MOCK_BANKS = [
-  { id: 'bank1', name: 'DB 기초', course: 'CS301 데이터베이스', updatedAt: '2026-03-20', usedInQuizIds: ['1', '2'] },
-  { id: 'bank2', name: 'SQL 심화', course: 'CS301 데이터베이스', updatedAt: '2026-03-24', usedInQuizIds: ['1'] },
-  { id: 'bank3', name: '프로세스 관리', course: 'CS201 운영체제', updatedAt: '2026-03-15', usedInQuizIds: [] },
-  { id: 'bank4', name: '메모리 관리', course: 'CS201 운영체제', updatedAt: '2026-03-10', usedInQuizIds: [] },
+  { id: 'bank1', name: 'DB 기초',       course: 'CS301 데이터베이스', updatedAt: '2026-03-20', usedInQuizIds: ['1', '2'] },
+  { id: 'bank2', name: 'SQL 심화',      course: 'CS301 데이터베이스', updatedAt: '2026-03-24', usedInQuizIds: ['1'] },
+  { id: 'bank3', name: '프로세스 관리', course: 'CS201 운영체제',     updatedAt: '2026-03-15', usedInQuizIds: [] },
+  { id: 'bank4', name: '메모리 관리',   course: 'CS201 운영체제',     updatedAt: '2026-03-10', usedInQuizIds: [] },
+  { id: 'bank5', name: '정렬 알고리즘', course: 'CS401 알고리즘',     updatedAt: '2026-02-28', usedInQuizIds: [] },
+  { id: 'bank6', name: '그래프 탐색',   course: 'CS401 알고리즘',     updatedAt: '2026-03-05', usedInQuizIds: [] },
+  { id: 'bank7', name: '선형 자료구조', course: 'CS102 자료구조',     updatedAt: '2026-02-20', usedInQuizIds: [] },
+  { id: 'bank8', name: '트리 및 해시',  course: 'CS102 자료구조',     updatedAt: '2026-02-25', usedInQuizIds: [] },
 ]
 
 const BANK_GROUP_MAP = {
-  bank1: ['1단원', '2단원', '3단원'],
-  bank2: ['A그룹', 'B그룹', 'C그룹'],
-  bank3: ['설계 기초', '설계 심화'],
-  bank4: ['기초', '심화'],
+  bank1: ['1단원 - 관계형 모델', '2단원 - SQL 기초', '3단원 - 정규화', '4단원 - 트랜잭션'],
+  bank2: ['기본 쿼리', '조인 및 서브쿼리', '인덱스 최적화', '뷰 및 저장 프로시저'],
+  bank3: ['프로세스 개념', '스케줄링', '동기화', '교착 상태'],
+  bank4: ['메모리 기초', '가상 메모리', '페이지 교체', '세그멘테이션'],
+  bank5: ['시간복잡도', '비교 기반 정렬', '비교 비기반 정렬', '정렬 응용'],
+  bank6: ['그래프 기초', 'BFS/DFS', '최단 경로', '최소 신장 트리'],
+  bank7: ['배열과 연결 리스트', '스택과 큐', '덱', '해시 기초'],
+  bank8: ['이진 트리', 'BST', '힙', '해시 테이블'],
 }
+export const BANK_GROUP_MAP_EXPORTED = BANK_GROUP_MAP
 const DIFFICULTIES = ['high', 'medium', 'low']
 
-export const MOCK_BANK_QUESTIONS = Array.from({ length: 60 }, (_, i) => {
-  const bankId = ['bank1', 'bank2', 'bank3', 'bank4'][i % 4]
+const BANK_IDS = ['bank1', 'bank2', 'bank3', 'bank4', 'bank5', 'bank6', 'bank7', 'bank8']
+
+export const MOCK_BANK_QUESTIONS = Array.from({ length: 120 }, (_, i) => {
+  const bankId = BANK_IDS[i % 8]
   const groups = BANK_GROUP_MAP[bankId]
   return {
     id: `bank_q${i + 1}`,
@@ -428,6 +897,7 @@ export const mockStudents = Array.from({ length: 82 }, (_, i) => ({
   startTime: '2026-03-20 09:00',
   endTime: '2026-03-20 10:' + String(20 + (i % 40)).padStart(2, '0'),
   submitted: true,
+  submittedAt: `2026-03-20 10:${String(20 + (i % 40)).padStart(2, '0')}:${String((i * 13) % 60).padStart(2, '0')}`,
   // q3 단답형 응답 (이전 호환성)
   response: i < 45
     ? ['외래키', 'Foreign Key', '참조키', '외부키', 'FK'][i % 5]
@@ -449,3 +919,135 @@ export const mockStudents = Array.from({ length: 82 }, (_, i) => ({
     q8: Q8_SCORES[i % 12],
   } : null,
 }))
+
+// ── 퀴즈 8: 2차 형성평가 - 데이터베이스 설계 & 정규화 (10문항, 50점) ──────────────────
+
+export const mockQuiz8Questions = [
+  {
+    id: 'q8_1', order: 1, type: 'multiple_choice',
+    text: '1NF(제1정규형)의 기본 요구 사항은?',
+    points: 3, autoGrade: true, gradedCount: 116, totalCount: 116, avgScore: 2.7,
+    correctAnswer: '원자값으로만 구성된 도메인',
+    choices: ['원자값으로만 구성된 도메인', '부분 함수적 종속 제거', '이행적 함수 종속 제거', 'BCNF 만족'],
+  },
+  {
+    id: 'q8_2', order: 2, type: 'multiple_choice',
+    text: 'NULL 값에 대한 설명으로 틀린 것은?',
+    points: 3, autoGrade: true, gradedCount: 116, totalCount: 116, avgScore: 2.4,
+    correctAnswer: '정수 0과 동일한 값이다',
+    choices: ['값이 존재하지 않음을 의미한다', '아직 알려지지 않은 값을 나타낸다', '정수 0과 동일한 값이다', 'IS NULL로 비교해야 한다'],
+  },
+  {
+    id: 'q8_3', order: 3, type: 'true_false',
+    text: '슈퍼키(Super Key)는 릴레이션의 모든 튜플을 유일하게 식별할 수 있다.',
+    points: 2, autoGrade: true, gradedCount: 116, totalCount: 116, avgScore: 1.7,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'q8_4', order: 4, type: 'multiple_choice',
+    text: '2NF 위반의 직접적인 원인이 되는 것은?',
+    points: 3, autoGrade: true, gradedCount: 116, totalCount: 116, avgScore: 1.95,
+    correctAnswer: '부분 함수 종속',
+    choices: ['완전 함수 종속', '부분 함수 종속', '이행적 함수 종속', '다치 종속'],
+  },
+  {
+    id: 'q8_5', order: 5, type: 'multiple_choice',
+    text: 'ER 다이어그램에서 약한 엔티티(Weak Entity)가 존재하기 위해 반드시 필요한 것은?',
+    points: 3, autoGrade: true, gradedCount: 116, totalCount: 116, avgScore: 1.8,
+    correctAnswer: '식별 관계(Identifying Relationship)',
+    choices: ['기본키', '식별 관계(Identifying Relationship)', '다중값 속성', '파생 속성'],
+  },
+  {
+    id: 'q8_6', order: 6, type: 'true_false',
+    text: 'BCNF를 만족하는 릴레이션은 반드시 3NF를 만족한다.',
+    points: 2, autoGrade: true, gradedCount: 116, totalCount: 116, avgScore: 1.1,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'q8_7', order: 7, type: 'multiple_choice',
+    text: '함수 종속 A→B, B→C가 성립할 때 A→C가 성립하는 현상을 무엇이라 하는가?',
+    points: 4, autoGrade: true, gradedCount: 116, totalCount: 116, avgScore: 1.8,
+    correctAnswer: '이행적 함수 종속',
+    choices: ['완전 함수 종속', '부분 함수 종속', '이행적 함수 종속', '다치 종속'],
+  },
+  {
+    id: 'q8_8', order: 8, type: 'multiple_choice',
+    text: '무손실 분해(Lossless Decomposition)의 조건으로 옳은 것은?',
+    points: 5, autoGrade: true, gradedCount: 116, totalCount: 116, avgScore: 1.875,
+    correctAnswer: '분해된 릴레이션의 공통 속성이 어느 한쪽의 슈퍼키여야 한다',
+    choices: [
+      '분해된 릴레이션의 공통 속성이 어느 한쪽의 슈퍼키여야 한다',
+      '분해된 릴레이션의 행 수가 동일해야 한다',
+      '분해된 릴레이션의 속성 수가 동일해야 한다',
+      '분해된 릴레이션이 같은 도메인을 가져야 한다',
+    ],
+  },
+  {
+    id: 'q8_9', order: 9, type: 'short_answer',
+    text: '정규화 과정에서 제거하고자 하는 데이터 이상(Anomaly)의 종류 3가지를 모두 쓰시오.',
+    points: 10, autoGrade: false, gradedCount: 116, totalCount: 116, avgScore: 8.3,
+    correctAnswer: '삽입 이상, 삭제 이상, 갱신 이상',
+  },
+  {
+    id: 'q8_10', order: 10, type: 'essay',
+    text: '1NF부터 BCNF까지 정규화의 각 단계를 정의하고, 예시 테이블을 활용하여 각 단계로 분해하는 과정을 서술하시오.',
+    points: 15, autoGrade: false, gradedCount: 116, totalCount: 116, avgScore: 11.2,
+    correctAnswer: null,
+  },
+]
+
+const AUTO_CORRECT_Q8_MAP = {
+  q8_1: ['원자값으로만 구성된 도메인'],
+  q8_2: ['정수 0과 동일한 값이다'],
+  q8_3: ['참', 'true'],
+  q8_4: ['부분 함수 종속'],
+  q8_5: ['식별 관계(Identifying Relationship)'],
+  q8_6: ['참', 'true'],
+  q8_7: ['이행적 함수 종속'],
+  q8_8: ['분해된 릴레이션의 공통 속성이 어느 한쪽의 슈퍼키여야 한다'],
+}
+
+// 퀴즈 8 학생별 수동채점 점수 풀
+const S8_Q9  = [6, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10]   // mean ≈ 8.33
+const S8_Q10 = [8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 13, 13, 14, 15] // mean ≈ 11.2
+
+export const mockStudents8 = Array.from({ length: 116 }, (_, i) => {
+  // 자동채점 점수 (난이도별 정답률 반영)
+  const a1 = i % 10 !== 9  ? 3 : 0    // ~90% 정답 (쉬움)
+  const a2 = i % 5  < 4    ? 3 : 0    // 80% 정답 (쉬움)
+  const a3 = i % 20 < 17   ? 2 : 0    // 85% 정답 (쉬움)
+  const a4 = i % 20 < 13   ? 3 : 0    // 65% 정답 (중간)
+  const a5 = i % 5  < 3    ? 3 : 0    // 60% 정답 (중간)
+  const a6 = i % 20 < 11   ? 2 : 0    // 55% 정답 (중간)
+  const a7 = i % 20 < 9    ? 4 : 0    // 45% 정답 (어려움)
+  const a8 = i % 8  < 3    ? 5 : 0    // ~37.5% 정답 (어려움)
+  const m9  = S8_Q9[i % 15]
+  const m10 = S8_Q10[i % 15]
+  const autoTotal = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8
+  const total = autoTotal + m9 + m10
+  const hour = 9 + Math.floor(((i * 7) % 480) / 60)
+  const min  = (i * 7) % 60
+  const timeStr = `${String(Math.min(hour, 17)).padStart(2, '0')}:${String(min).padStart(2, '0')}`
+  return {
+    id: `s8_${i + 1}`,
+    studentId: `2023${String(i + 1001).slice(1)}`,
+    name: DEMO_NAMES[i % 12] + (i > 11 ? `-${Math.floor(i / 12) + 1}` : ''),
+    department: ['컴퓨터공학과', '소프트웨어학과', '정보통신공학과', '데이터사이언스학과'][i % 4],
+    score: total,
+    startTime: '2026-03-31 09:00',
+    endTime: `2026-03-31 ${timeStr}`,
+    submitted: true,
+    submittedAt: `2026-03-31 ${timeStr}:${String((i * 17) % 60).padStart(2, '0')}`,
+    response: ['삽입 이상, 삭제 이상, 갱신 이상', '삽입이상, 삭제이상, 갱신이상', '삽입 이상과 삭제 이상, 갱신 이상'][i % 3],
+    autoScores: { q8_1: a1, q8_2: a2, q8_3: a3, q8_4: a4, q8_5: a5, q8_6: a6, q8_7: a7, q8_8: a8 },
+    manualScores: { q8_9: m9, q8_10: m10 },
+  }
+})
+
+// 퀴즈 ID별 학생 데이터 반환
+export function getQuizStudents(quizId) {
+  if (quizId === '8') return mockStudents8
+  return mockStudents
+}
