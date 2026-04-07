@@ -1,12 +1,13 @@
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { DropdownSelect } from '../components/DropdownSelect'
 import {
   ArrowUpDown, CheckCircle2, AlertCircle, Download, Upload, FileDown,
   ChevronDown, ChevronUp, X, BarChart3, Users, RefreshCw,
   FileText, Search, FileEdit, Circle
 } from 'lucide-react'
 import Layout from '../components/Layout'
-import { mockStudents, QUIZ_TYPES, mockQuizzes, getStudentAnswer, isAnswerCorrect, getQuizQuestions } from '../data/mockData'
+import { getQuizStudents, QUIZ_TYPES, mockQuizzes, getStudentAnswer, isAnswerCorrect, getQuizQuestions } from '../data/mockData'
 import { downloadAnswerSheetsXlsx, downloadGradingSheetXlsx, parseExcelOrCsv, parseGradingSheet } from '../utils/excelUtils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
@@ -45,7 +46,7 @@ export default function GradingDashboard() {
   // 문항 중심 상태
   const [selectedQ, setSelectedQ] = useState(null)
   const [sortBy, setSortBy] = useState('ungraded_first')
-  const [collapsedGraded, setCollapsedGraded] = useState(true)
+  const [collapsedGraded, setCollapsedGraded] = useState(false)
   const [activeTab, setActiveTab] = useState('responses')
 
   // 학생 중심 상태
@@ -57,7 +58,6 @@ export default function GradingDashboard() {
   const [showExcelModal, setShowExcelModal] = useState(false)
   const [showPdfModal, setShowPdfModal] = useState(false)
   const [showRegradeModal, setShowRegradeModal] = useState(false)
-  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [mobileView, setMobileView] = useState('questions')
 
   // gradedCount 실시간 반영을 위한 버전 카운터
@@ -65,11 +65,12 @@ export default function GradingDashboard() {
   const onGradeSaved = useCallback(() => setGradeVersion(v => v + 1), [])
 
   const quizQuestions = getQuizQuestions(id)
+  const quizStudents = getQuizStudents(id)
 
   // localStorage 채점 기록을 반영한 실시간 gradedCount 계산
   const questionsWithLiveCounts = useMemo(() => {
     const grades = getLocalGrades()
-    const submittedStudents = mockStudents.filter(s => s.submitted)
+    const submittedStudents = quizStudents.filter(s => s.submitted)
     return quizQuestions.map(q => {
       if (q.autoGrade) return q
       const gradedCount = submittedStudents.filter(s => {
@@ -80,41 +81,46 @@ export default function GradingDashboard() {
     })
   }, [quizQuestions, id, gradeVersion]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const manualQuestions = questionsWithLiveCounts.filter(q => !q.autoGrade)
-
   const sortedQuestions = useMemo(() => {
     if (!QUIZ_INFO) return []
     if (sortBy === 'ungraded_first') {
-      return [...manualQuestions].sort((a, b) => {
+      return [...questionsWithLiveCounts].sort((a, b) => {
         const aComplete = a.gradedCount >= a.totalCount
         const bComplete = b.gradedCount >= b.totalCount
         if (aComplete === bComplete) return a.order - b.order
         return aComplete ? 1 : -1
       })
     }
-    return [...manualQuestions].sort((a, b) => a.order - b.order)
-  }, [sortBy, QUIZ_INFO, manualQuestions])
+    return [...questionsWithLiveCounts].sort((a, b) => a.order - b.order)
+  }, [sortBy, QUIZ_INFO, questionsWithLiveCounts])
 
   const gradedQuestions = sortedQuestions.filter(q => q.gradedCount >= q.totalCount)
   const ungradedQuestions = sortedQuestions.filter(q => q.gradedCount < q.totalCount)
 
+  // 최초 로드 시 첫 번째 문항 자동 선택
+  useEffect(() => {
+    if (sortedQuestions.length > 0 && !selectedQ) {
+      setSelectedQ(sortedQuestions[0])
+    }
+  }, [sortedQuestions]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const questionStudents = useMemo(() => {
     if (!selectedQ) return []
-    return mockStudents.filter(s => s.submitted).filter(s =>
+    return quizStudents.filter(s => s.submitted).filter(s =>
       searchStudent === '' ||
       s.name.includes(searchStudent) ||
       s.studentId.includes(searchStudent)
     )
-  }, [selectedQ, searchStudent])
+  }, [selectedQ, searchStudent, quizStudents])
 
   // 학생 중심 - 전체 학생 목록
   const allStudents = useMemo(() => {
-    return mockStudents.filter(s => s.submitted).filter(s =>
+    return quizStudents.filter(s => s.submitted).filter(s =>
       studentSearch === '' ||
       s.name.includes(studentSearch) ||
       s.studentId.includes(studentSearch)
     )
-  }, [studentSearch])
+  }, [studentSearch, quizStudents])
 
   const gradedStudentList = allStudents.filter(s => s.score !== null)
   const ungradedStudentList = allStudents.filter(s => s.score === null)
@@ -156,52 +162,71 @@ export default function GradingDashboard() {
       <div className="max-w-[1600px] mx-auto px-6 sm:px-10 xl:px-16 py-6">
 
         {/* 퀴즈 정보 카드 */}
-        <div className="card p-5 sm:p-6 mb-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className="text-xs" style={{ color: '#9E9E9E' }}>
-                  {QUIZ_INFO.week}주차 {QUIZ_INFO.session}차시
-                </span>
-                <span className="w-px h-3 shrink-0" style={{ background: '#EEEEEE' }} />
-                <span className="flex items-center gap-1 text-xs font-medium" style={{ color: '#B43200' }}>
-                  채점 중
-                </span>
-              </div>
-              <h2 className="text-lg font-bold mb-1.5" style={{ color: '#222222' }}>{QUIZ_INFO.title}</h2>
-              <p className="text-sm" style={{ color: '#9E9E9E' }}>{QUIZ_INFO.startDate} ~ {QUIZ_INFO.dueDate}</p>
-            </div>
+        {(() => {
+          const STATUS_MAP = {
+            open:      { label: '진행중', color: '#16A34A', bg: '#F0FDF4' },
+            grading:   { label: '진행중', color: '#16A34A', bg: '#F0FDF4' },
+            closed:    { label: '마감',   color: '#6B7280', bg: '#F3F4F6' },
+            scheduled: { label: '예정',   color: '#D97706', bg: '#FFFBEB' },
+            draft:     { label: '발행 전',color: '#6366F1', bg: '#EEF2FF' },
+          }
+          const statusStyle = STATUS_MAP[QUIZ_INFO.status] ?? { label: QUIZ_INFO.status, color: '#6B7280', bg: '#F3F4F6' }
+          return (
+            <div className="card mb-5 overflow-hidden">
+              <div className="p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: '#EEF2FF', color: '#4F46E5' }}>
+                        {QUIZ_INFO.week}주차 {QUIZ_INFO.session}차시
+                      </span>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: statusStyle.bg, color: statusStyle.color }}>
+                        {statusStyle.label}
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-bold mb-1.5" style={{ color: '#111827' }}>{QUIZ_INFO.title}</h2>
+                    <p className="text-sm" style={{ color: '#9CA3AF' }}>{QUIZ_INFO.startDate} ~ {QUIZ_INFO.dueDate}</p>
+                  </div>
 
-            <div className="flex items-stretch shrink-0 rounded-lg overflow-hidden" style={{ border: '1px solid #E0E0E0' }}>
-              {[
-                { label: '제출',      value: QUIZ_INFO.submitted,                           sub: `${submitRate}%`,                                                                          styleColor: '#222222' },
-                { label: '채점 완료', value: QUIZ_INFO.graded,                               sub: `${QUIZ_INFO.submitted > 0 ? Math.round(QUIZ_INFO.graded / QUIZ_INFO.submitted * 100) : 0}%`,        styleColor: '#018600' },
-                { label: '미채점',    value: QUIZ_INFO.pendingGrade,                         sub: `${QUIZ_INFO.submitted > 0 ? Math.round(QUIZ_INFO.pendingGrade / QUIZ_INFO.submitted * 100) : 0}%`,   styleColor: '#B43200' },
-                { label: '미제출',    value: QUIZ_INFO.totalStudents - QUIZ_INFO.submitted,  sub: `${100 - submitRate}%`,                                                                    styleColor: '#9E9E9E' },
-              ].map((item, i) => (
-                <div key={item.label} className="flex flex-col items-center justify-center px-6 py-4 text-center"
-                  style={{ borderLeft: i > 0 ? '1px solid #EEEEEE' : 'none', minWidth: 72 }}>
-                  <p className="text-2xl font-bold leading-none" style={{ color: item.styleColor }}>{item.value}</p>
-                  <p className="text-xs font-medium mt-1" style={{ color: '#9E9E9E' }}>{item.sub}</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{item.label}</p>
+                  <div className="flex items-stretch shrink-0 rounded-xl overflow-hidden" style={{ border: '1px solid #E5E7EB' }}>
+                    <div className="flex flex-col justify-center px-5 py-4 text-center" style={{ minWidth: 90 }}>
+                      <p className="text-xs mb-2" style={{ color: '#9CA3AF' }}>제출률</p>
+                      <p className="text-2xl font-bold leading-none" style={{ color: '#4F46E5' }}>{submitRate}%</p>
+                    </div>
+                    <div style={{ width: 1, background: '#E5E7EB' }} />
+                    <div className="flex flex-col justify-center px-5 py-4 text-center" style={{ minWidth: 110 }}>
+                      <p className="text-xs mb-2" style={{ color: '#9CA3AF' }}>제출 인원</p>
+                      <p className="text-2xl font-bold leading-none" style={{ color: '#111827' }}>
+                        {QUIZ_INFO.submitted}<span className="text-sm font-normal ml-1" style={{ color: '#9CA3AF' }}>/ {QUIZ_INFO.totalStudents}명</span>
+                      </p>
+                    </div>
+                    <div style={{ width: 1, background: '#E5E7EB' }} />
+                    <div className="flex flex-col justify-center px-5 py-4 text-center" style={{ minWidth: 110 }}>
+                      <p className="text-xs mb-2" style={{ color: '#9CA3AF' }}>채점 완료</p>
+                      <p className="text-2xl font-bold leading-none" style={{ color: '#111827' }}>
+                        {QUIZ_INFO.graded}<span className="text-sm font-normal ml-1" style={{ color: '#9CA3AF' }}>/ {QUIZ_INFO.submitted}명</span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="mt-4">
-            <div className="flex justify-between text-xs mb-1.5" style={{ color: '#9E9E9E' }}>
-              <span>채점 진행률</span>
-              <span className="font-semibold" style={{ color: '#424242' }}>{gradeProgress}%</span>
+                {/* 채점 진행률 — 콘텐츠 영역 내 통합 */}
+                <div className="mt-4 pt-4" style={{ borderTop: '1px solid #F3F4F6' }}>
+                  <div className="flex justify-between text-xs mb-2" style={{ color: '#9CA3AF' }}>
+                    <span>채점 진행률</span>
+                    <span className="font-semibold" style={{ color: '#4F46E5' }}>{gradeProgress}%</span>
+                  </div>
+                  <div className="h-[5px] rounded-full overflow-hidden" style={{ background: '#E5E7EB' }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${gradeProgress}%`, background: '#6366F1' }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="h-[4px] rounded overflow-hidden" style={{ background: '#EEEEEE' }}>
-              <div
-                className="h-full bg-indigo-500 rounded transition-all"
-                style={{ width: `${gradeProgress}%` }}
-              />
-            </div>
-          </div>
-        </div>
+          )
+        })()}
 
         {/* 액션 바 */}
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
@@ -239,45 +264,12 @@ export default function GradingDashboard() {
               <span className="hidden sm:block">재채점</span>
             </button>
             <button
-              onClick={() => downloadAnswerSheetsXlsx(QUIZ_INFO, mockStudents.filter(s => s.submitted), quizQuestions, { getStudentAnswer })}
+              onClick={() => downloadAnswerSheetsXlsx(QUIZ_INFO, quizStudents.filter(s => s.submitted), quizQuestions, { getStudentAnswer })}
               className="btn-secondary text-xs py-2 px-3"
             >
               <FileDown size={12} />
               <span>답안지 다운로드</span>
             </button>
-            {!showCloseConfirm ? (
-              <button
-                onClick={() => setShowCloseConfirm(true)}
-                className="text-xs font-semibold px-3.5 py-2 transition-colors"
-                style={{ background: '#018600', color: '#fff', borderRadius: 4 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#016800'}
-                onMouseLeave={e => e.currentTarget.style.background = '#018600'}
-              >
-                채점 종료
-              </button>
-            ) : (
-              <div className="flex items-center gap-1.5 pl-2" style={{ borderLeft: '1px solid #EEEEEE' }}>
-                <span className="text-xs" style={{ color: '#616161' }}>퀴즈를 종료할까요?</span>
-                <button
-                  onClick={() => {
-                    const idx = mockQuizzes.findIndex(q => q.id === QUIZ_INFO.id)
-                    if (idx !== -1) mockQuizzes[idx] = { ...mockQuizzes[idx], status: 'closed' }
-                    navigate('/')
-                  }}
-                  className="text-xs font-semibold text-white px-3 py-1.5 transition-colors"
-                  style={{ background: '#018600', borderRadius: 4 }}
-                >
-                  확인
-                </button>
-                <button
-                  onClick={() => setShowCloseConfirm(false)}
-                  className="text-xs px-2.5 py-1.5 transition-colors"
-                  style={{ color: '#616161', border: '1px solid #E0E0E0', borderRadius: 4 }}
-                >
-                  취소
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -307,24 +299,20 @@ export default function GradingDashboard() {
           {gradingMode === 'question' ? (
             <>
               {/* 문항 중심: 좌측 문항 목록 */}
-              <aside className={`${mobileView === 'questions' ? 'flex' : 'hidden'} sm:flex flex-col w-full sm:w-72 lg:w-80 shrink-0`}>
-                <div className="flex items-center justify-between mb-3">
+              <aside className={`${mobileView === 'questions' ? 'flex' : 'hidden'} sm:flex flex-col w-full sm:w-72 lg:w-80 shrink-0 rounded-xl overflow-hidden`} style={{ border: '1px solid #E5E7EB' }}>
+                <div className="flex items-center justify-between px-3 py-2.5" style={{ borderBottom: '1px solid #F3F4F6' }}>
                   <span className="text-xs font-medium" style={{ color: '#616161' }}>
-                    주관식 {manualQuestions.length}문항
+                    총 문항 {questionsWithLiveCounts.length}개
                   </span>
-                  <select
+                  <DropdownSelect
                     value={sortBy}
-                    onChange={e => setSortBy(e.target.value)}
-                    className="appearance-none text-xs bg-white pl-2.5 pr-6 py-1.5 rounded cursor-pointer focus:outline-none"
-                    style={{ border: '1px solid #E0E0E0', color: '#424242' }}
-                  >
-                    {SORT_OPTIONS.map(o => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
+                    onChange={setSortBy}
+                    options={SORT_OPTIONS}
+                    size="sm"
+                  />
                 </div>
 
-                <div className="flex-1 overflow-y-auto scrollbar-thin space-y-1.5 pr-1">
+                <div className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-2" style={{ background: '#fff' }}>
                   {ungradedQuestions.map(q => (
                     <QuestionItem key={q.id} question={q} selected={selectedQ?.id === q.id} onClick={() => handleSelectQ(q)} />
                   ))}
@@ -333,20 +321,21 @@ export default function GradingDashboard() {
                     <div>
                       <button
                         onClick={() => setCollapsedGraded(!collapsedGraded)}
-                        className="flex items-center justify-between w-full text-xs py-2 px-2 transition-colors"
-                        style={{ color: '#9E9E9E' }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#424242'}
-                        onMouseLeave={e => e.currentTarget.style.color = '#9E9E9E'}
+                        className="flex items-center justify-between w-full font-medium pt-2 pb-1.5 px-1 transition-colors"
+                        style={{ fontSize: 11, color: '#4B5563' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#111827'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#4B5563'}
                       >
-                        <span className="flex items-center gap-1.5">
-                          <CheckCircle2 size={12} style={{ color: '#018600' }} />
-                          채점 완료 ({gradedQuestions.length})
-                        </span>
+                        <span>채점 완료 ({gradedQuestions.length})</span>
                         {collapsedGraded ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
                       </button>
-                      {!collapsedGraded && gradedQuestions.map(q => (
-                        <QuestionItem key={q.id} question={q} selected={selectedQ?.id === q.id} onClick={() => handleSelectQ(q)} dimmed />
-                      ))}
+                      {!collapsedGraded && (
+                        <div className="space-y-2 mt-1">
+                          {gradedQuestions.map(q => (
+                            <QuestionItem key={q.id} question={q} selected={selectedQ?.id === q.id} onClick={() => handleSelectQ(q)} dimmed />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -374,54 +363,56 @@ export default function GradingDashboard() {
           ) : (
             <>
               {/* 학생 중심: 좌측 학생 목록 */}
-              <aside className={`${mobileView === 'questions' ? 'flex' : 'hidden'} sm:flex flex-col w-full sm:w-72 lg:w-80 shrink-0`}>
-                <div className="mb-3">
-                  <div className="relative">
+              <aside className={`${mobileView === 'questions' ? 'flex' : 'hidden'} sm:flex flex-col w-full sm:w-72 lg:w-80 shrink-0 rounded-xl overflow-hidden`} style={{ border: '1px solid #E5E7EB' }}>
+                <div className="flex items-center px-3 py-2.5" style={{ borderBottom: '1px solid #F3F4F6' }}>
+                  <div className="relative w-full">
                     <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#9E9E9E' }} />
                     <input
                       type="text"
                       value={studentSearch}
                       onChange={e => setStudentSearch(e.target.value)}
                       placeholder="학생 이름 또는 학번"
-                      className="w-full bg-white text-xs pl-8 pr-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                      className="w-full bg-white text-xs pl-8 pr-3 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100"
                       style={{ border: '1px solid #E0E0E0', color: '#222222' }}
                     />
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto scrollbar-thin space-y-1 pr-1">
+                <div className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-2" style={{ background: '#fff' }}>
                   {ungradedStudentList.length > 0 && (
-                    <div className="mb-2">
-                      <div className="px-1 pt-1 pb-1.5 flex items-center gap-2 mb-1">
-                        <AlertCircle size={11} style={{ color: '#B43200', flexShrink: 0 }} />
+                    <div>
+                      <div className="px-1 pt-1 pb-1 flex items-center gap-2">
                         <span className="text-xs font-semibold" style={{ color: '#B43200' }}>미채점</span>
                         <span className="text-xs" style={{ color: '#BDBDBD' }}>{ungradedStudentList.length}명</span>
                         <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
                       </div>
-                      {ungradedStudentList.map(s => (
-                        <StudentListItem
-                          key={s.id} student={s}
-                          selected={selectedStudent?.id === s.id}
-                          onClick={() => handleSelectStudent(s)}
-                        />
-                      ))}
+                      <div className="space-y-2">
+                        {ungradedStudentList.map(s => (
+                          <StudentListItem
+                            key={s.id} student={s}
+                            selected={selectedStudent?.id === s.id}
+                            onClick={() => handleSelectStudent(s)}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
                   {gradedStudentList.length > 0 && (
                     <div>
-                      <div className="px-1 pt-1 pb-1.5 flex items-center gap-2 mb-1">
-                        <CheckCircle2 size={11} style={{ color: '#018600', flexShrink: 0 }} />
-                        <span className="text-xs font-semibold" style={{ color: '#018600' }}>채점 완료</span>
+                      <div className="px-1 pt-1 pb-1 flex items-center gap-2">
+                        <span className="text-xs font-semibold" style={{ color: '#4B5563' }}>채점 완료</span>
                         <span className="text-xs" style={{ color: '#BDBDBD' }}>{gradedStudentList.length}명</span>
                         <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
                       </div>
-                      {gradedStudentList.map(s => (
-                        <StudentListItem
-                          key={s.id} student={s}
-                          selected={selectedStudent?.id === s.id}
-                          onClick={() => handleSelectStudent(s)}
-                        />
-                      ))}
+                      <div className="space-y-2">
+                        {gradedStudentList.map(s => (
+                          <StudentListItem
+                            key={s.id} student={s}
+                            selected={selectedStudent?.id === s.id}
+                            onClick={() => handleSelectStudent(s)}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -440,7 +431,7 @@ export default function GradingDashboard() {
         </div>
       </div>
 
-      {showExcelModal && <ExcelModal question={selectedQ} onClose={() => setShowExcelModal(false)} onUploaded={onGradeSaved} />}
+      {showExcelModal && <ExcelModal question={selectedQ} students={quizStudents} onClose={() => setShowExcelModal(false)} onUploaded={onGradeSaved} />}
       {showPdfModal && <PdfModal onClose={() => setShowPdfModal(false)} />}
       {showRegradeModal && <RegradeModal onClose={() => setShowRegradeModal(false)} />}
     </Layout>
@@ -473,9 +464,7 @@ function QuestionItem({ question, selected, onClick, dimmed }) {
             </span>
             <TypeBadge type={question.type} small />
             {isComplete && (
-              <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded" style={{ color: '#018600', background: '#E5FCE3' }}>
-                <CheckCircle2 size={10} />완료
-              </span>
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ color: '#018600', background: '#E5FCE3' }}>완료</span>
             )}
           </div>
           <p className="text-xs leading-relaxed line-clamp-2" style={{ color: dimmed ? '#BDBDBD' : '#616161' }}>
@@ -508,16 +497,25 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
       <div className="bg-white p-4 mb-3" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="text-xs font-bold" style={{ color: '#9E9E9E' }}>Q{question.order}</span>
-              <TypeBadge type={question.type} />
-              <span className="text-xs" style={{ color: '#9E9E9E' }}>{question.points}점</span>
-              <GradeStatus question={question} />
-            </div>
             <p className="text-sm leading-relaxed" style={{ color: '#222222' }}>{question.text}</p>
             {question.correctAnswer && (
-              <div className="mt-2 text-xs px-3 py-1.5 rounded" style={{ color: '#018600', background: '#E5FCE3' }}>
-                모범 답안: {question.correctAnswer}
+              <div className="mt-3 flex items-start gap-3 pl-3" style={{ borderLeft: '2px solid #6366f1' }}>
+                <span className="text-xs font-medium shrink-0 mt-0.5" style={{ color: '#6366f1' }}>모범 답안</span>
+                {question.type === 'true_false' ? (
+                  <div className="flex items-center gap-1.5">
+                    {['참', '거짓'].map(opt => {
+                      const isCorrect = opt === question.correctAnswer
+                      return (
+                        <span key={opt} className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                          style={isCorrect ? { background: '#6366f1', color: '#fff' } : { background: '#F1F5F9', color: '#94A3B8' }}>
+                          {opt}
+                        </span>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <span className="text-xs leading-relaxed" style={{ color: '#1E293B' }}>{question.correctAnswer}</span>
+                )}
               </div>
             )}
           </div>
@@ -549,7 +547,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
       {activeTab === 'responses' ? (
         <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} />
       ) : (
-        <StatsTab question={question} students={mockStudents} />
+        <StatsTab question={question} students={quizStudents} />
       )}
     </div>
   )
@@ -574,7 +572,6 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
             style={{ border: '1px solid #E0E0E0', color: '#222222' }}
           />
         </div>
-        <span className="text-xs shrink-0" style={{ color: '#9E9E9E' }}>{students.length}명</span>
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin">
@@ -594,8 +591,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
         {gradedStudents.length > 0 && (
           <div>
             <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
-              <CheckCircle2 size={11} style={{ color: '#018600', flexShrink: 0 }} />
-              <span className="text-xs font-semibold" style={{ color: '#018600' }}>채점 완료</span>
+              <span className="text-xs font-semibold" style={{ color: '#4B5563' }}>채점 완료</span>
               <span className="text-xs" style={{ color: '#BDBDBD' }}>{gradedStudents.length}명</span>
               <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
             </div>
@@ -613,19 +609,36 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
 function StudentRow({ student, question, quizId, onGradeSaved }) {
   const storageKey = `${quizId}_${student.id}_${question.id}`
   const [expanded, setExpanded] = useState(false)
+  const studentIdx = parseInt(student.id.replace('s', ''))
+  const rawAnswer = question.autoGrade
+    ? getStudentAnswer(studentIdx, question.id)
+    : (student.response || getStudentAnswer(studentIdx, question.id))
+
+  // 유형별 compact 표시용 답안
+  const CHOICE_LABELS = ['①', '②', '③', '④', '⑤']
+  const choiceIndex = question.choices ? question.choices.indexOf(rawAnswer) : -1
+  let compactAnswer
+  if (question.type === 'true_false') {
+    const lower = (rawAnswer || '').toLowerCase()
+    compactAnswer = (lower === '참' || lower === 'true') ? '참' : (lower === '거짓' || lower === 'false') ? '거짓' : rawAnswer
+  } else {
+    compactAnswer = rawAnswer
+  }
+
+  const autoCorrect = question.autoGrade ? isAnswerCorrect(rawAnswer, question.id) : null
+
   const [score, setScore] = useState(() => {
     const saved = getLocalGrades()
     if (storageKey in saved) return saved[storageKey]
-    return student.manualScores?.[question.id] ?? ''
+    if (student.manualScores?.[question.id] != null) return student.manualScores[question.id]
+    if (question.autoGrade) return student.autoScores?.[question.id] ?? (autoCorrect ? question.points : 0)
+    return ''
   })
   const [saved, setSaved] = useState(() => {
     const grades = getLocalGrades()
-    return (storageKey in grades) || student.manualScores?.[question.id] != null
+    return (storageKey in grades) || student.manualScores?.[question.id] != null || question.autoGrade
   })
   const isGraded = saved
-
-  const answer = student.response || getStudentAnswer(parseInt(student.id.replace('s', '')), question.id)
-  const autoCorrect = question.autoGrade ? isAnswerCorrect(answer, question.id) : null
 
   const handleSave = () => {
     const grades = getLocalGrades()
@@ -650,9 +663,9 @@ function StudentRow({ student, question, quizId, onGradeSaved }) {
         </div>
 
         {/* 이름/학번 */}
-        <div className="w-28 shrink-0">
-          <p className="text-sm font-medium truncate" style={{ color: '#222222' }}>{student.name}</p>
-          <p className="text-xs truncate" style={{ color: '#9E9E9E' }}>{student.studentId}</p>
+        <div className="w-24 shrink-0">
+          <p className="text-xs truncate" style={{ color: '#6B7280' }}>{student.name}</p>
+          <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{student.studentId}</p>
         </div>
 
         {/* 답안 미리보기 (클릭하면 전체 펼침) */}
@@ -660,8 +673,8 @@ function StudentRow({ student, question, quizId, onGradeSaved }) {
           className="flex-1 min-w-0 text-left flex items-center gap-1"
           onClick={() => setExpanded(!expanded)}
         >
-          <p className="text-xs truncate flex-1" style={{ color: expanded ? '#424242' : '#9E9E9E' }}>
-            {answer || '(답안 없음)'}
+          <p className="text-sm truncate flex-1" style={{ color: expanded ? '#111827' : '#374151' }}>
+            {compactAnswer || '(답안 없음)'}
           </p>
           {expanded
             ? <ChevronUp size={12} style={{ color: '#BDBDBD', flexShrink: 0 }} />
@@ -670,55 +683,76 @@ function StudentRow({ student, question, quizId, onGradeSaved }) {
         </button>
 
         {/* 채점 영역 */}
-        {!question.autoGrade ? (
-          <div className="flex items-center gap-1.5 shrink-0">
-            {saved && (
-              <CheckCircle2 size={13} style={{ color: '#018600' }} />
-            )}
-            <input
-              type="number"
-              value={score}
-              onChange={e => { setScore(e.target.value); setSaved(false) }}
-              placeholder="—"
-              min={0}
-              max={question.points}
-              className="w-14 bg-white text-xs px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
-              style={{ border: '1px solid #E0E0E0', color: '#222222' }}
-              onKeyDown={e => { if (e.key === 'Enter' && !(score === '' || Number(score) > question.points || Number(score) < 0)) handleSave() }}
-            />
-            <span className="text-xs" style={{ color: '#BDBDBD' }}>/ {question.points}</span>
-            <button
-              onClick={handleSave}
-              disabled={score === '' || Number(score) > question.points || Number(score) < 0}
-              className="text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1.5 rounded transition-colors font-medium"
-            >
-              저장
-            </button>
-          </div>
-        ) : (
-          <div className="shrink-0">
-            {autoCorrect !== null && (
-              <span className="text-xs px-2 py-0.5 rounded"
-                style={autoCorrect
-                  ? { color: '#018600', background: '#E5FCE3' }
-                  : { color: '#B43200', background: '#FFF5F5' }
-                }>
-                {autoCorrect ? '정답' : '오답'}
-              </span>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {question.autoGrade && autoCorrect !== null && (
+            <span className="text-xs px-1.5 py-0.5 rounded shrink-0"
+              style={autoCorrect
+                ? { color: '#018600', background: '#E5FCE3' }
+                : { color: '#B43200', background: '#FFF5F5' }
+              }>
+              {autoCorrect ? '정답' : '오답'}
+            </span>
+          )}
+          <input
+            type="number"
+            value={score}
+            onChange={e => { setScore(e.target.value); setSaved(false) }}
+            placeholder="—"
+            min={0}
+            max={question.points}
+            className="w-14 bg-white text-xs px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
+            style={{ border: '1px solid #E0E0E0', color: '#222222' }}
+            onKeyDown={e => { if (e.key === 'Enter' && !(score === '' || Number(score) > question.points || Number(score) < 0)) handleSave() }}
+          />
+          <span className="text-xs" style={{ color: '#BDBDBD' }}>/ {question.points}</span>
+          <button
+            onClick={handleSave}
+            disabled={score === '' || Number(score) > question.points || Number(score) < 0}
+            className="text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1.5 rounded transition-colors font-medium"
+          >
+            저장
+          </button>
+        </div>
       </div>
 
-      {/* 확장: 전체 답안 */}
+      {/* 확장: 유형별 전체 답안 */}
       {expanded && (
-        <div className="px-3 pb-3 ml-10">
-          <div className="p-3 rounded text-xs" style={{ background: '#FAFAFA', border: '1px solid #E0E0E0' }}>
-            <p className="leading-relaxed" style={{ color: '#424242' }}>{answer}</p>
-            {question.autoGrade && autoCorrect !== null && !autoCorrect && question.correctAnswer && (
-              <p className="mt-2" style={{ color: '#9E9E9E' }}>정답: {question.correctAnswer}</p>
-            )}
-          </div>
+        <div className="px-3 pb-3" style={{ paddingLeft: 56 }}>
+          {question.type === 'multiple_choice' && question.choices ? (
+            <div className="flex flex-col gap-0.5 py-1">
+              {question.choices.map((choice, i) => {
+                const isSel = choice === rawAnswer
+                return (
+                  <div key={i} className="flex items-baseline gap-2 px-2 py-1 rounded text-xs"
+                    style={{ background: isSel ? '#EEF2FF' : 'transparent', fontWeight: isSel ? 600 : 400, color: isSel ? '#3730a3' : '#6B7280' }}>
+                    <span style={{ minWidth: 16, flexShrink: 0, color: isSel ? '#6366f1' : '#9CA3AF' }}>{i + 1}.</span>
+                    <span>{choice}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : question.type === 'true_false' ? (
+            <div className="flex items-center gap-2 py-1">
+              {['참', '거짓'].map(opt => {
+                const lower = (rawAnswer || '').toLowerCase()
+                const normalized = (lower === '참' || lower === 'true') ? '참' : '거짓'
+                const isSel = opt === normalized
+                return (
+                  <span key={opt} className="px-3 py-1 rounded-full text-xs font-medium"
+                    style={isSel ? { background: '#6366f1', color: '#fff' } : { background: '#F3F4F6', color: '#9CA3AF' }}>
+                    {opt}
+                  </span>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="p-3 rounded text-xs" style={{ background: '#FAFAFA', border: '1px solid #E0E0E0' }}>
+              <p className="leading-relaxed" style={{ color: '#424242' }}>{rawAnswer}</p>
+              {autoCorrect !== null && !autoCorrect && question.correctAnswer && (
+                <p className="mt-2" style={{ color: '#9E9E9E' }}>정답: {question.correctAnswer}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1049,15 +1083,11 @@ function GradeStatus({ question }) {
   const complete = question.gradedCount >= question.totalCount
   if (complete) {
     return (
-      <span className="text-xs px-2 py-0.5 rounded flex items-center gap-1" style={{ color: '#018600', background: '#E5FCE3' }}>
-        <CheckCircle2 size={10} />채점 완료
-      </span>
+      <span className="text-xs px-2 py-0.5 rounded" style={{ color: '#018600', background: '#E5FCE3' }}>채점 완료</span>
     )
   }
   return (
-    <span className="text-xs px-2 py-0.5 rounded flex items-center gap-1" style={{ color: '#B43200', background: '#FFF6F2' }}>
-      <AlertCircle size={10} />미채점 {question.totalCount - question.gradedCount}명
-    </span>
+      <span className="text-xs px-2 py-0.5 rounded" style={{ color: '#B43200', background: '#FFF6F2' }}>미채점 {question.totalCount - question.gradedCount}명</span>
   )
 }
 
@@ -1090,13 +1120,13 @@ function EmptyState({ message }) {
 }
 
 // ─── 모달 ──────────────────────────────────────────────────────────────────
-function ExcelModal({ question, onClose, onUploaded }) {
+function ExcelModal({ question, students: allStudents, onClose, onUploaded }) {
   const [step, setStep] = useState('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [appliedCount, setAppliedCount] = useState(0)
 
   const handleDownload = () => {
-    const submittedStudents = mockStudents.filter(s => s.submitted)
+    const submittedStudents = allStudents.filter(s => s.submitted)
     downloadGradingSheetXlsx(question, submittedStudents)
   }
 
@@ -1126,7 +1156,7 @@ function ExcelModal({ question, onClose, onUploaded }) {
 
     // 학번 전체 매칭 사전 검증 (1건이라도 미매칭 시 전체 중단)
     for (const row of result.rows) {
-      const found = mockStudents.find(s => s.studentId === row.studentId)
+      const found = allStudents.find(s => s.studentId === row.studentId)
       if (!found) {
         setErrorMsg(`학번 "${row.studentId}"(이)가 수강생 목록에 없습니다. 채점 양식을 수정하지 마세요. 전체 업로드가 취소되었습니다.`)
         setStep('error')
@@ -1134,10 +1164,10 @@ function ExcelModal({ question, onClose, onUploaded }) {
       }
     }
 
-    // 학번 기준으로 mockStudents 매칭 후 localStorage 수동 채점 반영
+    // 학번 기준으로 학생 매칭 후 localStorage 수동 채점 반영
     const grades = getLocalGrades()
     for (const row of result.rows) {
-      const student = mockStudents.find(s => s.studentId === row.studentId)
+      const student = allStudents.find(s => s.studentId === row.studentId)
       if (!grades[student.id]) grades[student.id] = {}
       grades[student.id][question.id] = row.score
     }
