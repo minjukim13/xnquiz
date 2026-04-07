@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { X, Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
+import { GroupCombobox } from './GroupCombobox'
+import { DropdownSelect } from './DropdownSelect'
 
 // ── 유형별 아이콘 + 설명 메타 ──────────────────────────────────────────────
 const TYPE_META = {
@@ -191,7 +193,7 @@ function TypePreview({ type }) {
 
 // ── 폼 초기값 ───────────────────────────────────────────────────────────────
 function initForm(type) {
-  const base = { text: '', points: 5, difficulty: 'medium', groupTag: '' }
+  const base = { text: '', points: 5, difficulty: '', groupTag: '' }
   switch (type) {
     case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
     case 'true_false':              return { ...base, correctBool: true }
@@ -204,14 +206,14 @@ function initForm(type) {
     case 'fill_in_multiple_blanks': return { ...base, blanks: ['', ''] }
     case 'multiple_dropdowns':      return { ...base, dropdowns: [{ label: '', options: ['', ''], answerIdx: 0 }] }
     case 'file_upload':             return base
-    case 'text':                    return { text: '', points: 0, difficulty: 'medium', groupTag: '' }
+    case 'text':                    return { text: '', points: 0, difficulty: '', groupTag: '' }
     default:                        return base
   }
 }
 
 // ── 폼 → 문항 객체 ─────────────────────────────────────────────────────────
 function buildQuestion(type, form) {
-  const base = { type, text: form.text.trim(), points: Number(form.points) || 5, difficulty: form.difficulty || 'medium', groupTag: (form.groupTag || '').trim() }
+  const base = { type, text: form.text.trim(), points: Number(form.points) || 5, difficulty: form.difficulty || '', groupTag: (form.groupTag || '').trim() }
   switch (type) {
     case 'multiple_choice':         return { ...base, options: form.options.filter(o => o.trim()), correctAnswer: form.correctIdx }
     case 'true_false':              return { ...base, correctAnswer: form.correctBool }
@@ -224,7 +226,7 @@ function buildQuestion(type, form) {
     case 'fill_in_multiple_blanks': return { ...base, correctAnswer: form.blanks.filter(b => b.trim()) }
     case 'multiple_dropdowns':      return { ...base, dropdowns: form.dropdowns }
     case 'file_upload':             return base
-    case 'text':                    return { type, text: form.text.trim(), points: 0, difficulty: 'medium', groupTag: '' }
+    case 'text':                    return { type, text: form.text.trim(), points: 0, difficulty: '', groupTag: '' }
     default:                        return base
   }
 }
@@ -661,7 +663,7 @@ function TypeForm({ type, form, setForm }) {
 }
 
 // ── 메인 모달 ──────────────────────────────────────────────────────────────
-export default function AddQuestionModal({ onClose, onAdd }) {
+export default function AddQuestionModal({ onClose, onAdd, existingGroups = [] }) {
   const [step, setStep] = useState('type')
   const [selectedType, setSelectedType] = useState(null)
   const [hoveredType, setHoveredType] = useState(null)
@@ -786,7 +788,7 @@ export default function AddQuestionModal({ onClose, onAdd }) {
             {/* 배점 / 난이도 / 그룹 — text 유형은 숨김 */}
             {selectedType !== 'text' && <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>배점</label>
+                <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>배점 <span style={{ color: '#EF4444' }}>*</span></label>
                 <input type="number" value={form.points} min={1}
                   onChange={e => setForm(prev => ({ ...prev, points: e.target.value }))}
                   className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none"
@@ -797,27 +799,23 @@ export default function AddQuestionModal({ onClose, onAdd }) {
               </div>
               <div>
                 <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>난이도</label>
-                <select value={form.difficulty || 'medium'}
-                  onChange={e => setForm(prev => ({ ...prev, difficulty: e.target.value }))}
-                  className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none"
-                  style={{ border: '1px solid #E0E0E0', color: '#222222' }}
-                  onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
-                  onBlur={e => e.currentTarget.style.borderColor = '#E0E0E0'}
-                >
-                  <option value="high">상</option>
-                  <option value="medium">중</option>
-                  <option value="low">하</option>
-                </select>
+                <DropdownSelect
+                  value={form.difficulty || ''}
+                  onChange={v => setForm(prev => ({ ...prev, difficulty: v }))}
+                  options={[
+                    { value: '', label: '미지정' },
+                    { value: 'high', label: '상' },
+                    { value: 'medium', label: '중' },
+                    { value: 'low', label: '하' },
+                  ]}
+                />
               </div>
               <div>
                 <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>그룹</label>
-                <input type="text" value={form.groupTag || ''}
-                  onChange={e => setForm(prev => ({ ...prev, groupTag: e.target.value }))}
-                  placeholder="예: 1단원"
-                  className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none"
-                  style={{ border: '1px solid #E0E0E0', color: '#222222' }}
-                  onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
-                  onBlur={e => e.currentTarget.style.borderColor = '#E0E0E0'}
+                <GroupCombobox
+                  value={form.groupTag || ''}
+                  onChange={v => setForm(prev => ({ ...prev, groupTag: v }))}
+                  existingGroups={existingGroups}
                 />
               </div>
             </div>}

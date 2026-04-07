@@ -184,10 +184,14 @@ export default function QuizAttempt() {
         )}
 
         {/* 퀴즈 헤더 */}
-        <div className="card p-4 mb-5 flex items-center justify-between gap-4">
+        <div className="card p-4 mb-5">
+          <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>{quiz.week}주차 {quiz.session}차시 · {quiz.totalPoints}점</p>
-            <h1 className="text-base font-bold truncate" style={{ color: '#222222' }}>{quiz.title}</h1>
+            <h1 className="text-base font-bold" style={{ color: '#222222' }}>{quiz.title}</h1>
+            {quiz.description && (
+              <p className="text-sm mt-1.5" style={{ color: '#6B7280' }}>{quiz.description}</p>
+            )}
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <div className="text-center">
@@ -217,6 +221,7 @@ export default function QuizAttempt() {
                 {formatTime(timeRemaining)}
               </div>
             )}
+          </div>
           </div>
         </div>
 

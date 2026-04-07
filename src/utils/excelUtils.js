@@ -131,7 +131,7 @@ export function downloadItemAnalysisXlsx(quiz, quizQuestions, students) {
 
 // ── 성적 다운로드 (QuizStats) ───────────────────────────────────────────────
 export function downloadGradesXlsx(quiz, students) {
-  const headers = ['이름', '학번', '학과', `점수 (/${quiz.totalPoints}점)`, '자동채점', '수동채점', '채점 상태']
+  const headers = ['이름', '학번', '학과', '제출일시', `점수 (/${quiz.totalPoints}점)`, '자동채점', '수동채점', '채점 상태']
   const rows = students.map(s => {
     const autoTotal = s.autoScores ? Object.values(s.autoScores).reduce((a, b) => a + b, 0) : ''
     const manualTotal = s.manualScores ? Object.values(s.manualScores).reduce((a, b) => a + b, 0) : ''
@@ -139,6 +139,7 @@ export function downloadGradesXlsx(quiz, students) {
       s.name,
       s.studentId,
       s.department,
+      s.submittedAt ?? '',
       s.score ?? '',
       autoTotal,
       manualTotal,
@@ -147,9 +148,7 @@ export function downloadGradesXlsx(quiz, students) {
   })
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
-  ws['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }]
-
-  // 헤더 행 볼드
+  ws['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }]
   headers.forEach((_, i) => {
     const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })]
     if (cell) cell.s = { font: { bold: true } }
@@ -173,29 +172,34 @@ export function downloadAnswerSheetsXlsx(quizInfo, students, questions, { getStu
   } catch { /* ignore */ }
 
   const qHeaders = questions.map(q => `Q${q.order}(${q.points}점)`)
-  const headers = ['이름', '학번', '학과', '제출경로', ...qHeaders, '자동채점합계', '수동채점합계', '총점']
+  const headers = ['이름', '학번', '학과', '제출일시', ...qHeaders, '자동채점합계', '수동채점합계', '총점']
 
   const mockRows = students.map((s, idx) => {
     const answers = questions.map(q => (getStudentAnswer ? getStudentAnswer(idx, q.id) : '') ?? '')
     const autoTotal = s.autoScores ? Object.values(s.autoScores).reduce((a, b) => a + b, 0) : ''
     const manualTotal = s.manualScores ? Object.values(s.manualScores).reduce((a, b) => a + b, 0) : ''
-    return [s.name, s.studentId, s.department, '기존데이터', ...answers, autoTotal, manualTotal, s.score ?? '']
+    return [s.name, s.studentId, s.department, s.submittedAt ?? '', ...answers, autoTotal, manualTotal, s.score ?? '']
   })
 
   const localRows = localAttempts.map(attempt => {
     const answers = questions.map(q => attempt.answers?.[q.id] ?? '')
     const autoTotal = attempt.totalAutoScore ?? ''
-    return [attempt.studentName, attempt.studentNumber, attempt.department, '학생직접제출', ...answers, autoTotal, '', autoTotal]
+    return [attempt.studentName, attempt.studentNumber, attempt.department, attempt.submittedAt ?? '', ...answers, autoTotal, '', autoTotal]
   })
 
   const allRows = [...mockRows, ...localRows]
   const ws = XLSX.utils.aoa_to_sheet([headers, ...allRows])
+  ws['!views'] = [{}]
 
   // 컬럼 너비
-  const colWidths = [{ wch: 12 }, { wch: 14 }, { wch: 18 }, { wch: 12 }]
+  const colWidths = [{ wch: 12 }, { wch: 14 }, { wch: 18 }, { wch: 18 }]
   questions.forEach(() => colWidths.push({ wch: 16 }))
   colWidths.push({ wch: 12 }, { wch: 12 }, { wch: 8 })
   ws['!cols'] = colWidths
+  headers.forEach((_, i) => {
+    const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })]
+    if (cell) cell.s = { font: { bold: true } }
+  })
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, '답안지')
@@ -271,7 +275,7 @@ export function parseGradingSheet(file) {
   })
 }
 
-// ── 문항 업로드 템플릿 다운로드 (QuestionBank) ────────────────────────────
+// ── 문항 업로드 템플릿 다운로드 (QuestionBank) ───────────────────────────
 
 // 엑셀 업로드로 지원하는 유형 (단순 행 구조로 표현 가능한 유형만)
 const EXCEL_SUPPORTED_TYPES = ['multiple_choice', 'true_false', 'short_answer', 'essay']
@@ -336,10 +340,18 @@ export function parseExcelOrCsv(file) {
       return
     }
 
+    const isCsv = file.name.toLowerCase().endsWith('.csv')
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
-        const wb = XLSX.read(ev.target.result, { type: 'array' })
+        let wb
+        if (isCsv) {
+          // CSV는 UTF-8 텍스트로 읽어서 BOM 제거 후 파싱
+          const text = ev.target.result.replace(/^\uFEFF/, '')
+          wb = XLSX.read(text, { type: 'string' })
+        } else {
+          wb = XLSX.read(ev.target.result, { type: 'array' })
+        }
         const ws = wb.Sheets[wb.SheetNames[0]]
         const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
 
@@ -350,6 +362,7 @@ export function parseExcelOrCsv(file) {
 
         const validTypes = Object.keys(QUIZ_TYPES) // 전체 유형 (오류 메시지 힌트용)
         const rows = []
+        const errors = []
 
         for (let i = 1; i < raw.length; i++) {
           const [typeRaw, textRaw, pointsRaw, difficultyRaw = '', groupTagRaw = '', answer = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = ''] = raw[i].map(v => String(v ?? '').trim())
@@ -357,34 +370,38 @@ export function parseExcelOrCsv(file) {
 
           if (!typeRaw && !textRaw && !pointsRaw) continue // 빈 행 건너뜀
 
+          let rowHasError = false
+
           if (!EXCEL_SUPPORTED_TYPES.includes(typeRaw)) {
             const isKnownType = validTypes.includes(typeRaw)
-            const hint = isKnownType ? ' (이 유형은 UI 에디터에서만 생성 가능합니다)' : ''
-            resolve({ error: `${rowNum}행: 지원하지 않는 유형 "${typeRaw}"입니다.${hint}` })
-            return
+            const hint = isKnownType ? ' (UI 에디터에서만 생성 가능)' : ''
+            errors.push(`${rowNum}행: 지원하지 않는 유형 "${typeRaw}"${hint}`)
+            rowHasError = true
           }
           if (!textRaw) {
-            resolve({ error: `${rowNum}행: 문항 내용이 비어있습니다.` })
-            return
+            errors.push(`${rowNum}행: 문항 내용이 비어있습니다`)
+            rowHasError = true
           }
           const points = parseInt(pointsRaw, 10)
           if (isNaN(points) || points <= 0) {
-            resolve({ error: `${rowNum}행: 배점이 유효하지 않습니다 (양의 정수여야 합니다).` })
-            return
+            errors.push(`${rowNum}행: 배점이 유효하지 않습니다 (양의 정수여야 합니다)`)
+            rowHasError = true
           }
 
-          if (typeRaw === 'multiple_choice') {
+          if (!rowHasError && typeRaw === 'multiple_choice') {
             const choices = [c1, c2, c3, c4, c5].filter(Boolean)
             if (choices.length < 2) {
-              resolve({ error: `${rowNum}행: 객관식 문항은 보기를 2개 이상 입력해야 합니다.` })
-              return
+              errors.push(`${rowNum}행: 객관식 문항은 보기를 2개 이상 입력해야 합니다`)
+              rowHasError = true
             }
           }
 
-          if (typeRaw === 'short_answer' && !answer) {
-            resolve({ error: `${rowNum}행: 단답형 문항은 정답을 입력해야 합니다.` })
-            return
+          if (!rowHasError && typeRaw === 'short_answer' && !answer) {
+            errors.push(`${rowNum}행: 단답형 문항은 정답을 입력해야 합니다`)
+            rowHasError = true
           }
+
+          if (rowHasError) continue
 
           const validDifficulties = ['high', 'medium', 'low']
           const difficulty = validDifficulties.includes(difficultyRaw) ? difficultyRaw : 'medium'
@@ -393,8 +410,13 @@ export function parseExcelOrCsv(file) {
           rows.push({ type: typeRaw, text: textRaw, points, difficulty, groupTag: groupTagRaw, answer, choices })
         }
 
+        if (errors.length > 0) {
+          resolve({ errors })
+          return
+        }
+
         if (rows.length === 0) {
-          resolve({ error: '데이터 행이 없습니다.' })
+          resolve({ errors: ['데이터 행이 없습니다.'] })
           return
         }
 
@@ -403,6 +425,10 @@ export function parseExcelOrCsv(file) {
         resolve({ error: '파일을 읽을 수 없습니다. 파일이 손상되었거나 지원하지 않는 형식입니다.' })
       }
     }
-    reader.readAsArrayBuffer(file)
+    if (isCsv) {
+      reader.readAsText(file, 'utf-8')
+    } else {
+      reader.readAsArrayBuffer(file)
+    }
   })
 }

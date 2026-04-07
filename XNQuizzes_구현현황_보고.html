@@ -107,7 +107,7 @@
 
   /* ── 일반 슬라이드 레이아웃 ── */
   .slide-header {
-    padding: 28px 40px 20px;
+    padding: 24px 28px 18px;
     border-bottom: 1px solid var(--slate-100);
     display: flex;
     align-items: flex-start;
@@ -160,10 +160,10 @@
   .slide-body.col-3 { grid-template-columns: 1fr 1fr 1fr; }
 
   .panel {
-    padding: 20px 28px;
+    padding: 16px 28px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
   .panel-right {
     background: var(--slate-50);
@@ -215,12 +215,12 @@
   .screenshot-route { font-size: 0.62em; color: var(--indigo-500); font-weight: 700; background: var(--indigo-50); padding: 2px 8px; border-radius: 4px; }
 
   /* ── 포인트 리스트 ── */
-  .point-list { display: flex; flex-direction: column; gap: 8px; }
+  .point-list { display: flex; flex-direction: column; gap: 5px; }
   .point-item {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 7px 10px;
     border-radius: 8px;
     background: var(--white);
     border: 1px solid var(--slate-100);
@@ -241,14 +241,14 @@
 
   /* ── 요구사항 박스 ── */
   .req-box {
-    padding: 12px 14px;
+    padding: 9px 12px;
     border-radius: 8px;
     background: #fafafa;
     border: 1px solid var(--slate-100);
     border-left: 3px solid var(--indigo-500);
   }
-  .req-box-label { font-size: 0.62em; font-weight: 700; color: var(--indigo-600); margin-bottom: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
-  .req-box-text { font-size: 0.73em; color: var(--slate-700); line-height: 1.55; font-weight: 500; }
+  .req-box-label { font-size: 0.62em; font-weight: 700; color: var(--indigo-600); margin-bottom: 3px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .req-box-text { font-size: 0.72em; color: var(--slate-700); line-height: 1.5; font-weight: 500; }
 
   /* ── 상태 뱃지 ── */
   .status-chip {
@@ -356,7 +356,7 @@
         </div>
         <div class="cover-meta-item">
           <span class="cover-meta-label">구현 완료</span>
-          <span class="cover-meta-value">7건 구현 · 4건 부분 구현</span>
+          <span class="cover-meta-value">2건 구현 · 6건 부분 구현</span>
         </div>
       </div>
     </div>
@@ -401,32 +401,26 @@
           <!-- 섹션 1 -->
           <tr><td colspan="4" style="padding:8px 10px 4px; font-size:0.85em; font-weight:800; color:var(--indigo-600); background:var(--indigo-50); border-top:1px solid #c7d2fe;">1. 문제은행 및 문항 자산 관리</td></tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
-            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-1-a</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">문항/문제은행 그룹에 난이도 정보 포함</td>
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-1</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">문항/문제은행 그룹 난이도 설정 및 메타데이터 관리</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
             <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#15803d;font-weight:700;white-space:nowrap;">구현</span></td>
           </tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
-            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-1-b</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">복수 문제은행 선택 + 그룹별 출제 수 지정</td>
-            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--slate-100);">
-            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-1-c</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">난이도별 배점 달리하여 랜덤 출제</td>
-            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-2-a</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">개별 문항 복사 (동일 은행 내)</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">문제은행 그룹 타 과목 내보내기/가져오기</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
             <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
           </tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-2-b</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">문제은행 간 문항 이동/복사</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">시험 전체(문항+설정) 타 과목 내보내기/가져오기</td>
+            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--slate-100);">
+            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-2-c</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">문제은행 간 문항 복사 (동일 시스템 내)</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
             <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#15803d;font-weight:700;white-space:nowrap;">구현</span></td>
           </tr>
@@ -434,83 +428,53 @@
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-3</td>
             <td style="padding:6px 10px; color:var(--slate-700);">엑셀 기반 문항 일괄 업로드</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">다수</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">디벨롭 예정</span></td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">부분 구현</span></td>
           </tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-4</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">문항 내 답변/항목 순서 고정</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">영문 입력형 문제 대소문자 구분 정답 판정 옵션</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#15803d;font-weight:700;white-space:nowrap;">구현</span></td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
           </tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-5</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">문제명 변경 시 응시 화면 즉시 반영</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">문항 제목 편집 후 학생 응시 화면에서 기본값(문제1·문제2)으로 표시되는 버그</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#f1f5f9;color:#64748b;font-weight:700;white-space:nowrap;">미결</span></td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--slate-100);">
-            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">1-6</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">빈칸채우기 대소문자 구분/알파벳 일치 설정</td>
-            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#f3e8ff;color:#7e22ce;font-weight:700;white-space:nowrap;">제외(버그성 이슈)</span></td>
           </tr>
 
           <!-- 섹션 2 -->
           <tr><td colspan="4" style="padding:8px 10px 4px; font-size:0.85em; font-weight:800; color:var(--indigo-600); background:var(--indigo-50); border-top:1px solid #c7d2fe;">2. 시험 설계 및 랜덤 출제</td></tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-1</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">복수 문제은행 선택 + 그룹별 출제 수/배점 설정</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">복수 문제은행 기반 랜덤 출제 고도화 (2단계 모달)</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
             <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
           </tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-2</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">시험 출제 화면 탭 명칭/흐름 직관성 개선</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">시험 출제 화면 탭/흐름 직관성 개선</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
             <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">부분 구현</span></td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--slate-100);">
-            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-3-a</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">시험 자체(설정 포함) 복제 기능</td>
-            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--slate-100);">
-            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-3-b</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">타 과목 이관 (보내기/가져오기)</td>
-            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--slate-100);">
-            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-3-c</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">문제/문제은행 사람 간 전달 (조교→교수)</td>
-            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--slate-100);">
-            <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">2-4</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">주차/차시별 퀴즈 목록 보기</td>
-            <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">인제대</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#15803d;font-weight:700;white-space:nowrap;">구현</span></td>
           </tr>
 
           <!-- 섹션 3 -->
           <tr><td colspan="4" style="padding:8px 10px 4px; font-size:0.85em; font-weight:800; color:var(--indigo-600); background:var(--indigo-50); border-top:1px solid #c7d2fe;">3. 출력 및 문서화</td></tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">3-1</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">시험 문제 PDF 다운로드</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">출제 시험 문제 PDF 다운로드/출력</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">다수</td>
             <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;white-space:nowrap;">미구현</span></td>
           </tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">3-2</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">학생 개인별 답안지 PDF 다운로드</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">학생 개인별 답안지 PDF 다운로드/출력</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">다수</td>
             <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">부분 구현</span></td>
           </tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">3-3</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">다수 학생 답안지 일괄 다운로드</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">다수 학생 답안지 일괄 다운로드/출력</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">다수</td>
             <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">부분 구현</span></td>
           </tr>
@@ -531,9 +495,9 @@
           </tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">4-2</td>
-            <td style="padding:6px 10px; color:var(--slate-700);">정오답/정답/점수 공개 시점 설정</td>
+            <td style="padding:6px 10px; color:var(--slate-700);">문항별 엑셀 일괄 채점 (수동채점 대상 문항 기준) — AI 채점 기능으로 별도 관리 예정</td>
             <td style="padding:6px 10px; color:var(--slate-500); white-space:nowrap;">경북대</td>
-            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#15803d;font-weight:700;white-space:nowrap;">구현</span></td>
+            <td style="padding:6px 10px; text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#fef9c3;color:#a16207;font-weight:700;white-space:nowrap;">부분 구현</span></td>
           </tr>
           <tr style="border-bottom:1px solid var(--slate-100);">
             <td style="padding:6px 10px; color:var(--slate-400); font-weight:700; white-space:nowrap;">4-3</td>
@@ -575,19 +539,13 @@
         <span class="slide-title">주차/차시별 퀴즈 목록 관리</span>
         <span class="slide-desc">교수자가 한 화면에서 전체 퀴즈의 주차·차시·상태를 파악할 수 있는 목록 뷰</span>
       </div>
-      <span class="req-badge indigo">📋 인제대 요청 · #2-4</span>
+      <span class="req-badge indigo">인제대 요청 · #5-2</span>
     </div>
     <div class="slide-body">
       <div class="panel">
         <div class="panel-label">화면 캡처</div>
         <div class="screenshot-box">
-          <div class="screenshot-placeholder">
-            <div class="screenshot-icon">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-            </div>
-            <div class="screenshot-hint">퀴즈 목록 화면<br>캡처 삽입</div>
-            <div class="screenshot-route">/ (QuizList)</div>
-          </div>
+          <video src="file:///C:/Users/김민주/Downloads/XNQUIZ보고용/xnquiz_기능1.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:contain;border-radius:6px;background:#f1f5f9;"></video>
         </div>
       </div>
       <div class="panel panel-right">
@@ -595,74 +553,32 @@
         <div class="point-list">
           <div class="point-item">
             <div class="point-dot">1</div>
-            <div class="point-text"><strong>주차/차시 필터</strong> — 주차·차시 기준으로 퀴즈를 필터링해 특정 주차 퀴즈만 모아볼 수 있음. 교수자가 원하는 주차의 퀴즈를 즉시 탐색</div>
+            <div class="point-text"><strong>실제 등록된 주차만 선택지 노출</strong> — 퀴즈가 없는 주차는 드롭다운에 표시되지 않음. 주차 선택 시 해당 주차에 존재하는 차시만 차시 드롭다운에 동적으로 표시</div>
           </div>
           <div class="point-item">
             <div class="point-dot">2</div>
-            <div class="point-text"><strong>상태 구분 섹션</strong> — 채점 필요(주황 강조) / 전체 퀴즈 자동 분리. 진행중·초안·종료 배지 구분</div>
+            <div class="point-text"><strong>퀴즈 카드에 주차/차시 직접 표시</strong> — 목록의 각 퀴즈 카드에 "N주차 M차시" 표기. 주차/차시 미지정 퀴즈는 해당 텍스트 미노출</div>
           </div>
           <div class="point-item">
             <div class="point-dot">3</div>
-            <div class="point-text"><strong>즉시 발행</strong> — 초안 상태에서 "발행" 버튼 클릭 시 확인 다이얼로그 후 상태 전환 (draft → open)</div>
+            <div class="point-text"><strong>차시 드롭다운 연동</strong> — 주차 미선택 시 차시 드롭다운 자동 비활성화. 주차 변경 시 차시 선택 자동 초기화하여 오필터 방지</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">4</div>
+            <div class="point-text"><strong>필터 결과 건수 실시간 반영</strong> — 주차/차시 필터 변경 즉시 "퀴즈 N건"으로 카운트 업데이트. 조건에 맞는 퀴즈 없을 시 빈 상태 UI 표시</div>
           </div>
         </div>
 
-        <!-- 프로토타입 전용 안내 -->
-        <div style="padding:10px 13px; border-radius:8px; background:#f0f9ff; border:1px solid #bae6fd; border-left:3px solid #0284c7; margin-top:4px;">
-          <p style="font-size:0.65em; font-weight:800; color:#0369a1; margin-bottom:3px;">프로토타입 전용 기능 안내</p>
-          <p style="font-size:0.65em; color:#0c4a6e; line-height:1.55;">상단 <strong>교수자 / 학생 토글</strong>은 UX 검토 목적으로만 추가된 프로토타입 전용 장치입니다. 실제 서비스에서는 별도 로그인 인증을 통해 역할이 부여되며, 이 토글은 실제 구현 범위에 포함되지 않습니다.</p>
-        </div>
-
-        <div class="req-box" style="margin-top: auto;">
-          <div class="req-box-label">요구사항 원문</div>
-          <div class="req-box-text">각 불러온 시험이 몇 주차 몇 차시에 등록되어 있는지, 주차/차시별로 어떤 시험들이 등록되어 있는지 확인 가능한 기능</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── 슬라이드 3: 복수 응시·점수 정책 ── -->
-  <div class="slide">
-    <div class="slide-header">
-      <div class="slide-header-left">
-        <span class="slide-number">기능 02 · 응시 설정</span>
-        <span class="slide-title">복수 응시 횟수 및 점수 정책 설정</span>
-        <span class="slide-desc">재응시 허용 횟수와 복수 응시 시 어떤 점수를 최종 성적으로 반영할지 설정</span>
-      </div>
-      <span class="req-badge green">✓ 구현 완료</span>
-    </div>
-    <div class="slide-body">
-      <div class="panel">
-        <div class="panel-label">화면 캡처</div>
-        <div class="screenshot-box">
-          <div class="screenshot-placeholder">
-            <div class="screenshot-icon">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            </div>
-            <div class="screenshot-hint">퀴즈 생성 &gt; 기본 정보<br>"응시 설정" 섹션 캡처</div>
-            <div class="screenshot-route">/quiz/new → 기본 정보 탭</div>
+        <div style="margin-top: auto; display:flex; flex-direction:column; gap:8px;">
+          <!-- 프로토타입 전용 안내 -->
+          <div style="padding:10px 13px; border-radius:8px; background:#f0f9ff; border:1px solid #bae6fd; border-left:3px solid #0284c7;">
+            <p style="font-size:0.65em; font-weight:800; color:#0369a1; margin-bottom:3px;">프로토타입 전용 기능 안내</p>
+            <p style="font-size:0.65em; color:#0c4a6e; line-height:1.55;">상단 <strong>교수자 / 학생 토글</strong>은 UX 검토 목적으로만 추가된 프로토타입 전용 장치입니다. 실제 서비스에서는 별도 로그인 인증을 통해 역할이 부여되며, 이 토글은 실제 구현 범위에 포함되지 않습니다.</p>
           </div>
-        </div>
-      </div>
-      <div class="panel panel-right">
-        <div class="panel-label">구현 포인트</div>
-        <div class="point-list">
-          <div class="point-item">
-            <div class="point-dot">1</div>
-            <div class="point-text"><strong>응시 횟수 선택</strong> — 1회 / 2회 / 3회 / 무제한 드롭다운 설정</div>
+          <div class="req-box">
+            <div class="req-box-label">요구사항</div>
+            <div class="req-box-text">각 불러온 시험이 몇 주차 몇 차시에 등록되어 있는지, 주차/차시별로 어떤 시험들이 등록되어 있는지 확인 가능한 기능</div>
           </div>
-          <div class="point-item">
-            <div class="point-dot">2</div>
-            <div class="point-text"><strong>점수 정책 3종</strong> — 복수 응시 설정 시 자동 노출: 최고 점수 유지 / 최신 점수 / 평균 점수</div>
-          </div>
-          <div class="point-item">
-            <div class="point-dot">3</div>
-            <div class="point-text"><strong>발행 전 경고</strong> — 재응시 허용 + 점수 공개 기간 미설정 시 "정답 유출 가능" 확인 다이얼로그 표시</div>
-          </div>
-        </div>
-        <div class="req-box" style="margin-top: auto;">
-          <div class="req-box-label">연계 정책</div>
-          <div class="req-box-text">학생 뷰에서 남은 응시 횟수 실시간 표시. 응시 완료 후 "재응시" 버튼 자동 전환.</div>
         </div>
       </div>
     </div>
@@ -672,23 +588,17 @@
   <div class="slide">
     <div class="slide-header">
       <div class="slide-header-left">
-        <span class="slide-number">기능 03 · 문제은행</span>
+        <span class="slide-number">기능 02 · 문제은행</span>
         <span class="slide-title">문항 난이도 · 그룹 분류 및 필터</span>
         <span class="slide-desc">문제은행 내 모든 문항에 난이도(상/중/하)와 그룹 태그를 부여하고 필터로 즉시 탐색</span>
       </div>
-      <span class="req-badge indigo">경북대 요청 · #1-1-a</span>
+      <span class="req-badge indigo">경북대 요청 · #1-1</span>
     </div>
     <div class="slide-body">
       <div class="panel">
         <div class="panel-label">화면 캡처</div>
         <div class="screenshot-box">
-          <div class="screenshot-placeholder">
-            <div class="screenshot-icon">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h8m-8 6h16"/></svg>
-            </div>
-            <div class="screenshot-hint">문제은행 상세 화면<br>난이도 배지 + 필터 캡처</div>
-            <div class="screenshot-route">/question-banks/:bankId</div>
-          </div>
+          <video src="file:///C:/Users/김민주/Downloads/XNQUIZ보고용/xnquiz_기능2.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:contain;border-radius:6px;background:#f1f5f9;"></video>
         </div>
       </div>
       <div class="panel panel-right">
@@ -712,8 +622,8 @@
           </div>
         </div>
         <div class="req-box" style="margin-top: auto;">
-          <div class="req-box-label">요구사항 원문 (경북대)</div>
-          <div class="req-box-text">문제 개별 및 문제은행 그룹에 난이도 정보를 포함할 수 있어야 함. 문제은행은 단순 저장소가 아니라 문제 복사, 재사용, 버전 관리, 메타데이터 관리가 가능한 구조여야 한다.</div>
+          <div class="req-box-label">요구사항 (경북대)</div>
+          <div class="req-box-text">문제 개별 단위 및 문제은행 그룹 단위에 난이도 정보 등록 기능 제공. 문제은행이 단순 저장소가 아니라 버전 관리 / 메타데이터 관리가 가능한 구조로 개선 (경북대)</div>
         </div>
       </div>
     </div>
@@ -723,7 +633,7 @@
   <div class="slide">
     <div class="slide-header">
       <div class="slide-header-left">
-        <span class="slide-number">기능 04 · 문항 등록 효율화</span>
+        <span class="slide-number">기능 03 · 문항 등록 효율화</span>
         <span class="slide-title">엑셀 기반 문항 일괄 업로드</span>
         <span class="slide-desc">정해진 양식의 엑셀/CSV 파일로 문항을 대량 등록. 개별 입력 대비 작업 시간 대폭 단축</span>
       </div>
@@ -733,13 +643,7 @@
       <div class="panel">
         <div class="panel-label">화면 캡처</div>
         <div class="screenshot-box">
-          <div class="screenshot-placeholder">
-            <div class="screenshot-icon">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            </div>
-            <div class="screenshot-hint">문제은행 상세 &gt; 업로드 버튼<br>+ 업로드 모달 캡처</div>
-            <div class="screenshot-route">/question-banks/:bankId → 업로드</div>
-          </div>
+          <video src="file:///C:/Users/김민주/Downloads/XNQUIZ보고용/xnquiz_기능3.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:contain;border-radius:6px;background:#f1f5f9;"></video>
         </div>
       </div>
       <div class="panel panel-right">
@@ -759,7 +663,7 @@
           </div>
         </div>
         <div class="req-box">
-          <div class="req-box-label">요구사항 원문</div>
+          <div class="req-box-label">요구사항</div>
           <div class="req-box-text">현재 개별 입력 방식만 있어 문항 수가 많을수록 작업 시간과 피로도가 큼 → 정해진 양식의 엑셀 기반 문항 일괄 업로드 필요</div>
         </div>
         <div class="req-box" style="border-left-color: #f59e0b; background: #fffbeb;">
@@ -780,23 +684,17 @@
   <div class="slide">
     <div class="slide-header">
       <div class="slide-header-left">
-        <span class="slide-number">기능 05 · 문항 재사용</span>
+        <span class="slide-number">기능 04 · 문항 재사용</span>
         <span class="slide-title">문제은행 간 문항 복사</span>
         <span class="slide-desc">다른 문제은행의 문항을 선택해 현재 은행으로 복사. 이동/복사 흐름 단순화</span>
       </div>
-      <span class="req-badge indigo">경북대 요청 · #1-2-b</span>
+      <span class="req-badge indigo">경북대 요청 · #1-2-c</span>
     </div>
     <div class="slide-body">
       <div class="panel">
         <div class="panel-label">화면 캡처</div>
         <div class="screenshot-box">
-          <div class="screenshot-placeholder">
-            <div class="screenshot-icon">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            </div>
-            <div class="screenshot-hint">문제은행 &gt; "다른 은행에서 복사"<br>모달 캡처</div>
-            <div class="screenshot-route">/question-banks/:bankId → 다른 은행에서 복사</div>
-          </div>
+          <video src="file:///C:/Users/김민주/Downloads/XNQUIZ보고용/xnquiz_기능4.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:contain;border-radius:6px;background:#f1f5f9;"></video>
         </div>
       </div>
       <div class="panel panel-right">
@@ -820,8 +718,8 @@
           </div>
         </div>
         <div class="req-box" style="margin-top: auto;">
-          <div class="req-box-label">요구사항 원문</div>
-          <div class="req-box-text">문제은행 간 문제 이동/복사 흐름이 너무 복잡하지 않도록 단순화 필요 (경북대)</div>
+          <div class="req-box-label">요구사항</div>
+          <div class="req-box-text">문제은행 그룹을 다른 과목으로 쉽게 내보내거나 복사해 올 수 있는 기능. 현재 퀴즈 복사는 즐겨찾기, 캔버스 복사 기능을 통해 진행하고 있어 직관적이지 않음 (경북대)</div>
         </div>
       </div>
     </div>
@@ -831,22 +729,102 @@
   <div class="slide">
     <div class="slide-header">
       <div class="slide-header-left">
-        <span class="slide-number">기능 06 · 출력 및 문서화</span>
+        <span class="slide-number">기능 05 · 출력 및 문서화</span>
         <span class="slide-title">답안지 / 성적 / 문항 분석 다운로드</span>
         <span class="slide-desc">채점 완료 후 학생 답안·점수·문항 분석 지표를 xlsx로 일괄 다운로드</span>
       </div>
-      <span class="req-badge orange">부분 구현 · #3-2/3-3</span>
+      <span class="req-badge orange">부분 구현 · #3-1/3-2/3-3</span>
     </div>
     <div class="slide-body">
       <div class="panel">
-        <div class="panel-label">화면 캡처</div>
-        <div class="screenshot-box">
-          <div class="screenshot-placeholder">
-            <div class="screenshot-icon">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <div class="panel-label">다운로드 샘플 미리보기</div>
+        <div class="screenshot-box" style="padding:10px; overflow:hidden; align-items:flex-start; justify-content:flex-start; flex-direction:column; gap:0;">
+          <div style="width:100%; display:flex; flex-direction:column; height:100%;">
+            <!-- 탭 버튼 -->
+            <div style="display:flex; gap:2px; margin-bottom:0; flex-shrink:0;">
+              <button onclick="xlsx05Tab(this,'성적')" class="xlsx05-tab xlsx05-active" style="padding:3px 11px; border-radius:4px 4px 0 0; background:#1d6f42; color:white; font-size:0.58em; font-weight:700; border:none; cursor:pointer;">성적</button>
+              <button onclick="xlsx05Tab(this,'답안지')" class="xlsx05-tab" style="padding:3px 11px; border-radius:4px 4px 0 0; background:#e8f5e9; color:#555; font-size:0.58em; font-weight:600; border:1px solid #ccc; border-bottom:none; cursor:pointer;">답안지</button>
+              <button onclick="xlsx05Tab(this,'문항분석')" class="xlsx05-tab" style="padding:3px 11px; border-radius:4px 4px 0 0; background:#e8f5e9; color:#555; font-size:0.58em; font-weight:600; border:1px solid #ccc; border-bottom:none; cursor:pointer;">문항 분석</button>
             </div>
-            <div class="screenshot-hint">채점 대시보드 / 퀴즈 통계<br>다운로드 버튼 + 결과 xlsx 캡처</div>
-            <div class="screenshot-route">/quiz/:id/grade · /quiz/:id/stats</div>
+            <!-- 시트 컨테이너 -->
+            <div style="flex:1; overflow:auto; border:1px solid #d0d0d0; border-radius:0 4px 4px 4px; background:#fff; min-height:0;">
+
+              <!-- 성적 시트 -->
+              <div id="xlsx05-성적" class="xlsx05-sheet">
+                <table style="width:100%; border-collapse:collapse; font-size:0.58em; white-space:nowrap;">
+                  <thead>
+                    <tr style="background:#1d6f42; color:white; position:sticky; top:0;">
+                      <th style="padding:4px 7px; text-align:left; border:1px solid #155a32;">이름</th>
+                      <th style="padding:4px 7px; text-align:left; border:1px solid #155a32;">학번</th>
+                      <th style="padding:4px 7px; text-align:left; border:1px solid #155a32;">학과</th>
+                      <th style="padding:4px 7px; text-align:right; border:1px solid #155a32;">점수(/100)</th>
+                      <th style="padding:4px 7px; text-align:right; border:1px solid #155a32;">자동채점(/65)</th>
+                      <th style="padding:4px 7px; text-align:right; border:1px solid #155a32;">수동채점(/35)</th>
+                      <th style="padding:4px 7px; text-align:center; border:1px solid #155a32;">채점 상태</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style="background:#fff;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">학생 A</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">2022001</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">컴퓨터공학과</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;font-weight:600;">85</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">55</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">30</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:center;color:#15803d;font-weight:600;">채점 완료</td></tr>
+                    <tr style="background:#f8f8f8;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">학생 B</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">2022002</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">소프트웨어학과</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;font-weight:600;">67</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">45</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">22</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:center;color:#15803d;font-weight:600;">채점 완료</td></tr>
+                    <tr style="background:#fff;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">학생 C</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">2022003</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">정보통신공학과</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">40</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:center;color:#b45309;font-weight:600;">미채점</td></tr>
+                    <tr style="background:#f8f8f8;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">학생 D</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">2022004</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">데이터사이언스학과</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">35</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:center;color:#b45309;font-weight:600;">미채점</td></tr>
+                    <tr style="background:#fff;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">학생 E</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">2022005</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">컴퓨터공학과</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;font-weight:600;">91</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">60</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">31</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:center;color:#15803d;font-weight:600;">채점 완료</td></tr>
+                    <tr style="background:#f8f8f8;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">학생 F</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">2022006</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">소프트웨어학과</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">50</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:center;color:#b45309;font-weight:600;">미채점</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 답안지 시트 -->
+              <div id="xlsx05-답안지" class="xlsx05-sheet" style="display:none;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.58em; white-space:nowrap;">
+                  <thead>
+                    <tr style="background:#1d6f42; color:white; position:sticky; top:0;">
+                      <th style="padding:4px 7px; border:1px solid #155a32;">이름</th>
+                      <th style="padding:4px 7px; border:1px solid #155a32;">학번</th>
+                      <th style="padding:4px 7px; border:1px solid #155a32;">Q1 객관식(5)</th>
+                      <th style="padding:4px 7px; border:1px solid #155a32;">Q6 참거짓(5)</th>
+                      <th style="padding:4px 7px; border:1px solid #155a32;">Q9 단답형(5)</th>
+                      <th style="padding:4px 7px; border:1px solid #155a32;">Q12 서술형(15)</th>
+                      <th style="padding:4px 7px; border:1px solid #155a32;">Q13 서술형(20)</th>
+                      <th style="padding:4px 7px; text-align:right; border:1px solid #155a32;">자동</th>
+                      <th style="padding:4px 7px; text-align:right; border:1px solid #155a32;">수동</th>
+                      <th style="padding:4px 7px; text-align:right; border:1px solid #155a32;">총점</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style="background:#fff;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">학생 A</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">2022001</td><td style="padding:3px 7px;border:1px solid #e0e0e0;max-width:90px;overflow:hidden;text-overflow:ellipsis;">CREATE TABLE</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">거짓</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">DISTINCT</td><td style="padding:3px 7px;border:1px solid #e0e0e0;max-width:100px;overflow:hidden;text-overflow:ellipsis;">B-Tree는 범위 검색에...</td><td style="padding:3px 7px;border:1px solid #e0e0e0;max-width:100px;overflow:hidden;text-overflow:ellipsis;">ACID는 원자성...</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">55</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">30</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;font-weight:600;">85</td></tr>
+                    <tr style="background:#f8f8f8;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">학생 B</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">2022002</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">SELECT</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">참</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">참조키</td><td style="padding:3px 7px;border:1px solid #e0e0e0;max-width:100px;overflow:hidden;text-overflow:ellipsis;">Hash는 동등 비교에...</td><td style="padding:3px 7px;border:1px solid #e0e0e0;max-width:100px;overflow:hidden;text-overflow:ellipsis;">원자성이란 트랜잭션...</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">45</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">22</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;font-weight:600;">67</td></tr>
+                    <tr style="background:#fff;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">학생 C</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#777;">2022003</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">CREATE TABLE</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">거짓</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">SELECT</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#bbb;">(미응답)</td><td style="padding:3px 7px;border:1px solid #e0e0e0;max-width:100px;overflow:hidden;text-overflow:ellipsis;">트랜잭션은 원자성...</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">40</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 문항 분석 시트 -->
+              <div id="xlsx05-문항분석" class="xlsx05-sheet" style="display:none;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.58em; white-space:nowrap;">
+                  <thead>
+                    <tr style="background:#1d6f42; color:white; position:sticky; top:0;">
+                      <th style="padding:4px 7px; border:1px solid #155a32;">문항</th>
+                      <th style="padding:4px 7px; border:1px solid #155a32;">유형</th>
+                      <th style="padding:4px 7px; border:1px solid #155a32;">그룹</th>
+                      <th style="padding:4px 7px; text-align:right; border:1px solid #155a32;">배점</th>
+                      <th style="padding:4px 7px; border:1px solid #155a32;">난이도</th>
+                      <th style="padding:4px 7px; text-align:right; border:1px solid #155a32;">득점률</th>
+                      <th style="padding:4px 7px; text-align:right; border:1px solid #155a32;">변별도 D</th>
+                      <th style="padding:4px 7px; text-align:right; border:1px solid #155a32;">r_pb</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style="background:#fff;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">Q1</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">객관식</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">1단원 - SQL 기초</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">5</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#15803d;font-weight:600;">하</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">84%</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">0.312</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">0.428</td></tr>
+                    <tr style="background:#f8f8f8;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">Q5</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">객관식</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">2단원 - 정규화</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">10</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#b91c1c;font-weight:600;">상</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">64%</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">0.334</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">0.445</td></tr>
+                    <tr style="background:#fff;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">Q9</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">단답형</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">1단원 - SQL 기초</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">5</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#15803d;font-weight:600;">하</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">82%</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">0.241</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td></tr>
+                    <tr style="background:#f8f8f8;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">Q12</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">서술형</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">2단원 - 정규화</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">15</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#b91c1c;font-weight:600;">상</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">72%</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">0.209</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td></tr>
+                    <tr style="background:#fff;"><td style="padding:3px 7px;border:1px solid #e0e0e0;">Q13</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">서술형</td><td style="padding:3px 7px;border:1px solid #e0e0e0;">3단원 - 트랜잭션</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">20</td><td style="padding:3px 7px;border:1px solid #e0e0e0;color:#b91c1c;font-weight:600;">상</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">71%</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;">0.198</td><td style="padding:3px 7px;border:1px solid #e0e0e0;text-align:right;color:#bbb;">—</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
@@ -871,7 +849,7 @@
           </div>
         </div>
         <div class="req-box" style="margin-top: 8px;">
-          <div class="req-box-label">요구사항 원문</div>
+          <div class="req-box-label">요구사항</div>
           <div class="req-box-text">학생 개인별 시험 답안지 다운로드 · 여러 학생의 시험 답안지 일괄 다운로드 및 출력 기능 (다수 학교)</div>
         </div>
         <div class="sample-btn-row">
@@ -886,6 +864,57 @@
           <button class="sample-btn" onclick="downloadAnalysisSample()">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3"/></svg>
             문항 분석 샘플 다운로드
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 슬라이드: 기능 06 — 문항별 엑셀 일괄 채점 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">기능 06 · 채점·성적</span>
+        <span class="slide-title">문항별 엑셀 일괄 채점</span>
+        <span class="slide-desc">수동채점 대상 문항(서술형·파일업로드)에 대해 전체 학생 점수를 엑셀로 일괄 입력. 채점 결과 즉시 반영</span>
+      </div>
+      <span class="req-badge orange">부분 구현 · #4-2</span>
+    </div>
+    <div class="slide-body">
+      <div class="panel">
+        <div class="panel-label">화면 캡처</div>
+        <div class="screenshot-box">
+          <video src="file:///C:/Users/김민주/Downloads/XNQUIZ보고용/xnquiz_기능6.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:contain;border-radius:6px;background:#f1f5f9;"></video>
+        </div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-label">구현 포인트</div>
+        <div class="point-list">
+          <div class="point-item">
+            <div class="point-dot">1</div>
+            <div class="point-text"><strong>수동채점 문항에만 노출</strong> — 서술형·파일업로드 등 자동채점 불가 문항에서만 "엑셀 일괄 채점" 버튼 표시. 자동채점 문항은 버튼 미노출</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">2</div>
+            <div class="point-text"><strong>채점 양식 다운로드</strong> — 해당 문항 응시 학생의 학번·이름·응답 내용이 채워진 xlsx 제공. 교수자는 점수 열에만 값 입력</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">3</div>
+            <div class="point-text"><strong>전체 취소 Validation</strong> — 학번 미매칭 또는 배점(0~N점) 초과 1건이라도 발생 시 전체 업로드 취소. 오류 발생 학번 메시지에 명시</div>
+          </div>
+          <div class="point-item">
+            <div class="point-dot">4</div>
+            <div class="point-text"><strong>채점 결과 즉시 반영</strong> — 업로드 완료 시 해당 문항 채점 현황 즉시 업데이트. 미입력 행은 건너뜀(보류 상태 유지)</div>
+          </div>
+        </div>
+        <div class="req-box" style="margin-top: 8px;">
+          <div class="req-box-label">현재 구현 범위</div>
+          <div class="req-box-text">문항 단위 채점 — 문항 1개를 선택해 해당 문항에 대해 전체 학생 점수 일괄 입력. 전 문항 동시 일괄 채점(AI 채점)은 별도 관리 예정</div>
+        </div>
+        <div class="sample-btn-row" style="margin-top: auto;">
+          <button class="sample-btn" onclick="downloadGradingSheetSample()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3"/></svg>
+            채점 양식 샘플 다운로드
           </button>
         </div>
       </div>
@@ -918,7 +947,7 @@
             </div>
           </div>
           <div class="req-box" style="border-left-color: #f97316;">
-            <div class="req-box-label" style="color:#9a3412;">요구사항 원문 (경북대)</div>
+            <div class="req-box-label" style="color:#9a3412;">요구사항 (경북대)</div>
             <div class="req-box-text">문제은행에서 임의 문제 출제 시 현재는 일일이 하나씩 그룹을 선택하고 배점을 설정해야 하여 번거로움</div>
           </div>
         </div>
@@ -969,74 +998,233 @@
     </div>
   </div>
 
+  <!-- ── 슬라이드: 구현 예정 — 조건부 재응시 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">구현 예정 · 채점·성적·재응시</span>
+        <span class="slide-title">조건부 재응시 — 미응시/점수 미달자 자동 선별</span>
+        <span class="slide-desc">전체 학생 일괄 재응시 방식에서, 조건 기반으로 대상을 자동 추출해 선택적 재응시를 부여하는 방식으로 확장</span>
+      </div>
+      <span class="req-badge orange">구현 예정 · 인제대 요청 · #4-3</span>
+    </div>
+    <div class="slide-body" style="grid-template-columns: 1fr 1fr 1fr;">
+
+      <!-- 현재 방식 -->
+      <div class="panel" style="border-right: 1px solid var(--slate-100);">
+        <div class="panel-label" style="color: #b45309;">현재 방식 (AS-IS)</div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
+          <div style="padding:14px; border-radius:8px; background:#fff7ed; border:1px solid #fed7aa;">
+            <p style="font-size:0.72em; font-weight:700; color:#9a3412; margin-bottom:8px;">재응시 허용 시</p>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <div style="font-size:0.7em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">① 전체 학생에게 동일 횟수 일괄 부여</div>
+              <div style="font-size:0.7em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">② 점수 미달자만 선별해 부여하는 기능 없음</div>
+              <div style="font-size:0.7em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">③ 미응시자 여부를 교수자가 직접 확인해야 함</div>
+              <div style="font-size:0.7em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">④ 선별 후 수동으로 조치 → 관리 부담 큼</div>
+            </div>
+          </div>
+          <div class="req-box" style="border-left-color: #f97316;">
+            <div class="req-box-label" style="color:#9a3412;">요구사항 (인제대)</div>
+            <div class="req-box-text">진행 완료된 퀴즈에 대해, 점수 미달자 및 미응시자를 자동 분류하여 재응시 기회를 제공. 재응시 대상자를 조건 기반으로 자동 선정</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 개선 방향 -->
+      <div class="panel" style="border-right: 1px solid var(--slate-100); background: var(--slate-50);">
+        <div class="panel-label" style="color: var(--indigo-600);">개선 방향 (TO-BE) · 조건 설정 플로우</div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+          <div style="padding:12px 14px; border-radius:8px; background:var(--indigo-50); border:1px solid #c7d2fe;">
+            <p style="font-size:0.68em; font-weight:800; color:var(--indigo-600); margin-bottom:6px;">1단계 — 재응시 조건 설정</p>
+            <p style="font-size:0.68em; color:#4338ca; line-height:1.5;">미응시자 포함 여부 + 점수 기준값(예: 60점 미만) 입력</p>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; color:var(--slate-300); font-size:1.2em; font-weight:700;">↓</div>
+          <div style="padding:12px 14px; border-radius:8px; background:var(--indigo-50); border:1px solid #c7d2fe;">
+            <p style="font-size:0.68em; font-weight:800; color:var(--indigo-600); margin-bottom:6px;">2단계 — 대상자 자동 추출 확인</p>
+            <p style="font-size:0.68em; color:#4338ca; line-height:1.5;">조건에 해당하는 학생 목록 자동 추출. 교수자가 최종 확인 후 승인</p>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; color:var(--slate-300); font-size:1.2em; font-weight:700;">↓</div>
+          <div style="padding:12px 14px; border-radius:8px; background:var(--indigo-50); border:1px solid #c7d2fe;">
+            <p style="font-size:0.68em; font-weight:800; color:var(--indigo-600); margin-bottom:6px;">3단계 — 추가 응시 횟수 부여</p>
+            <p style="font-size:0.68em; color:#4338ca; line-height:1.5;">선별된 학생에게만 지정 횟수 추가 응시 개방</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 기대 효과 -->
+      <div class="panel">
+        <div class="panel-label">기대 효과 및 해결되는 요구사항</div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+          <div style="padding:11px 13px; border-radius:8px; background:white; border:1px solid var(--slate-100); border-left:3px solid var(--indigo-500);">
+            <p style="font-size:0.67em; font-weight:800; color:var(--slate-900); margin-bottom:3px;">선별적 재응시 운영</p>
+            <p style="font-size:0.65em; color:var(--slate-600); line-height:1.5;">전체 학생이 아닌 기준에 해당하는 학생에게만 재응시 기회를 제공. 점수 우수 학생의 추가 응시로 인한 형평성 문제 방지</p>
+          </div>
+          <div style="padding:11px 13px; border-radius:8px; background:white; border:1px solid var(--slate-100); border-left:3px solid var(--indigo-500);">
+            <p style="font-size:0.67em; font-weight:800; color:var(--slate-900); margin-bottom:3px;">교수자 관리 부담 감소</p>
+            <p style="font-size:0.65em; color:var(--slate-600); line-height:1.5;">응시 여부·점수 개별 확인 후 수동 조치하던 과정을 자동화. 대규모 강의에서 특히 효과적</p>
+          </div>
+          <div style="padding:11px 13px; border-radius:8px; background:white; border:1px solid var(--slate-100); border-left:3px solid var(--indigo-500);">
+            <p style="font-size:0.67em; font-weight:800; color:var(--slate-900); margin-bottom:3px;">보완 학습 기회 제공</p>
+            <p style="font-size:0.65em; color:var(--slate-600); line-height:1.5;">기준 점수 미달 학생에게 추가 학습 후 재응시 기회를 부여해 학습 완성도 향상</p>
+          </div>
+          <div style="margin-top:auto; padding:10px 12px; border-radius:6px; background:#fffbeb; border:1px solid #fde68a;">
+            <p style="font-size:0.65em; color:#92400e; line-height:1.5;"><strong>참고</strong> — 아이맥스에서 제공하는 기능과 유사. 현재 Canvas LMS에는 해당 기능 없음</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 슬라이드: 구현 예정 — 부분 점수 정책 ── -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">구현 예정 · 채점·성적·재응시</span>
+        <span class="slide-title">부분 점수 정책 개선 — 적용 여부 및 방식 선택</span>
+        <span class="slide-desc">Canvas LMS 방식(오답 차감)에서 벗어나, 교수자가 부분 점수 적용 여부와 방식을 직접 선택할 수 있도록 개선</span>
+      </div>
+      <span class="req-badge orange">구현 예정 · 경북대 요청 · #4-1</span>
+    </div>
+    <div class="slide-body" style="grid-template-columns: 1fr 1fr 1fr;">
+
+      <!-- 현재 방식 -->
+      <div class="panel" style="border-right: 1px solid var(--slate-100);">
+        <div class="panel-label" style="color: #b45309;">현재 방식 — Canvas LMS 오답 차감</div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
+          <div style="padding:14px; border-radius:8px; background:#fff7ed; border:1px solid #fed7aa;">
+            <p style="font-size:0.72em; font-weight:700; color:#9a3412; margin-bottom:8px;">복수 정답 문항 채점 예시 (배점 9점, 정답 3개)</p>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+              <div style="font-size:0.69em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">점수 단위 = 9점 ÷ 3개 = <strong>3점</strong></div>
+              <div style="font-size:0.69em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">정답 2개 맞춤 → +6점</div>
+              <div style="font-size:0.69em; color:#7c2d12; padding:6px 10px; background:white; border-radius:5px; border:1px solid #fdba74;">오답 1개 선택 → -3점</div>
+              <div style="font-size:0.69em; color:#92400e; padding:6px 10px; background:#fef9c3; border-radius:5px; border:1px solid #fde68a; font-weight:700;">최종 취득: 6 - 3 = <strong>3점</strong></div>
+            </div>
+          </div>
+          <div class="req-box" style="border-left-color: #f97316;">
+            <div class="req-box-label" style="color:#9a3412;">문제점 (경북대)</div>
+            <div class="req-box-text">이러한 오답 차감 방식은 한국 교육환경에서 익숙하지 않음. 부분 점수 적용 여부와 방식을 교수자가 직접 선택할 수 있어야 함</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 개선 방향 -->
+      <div class="panel" style="border-right: 1px solid var(--slate-100); background: var(--slate-50);">
+        <div class="panel-label" style="color: var(--indigo-600);">개선 방향 (TO-BE) · 2단계 선택 옵션</div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+          <div style="padding:12px 14px; border-radius:8px; background:var(--indigo-50); border:1px solid #c7d2fe;">
+            <p style="font-size:0.68em; font-weight:800; color:var(--indigo-600); margin-bottom:6px;">1단계 — 부분 점수 적용 여부</p>
+            <p style="font-size:0.68em; color:#4338ca; line-height:1.5;">문항 생성/편집 시 "부분 점수 허용" ON/OFF 선택. OFF 시 완전 정답만 배점 전체 부여</p>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; color:var(--slate-300); font-size:1.2em; font-weight:700;">↓ ON 선택 시</div>
+          <div style="padding:12px 14px; border-radius:8px; background:var(--indigo-50); border:1px solid #c7d2fe;">
+            <p style="font-size:0.68em; font-weight:800; color:var(--indigo-600); margin-bottom:6px;">2단계 — 부분 점수 방식 선택</p>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:4px;">
+              <div style="font-size:0.67em; color:#4338ca; padding:5px 8px; background:white; border-radius:5px; border:1px solid #c7d2fe;"><strong>비례 배분</strong> — 맞춘 정답 수 / 전체 정답 수 × 배점</div>
+              <div style="font-size:0.67em; color:#4338ca; padding:5px 8px; background:white; border-radius:5px; border:1px solid #c7d2fe;"><strong>Canvas 방식 유지</strong> — 오답 차감 방식 그대로</div>
+            </div>
+          </div>
+          <div style="padding:10px 12px; border-radius:6px; background:white; border:1px solid var(--slate-100); margin-top:auto;">
+            <p style="font-size:0.65em; font-weight:700; color:var(--slate-500); margin-bottom:4px;">비례 배분 예시 (배점 9점, 정답 3개 중 2개 맞춤)</p>
+            <p style="font-size:0.65em; color:var(--slate-700); line-height:1.6;">2 ÷ 3 × 9 = <strong>6점</strong> (오답 선택해도 차감 없음)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 적용 대상 유형 -->
+      <div class="panel">
+        <div class="panel-label">부분 점수 적용 대상 유형</div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+          <div style="padding:11px 13px; border-radius:8px; background:white; border:1px solid var(--slate-100); border-left:3px solid var(--indigo-500);">
+            <p style="font-size:0.67em; font-weight:800; color:var(--slate-900); margin-bottom:3px;">객관식 복수 정답</p>
+            <p style="font-size:0.65em; color:var(--slate-600); line-height:1.5;">정답 여러 개 중 일부만 선택한 경우. 현재 오답 차감 방식의 주요 불만 대상</p>
+          </div>
+          <div style="padding:11px 13px; border-radius:8px; background:white; border:1px solid var(--slate-100); border-left:3px solid var(--indigo-500);">
+            <p style="font-size:0.67em; font-weight:800; color:var(--slate-900); margin-bottom:3px;">다중 빈칸 채우기</p>
+            <p style="font-size:0.65em; color:var(--slate-600); line-height:1.5;">빈칸이 여러 개인 문항에서 일부 빈칸만 정답인 경우 부분 점수 부여</p>
+          </div>
+          <div style="padding:11px 13px; border-radius:8px; background:white; border:1px solid var(--slate-100); border-left:3px solid var(--indigo-500);">
+            <p style="font-size:0.67em; font-weight:800; color:var(--slate-900); margin-bottom:3px;">연결형(짝짓기)</p>
+            <p style="font-size:0.65em; color:var(--slate-600); line-height:1.5;">연결 쌍 중 일부만 정답인 경우 맞춘 쌍 수에 비례해 점수 부여</p>
+          </div>
+          <div style="margin-top:auto; padding:10px 12px; border-radius:6px; background:#fffbeb; border:1px solid #fde68a;">
+            <p style="font-size:0.65em; color:#92400e; line-height:1.5;"><strong>선행 조건</strong> — 논의필요사항 2-1(소수점 점수 허용)과 정책 연계 필요. 채점 방식 확정 후 착수</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ── 슬라이드 9: 구현 현황 요약 ── -->
   <div class="slide">
     <div class="slide-header">
       <div class="slide-header-left">
         <span class="slide-number">Summary</span>
         <span class="slide-title">구현 현황 요약 및 다음 스텝</span>
-        <span class="slide-desc">2026-04-06 기준 · 고객사 요구사항 30건 대비</span>
+        <span class="slide-desc">2026-04-07 기준 · PDF 요구사항 기반 총 19건</span>
       </div>
     </div>
     <div class="summary-grid">
       <div class="summary-card done">
-        <div class="summary-count">7</div>
+        <div class="summary-count">2</div>
         <div class="summary-label">구현 완료</div>
         <div class="summary-items">
-          <div class="summary-item">문항 난이도/그룹 분류 (1-1-a)</div>
-          <div class="summary-item">문제은행 간 문항 복사 (1-2-b)</div>
-          <div class="summary-item">엑셀 문항 일괄 업로드 (1-3)</div>
-          <div class="summary-item">문항 순서 고정 (1-4)</div>
-          <div class="summary-item">주차/차시 퀴즈 목록 (2-4)</div>
-          <div class="summary-item">복수 응시·점수 정책 설정</div>
-          <div class="summary-item">정오답/정답/점수 공개 시점 (4-2)</div>
+          <div class="summary-item">문항 난이도/그룹 분류 및 메타데이터 (1-1)</div>
+          <div class="summary-item">문제은행 간 문항 복사 — 동일 시스템 내 (1-2-c)</div>
         </div>
       </div>
       <div class="summary-card partial">
-        <div class="summary-count">4</div>
+        <div class="summary-count">6</div>
         <div class="summary-label">부분 구현</div>
         <div class="summary-items">
+          <div class="summary-item">엑셀 문항 일괄 업로드 (1-3) — 기본 동작 완료, 정책 확정 후 디벨롭</div>
           <div class="summary-item">시험 출제 탭 UX (2-2) — 구조는 있으나 가이드 미흡</div>
           <div class="summary-item">답안지 PDF 다운로드 (3-2) — UI만, 생성 로직 예정</div>
-          <div class="summary-item">일괄 PDF 다운로드 (3-3) — xlsx 완료, PDF 예정</div>
+          <div class="summary-item">다수 학생 답안지 일괄 (3-3) — xlsx 완료, PDF 예정</div>
+          <div class="summary-item">문항별 엑셀 일괄 채점 (4-2) — 수동채점 문항 기준 구현, AI 채점 예정</div>
           <div class="summary-item">주차/차시 전용 메뉴 (5-2) — 목록 표시만</div>
         </div>
       </div>
       <div class="summary-card todo">
-        <div class="summary-count">15</div>
+        <div class="summary-count">10</div>
         <div class="summary-label">미구현 (예정)</div>
         <div class="summary-items">
-          <div class="summary-item">복수 문제은행 랜덤 출제 (1-1-b·c, 2-1) — 2단계 모달 설계 확정</div>
-          <div class="summary-item">PDF 생성 로직 (3-2·3-3) — 구현 예정</div>
-          <div class="summary-item">조건부 재응시 (4-3) — 인제대</div>
-          <div class="summary-item">퀴즈 복제 (2-3-a) — 경북대</div>
-          <div class="summary-item">부분 점수 정책 (4-1) — 경북대</div>
+          <div class="summary-item">복수 문제은행 랜덤 출제 고도화 (2-1) — 2단계 모달 설계 확정</div>
+          <div class="summary-item">시험 문제 PDF 생성 (3-1) / 답안지 PDF 로직 (3-2·3-3)</div>
+          <div class="summary-item">타 과목 이관/복사 (1-2-a·b) — 경북대</div>
+          <div class="summary-item">부분 점수 정책 (4-1-a·b) / 조건부 재응시 (4-3)</div>
+          <div class="summary-item">제출물 문항별 다운로드 (5-1) / 대소문자 구분 (1-4)</div>
         </div>
       </div>
     </div>
     <div class="roadmap-row">
       <div class="roadmap-item next">
         <div class="roadmap-tag">다음 구현 예정</div>
+        <div style="display:inline-flex;align-items:center;gap:5px;margin-bottom:6px;padding:3px 9px;border-radius:6px;background:#fef9c3;border:1px solid #fde68a;">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#a16207" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span style="font-size:0.62em;font-weight:800;color:#a16207;">완료 목표: 2026-04-14</span>
+        </div>
         <ul class="roadmap-list">
-          <li>복수 문제은행 2단계 모달 (1-1-b·c·2-1)</li>
-          <li>PDF 생성 + 페이지네이션 (3-2·3-3)</li>
+          <li>복수 문제은행 2단계 모달 (2-1)</li>
+          <li>시험 문제 PDF 생성 (3-1)</li>
+          <li>답안지 PDF + 페이지네이션 (3-2·3-3)</li>
           <li>조건부 재응시 UI (4-3)</li>
         </ul>
       </div>
       <div class="roadmap-item">
         <div class="roadmap-tag">정책 결정 후 착수</div>
         <ul class="roadmap-list">
-          <li>문제은행-퀴즈 연동 방식 (논의필요 3-2)</li>
-          <li>부분 점수 방식 선택 (논의필요)</li>
-          <li>지각 제출 감점 세부 정책</li>
+          <li>부분 점수 방식 선택 (4-1-a·b)</li>
+          <li>엑셀 업로드 유형 범위/정책 확정 (1-3)</li>
         </ul>
       </div>
       <div class="roadmap-item">
         <div class="roadmap-tag">MVP2 후보</div>
         <ul class="roadmap-list">
-          <li>퀴즈/문항 복제 (2-3-a)</li>
-          <li>타 과목 이관 (2-3-b)</li>
-          <li>파일 업로드 제출물 관리 (5-1)</li>
+          <li>타 과목 이관/복사 (1-2-a·b)</li>
+          <li>파일 업로드 제출물 문항별 관리 (5-1)</li>
+          <li>영문 대소문자 구분 정답 판정 (1-4)</li>
         </ul>
       </div>
     </div>
@@ -1046,18 +1234,44 @@
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
+// ── 기능05 탭 전환 ────────────────────────────────────────────────
+function xlsx05Tab(btn, sheetId) {
+  // 모든 시트 숨김
+  document.querySelectorAll('.xlsx05-sheet').forEach(el => el.style.display = 'none')
+  // 모든 탭 비활성화
+  document.querySelectorAll('.xlsx05-tab').forEach(el => {
+    el.style.background = '#e8f5e9'
+    el.style.color = '#555'
+    el.style.border = '1px solid #ccc'
+    el.style.borderBottom = 'none'
+  })
+  // 선택 시트/탭 활성화
+  document.getElementById('xlsx05-' + sheetId).style.display = 'block'
+  btn.style.background = '#1d6f42'
+  btn.style.color = 'white'
+  btn.style.border = 'none'
+}
 // ── 업로드 템플릿 샘플 ──────────────────────────────────────────
 function downloadUploadTemplate() {
   const XLSX = window.XLSX
-  const headers = ['유형', '문항 내용', '배점', '난이도(선택)', '그룹(선택)', '정답(선택)', '보기1', '보기2', '보기3', '보기4']
+  const headers = ['유형', '문항 내용', '배점', '난이도(선택)', '그룹(선택)', '정답(선택)', '보기1', '보기2', '보기3', '보기4', '보기5']
   const rows = [
-    ['multiple_choice', 'SQL에서 테이블을 생성하는 명령어는?', 5, 'medium', '1단원', 'CREATE TABLE', 'SELECT', 'INSERT', 'CREATE TABLE', 'DROP'],
-    ['true_false', 'PRIMARY KEY는 NULL 값을 허용한다.', 5, 'low', '1단원', '거짓', '', '', '', ''],
-    ['short_answer', 'DDL의 약자를 쓰시오.', 5, 'medium', '2단원', 'Data Definition Language', '', '', '', ''],
-    ['essay', '트랜잭션의 ACID 속성에 대해 서술하시오.', 15, 'high', '3단원', '', '', '', '', ''],
+    ['multiple_choice', 'SQL에서 테이블을 생성하는 명령어는?', 5, 'low', '1단원 - SQL 기초', 'CREATE TABLE', 'SELECT', 'INSERT', 'CREATE TABLE', 'DROP', ''],
+    ['multiple_choice', '정규화의 목적으로 가장 적절한 것은?', 5, 'medium', '2단원 - 정규화', '데이터 중복 최소화', '처리 속도 증가', '데이터 중복 최소화', '저장 공간 증가', '데이터 암호화', ''],
+    ['multiple_choice', '트랜잭션에서 COMMIT의 역할은?', 5, 'medium', '3단원 - 트랜잭션', '변경 사항을 영구적으로 저장', '변경 사항을 이전 상태로 되돌림', '변경 사항을 영구적으로 저장', '변경 사항을 임시 저장', '트랜잭션을 시작', ''],
+    ['multiple_choice', '다음 중 DDL 명령어에 해당하지 않는 것은?', 5, 'medium', '1단원 - SQL 기초', 'INSERT', 'CREATE', 'ALTER', 'DROP', 'TRUNCATE', 'INSERT'],
+    ['multiple_choice', 'INNER JOIN과 OUTER JOIN의 차이점으로 옳은 것은?', 10, 'high', '2단원 - 정규화', 'INNER JOIN은 두 테이블 모두 일치하는 행만 반환', 'INNER JOIN은 모든 행을 반환', 'OUTER JOIN은 일치하는 행만 반환', 'INNER JOIN은 두 테이블 모두 일치하는 행만 반환', '두 JOIN은 동일한 결과를 반환', ''],
+    ['true_false', 'PRIMARY KEY는 NULL 값을 허용한다.', 5, 'low', '1단원 - SQL 기초', '거짓', '', '', '', '', ''],
+    ['true_false', 'HAVING 절은 WHERE 절 이후에 실행된다.', 5, 'medium', '1단원 - SQL 기초', '참', '', '', '', '', ''],
+    ['true_false', '인덱스를 많이 생성할수록 조회 성능이 항상 향상된다.', 5, 'medium', '2단원 - 정규화', '거짓', '', '', '', '', ''],
+    ['short_answer', 'SELECT문에서 중복 행을 제거할 때 사용하는 키워드를 쓰시오.', 5, 'low', '1단원 - SQL 기초', 'DISTINCT', '', '', '', '', ''],
+    ['short_answer', '관계형 DB에서 다른 테이블의 기본키를 참조하는 키의 이름을 쓰시오.', 5, 'medium', '2단원 - 정규화', '외래키', '', '', '', '', ''],
+    ['short_answer', '트랜잭션을 취소하고 이전 상태로 되돌리는 SQL 명령어를 쓰시오.', 5, 'medium', '3단원 - 트랜잭션', 'ROLLBACK', '', '', '', '', ''],
+    ['essay', 'B-Tree 인덱스와 Hash 인덱스의 차이점을 비교하고 각각 적합한 사용 상황을 서술하시오.', 15, 'high', '2단원 - 정규화', '', '', '', '', '', ''],
+    ['essay', '트랜잭션의 ACID 속성 4가지를 각각 설명하시오.', 20, 'high', '3단원 - 트랜잭션', '', '', '', '', '', ''],
   ]
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
-  ws['!cols'] = [{ wch: 20 }, { wch: 40 }, { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 26 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
+  ws['!cols'] = [{ wch: 20 }, { wch: 48 }, { wch: 8 }, { wch: 14 }, { wch: 20 }, { wch: 36 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }]
 
   const typeHeaders = ['유형 코드', '한국어 이름', '자동채점']
   const typeRows = [
@@ -1093,15 +1307,20 @@ function downloadUploadTemplate() {
 // ── 답안지 샘플 ─────────────────────────────────────────────────
 function downloadAnswerSample() {
   const XLSX = window.XLSX
-  const questions = ['Q1 객관식(5점)', 'Q2 객관식(5점)', 'Q3 단답형(10점)', 'Q4 복수선택(10점)', 'Q5 서술형(20점)']
+  const questions = [
+    'Q1 객관식(5점)', 'Q2 객관식(5점)', 'Q3 객관식(5점)', 'Q4 객관식(5점)', 'Q5 객관식(10점)',
+    'Q6 참거짓(5점)', 'Q7 참거짓(5점)', 'Q8 참거짓(5점)',
+    'Q9 단답형(5점)', 'Q10 단답형(5점)', 'Q11 단답형(5점)',
+    'Q12 서술형(15점)', 'Q13 서술형(20점)'
+  ]
   const headers = ['이름', '학번', '학과', '제출경로', ...questions, '자동채점합계', '수동채점합계', '총점']
   const students = [
-    ['학생 A', '2022001', '컴퓨터공학과', '학생직접제출', 'SELECT', '데이터 중복 최소화', '외래키', 'CREATE, ALTER, DROP', 'ACID는 원자성, 일관성, 격리성, 지속성...', 30, 28, 58],
-    ['학생 B', '2022002', '소프트웨어학과', '학생직접제출', 'SELECT', '처리 속도 증가', 'Foreign Key', 'CREATE, DROP', 'B-Tree 인덱스는 범위 검색에 유리하고...', 25, 20, 45],
-    ['학생 C', '2022003', '정보통신공학과', '학생직접제출', 'INSERT', '데이터 중복 최소화', '참조키', 'CREATE, ALTER, DROP', '트랜잭션의 ACID 속성은...', 30, 35, 65],
+    ['학생 A', '2022001', '컴퓨터공학과', '학생직접제출', 'CREATE TABLE', '데이터 중복 최소화', '변경 사항을 영구적으로 저장', 'INSERT', 'INNER JOIN은 두 테이블 모두 일치하는 행만 반환', '거짓', '참', '거짓', 'DISTINCT', '외래키', 'ROLLBACK', 'B-Tree는 범위 검색에 유리하고...', 'ACID는 원자성, 일관성, 격리성, 지속성...', 55, 30, 85],
+    ['학생 B', '2022002', '소프트웨어학과', '학생직접제출', 'SELECT', '데이터 중복 최소화', '변경 사항을 이전 상태로 되돌림', 'INSERT', 'INNER JOIN은 두 테이블 모두 일치하는 행만 반환', '참', '참', '거짓', 'DISTINCT', '참조키', 'ROLLBACK', 'Hash는 동등 비교에 유리하고...', '원자성이란 트랜잭션이 모두 실행되거나...', 45, 22, 67],
+    ['학생 C', '2022003', '정보통신공학과', '학생직접제출', 'CREATE TABLE', '처리 속도 증가', '변경 사항을 영구적으로 저장', 'INSERT', '두 JOIN은 동일한 결과를 반환', '거짓', '참', '참', 'SELECT', '외래키', 'ROLLBACK', '', '트랜잭션은 원자성, 일관성...', 40, null, null],
   ]
   const ws = XLSX.utils.aoa_to_sheet([headers, ...students])
-  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, ...questions.map(() => ({ wch: 30 })), { wch: 14 }, { wch: 14 }, { wch: 8 }]
+  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, ...questions.map(() => ({ wch: 28 })), { wch: 14 }, { wch: 14 }, { wch: 8 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, '답안지')
   XLSX.writeFile(wb, '[샘플] 답안지_중간고사.xlsx')
@@ -1110,52 +1329,82 @@ function downloadAnswerSample() {
 // ── 성적 샘플 ────────────────────────────────────────────────────
 function downloadGradeSample() {
   const XLSX = window.XLSX
-  const headers = ['이름', '학번', '학과', '점수 (/100점)', '자동채점', '수동채점', '채점 상태']
+  const headers = ['이름', '학번', '학과', '점수 (/100점)', '자동채점 (/65점)', '수동채점 (/35점)', '채점 상태']
   const rows = [
-    ['학생 A', '2022001', '컴퓨터공학과', 87, 45, 42, '채점 완료'],
-    ['학생 B', '2022002', '소프트웨어학과', 91, 40, 51, '채점 완료'],
-    ['학생 C', '2022003', '정보통신공학과', 78, 35, 43, '채점 완료'],
-    ['학생 D', '2022004', '데이터사이언스학과', null, 30, null, '미채점'],
-    ['학생 E', '2022005', '컴퓨터공학과', null, 25, null, '미채점'],
+    ['학생 A', '2022001', '컴퓨터공학과', 85, 55, 30, '채점 완료'],
+    ['학생 B', '2022002', '소프트웨어학과', 67, 45, 22, '채점 완료'],
+    ['학생 C', '2022003', '정보통신공학과', null, 40, null, '미채점'],
+    ['학생 D', '2022004', '데이터사이언스학과', null, 35, null, '미채점'],
+    ['학생 E', '2022005', '컴퓨터공학과', 91, 60, 31, '채점 완료'],
+    ['학생 F', '2022006', '소프트웨어학과', null, 50, null, '미채점'],
   ]
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
-  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }]
+  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 10 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, '성적')
   XLSX.writeFile(wb, '[샘플] 성적_중간고사.xlsx')
 }
 
+// ── 채점 양식 샘플 ──────────────────────────────────────────────
+function downloadGradingSheetSample() {
+  const XLSX = window.XLSX
+  const headers = ['학번', '이름', '학과', '응답 내용', '점수 (0~20)']
+  const rows = [
+    ['2022001', '학생 A', '컴퓨터공학과', 'ACID는 원자성(Atomicity), 일관성(Consistency), 격리성(Isolation), 지속성(Durability)의 약자로, 원자성은 트랜잭션이 전부 실행되거나 전혀 실행되지 않아야 함을 의미합니다...', ''],
+    ['2022002', '학생 B', '소프트웨어학과', '원자성이란 트랜잭션 내 작업이 모두 성공하거나 모두 실패해야 한다는 성질입니다. 일관성은 트랜잭션 실행 전후 데이터베이스가 일관된 상태를 유지해야 함을 의미합니다.', ''],
+    ['2022003', '학생 C', '정보통신공학과', 'ACID는 트랜잭션의 4가지 속성입니다. 원자성, 일관성, 격리성, 지속성으로 구성됩니다.', ''],
+    ['2022004', '학생 D', '데이터사이언스학과', '(미응답)', ''],
+    ['2022005', '학생 E', '컴퓨터공학과', '트랜잭션의 ACID 속성 중 격리성(Isolation)은 동시에 실행되는 트랜잭션이 서로 영향을 미치지 않도록 격리해야 한다는 성질입니다. 지속성은 커밋된 트랜잭션의 결과가 영구적으로 저장되어야 함을 의미합니다.', ''],
+    ['2022006', '학생 F', '소프트웨어학과', 'Atomicity, Consistency, Isolation, Durability 순으로 설명하겠습니다. 원자성은 All or Nothing 원칙...', ''],
+  ]
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+  ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 18 }, { wch: 64 }, { wch: 14 }]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Q13 서술형 채점양식')
+  XLSX.writeFile(wb, '[샘플] 채점양식_Q13_서술형.xlsx')
+}
+
 // ── 문항 분석 샘플 ───────────────────────────────────────────────
 function downloadAnalysisSample() {
   const XLSX = window.XLSX
-  const headers1 = ['문항', '유형', '배점(점)', '평균점수', '득점률(%)', '난이도', '정답학생수', '정답률', '변별도 D', '이분상관계수 r_pb']
+  const headers1 = ['문항', '유형', '그룹', '배점(점)', '난이도', '평균점수', '득점률(%)', '정답학생수', '정답률', '변별도 D', '이분상관계수 r_pb']
   const rows1 = [
-    ['Q1', '객관식', 5, 4.2, 84, '쉬움', 69, '84%', 0.312, 0.428],
-    ['Q2', '객관식', 5, 3.8, 76, '쉬움', 62, '76%', 0.289, 0.391],
-    ['Q3', '단답형', 10, 7.6, 76, '쉬움', '-', '-', 0.241, '-'],
-    ['Q4', '복수선택', 10, 6.9, 69, '보통', 45, '55%', 0.334, 0.412],
-    ['Q5', '서술형', 20, 14.8, 74, '보통', '-', '-', 0.198, '-'],
+    ['Q1',  '객관식', '1단원 - SQL 기초',     5,  '하', 4.2,  84, 69, '84%', 0.312, 0.428],
+    ['Q2',  '객관식', '2단원 - 정규화',       5,  '중', 3.1,  62, 51, '62%', 0.274, 0.356],
+    ['Q3',  '객관식', '3단원 - 트랜잭션',     5,  '중', 3.6,  72, 59, '72%', 0.301, 0.412],
+    ['Q4',  '객관식', '1단원 - SQL 기초',     5,  '중', 2.8,  56, 46, '56%', 0.289, 0.378],
+    ['Q5',  '객관식', '2단원 - 정규화',       10, '상', 6.4,  64, 52, '64%', 0.334, 0.445],
+    ['Q6',  '참/거짓', '1단원 - SQL 기초',   5,  '하', 4.6,  92, 75, '92%', 0.198, 0.287],
+    ['Q7',  '참/거짓', '1단원 - SQL 기초',   5,  '중', 3.9,  78, 64, '78%', 0.221, 0.314],
+    ['Q8',  '참/거짓', '2단원 - 정규화',     5,  '중', 3.5,  70, 57, '70%', 0.256, 0.341],
+    ['Q9',  '단답형', '1단원 - SQL 기초',     5,  '하', 4.1,  82, '-', '-',   0.241, '-'],
+    ['Q10', '단답형', '2단원 - 정규화',       5,  '중', 3.3,  66, '-', '-',   0.228, '-'],
+    ['Q11', '단답형', '3단원 - 트랜잭션',     5,  '중', 3.7,  74, '-', '-',   0.235, '-'],
+    ['Q12', '서술형', '2단원 - 정규화',       15, '상', 10.8, 72, '-', '-',   0.209, '-'],
+    ['Q13', '서술형', '3단원 - 트랜잭션',     20, '상', 14.2, 71, '-', '-',   0.198, '-'],
   ]
   const ws1 = XLSX.utils.aoa_to_sheet([headers1, ...rows1])
-  ws1['!cols'] = [{ wch: 7 }, { wch: 14 }, { wch: 9 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 20 }]
+  ws1['!cols'] = [{ wch: 6 }, { wch: 10 }, { wch: 20 }, { wch: 9 }, { wch: 7 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 20 }]
 
   const rows2 = [
     ['항목', '값'],
     ['퀴즈명', '중간고사 - 데이터베이스 설계 및 SQL'],
     ['과목', 'CS301 데이터베이스'],
-    ['만점', '100점'],
-    ['평균 점수', 82.4],
-    ['최고 점수', 97],
-    ['최저 점수', 58],
-    ['표준편차', 9.3],
+    ['만점', '100점 (자동채점 65점 + 수동채점 35점)'],
+    ['문항 수', '13문항 (객관식 5 / 참거짓 3 / 단답형 3 / 서술형 2)'],
+    ['평균 점수', 74.2],
+    ['최고 점수', 91],
+    ['최저 점수', 45],
+    ['표준편차', 11.8],
     ['응시율', '94.3%'],
-    ['채점 완료율', '54.9%'],
-    ['Cronbach α', 0.731],
+    ['채점 완료율', '50.0%'],
+    ['Cronbach α', 0.718],
     ['', ''],
     ['※ r_pb(이분상관계수), Cronbach α는 기존 Canvas LMS에서 제공하던 표준 문항 분석 지표와 동일한 방식으로 산출', ''],
+    ['※ 서술형·단답형 문항의 r_pb는 수동채점 완료 후 산출', ''],
   ]
   const ws2 = XLSX.utils.aoa_to_sheet(rows2)
-  ws2['!cols'] = [{ wch: 60 }, { wch: 30 }]
+  ws2['!cols'] = [{ wch: 60 }, { wch: 36 }]
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws1, '문항 분석')

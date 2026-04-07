@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { BookOpen, Search, X, ChevronLeft } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
 import { useQuestionBank } from '../context/QuestionBankContext'
+import { DropdownSelect } from './DropdownSelect'
 
 const DIFFICULTY_LABELS = { high: '상', medium: '중', low: '하' }
 const DIFFICULTY_COLORS = {
@@ -255,40 +256,39 @@ export default function QuestionBankModal({ onClose, onAdd, added, currentCourse
                   </label>
                 )}
                 {/* 유형 필터 */}
-                <select
+                <DropdownSelect
                   value={filterType}
-                  onChange={e => { setFilterType(e.target.value); setVisibleCount(15) }}
-                  className="text-xs bg-white px-2 py-1.5 focus:outline-none"
-                  style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#616161' }}
-                >
-                  <option value="all">모든 유형</option>
-                  {Object.entries(QUIZ_TYPES).map(([k, v]) => (
-                    <option key={k} value={k}>{v.label}</option>
-                  ))}
-                </select>
+                  onChange={v => { setFilterType(v); setVisibleCount(15) }}
+                  filterMode
+                  options={[
+                    { value: 'all', label: '모든 유형' },
+                    ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
+                  ]}
+                />
                 {/* 난이도 필터 */}
-                <select
+                <DropdownSelect
                   value={filterDifficulty}
-                  onChange={e => { setFilterDifficulty(e.target.value); setVisibleCount(15) }}
-                  className="text-xs bg-white px-2 py-1.5 focus:outline-none"
-                  style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#616161' }}
-                >
-                  <option value="all">모든 난이도</option>
-                  <option value="high">상</option>
-                  <option value="medium">중</option>
-                  <option value="low">하</option>
-                </select>
+                  onChange={v => { setFilterDifficulty(v); setVisibleCount(15) }}
+                  filterMode
+                  options={[
+                    { value: 'all', label: '모든 난이도' },
+                    { value: '', label: '미지정' },
+                    { value: 'high', label: '상' },
+                    { value: 'medium', label: '중' },
+                    { value: 'low', label: '하' },
+                  ]}
+                />
                 {/* 그룹 필터 */}
                 {groupOptions.length > 0 && (
-                  <select
+                  <DropdownSelect
                     value={filterGroup}
-                    onChange={e => { setFilterGroup(e.target.value); setVisibleCount(15) }}
-                    className="text-xs bg-white px-2 py-1.5 focus:outline-none"
-                    style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#616161' }}
-                  >
-                    <option value="all">모든 그룹</option>
-                    {groupOptions.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
+                    onChange={v => { setFilterGroup(v); setVisibleCount(15) }}
+                    filterMode
+                    options={[
+                      { value: 'all', label: '모든 그룹' },
+                      ...groupOptions.map(g => ({ value: g, label: g })),
+                    ]}
+                  />
                 )}
                 <span className="text-xs ml-auto" style={{ color: '#9E9E9E' }}>{filtered.length}개</span>
               </div>

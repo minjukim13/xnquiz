@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Clock, FileText, CheckCircle2, AlertCircle, Send } from 'lucide-react'
+import { Plus, Clock, FileText, CheckCircle2, AlertCircle, Send, BarChart2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -272,13 +272,14 @@ function QuizCard({ quiz, onPublishQuiz }) {
           )}
           {quiz.status !== 'draft' && (
             <Link
-              to={`/quiz/${quiz.id}/grade`}
-              className="text-xs font-semibold px-3.5 py-2 rounded-md transition-colors"
+              to={`/quiz/${quiz.id}/stats`}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors"
               style={{ background: '#4F46E5', color: '#fff' }}
               onMouseEnter={e => { e.currentTarget.style.background = '#4338CA' }}
               onMouseLeave={e => { e.currentTarget.style.background = '#4F46E5' }}
             >
-              채점
+              <BarChart2 size={11} />
+              통계
             </Link>
           )}
         </div>

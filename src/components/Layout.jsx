@@ -22,7 +22,7 @@ export default function Layout({ children, breadcrumbs = [] }) {
   const navItems = role === 'student'
     ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
     : [
-        { label: '퀴즈 관리', href: '/', icon: LayoutList },
+        { label: '퀴즈', href: '/', icon: LayoutList },
         { label: '문제은행', href: '/question-banks', icon: BookOpen },
       ]
 
