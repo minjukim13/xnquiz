@@ -498,9 +498,23 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <p className="text-sm leading-relaxed" style={{ color: '#222222' }}>{question.text}</p>
+            {question.choices && question.choices.length > 0 && (
+              <div className="mt-3 flex flex-col gap-1">
+                {question.choices.map((choice, i) => {
+                  const isCorrect = choice === question.correctAnswer
+                  return (
+                    <div key={i} className="flex items-baseline gap-2"
+                      style={{ fontSize: 13, color: isCorrect ? '#3730a3' : '#6B7280', fontWeight: isCorrect ? 600 : 400 }}>
+                      <span style={{ minWidth: 16, flexShrink: 0, color: isCorrect ? '#6366f1' : '#9CA3AF' }}>{i + 1}.</span>
+                      <span>{choice}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
             {question.correctAnswer && (
-              <div className="mt-3 flex items-start gap-3 pl-3" style={{ borderLeft: '2px solid #6366f1' }}>
-                <span className="text-xs font-medium shrink-0 mt-0.5" style={{ color: '#6366f1' }}>모범 답안</span>
+              <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: '#EEF2FF', color: '#6366f1' }}>모범 답안</span>
                 {question.type === 'true_false' ? (
                   <div className="flex items-center gap-1.5">
                     {['참', '거짓'].map(opt => {
@@ -514,7 +528,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
                     })}
                   </div>
                 ) : (
-                  <span className="text-xs leading-relaxed" style={{ color: '#1E293B' }}>{question.correctAnswer}</span>
+                  <span className="text-xs" style={{ color: '#1E293B' }}>{question.correctAnswer}</span>
                 )}
               </div>
             )}
@@ -554,13 +568,34 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
 }
 
 // ─── 문항 중심: 응시 현황 탭 ───────────────────────────────────────────────
+const PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10명씩' },
+  { value: 20, label: '20명씩' },
+  { value: 30, label: '30명씩' },
+  { value: 'all', label: '전체' },
+]
+
 function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved }) {
-  const gradedStudents = students.filter(s => s.score !== null)
-  const ungradedStudents = students.filter(s => s.score === null)
+  const [pageSize, setPageSize] = useState(20)
+  const [page, setPage] = useState(1)
+
+  // 검색 or pageSize 변경 시 첫 페이지로
+  useEffect(() => { setPage(1) }, [search, pageSize])
+
+  const ungradedAll = students.filter(s => s.score === null)
+  const gradedAll   = students.filter(s => s.score !== null)
+  const flat = [...ungradedAll, ...gradedAll]
+
+  const totalPages = pageSize === 'all' ? 1 : Math.ceil(flat.length / pageSize)
+  const visible = pageSize === 'all' ? flat : flat.slice((page - 1) * pageSize, page * pageSize)
+
+  // 현재 페이지 범위 내 미채점/채점완료 분리
+  const visibleUngraded = visible.filter(s => s.score === null)
+  const visibleGraded   = visible.filter(s => s.score !== null)
 
   return (
     <div className="flex-1 bg-white overflow-hidden flex flex-col" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
-      <div className="p-3 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEEEE', background: '#FAFAFA' }}>
+      <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEEEE', background: '#FAFAFA' }}>
         <div className="flex-1 relative">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#9E9E9E' }} />
           <input
@@ -572,35 +607,81 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
             style={{ border: '1px solid #E0E0E0', color: '#222222' }}
           />
         </div>
+        <DropdownSelect
+          size="sm"
+          value={pageSize}
+          onChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}
+          options={PAGE_SIZE_OPTIONS}
+          style={{ width: 80 }}
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin">
-        {ungradedStudents.length > 0 && (
+        {visibleUngraded.length > 0 && (
           <div>
             <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
               <AlertCircle size={11} style={{ color: '#B43200', flexShrink: 0 }} />
               <span className="text-xs font-semibold" style={{ color: '#B43200' }}>미채점</span>
-              <span className="text-xs" style={{ color: '#BDBDBD' }}>{ungradedStudents.length}명</span>
+              <span className="text-xs" style={{ color: '#BDBDBD' }}>{ungradedAll.length}명</span>
               <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
             </div>
-            {ungradedStudents.map(s => (
+            {visibleUngraded.map(s => (
               <StudentRow key={s.id} student={s} question={question} quizId={quizId} onGradeSaved={onGradeSaved} />
             ))}
           </div>
         )}
-        {gradedStudents.length > 0 && (
+        {visibleGraded.length > 0 && (
           <div>
             <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
               <span className="text-xs font-semibold" style={{ color: '#4B5563' }}>채점 완료</span>
-              <span className="text-xs" style={{ color: '#BDBDBD' }}>{gradedStudents.length}명</span>
+              <span className="text-xs" style={{ color: '#BDBDBD' }}>{gradedAll.length}명</span>
               <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
             </div>
-            {gradedStudents.map(s => (
+            {visibleGraded.map(s => (
               <StudentRow key={s.id} student={s} question={question} quizId={quizId} onGradeSaved={onGradeSaved} />
             ))}
           </div>
         )}
       </div>
+
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-3 py-2" style={{ borderTop: '1px solid #EEEEEE' }}>
+          <span className="text-xs" style={{ color: '#9CA3AF' }}>
+            {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, flat.length)} / {flat.length}명
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-2 py-1 rounded text-xs disabled:opacity-30 transition-colors"
+              style={{ border: '1px solid #E0E0E0', color: '#4B5563' }}
+            >
+              이전
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className="w-6 h-6 rounded text-xs flex items-center justify-center transition-colors"
+                style={p === page
+                  ? { background: '#6366f1', color: '#fff', border: '1px solid #6366f1' }
+                  : { border: '1px solid #E0E0E0', color: '#4B5563' }}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-2 py-1 rounded text-xs disabled:opacity-30 transition-colors"
+              style={{ border: '1px solid #E0E0E0', color: '#4B5563' }}
+            >
+              다음
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -668,19 +749,25 @@ function StudentRow({ student, question, quizId, onGradeSaved }) {
           <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{student.studentId}</p>
         </div>
 
-        {/* 답안 미리보기 (클릭하면 전체 펼침) */}
-        <button
-          className="flex-1 min-w-0 text-left flex items-center gap-1"
-          onClick={() => setExpanded(!expanded)}
-        >
-          <p className="text-sm truncate flex-1" style={{ color: expanded ? '#111827' : '#374151' }}>
+        {/* 답안 미리보기 */}
+        {['essay', 'short_answer', 'multiple_answers'].includes(question.type) ? (
+          <button
+            className="flex-1 min-w-0 text-left flex items-center gap-1"
+            onClick={() => setExpanded(!expanded)}
+          >
+            <p className="truncate flex-1" style={{ fontSize: 13, color: expanded ? '#111827' : '#374151' }}>
+              {compactAnswer || '(답안 없음)'}
+            </p>
+            {expanded
+              ? <ChevronUp size={12} style={{ color: '#BDBDBD', flexShrink: 0 }} />
+              : <ChevronDown size={12} style={{ color: '#BDBDBD', flexShrink: 0 }} />
+            }
+          </button>
+        ) : (
+          <p className="flex-1 min-w-0 truncate" style={{ fontSize: 13, color: '#374151' }}>
             {compactAnswer || '(답안 없음)'}
           </p>
-          {expanded
-            ? <ChevronUp size={12} style={{ color: '#BDBDBD', flexShrink: 0 }} />
-            : <ChevronDown size={12} style={{ color: '#BDBDBD', flexShrink: 0 }} />
-          }
-        </button>
+        )}
 
         {/* 채점 영역 */}
         <div className="flex items-center gap-1.5 shrink-0">
@@ -715,44 +802,15 @@ function StudentRow({ student, question, quizId, onGradeSaved }) {
         </div>
       </div>
 
-      {/* 확장: 유형별 전체 답안 */}
-      {expanded && (
-        <div className="px-3 pb-3" style={{ paddingLeft: 56 }}>
-          {question.type === 'multiple_choice' && question.choices ? (
-            <div className="flex flex-col gap-0.5 py-1">
-              {question.choices.map((choice, i) => {
-                const isSel = choice === rawAnswer
-                return (
-                  <div key={i} className="flex items-baseline gap-2 px-2 py-1 rounded text-xs"
-                    style={{ background: isSel ? '#EEF2FF' : 'transparent', fontWeight: isSel ? 600 : 400, color: isSel ? '#3730a3' : '#6B7280' }}>
-                    <span style={{ minWidth: 16, flexShrink: 0, color: isSel ? '#6366f1' : '#9CA3AF' }}>{i + 1}.</span>
-                    <span>{choice}</span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : question.type === 'true_false' ? (
-            <div className="flex items-center gap-2 py-1">
-              {['참', '거짓'].map(opt => {
-                const lower = (rawAnswer || '').toLowerCase()
-                const normalized = (lower === '참' || lower === 'true') ? '참' : '거짓'
-                const isSel = opt === normalized
-                return (
-                  <span key={opt} className="px-3 py-1 rounded-full text-xs font-medium"
-                    style={isSel ? { background: '#6366f1', color: '#fff' } : { background: '#F3F4F6', color: '#9CA3AF' }}>
-                    {opt}
-                  </span>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="p-3 rounded text-xs" style={{ background: '#FAFAFA', border: '1px solid #E0E0E0' }}>
-              <p className="leading-relaxed" style={{ color: '#424242' }}>{rawAnswer}</p>
-              {autoCorrect !== null && !autoCorrect && question.correctAnswer && (
-                <p className="mt-2" style={{ color: '#9E9E9E' }}>정답: {question.correctAnswer}</p>
-              )}
-            </div>
-          )}
+      {/* 확장: 서술형/단답형/복수선택만 */}
+      {expanded && ['essay', 'short_answer', 'multiple_answers'].includes(question.type) && (
+        <div className="px-3 pb-3">
+          <div className="p-3 rounded" style={{ background: '#FAFAFA', border: '1px solid #E0E0E0' }}>
+            <p className="leading-relaxed" style={{ fontSize: 13, color: '#424242' }}>{rawAnswer}</p>
+            {autoCorrect !== null && !autoCorrect && question.correctAnswer && (
+              <p className="mt-2 text-xs" style={{ color: '#9E9E9E' }}>정답: {question.correctAnswer}</p>
+            )}
+          </div>
         </div>
       )}
     </div>
