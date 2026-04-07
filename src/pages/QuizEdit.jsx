@@ -32,6 +32,10 @@ export default function QuizEdit() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [questions, setQuestions] = useState(() => getQuizQuestions(quiz.id))
 
+  // 기본 정보
+  const [title, setTitle] = useState(quiz.title ?? '')
+  const [description, setDescription] = useState(quiz.description ?? '')
+
   // 응시 설정
   const [timeLimitType, setTimeLimitType] = useState(quiz.timeLimit ?? 60)
   const [timeLimitCustom, setTimeLimitCustom] = useState('')
@@ -97,6 +101,8 @@ export default function QuizEdit() {
     if (idx !== -1) {
       mockQuizzes[idx] = {
         ...mockQuizzes[idx],
+        title,
+        description,
         status: quiz.status === 'draft' ? 'open' : quiz.status,
         questions: questions.length,
         totalPoints,
@@ -214,6 +220,28 @@ export default function QuizEdit() {
 
           {/* 오른쪽: 설정 패널 */}
           <div className="space-y-4">
+
+            {/* 기본 정보 */}
+            <SettingCard title="기본 정보">
+              <SettingField label="퀴즈 제목">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  className="input text-sm w-full"
+                  placeholder="퀴즈 제목을 입력하세요"
+                />
+              </SettingField>
+              <SettingField label="퀴즈 설명">
+                <textarea
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  className="input text-sm w-full resize-none"
+                  rows={3}
+                  placeholder="학생에게 표시될 퀴즈 설명 (선택)"
+                />
+              </SettingField>
+            </SettingCard>
 
             {/* 퀴즈 유형 */}
             <SettingCard title="퀴즈 유형">

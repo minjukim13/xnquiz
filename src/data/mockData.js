@@ -717,12 +717,35 @@ const AUTO_CORRECT_Q4 = {
   q4_23: ['EXPLAIN', 'explain'],
 }
 
+// quiz 7 — 5주차 서술형 과제 (정규화 단계 분석), 3문항 전부 서술형/수동채점
+const mockQuiz7Questions = [
+  {
+    id: 'q7_1', order: 1, type: 'essay',
+    text: '제1정규형(1NF), 제2정규형(2NF), 제3정규형(3NF)의 정의를 각각 서술하고, 각 정규형을 위반하는 예시를 들어 설명하시오.',
+    points: 10, autoGrade: false, gradedCount: 60, totalCount: 117, avgScore: 7.8,
+    correctAnswer: null,
+  },
+  {
+    id: 'q7_2', order: 2, type: 'essay',
+    text: '다음 릴레이션 스키마를 보고, 어떤 정규형을 위반하는지 판단하고, 완전한 정규화 과정을 단계별로 서술하시오.\n\n주문(주문번호, 고객번호, 고객명, 상품코드, 상품명, 수량, 단가)',
+    points: 10, autoGrade: false, gradedCount: 60, totalCount: 117, avgScore: 7.2,
+    correctAnswer: null,
+  },
+  {
+    id: 'q7_3', order: 3, type: 'essay',
+    text: '정규화의 장단점을 각각 2가지 이상 서술하고, 역정규화(Denormalization)가 필요한 상황을 구체적인 예시를 들어 설명하시오.',
+    points: 10, autoGrade: false, gradedCount: 60, totalCount: 117, avgScore: 7.5,
+    correctAnswer: null,
+  },
+]
+
 // 퀴즈 ID별 문항 반환 — GradingDashboard에서 사용
 export function getQuizQuestions(quizId) {
   if (quizId === '1') return mockQuestions
   if (quizId === '2') return mockQuiz2Questions
   if (quizId === '3') return mockQuiz3Questions
   if (quizId === '4') return mockQuiz4Questions
+  if (quizId === '7') return mockQuiz7Questions
   if (quizId === '8') return mockQuiz8Questions
   return []
 }

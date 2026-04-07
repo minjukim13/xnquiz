@@ -147,7 +147,7 @@ export default function QuizCreate() {
         )}
 
         {/* 하단 버튼 */}
-        <div className="flex items-center justify-between mt-8 pt-6" style={{ borderTop: '1px solid #EEEEEE' }}>
+        <div className="flex items-center justify-between mt-5 pt-5" style={{ borderTop: '1px solid #EEEEEE' }}>
           <button
             onClick={() => navigate('/')}
             className="text-sm transition-colors"
@@ -660,8 +660,8 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
         <textarea
           value={form.notice}
           onChange={e => set('notice', e.target.value)}
-          rows={5}
-          className="input resize-none text-sm leading-relaxed"
+          rows={3}
+          className="input resize-y text-sm leading-relaxed"
           placeholder="학생에게 안내할 퀴즈 정책을 입력하세요."
         />
       </Section>

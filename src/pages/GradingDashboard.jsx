@@ -63,6 +63,14 @@ export default function GradingDashboard() {
   // gradedCount 실시간 반영을 위한 버전 카운터
   const [gradeVersion, setGradeVersion] = useState(0)
   const onGradeSaved = useCallback(() => setGradeVersion(v => v + 1), [])
+  const [excelRows, setExcelRows] = useState(null)
+
+  // 토스트
+  const [toast, setToast] = useState(null)
+  const showToast = useCallback((msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 4000)
+  }, [])
 
   const quizQuestions = getQuizQuestions(id)
   const quizStudents = getQuizStudents(id)
@@ -356,6 +364,9 @@ export default function GradingDashboard() {
                     onExcel={() => setShowExcelModal(true)}
                     quizId={id}
                     onGradeSaved={onGradeSaved}
+                    gradeVersion={gradeVersion}
+                    excelRows={excelRows}
+                    onExcelRowsConsumed={() => setExcelRows(null)}
                   />
                 )}
               </div>
@@ -382,7 +393,7 @@ export default function GradingDashboard() {
                   {ungradedStudentList.length > 0 && (
                     <div>
                       <div className="px-1 pt-1 pb-1 flex items-center gap-2">
-                        <span className="text-xs font-semibold" style={{ color: '#B43200' }}>미채점</span>
+                        <span className="text-xs font-semibold" style={{ color: '#4B5563' }}>미채점</span>
                         <span className="text-xs" style={{ color: '#BDBDBD' }}>{ungradedStudentList.length}명</span>
                         <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
                       </div>
@@ -431,9 +442,28 @@ export default function GradingDashboard() {
         </div>
       </div>
 
-      {showExcelModal && <ExcelModal question={selectedQ} students={quizStudents} onClose={() => setShowExcelModal(false)} onUploaded={onGradeSaved} />}
+      {showExcelModal && (
+        <ExcelModal
+          question={selectedQ}
+          students={quizStudents}
+          quizId={id}
+          onClose={() => setShowExcelModal(false)}
+          onUploaded={onGradeSaved}
+          onApplied={(rows) => { setShowExcelModal(false); setExcelRows(rows) }}
+        />
+      )}
       {showPdfModal && <PdfModal onClose={() => setShowPdfModal(false)} />}
       {showRegradeModal && <RegradeModal onClose={() => setShowRegradeModal(false)} />}
+
+      {toast && (
+        <div
+          className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white"
+          style={{ background: '#1E1E1E', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}
+        >
+          <CheckCircle2 size={15} className="shrink-0" style={{ color: '#A5B4FC' }} />
+          <span className="font-medium">{toast}</span>
+        </div>
+      )}
     </Layout>
   )
 }
@@ -490,7 +520,7 @@ function QuestionItem({ question, selected, onClick, dimmed }) {
 }
 
 // ─── 문항 중심: 우측 상세 패널 ─────────────────────────────────────────────
-function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId, onGradeSaved }) {
+function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed }) {
   return (
     <div className="flex flex-col h-full">
       {/* 문항 정보 */}
@@ -559,7 +589,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
       </div>
 
       {activeTab === 'responses' ? (
-        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} />
+        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} />
       ) : (
         <StatsTab question={question} students={quizStudents} />
       )}
@@ -575,12 +605,41 @@ const PAGE_SIZE_OPTIONS = [
   { value: 'all', label: '전체' },
 ]
 
-function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved }) {
+function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed }) {
   const [pageSize, setPageSize] = useState(20)
   const [page, setPage] = useState(1)
+  const [pendingScores, setPendingScores] = useState({}) // { [student.id]: scoreValue }
+  const [saveStatus, setSaveStatus] = useState('idle') // 'idle' | 'saved'
+  const isFirstRender = useRef(true)
 
   // 검색 or pageSize 변경 시 첫 페이지로
   useEffect(() => { setPage(1) }, [search, pageSize])
+
+  // 문항 전환 시 초기화
+  useEffect(() => {
+    setPendingScores({})
+    setSaveStatus('idle')
+    isFirstRender.current = true
+  }, [question?.id])
+
+  // 엑셀 업로드 rows → pendingScores에 병합 (저장은 일괄 저장 버튼으로)
+  useEffect(() => {
+    if (!excelRows?.length) return
+    const merged = {}
+    excelRows.forEach(row => {
+      const student = students.find(s => s.studentId === row.studentId)
+      if (student) merged[student.id] = row.score
+    })
+    setPendingScores(prev => ({ ...prev, ...merged }))
+    onExcelRowsConsumed?.()
+  }, [excelRows]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 일괄 저장 후 "저장 완료" 표시
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return }
+    setSaveStatus('saved')
+    setTimeout(() => setSaveStatus('idle'), 3000)
+  }, [gradeVersion]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const ungradedAll = students.filter(s => s.score === null)
   const gradedAll   = students.filter(s => s.score !== null)
@@ -589,9 +648,36 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(flat.length / pageSize)
   const visible = pageSize === 'all' ? flat : flat.slice((page - 1) * pageSize, page * pageSize)
 
-  // 현재 페이지 범위 내 미채점/채점완료 분리
   const visibleUngraded = visible.filter(s => s.score === null)
   const visibleGraded   = visible.filter(s => s.score !== null)
+
+  const handleScoreChange = useCallback((studentId, score) => {
+    setPendingScores(prev => ({ ...prev, [studentId]: score }))
+    setSaveStatus('idle')
+  }, [])
+
+  const pendingCount = Object.values(pendingScores).filter(v => v !== '' && !isNaN(Number(v)) && Number(v) >= 0).length
+
+  const handleBulkSave = () => {
+    const grades = getLocalGrades()
+    for (const [studentId, score] of Object.entries(pendingScores)) {
+      if (score === '' || isNaN(Number(score)) || Number(score) < 0) continue
+      const student = students.find(s => s.id === studentId)
+      if (!student) continue
+      const storageKey = `${quizId}_${studentId}_${question.id}`
+      grades[storageKey] = Number(score)
+      if (!student.manualScores) student.manualScores = {}
+      student.manualScores[question.id] = Number(score)
+      const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
+      const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
+      student.score = autoTotal + manualTotal
+    }
+    setLocalGrades(grades)
+    setPendingScores({})
+    setSaveStatus('saved')
+    setTimeout(() => setSaveStatus('idle'), 3000)
+    onGradeSaved?.()
+  }
 
   return (
     <div className="flex-1 bg-white overflow-hidden flex flex-col" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
@@ -614,19 +700,33 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
           options={PAGE_SIZE_OPTIONS}
           style={{ width: 80 }}
         />
+        <div className="flex items-center gap-2 shrink-0" style={{ borderLeft: '1px solid #E5E7EB', paddingLeft: 8 }}>
+          {saveStatus === 'saved' && (
+            <span className="text-xs" style={{ color: '#4B5563' }}>저장 완료</span>
+          )}
+<button
+            onClick={handleBulkSave}
+            disabled={pendingCount === 0}
+            className="text-xs font-semibold px-3 py-1.5 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: '#4F46E5', color: '#fff' }}
+            onMouseEnter={e => { if (pendingCount > 0) e.currentTarget.style.background = '#4338CA' }}
+            onMouseLeave={e => { if (pendingCount > 0) e.currentTarget.style.background = '#4F46E5' }}
+          >
+            일괄 저장
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {visibleUngraded.length > 0 && (
           <div>
             <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
-              <AlertCircle size={11} style={{ color: '#B43200', flexShrink: 0 }} />
-              <span className="text-xs font-semibold" style={{ color: '#B43200' }}>미채점</span>
+              <span className="text-xs font-semibold" style={{ color: '#4B5563' }}>미채점</span>
               <span className="text-xs" style={{ color: '#BDBDBD' }}>{ungradedAll.length}명</span>
               <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
             </div>
             {visibleUngraded.map(s => (
-              <StudentRow key={s.id} student={s} question={question} quizId={quizId} onGradeSaved={onGradeSaved} />
+              <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} />
             ))}
           </div>
         )}
@@ -638,7 +738,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
               <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
             </div>
             {visibleGraded.map(s => (
-              <StudentRow key={s.id} student={s} question={question} quizId={quizId} onGradeSaved={onGradeSaved} />
+              <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} />
             ))}
           </div>
         )}
@@ -646,10 +746,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
 
       {/* 페이지네이션 */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-3 py-2" style={{ borderTop: '1px solid #EEEEEE' }}>
-          <span className="text-xs" style={{ color: '#9CA3AF' }}>
-            {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, flat.length)} / {flat.length}명
-          </span>
+        <div className="flex items-center justify-center px-3 py-2" style={{ borderTop: '1px solid #EEEEEE' }}>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -682,12 +779,13 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
           </div>
         </div>
       )}
+
     </div>
   )
 }
 
 // ─── 문항 중심: 학생 행 (문항 유형별 채점 UI) ─────────────────────────────
-function StudentRow({ student, question, quizId, onGradeSaved }) {
+function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) {
   const storageKey = `${quizId}_${student.id}_${question.id}`
   const [expanded, setExpanded] = useState(false)
   const studentIdx = parseInt(student.id.replace('s', ''))
@@ -708,31 +806,14 @@ function StudentRow({ student, question, quizId, onGradeSaved }) {
 
   const autoCorrect = question.autoGrade ? isAnswerCorrect(rawAnswer, question.id) : null
 
-  const [score, setScore] = useState(() => {
-    const saved = getLocalGrades()
-    if (storageKey in saved) return saved[storageKey]
+  const initScore = (() => {
+    const grades = getLocalGrades()
+    if (storageKey in grades) return grades[storageKey]
     if (student.manualScores?.[question.id] != null) return student.manualScores[question.id]
     if (question.autoGrade) return student.autoScores?.[question.id] ?? (autoCorrect ? question.points : 0)
     return ''
-  })
-  const [saved, setSaved] = useState(() => {
-    const grades = getLocalGrades()
-    return (storageKey in grades) || student.manualScores?.[question.id] != null || question.autoGrade
-  })
-  const isGraded = saved
-
-  const handleSave = () => {
-    const grades = getLocalGrades()
-    grades[storageKey] = Number(score)
-    setLocalGrades(grades)
-    if (!student.manualScores) student.manualScores = {}
-    student.manualScores[question.id] = Number(score)
-    const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
-    const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
-    student.score = autoTotal + manualTotal
-    setSaved(true)
-    onGradeSaved?.()
-  }
+  })()
+  const displayScore = pendingScore !== undefined ? pendingScore : initScore
 
   return (
     <div style={{ borderBottom: '1px solid #EEEEEE' }}>
@@ -782,23 +863,15 @@ function StudentRow({ student, question, quizId, onGradeSaved }) {
           )}
           <input
             type="number"
-            value={score}
-            onChange={e => { setScore(e.target.value); setSaved(false) }}
+            value={displayScore}
+            onChange={e => onScoreChange(student.id, e.target.value)}
             placeholder="—"
             min={0}
             max={question.points}
             className="w-14 bg-white text-xs px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
-            style={{ border: '1px solid #E0E0E0', color: '#222222' }}
-            onKeyDown={e => { if (e.key === 'Enter' && !(score === '' || Number(score) > question.points || Number(score) < 0)) handleSave() }}
+            style={{ border: pendingScore !== undefined ? '1px solid #6366f1' : '1px solid #E0E0E0', color: '#222222' }}
           />
           <span className="text-xs" style={{ color: '#BDBDBD' }}>/ {question.points}</span>
-          <button
-            onClick={handleSave}
-            disabled={score === '' || Number(score) > question.points || Number(score) < 0}
-            className="text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-2.5 py-1.5 rounded transition-colors font-medium"
-          >
-            저장
-          </button>
         </div>
       </div>
 
@@ -1141,11 +1214,11 @@ function GradeStatus({ question }) {
   const complete = question.gradedCount >= question.totalCount
   if (complete) {
     return (
-      <span className="text-xs px-2 py-0.5 rounded" style={{ color: '#018600', background: '#E5FCE3' }}>채점 완료</span>
+      <span className="text-xs px-2 py-0.5 rounded" style={{ color: '#4B5563', background: '#F5F5F5' }}>채점 완료</span>
     )
   }
   return (
-      <span className="text-xs px-2 py-0.5 rounded" style={{ color: '#B43200', background: '#FFF6F2' }}>미채점 {question.totalCount - question.gradedCount}명</span>
+    <span className="text-xs px-2 py-0.5 rounded" style={{ color: '#4B5563', background: '#F5F5F5' }}>미채점 {question.totalCount - question.gradedCount}명</span>
   )
 }
 
@@ -1178,10 +1251,11 @@ function EmptyState({ message }) {
 }
 
 // ─── 모달 ──────────────────────────────────────────────────────────────────
-function ExcelModal({ question, students: allStudents, onClose, onUploaded }) {
+function ExcelModal({ question, students: allStudents, quizId, onClose, onApplied }) {
   const [step, setStep] = useState('idle')
   const [errorMsg, setErrorMsg] = useState('')
-  const [appliedCount, setAppliedCount] = useState(0)
+  const [fileName, setFileName] = useState('')
+  const [previewRows, setPreviewRows] = useState([])
 
   const handleDownload = () => {
     const submittedStudents = allStudents.filter(s => s.submitted)
@@ -1194,6 +1268,7 @@ function ExcelModal({ question, students: allStudents, onClose, onUploaded }) {
 
     setStep('uploading')
     setErrorMsg('')
+    setFileName(file.name)
 
     const result = await parseGradingSheet(file)
     if (result.error) {
@@ -1206,89 +1281,139 @@ function ExcelModal({ question, students: allStudents, onClose, onUploaded }) {
     const maxPoints = question?.points ?? 0
     for (const row of result.rows) {
       if (row.score > maxPoints) {
-        setErrorMsg(`학번 ${row.studentId}: 점수(${row.score})가 배점(${maxPoints}점)을 초과합니다. 전체 업로드가 취소되었습니다.`)
+        setErrorMsg(`학번 ${row.studentId}: 점수(${row.score})가 배점(${maxPoints}점)을 초과합니다. 전체 업로드가 불가합니다.`)
         setStep('error')
         return
       }
     }
 
-    // 학번 전체 매칭 사전 검증 (1건이라도 미매칭 시 전체 중단)
+    // 학번 전체 매칭 사전 검증
     for (const row of result.rows) {
       const found = allStudents.find(s => s.studentId === row.studentId)
       if (!found) {
-        setErrorMsg(`학번 "${row.studentId}"(이)가 수강생 목록에 없습니다. 채점 양식을 수정하지 마세요. 전체 업로드가 취소되었습니다.`)
+        setErrorMsg(`학번 "${row.studentId}"(이)가 수강생 목록에 없습니다. 채점 양식을 수정하지 마세요. 전체 업로드가 불가합니다.`)
         setStep('error')
         return
       }
     }
 
-    // 학번 기준으로 학생 매칭 후 localStorage 수동 채점 반영
-    const grades = getLocalGrades()
-    for (const row of result.rows) {
-      const student = allStudents.find(s => s.studentId === row.studentId)
-      if (!grades[student.id]) grades[student.id] = {}
-      grades[student.id][question.id] = row.score
-    }
-    setLocalGrades(grades)
-    setAppliedCount(result.rows.length)
-    onUploaded?.()
-    setStep('success')
+    setPreviewRows(result.rows)
+    setStep('preview')
+  }
+
+  const handleApply = () => {
+    onApplied(previewRows)
   }
 
   return (
     <Modal onClose={onClose} title="엑셀 일괄 채점">
       <div className="space-y-4">
-        <div className="p-3 text-sm rounded" style={{ background: '#FAFAFA', border: '1px solid #E0E0E0', color: '#616161' }}>
-          <p className="font-medium mb-1.5" style={{ color: '#424242' }}>Q{question?.order}. 일괄 채점 방법</p>
-          <ol className="space-y-1 text-xs">
-            <li>① 양식 다운로드 후 점수 열에 값 입력 (0 ~ {question?.points}점)</li>
-            <li>② 파일 저장 후 업로드</li>
-            <li className="font-medium" style={{ color: '#B43200' }}>③ 오류가 1개라도 있으면 전체 업로드 취소</li>
-          </ol>
-        </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={handleDownload}
-            className="flex items-center justify-center gap-2 py-3 text-sm transition-colors rounded"
-            style={step === 'downloading'
-              ? { border: '1px solid #c7d2fe', color: '#6366f1', background: '#EEF2FF' }
-              : { border: '1px solid #E0E0E0', color: '#424242', background: '#fff' }
-            }
-          >
-            <Download size={15} />
-            {step === 'downloading' ? '다운로드 중...' : '양식 다운로드'}
-          </button>
+        {/* 가이드 + 버튼: 성공 이후엔 숨김 */}
+        {step !== 'success' && (
+          <>
+            <div className="p-3 rounded" style={{ background: '#FAFAFA', border: '1px solid #E2E8F0' }}>
+              <p className="text-xs font-semibold mb-2" style={{ color: '#1E293B' }}>일괄 채점 가이드</p>
+              <ol className="space-y-1 text-xs" style={{ color: '#64748B' }}>
+                <li>① 제공된 양식을 다운로드하여 점수를 입력해 주세요.</li>
+                <li>② 파일을 저장한 뒤 업로드하면 완료됩니다.</li>
+              </ol>
+              <p className="text-xs mt-2" style={{ color: '#94A3B8' }}>양식에 오류가 1개라도 포함되어 있으면 업로드되지 않습니다.</p>
+            </div>
 
-          <label
-            className="flex items-center justify-center gap-2 py-3 text-sm cursor-pointer transition-colors rounded"
-            style={step === 'uploading'
-              ? { border: '1px solid #c7d2fe', color: '#6366f1', background: '#EEF2FF' }
-              : { border: '1px solid #E0E0E0', color: '#424242', background: '#fff' }
-            }
-          >
-            <Upload size={15} />
-            {step === 'uploading' ? '업로드 중...' : '파일 업로드'}
-            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleUpload} />
-          </label>
-        </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={handleDownload}
+                className="flex items-center justify-center gap-2 py-3 text-sm transition-colors rounded"
+                style={{ border: '1px solid #E0E0E0', color: '#424242', background: '#fff' }}
+              >
+                <Download size={15} />
+                양식 다운로드
+              </button>
+              <label
+                className="flex items-center justify-center gap-2 py-3 text-sm cursor-pointer transition-colors rounded"
+                style={step === 'uploading'
+                  ? { border: '1px solid #c7d2fe', color: '#6366f1', background: '#EEF2FF' }
+                  : { border: '1px solid #E0E0E0', color: '#424242', background: '#fff' }
+                }
+              >
+                <Upload size={15} />
+                {step === 'uploading' ? '업로드 중...' : '파일 업로드'}
+                <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleUpload} />
+              </label>
+            </div>
+          </>
+        )}
 
-        {step === 'error' && (
-          <div className="p-3 text-xs rounded" style={{ background: '#FFF5F5', border: '1px solid #FFBFBF', color: '#B43200' }}>
-            <div className="font-medium mb-1 flex items-center gap-1.5"><AlertCircle size={13} />업로드 실패</div>
-            <p>{errorMsg}</p>
-            <button className="mt-2 text-red-600 hover:text-red-800 underline" onClick={() => setStep('idle')}>
-              다시 시도
-            </button>
+        {/* 오류 */}
+        {step === 'error' && (() => {
+          const rowMatch = errorMsg.match(/^(\d+행): (.+)/)
+          const rowLabel = rowMatch ? rowMatch[1] : '-'
+          const rowContent = rowMatch ? rowMatch[2] : errorMsg
+          return (
+            <div className="rounded" style={{ border: '1px solid #FECACA' }}>
+              <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: '1px solid #FECACA', background: '#FEE2E2' }}>
+                <span className="text-xs font-semibold" style={{ color: '#991B1B' }}>업로드 실패</span>
+                <span className="text-xs truncate max-w-[200px]" style={{ color: '#B91C1C' }} title={fileName}>{fileName}</span>
+              </div>
+              <div className="grid text-xs px-4 py-2" style={{ gridTemplateColumns: '52px 1fr', borderBottom: '1px solid #F1F5F9', color: '#94A3B8' }}>
+                <span>위치</span>
+                <span>오류 내용</span>
+              </div>
+              <div className="grid text-xs px-4 py-3 items-start" style={{ gridTemplateColumns: '52px 1fr' }}>
+                <span className="font-medium" style={{ color: '#64748B' }}>{rowLabel}</span>
+                <span className="leading-relaxed" style={{ color: '#1E293B' }}>{rowContent}</span>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* 미리보기 */}
+        {step === 'preview' && (
+          <div className="rounded" style={{ border: '1px solid #E2E8F0' }}>
+            <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+              <span className="text-xs font-semibold" style={{ color: '#1E293B' }}>업로드 내용 확인</span>
+              <span className="text-xs" style={{ color: '#94A3B8' }}>{previewRows.length}명 · {fileName}</span>
+            </div>
+            {/* 표 헤더 */}
+            <div className="grid text-xs px-4 py-2" style={{ gridTemplateColumns: '1fr 1fr 48px', borderBottom: '1px solid #F1F5F9', color: '#94A3B8' }}>
+              <span className="text-center">이름</span>
+              <span className="text-center">학번</span>
+              <span className="text-center">점수</span>
+            </div>
+            {/* 표 데이터 */}
+            <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: 200 }}>
+              {previewRows.map((row, i) => {
+                const student = allStudents.find(s => s.studentId === row.studentId)
+                return (
+                  <div
+                    key={i}
+                    className="grid text-xs px-4 py-2"
+                    style={{ gridTemplateColumns: '1fr 1fr 48px', borderBottom: '1px solid #F8FAFC', color: '#1E293B' }}
+                  >
+                    <span className="text-center">{student?.name ?? '-'}</span>
+                    <span className="text-center" style={{ color: '#64748B' }}>{row.studentId}</span>
+                    <span className="text-center font-medium" style={{ color: '#4F46E5' }}>{row.score}</span>
+                  </div>
+                )
+              })}
+            </div>
+            {/* 적용 버튼 */}
+            <div className="px-4 py-3" style={{ borderTop: '1px solid #E2E8F0' }}>
+              <button
+                onClick={handleApply}
+                className="w-full py-2.5 text-sm font-semibold rounded transition-colors"
+                style={{ background: '#4F46E5', color: '#fff' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#4338CA' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#4F46E5' }}
+              >
+                {previewRows.length}명 점수 적용
+              </button>
+            </div>
           </div>
         )}
 
-        {step === 'success' && (
-          <div className="p-3 text-xs rounded" style={{ background: '#E5FCE3', border: '1px solid #a7f3d0', color: '#018600' }}>
-            <div className="font-medium flex items-center gap-1.5"><CheckCircle2 size={13} />채점 완료</div>
-            <p className="mt-1">{appliedCount}명의 점수가 성공적으로 반영되었습니다.</p>
-          </div>
-        )}
+
       </div>
     </Modal>
   )
