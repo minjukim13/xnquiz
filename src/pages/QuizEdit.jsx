@@ -303,28 +303,30 @@ export default function QuizEdit() {
                   {scoreRevealEnabled && (
                     <div className="space-y-3">
                       {/* 공개 범위 */}
-                      <div className="p-3 rounded-lg" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
-                        <p className="text-xs font-semibold mb-2" style={{ color: '#4F46E5' }}>공개 범위</p>
+                      <div>
+                        <p className="text-xs font-semibold mb-2" style={{ color: '#616161' }}>공개 범위</p>
                         <div className="grid grid-cols-2 gap-2">
                           {[
                             { value: 'wrong_only',  label: '오답 여부만', desc: '정오답(✓/✗) + 점수' },
                             { value: 'with_answer', label: '정답까지',    desc: '정오답 + 점수 + 정답' },
-                          ].map(opt => (
-                            <label
-                              key={opt.value}
-                              className="flex flex-col gap-0.5 p-2.5 rounded-lg cursor-pointer"
-                              style={{
-                                border: `2px solid ${scoreRevealScope === opt.value ? '#6366f1' : '#E0E0E0'}`,
-                                background: scoreRevealScope === opt.value ? '#EEF2FF' : '#FFFFFF',
-                              }}
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <input type="radio" name="scoreRevealScopeEdit" checked={scoreRevealScope === opt.value} onChange={() => setScoreRevealScope(opt.value)} style={{ accentColor: '#6366f1' }} />
-                                <span className="text-xs font-semibold" style={{ color: scoreRevealScope === opt.value ? '#4F46E5' : '#212121' }}>{opt.label}</span>
-                              </div>
-                              <p className="text-xs pl-4" style={{ color: '#9E9E9E' }}>{opt.desc}</p>
-                            </label>
-                          ))}
+                          ].map(opt => {
+                            const active = scoreRevealScope === opt.value
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => setScoreRevealScope(opt.value)}
+                                className="flex flex-col items-start gap-0.5 p-2.5 rounded-lg text-left w-full transition-all"
+                                style={{
+                                  border: `2px solid ${active ? '#6366f1' : '#E0E0E0'}`,
+                                  background: active ? '#EEF2FF' : '#FFFFFF',
+                                }}
+                              >
+                                <span className="text-xs font-semibold" style={{ color: active ? '#4F46E5' : '#212121' }}>{opt.label}</span>
+                                <span className="text-xs" style={{ color: '#9E9E9E' }}>{opt.desc}</span>
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
                       {/* 공개 시점 */}

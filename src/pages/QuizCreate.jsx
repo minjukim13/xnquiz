@@ -449,53 +449,49 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
             <div className="space-y-4 pt-1">
 
               {/* 공개 범위 */}
-              <div className="p-4 rounded-lg" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
-                <p className="text-xs font-semibold mb-3" style={{ color: '#4F46E5' }}>공개 범위</p>
+              <div>
+                <p className="text-xs font-semibold mb-2" style={{ color: '#616161' }}>공개 범위</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { value: 'wrong_only',  label: '오답 여부만',  desc: '정오답(✓/✗) + 점수만 표시\n정답은 공개하지 않습니다' },
-                    { value: 'with_answer', label: '정답까지',     desc: '정오답(✓/✗) + 점수 +\n정답을 함께 표시합니다' },
-                  ].map(opt => (
-                    <label
-                      key={opt.value}
-                      className="flex flex-col gap-1 p-3 rounded-lg cursor-pointer transition-all"
-                      style={{
-                        border: `2px solid ${form.scoreRevealScope === opt.value ? '#6366f1' : '#E0E0E0'}`,
-                        background: form.scoreRevealScope === opt.value ? '#EEF2FF' : '#FFFFFF',
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="scoreRevealScope"
-                          checked={form.scoreRevealScope === opt.value}
-                          onChange={() => set('scoreRevealScope', opt.value)}
-                          style={{ accentColor: '#6366f1' }}
-                        />
-                        <span className="text-sm font-semibold" style={{ color: form.scoreRevealScope === opt.value ? '#4F46E5' : '#212121' }}>{opt.label}</span>
-                      </div>
-                      <p className="text-xs leading-relaxed pl-5" style={{ color: '#9E9E9E', whiteSpace: 'pre-line' }}>{opt.desc}</p>
-                    </label>
-                  ))}
+                    { value: 'wrong_only',  label: '오답 여부만', desc: '정오답(✓/✗) + 점수 표시\n정답은 공개하지 않습니다' },
+                    { value: 'with_answer', label: '정답까지',    desc: '정오답(✓/✗) + 점수 + 정답 표시' },
+                  ].map(opt => {
+                    const active = form.scoreRevealScope === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => set('scoreRevealScope', opt.value)}
+                        className="flex flex-col items-start gap-1 p-3 rounded-lg text-left transition-all w-full"
+                        style={{
+                          border: `2px solid ${active ? '#6366f1' : '#E0E0E0'}`,
+                          background: active ? '#EEF2FF' : '#FFFFFF',
+                        }}
+                      >
+                        <span className="text-sm font-semibold" style={{ color: active ? '#4F46E5' : '#212121' }}>{opt.label}</span>
+                        <span className="text-xs leading-relaxed" style={{ color: '#9E9E9E', whiteSpace: 'pre-line' }}>{opt.desc}</span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
               {/* 공개 시점 */}
-              <div className="p-4 rounded-lg" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
-                <p className="text-xs font-semibold mb-3" style={{ color: '#4F46E5' }}>공개 시점</p>
-                <div className="space-y-2">
+              <div>
+                <p className="text-xs font-semibold mb-2" style={{ color: '#616161' }}>공개 시점</p>
+                <div className="space-y-1">
                   {[
-                    { value: 'immediately', label: '제출 즉시',     desc: '학생이 제출하는 순간 바로 공개됩니다' },
-                    { value: 'after_due',   label: '마감 후',        desc: '퀴즈 마감일이 지나면 자동으로 공개됩니다' },
-                    { value: 'period',      label: '기간 설정',      desc: '지정한 기간에만 공개됩니다' },
+                    { value: 'immediately', label: '제출 즉시', desc: '학생이 제출하는 순간 바로 공개됩니다' },
+                    { value: 'after_due',   label: '마감 후',   desc: '퀴즈 마감일이 지나면 자동으로 공개됩니다' },
+                    { value: 'period',      label: '기간 설정', desc: '지정한 기간에만 공개됩니다' },
                   ].map(opt => (
-                    <label key={opt.value} className="flex items-start gap-2.5 cursor-pointer py-1">
+                    <label key={opt.value} className="flex items-start gap-2.5 cursor-pointer py-1.5 px-0.5">
                       <input
                         type="radio"
                         name="scoreRevealTiming"
                         checked={form.scoreRevealTiming === opt.value}
                         onChange={() => set('scoreRevealTiming', opt.value)}
-                        className="mt-0.5"
+                        className="mt-0.5 shrink-0"
                         style={{ accentColor: '#6366f1' }}
                       />
                       <div>
