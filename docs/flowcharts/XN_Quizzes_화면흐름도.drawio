@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2026-04-08T05:23:41.508Z" agent="mmd-to-drawio" version="21.0.0" type="device">
+<mxfile host="app.diagrams.net" modified="2026-04-08T06:37:44.695Z" agent="mmd-to-drawio" version="21.0.0" type="device">
   <diagram name="01 사이트맵" id="p01">
     <mxGraphModel dx="2400" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="1169" math="0" shadow="0">
   <root>
@@ -276,8 +276,8 @@
     <mxCell id="n4" value="퀴즈 관리 — 교수자 뷰 - 단일 목록, 최근 생성순 - 주차/차시 필터 (1~16 + 미지정) - 카드: 상태 배지 / D-day 배지 / 주차·차시 태그 - 응시율 / 응시인원 / 미제출 / 평균점수 (발행 후)" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="380" y="60" width="1285" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n5" value="퀴즈 생성 — 기본 정보 탭 제목 / 설명 / 주차·차시 (연결 안함 포함) 시작일 / 마감일 시간제한 / 최대 응시횟수 / 채점 정책 성적공개 정책: 오답여부만·정답까지·기간설정·마감시자동 액세스 코드 / IP 제한 / 지각 제출 허용 추가 기간 설정 / 안내사항" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-      <mxGeometry x="700" y="60" width="1674" height="50" as="geometry" />
+    <mxCell id="n5" value="퀴즈 생성 — 기본 정보 탭 제목 / 설명 / 주차·차시 (연결 안함 포함) 시작일 / 마감일 시간제한 / 최대 응시횟수 / 채점 정책 성적 공개 정책: 공개여부 + 공개범위(오답여부만·정답까지) + 공개시점(즉시·마감후·기간) 액세스 코드 / IP 제한 / 지각 제출 허용 추가 기간 설정 / 안내사항" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="700" y="60" width="1892" height="50" as="geometry" />
     </mxCell>
     <mxCell id="n6" value="퀴즈 생성 — 문항 구성 탭 선택된 문항 목록 (드래그 정렬) 총 N문항 / 총점 N점" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="1020" y="60" width="559" height="50" as="geometry" />
