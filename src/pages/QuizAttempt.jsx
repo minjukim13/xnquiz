@@ -417,35 +417,55 @@ function ResultModal({ result, quiz, questions, onClose }) {
   const hasAutoGrade = autoMax > 0
   const scorePercent = hasAutoGrade ? Math.round((autoTotal / autoMax) * 100) : null
 
-  // 공개 타이밍 판단
+  // 성적공개 정책 기반 visibility 판단
   const now = new Date()
   const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null
-  const isTimingMet = (timing, start, end) => {
-    if (timing === 'immediately') return true
-    if (timing === 'after_due') return dueDate && now >= dueDate
-    if (timing === 'period') {
-      const s = start ? new Date(start) : null
-      const e = end ? new Date(end) : null
+
+  let showScoreNow, showWrongAnswerNow, showAnswerNow
+
+  if (quiz.scoreReleasePolicy !== undefined) {
+    // 신규 정책 필드 기반
+    const policy = quiz.scoreReleasePolicy
+    const afterDue = dueDate && now >= dueDate
+    const inPeriod = (() => {
+      const s = quiz.scoreRevealStart ? new Date(quiz.scoreRevealStart) : null
+      const e = quiz.scoreRevealEnd   ? new Date(quiz.scoreRevealEnd)   : null
       return (!s || now >= s) && (!e || now <= e)
+    })()
+
+    const released = policy === 'wrong_only'  ? true
+                   : policy === 'with_answer' ? true
+                   : policy === 'after_due'   ? afterDue
+                   : policy === 'period'      ? inPeriod
+                   : false // null = 비공개
+
+    showScoreNow        = released
+    showWrongAnswerNow  = released && policy !== null
+    showAnswerNow       = released && (policy === 'with_answer' || policy === 'after_due' || policy === 'period')
+  } else {
+    // 하위 호환: 기존 mock 퀴즈 필드 (showScore / showWrongAnswer / showAnswer)
+    const isTimingMet = (timing, start, end) => {
+      if (timing === 'immediately') return true
+      if (timing === 'after_due')   return dueDate && now >= dueDate
+      if (timing === 'period') {
+        const s = start ? new Date(start) : null
+        const e = end   ? new Date(end)   : null
+        return (!s || now >= s) && (!e || now <= e)
+      }
+      return false
     }
-    return false
-  }
-
-  // quiz.showScore === undefined → 기존 mock 퀴즈 (하위 호환: 항상 표시)
-  const showScoreNow = quiz.showScore === undefined
-    ? true
-    : quiz.showScore && (
-      (!quiz.scoreRevealStartDate || now >= new Date(quiz.scoreRevealStartDate)) &&
-      (!quiz.scoreRevealEndDate || now <= new Date(quiz.scoreRevealEndDate))
+    showScoreNow       = quiz.showScore === undefined ? true
+      : quiz.showScore && (
+          (!quiz.scoreRevealStartDate || now >= new Date(quiz.scoreRevealStartDate)) &&
+          (!quiz.scoreRevealEndDate   || now <= new Date(quiz.scoreRevealEndDate))
+        )
+    showWrongAnswerNow = quiz.showWrongAnswer &&
+      isTimingMet(quiz.wrongAnswerRevealTiming, quiz.wrongAnswerRevealStart, quiz.wrongAnswerRevealEnd)
+    showAnswerNow      = showWrongAnswerNow && quiz.showAnswer && (
+      quiz.answerRevealTiming === 'same' ||
+      isTimingMet(quiz.answerRevealTiming, quiz.answerRevealStart, quiz.answerRevealEnd)
     )
-
-  const showWrongAnswerNow = quiz.showWrongAnswer &&
-    isTimingMet(quiz.wrongAnswerRevealTiming, quiz.wrongAnswerRevealStart, quiz.wrongAnswerRevealEnd)
-
-  const showAnswerNow = showWrongAnswerNow && quiz.showAnswer && (
-    quiz.answerRevealTiming === 'same' ||
-    isTimingMet(quiz.answerRevealTiming, quiz.answerRevealStart, quiz.answerRevealEnd)
-  )
+  }
 
   return (
     <div

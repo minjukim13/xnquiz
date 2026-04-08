@@ -55,17 +55,10 @@ export default function QuizCreate() {
     scorePolicy: '최고 점수 유지',
     shuffleChoices: false,
     shuffleQuestions: false,
-    showWrongAnswer: false,
-    wrongAnswerRevealTiming: 'immediately', // 'immediately' | 'after_due' | 'period'
-    wrongAnswerRevealStart: '',
-    wrongAnswerRevealEnd: '',
-    showAnswer: false,
-    answerRevealTiming: 'same', // 'same' | 'after_due' | 'period'
-    answerRevealStart: '',
-    answerRevealEnd: '',
-    showScore: false,
-    scoreRevealStartDate: '',
-    scoreRevealEndDate: '',
+    // 성적공개 정책: 'wrong_only' | 'with_answer' | 'after_due' | 'period' | null(비공개)
+    scoreReleasePolicy: null,
+    scoreRevealStart: '',
+    scoreRevealEnd: '',
     quizMode: 'graded',
     accessCode: '',
     ipRestriction: '',
@@ -180,7 +173,7 @@ export default function QuizCreate() {
                   }
 
                   const isMultiAttempt = form.allowAttempts >= 2 || form.allowAttempts === -1
-                  const noRevealPeriod = form.showScore && !form.scoreRevealStartDate && !form.scoreRevealEndDate
+                  const noRevealPeriod = form.scoreReleasePolicy !== 'period' && form.scoreReleasePolicy !== 'after_due'
                   const doPublish = () => {
                     mockQuizzes.push({
                       id: String(Date.now()),
@@ -202,17 +195,9 @@ export default function QuizCreate() {
                         : null,
                       shuffleChoices: form.shuffleChoices,
                       shuffleQuestions: form.shuffleQuestions,
-                      showWrongAnswer: form.showWrongAnswer,
-                      wrongAnswerRevealTiming: form.showWrongAnswer ? form.wrongAnswerRevealTiming : null,
-                      wrongAnswerRevealStart: (form.showWrongAnswer && form.wrongAnswerRevealTiming === 'period') ? form.wrongAnswerRevealStart || null : null,
-                      wrongAnswerRevealEnd: (form.showWrongAnswer && form.wrongAnswerRevealTiming === 'period') ? form.wrongAnswerRevealEnd || null : null,
-                      showAnswer: form.showWrongAnswer && form.showAnswer,
-                      answerRevealTiming: (form.showWrongAnswer && form.showAnswer) ? form.answerRevealTiming : null,
-                      answerRevealStart: (form.showWrongAnswer && form.showAnswer && form.answerRevealTiming === 'period') ? form.answerRevealStart || null : null,
-                      answerRevealEnd: (form.showWrongAnswer && form.showAnswer && form.answerRevealTiming === 'period') ? form.answerRevealEnd || null : null,
-                      showScore: form.showScore,
-                      scoreRevealStartDate: form.scoreRevealStartDate || null,
-                      scoreRevealEndDate: form.scoreRevealEndDate || null,
+                      scoreReleasePolicy: form.scoreReleasePolicy,
+                      scoreRevealStart: (form.scoreReleasePolicy === 'period') ? form.scoreRevealStart || null : null,
+                      scoreRevealEnd: (form.scoreReleasePolicy === 'period') ? form.scoreRevealEnd || null : null,
                       accessCode: form.accessCode || null,
                       ipRestriction: form.ipRestriction || null,
                       assignments: form.assignments.filter(a => a.assignTo.length > 0),
@@ -444,130 +429,48 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
           <Toggle checked={form.shuffleChoices} onChange={v => set('shuffleChoices', v)} label="선택지 무작위 배열" description="학생마다 선택지 순서가 달라집니다" />
           <Toggle checked={form.shuffleQuestions} onChange={v => set('shuffleQuestions', v)} label="문항 순서 무작위" description="학생마다 문항 순서가 달라집니다" />
 
-          {/* 정오답/정답 공개 */}
+          {/* 성적공개 정책 */}
           <div className="space-y-2">
-            <Toggle checked={form.showWrongAnswer} onChange={v => set('showWrongAnswer', v)} label="정오답 여부 공개" description="학생에게 맞힌 문항과 틀린 문항을 표시합니다" />
-            {form.showWrongAnswer && (
-              <div className="ml-12 pl-3 py-3 space-y-4" style={{ borderLeft: '2px solid #E0E0E0' }}>
-
-                {/* 정답 공개 여부 */}
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.showAnswer}
-                    onChange={e => set('showAnswer', e.target.checked)}
-                    className="rounded"
-                    style={{ accentColor: '#6366f1' }}
-                  />
-                  <span className="text-sm" style={{ color: '#424242' }}>정답 공개</span>
-                  <span className="text-xs" style={{ color: '#9E9E9E' }}>정오답과 함께 실제 정답을 표시합니다</span>
-                </label>
-
-                {/* 정오답 공개 시기 */}
-                <div>
-                  <p className="text-xs font-medium mb-2" style={{ color: '#616161' }}>정오답 공개 시기</p>
-                  <div className="space-y-1.5">
-                    {[
-                      { value: 'immediately', label: '제출 즉시' },
-                      { value: 'after_due', label: '마감 후' },
-                      { value: 'period', label: '기간 설정' },
-                    ].map(opt => (
-                      <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="wrongAnswerRevealTiming"
-                          checked={form.wrongAnswerRevealTiming === opt.value}
-                          onChange={() => set('wrongAnswerRevealTiming', opt.value)}
-                          style={{ accentColor: '#6366f1' }}
-                        />
-                        <span className="text-sm" style={{ color: '#424242' }}>{opt.label}</span>
-                      </label>
-                    ))}
-                    {form.wrongAnswerRevealTiming === 'period' && (
-                      <div className="grid grid-cols-2 gap-3 mt-2">
-                        <div>
-                          <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
-                          <input type="datetime-local" value={form.wrongAnswerRevealStart} onChange={e => set('wrongAnswerRevealStart', e.target.value)} className="input text-sm" />
-                        </div>
-                        <div>
-                          <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 종료일</label>
-                          <input type="datetime-local" value={form.wrongAnswerRevealEnd} onChange={e => set('wrongAnswerRevealEnd', e.target.value)} className="input text-sm" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 정답 공개 시기 (정답 공개 선택 시) */}
-                {form.showAnswer && (
-                  <div>
-                    <p className="text-xs font-medium mb-2" style={{ color: '#616161' }}>정답 공개 시기</p>
-                    <div className="space-y-1.5">
-                      {[
-                        { value: 'same', label: '정오답 공개와 동시' },
-                        { value: 'after_due', label: '마감 후' },
-                        { value: 'period', label: '기간 설정' },
-                      ].map(opt => (
-                        <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="answerRevealTiming"
-                            checked={form.answerRevealTiming === opt.value}
-                            onChange={() => set('answerRevealTiming', opt.value)}
-                            style={{ accentColor: '#6366f1' }}
-                          />
-                          <span className="text-sm" style={{ color: '#424242' }}>{opt.label}</span>
-                        </label>
-                      ))}
-                      {form.answerRevealTiming === 'period' && (
-                        <div className="grid grid-cols-2 gap-3 mt-2">
-                          <div>
-                            <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
-                            <input type="datetime-local" value={form.answerRevealStart} onChange={e => set('answerRevealStart', e.target.value)} className="input text-sm" />
-                          </div>
-                          <div>
-                            <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 종료일</label>
-                            <input type="datetime-local" value={form.answerRevealEnd} onChange={e => set('answerRevealEnd', e.target.value)} className="input text-sm" />
-                          </div>
-                        </div>
-                      )}
+            <div>
+              <p className="text-sm font-medium mb-0.5" style={{ color: '#212121' }}>성적공개 정책</p>
+              <p className="text-xs mb-3" style={{ color: '#9E9E9E' }}>제출 후 학생에게 공개할 성적 정보 범위와 시점을 설정합니다</p>
+              <div className="space-y-2">
+                {[
+                  { value: null,         label: '비공개',         desc: '성적·정오답·정답 모두 공개하지 않습니다' },
+                  { value: 'wrong_only', label: '오답여부만 공개', desc: '정오답(✓/✗)만 표시. 정답은 공개하지 않습니다' },
+                  { value: 'with_answer',label: '정답까지 공개',   desc: '정오답과 함께 정답·해설을 즉시 공개합니다' },
+                  { value: 'after_due',  label: '마감 후 자동공개',desc: '마감일 경과 후 정오답·정답·점수를 자동 공개합니다' },
+                  { value: 'period',     label: '기간 설정',       desc: '지정한 기간에만 정오답·정답·점수를 공개합니다' },
+                ].map(opt => (
+                  <label key={String(opt.value)} className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="scoreReleasePolicy"
+                      checked={form.scoreReleasePolicy === opt.value}
+                      onChange={() => set('scoreReleasePolicy', opt.value)}
+                      className="mt-0.5"
+                      style={{ accentColor: '#6366f1' }}
+                    />
+                    <div>
+                      <span className="text-sm font-medium" style={{ color: '#212121' }}>{opt.label}</span>
+                      <p className="text-xs" style={{ color: '#9E9E9E' }}>{opt.desc}</p>
                     </div>
-                  </div>
-                )}
+                  </label>
+                ))}
               </div>
-            )}
-          </div>
-
-          {/* 점수 공개 */}
-          <div className="space-y-2">
-            <Toggle checked={form.showScore} onChange={v => set('showScore', v)} label="점수 공개" description="학생에게 점수 및 채점 결과를 공개합니다" />
-            {form.showScore && (
-              <div className="ml-12 pl-3 py-3 space-y-3" style={{ borderLeft: '2px solid #E0E0E0' }}>
-                <div>
-                  <p className="text-xs font-medium mb-2" style={{ color: '#616161' }}>공개 기간 (선택)</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
-                      <input
-                        type="datetime-local"
-                        value={form.scoreRevealStartDate}
-                        onChange={e => set('scoreRevealStartDate', e.target.value)}
-                        className="input text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 마감일</label>
-                      <input
-                        type="datetime-local"
-                        value={form.scoreRevealEndDate}
-                        onChange={e => set('scoreRevealEndDate', e.target.value)}
-                        className="input text-sm"
-                      />
-                    </div>
+            </div>
+            {form.scoreReleasePolicy === 'period' && (
+              <div className="ml-6 pl-3 py-3" style={{ borderLeft: '2px solid #E0E0E0' }}>
+                <p className="text-xs font-medium mb-2" style={{ color: '#616161' }}>공개 기간</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
+                    <input type="datetime-local" value={form.scoreRevealStart} onChange={e => set('scoreRevealStart', e.target.value)} className="input text-sm" />
                   </div>
-                  <p className="text-xs mt-1.5" style={{ color: '#9E9E9E' }}>
-                    기간을 설정하지 않으면 퀴즈 마감 후 즉시 공개됩니다.
-                  </p>
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 종료일</label>
+                    <input type="datetime-local" value={form.scoreRevealEnd} onChange={e => set('scoreRevealEnd', e.target.value)} className="input text-sm" />
+                  </div>
                 </div>
               </div>
             )}

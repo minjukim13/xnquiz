@@ -193,7 +193,18 @@ export default function GradingDashboard() {
                       </span>
                     </div>
                     <h2 className="text-xl font-bold mb-1.5" style={{ color: '#111827' }}>{QUIZ_INFO.title}</h2>
-                    <p className="text-sm" style={{ color: '#9CA3AF' }}>{QUIZ_INFO.startDate} ~ {QUIZ_INFO.dueDate}</p>
+                    <p className="text-sm mb-2" style={{ color: '#9CA3AF' }}>{QUIZ_INFO.startDate} ~ {QUIZ_INFO.dueDate}</p>
+                    {QUIZ_INFO.scoreReleasePolicy !== undefined && (() => {
+                      const POLICY_LABEL = {
+                        wrong_only:  { label: '오답여부만 공개', color: '#0369A1', bg: '#E0F2FE' },
+                        with_answer: { label: '정답까지 공개',   color: '#065F46', bg: '#D1FAE5' },
+                        after_due:   { label: '마감 후 자동공개',color: '#6366F1', bg: '#EEF2FF' },
+                        period:      { label: '기간 설정',       color: '#92400E', bg: '#FEF3C7' },
+                      }
+                      const p = POLICY_LABEL[QUIZ_INFO.scoreReleasePolicy]
+                      if (!p) return <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ background: '#F3F4F6', color: '#6B7280' }}>성적 비공개</span>
+                      return <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ background: p.bg, color: p.color }}>성적공개: {p.label}</span>
+                    })()}
                   </div>
 
                   <div className="flex items-stretch shrink-0 rounded-xl overflow-hidden" style={{ border: '1px solid #E5E7EB' }}>
