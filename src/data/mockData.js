@@ -16,6 +16,7 @@ export const QUIZ_TYPES = {
 
 export const mockQuizzes = [
   {
+    // grading 상태 / 성적 비공개 (채점 중 공개 안 함)
     id: '1',
     title: '중간고사 - 데이터베이스 설계 및 SQL',
     description: 'ERD 설계, SQL 쿼리 작성, 정규화 전 범위를 다룹니다. 오픈북 불가, 제한 시간 내 제출하세요.',
@@ -34,8 +35,12 @@ export const mockQuizzes = [
     timeLimit: 120,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
+    scoreRevealEnabled: false,
+    scoreRevealScope: null,
+    scoreRevealTiming: null,
   },
   {
+    // closed / 오답여부만 · 즉시 공개
     id: '2',
     title: '1차 형성평가 - SQL 기초',
     description: 'SELECT, WHERE, JOIN 등 SQL 기초 구문을 다룹니다. 강의 3~4주차 내용 기반으로 출제됩니다.',
@@ -54,9 +59,12 @@ export const mockQuizzes = [
     avgScore: 38.2,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
-    scoreRevealEnabled: true, scoreRevealScope: 'wrong_only', scoreRevealTiming: 'immediately',  // [테스트] 오답여부만·즉시
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: 'immediately',
   },
   {
+    // open / 정답까지 · 마감 후 공개 (재응시 3회)
     id: '3',
     title: '주차별 퀴즈 4 - 인덱스와 쿼리 최적화',
     course: 'CS301 데이터베이스',
@@ -73,9 +81,12 @@ export const mockQuizzes = [
     totalPoints: 20,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 3,
-    scoreRevealEnabled: true, scoreRevealScope: 'with_answer', scoreRevealTiming: 'after_due',  // [테스트] 정답까지·마감 후
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'with_answer',
+    scoreRevealTiming: 'after_due',
   },
   {
+    // draft / 성적 비공개
     id: '4',
     title: '기말고사 - 데이터베이스 심화',
     course: 'CS301 데이터베이스',
@@ -93,8 +104,12 @@ export const mockQuizzes = [
     timeLimit: 120,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
+    scoreRevealEnabled: false,
+    scoreRevealScope: null,
+    scoreRevealTiming: null,
   },
   {
+    // closed / 정답까지 · 즉시 공개 (재응시 2회)
     id: '5',
     title: '주차별 퀴즈 5-1 - ER 다이어그램',
     course: 'CS301 데이터베이스',
@@ -112,9 +127,12 @@ export const mockQuizzes = [
     avgScore: 15.4,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 2,
-    scoreRevealEnabled: true, scoreRevealScope: 'with_answer', scoreRevealTiming: 'immediately',  // [테스트] 정답까지·즉시
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'with_answer',
+    scoreRevealTiming: 'immediately',
   },
   {
+    // closed / 오답여부만 · 마감 후 공개
     id: '6',
     title: '5주차 형성평가 - 관계 대수',
     course: 'CS301 데이터베이스',
@@ -132,8 +150,12 @@ export const mockQuizzes = [
     avgScore: 7.8,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: 'after_due',
   },
   {
+    // grading 상태 / 서술형 수동채점 / 마감 후 공개
     id: '7',
     title: '5주차 서술형 과제 - 정규화 단계 분석',
     course: 'CS301 데이터베이스',
@@ -151,8 +173,12 @@ export const mockQuizzes = [
     timeLimit: null,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'with_answer',
+    scoreRevealTiming: 'after_due',
   },
   {
+    // closed / 정답까지 · 기간 설정 공개
     id: '8',
     title: '2차 형성평가 - 데이터베이스 설계 & 정규화',
     description: '관계형 데이터베이스 설계 원칙과 1NF~3NF 정규화 과정을 평가합니다. 강의 6~7주차 내용 기반으로 출제됩니다.',
@@ -171,7 +197,9 @@ export const mockQuizzes = [
     avgScore: 34.9,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
-    scoreRevealEnabled: true, scoreRevealScope: 'with_answer', scoreRevealTiming: 'period',  // [테스트] 정답까지·기간
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'with_answer',
+    scoreRevealTiming: 'period',
     scoreRevealStart: '2026-04-01 00:00',
     scoreRevealEnd:   '2026-04-30 23:59',
   },

@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2026-04-08T06:37:44.695Z" agent="mmd-to-drawio" version="21.0.0" type="device">
+<mxfile host="app.diagrams.net" modified="2026-04-08T06:40:16.962Z" agent="mmd-to-drawio" version="21.0.0" type="device">
   <diagram name="01 사이트맵" id="p01">
     <mxGraphModel dx="2400" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="1169" math="0" shadow="0">
   <root>
@@ -572,8 +572,8 @@
     <mxCell id="n28" value="SUBMIT" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2940" y="760" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n29" value="제출 완료 모달 자동채점 점수 / 총점 수동채점 대기 문항 수 안내 소요 시간 / 제출 일시" style="rounded=1;arcSize=10;fillColor=#FEF9C3;strokeColor=#CA8A04;fontColor=#713f12;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-      <mxGeometry x="3260" y="200" width="613" height="50" as="geometry" />
+    <mxCell id="n29" value="제출 완료 모달 소요 시간 / 제출 일시 성적공개 정책에 따라 표시: (공개) 점수 + 정오답 + 정답(범위에 따라) (비공개·미충족) 공개 예정 안내" style="rounded=1;arcSize=10;fillColor=#FEF9C3;strokeColor=#CA8A04;fontColor=#713f12;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="3260" y="200" width="967" height="50" as="geometry" />
     </mxCell>
   </root>
 </mxGraphModel>
