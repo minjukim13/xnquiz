@@ -197,7 +197,7 @@ function initForm(type) {
   switch (type) {
     case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
     case 'true_false':              return { ...base, correctBool: true }
-    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], correctIdxs: [] }
+    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], correctIdxs: [], scoringMode: 'all_correct' }
     case 'short_answer':            return { ...base, acceptedAnswers: [''] }
     case 'essay':                   return { ...base, rubric: '' }
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
@@ -217,7 +217,7 @@ function buildQuestion(type, form) {
   switch (type) {
     case 'multiple_choice':         return { ...base, options: form.options.filter(o => o.trim()), correctAnswer: form.correctIdx }
     case 'true_false':              return { ...base, correctAnswer: form.correctBool }
-    case 'multiple_answers':        return { ...base, options: form.options.filter(o => o.trim()), correctAnswer: form.correctIdxs }
+    case 'multiple_answers':        return { ...base, options: form.options.filter(o => o.trim()), correctAnswer: form.correctIdxs, scoringMode: form.scoringMode ?? 'all_correct' }
     case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
     case 'essay':                   return { ...base, rubric: form.rubric }
     case 'numerical':               return { ...base, correctAnswer: Number(form.correctNum), tolerance: Number(form.tolerance) || 0 }
@@ -378,6 +378,26 @@ function TypeForm({ type, form, setForm }) {
           </div>
           {form.options.length < 8 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
           <p className="text-xs" style={{ color: '#9E9E9E' }}>체크박스를 클릭해 정답을 복수 지정하세요</p>
+          {/* 채점 방식 */}
+          <div className="pt-2" style={{ borderTop: '1px solid #F0F0F0' }}>
+            <Label>채점 방식</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: 'all_correct', label: '전체 정답 시 만점', desc: '하나라도 오답 포함 시 0점' },
+                { value: 'partial',     label: '비율 배점',         desc: '정답 개수/전체 정답 수 × 배점' },
+              ].map(opt => {
+                const active = (form.scoringMode ?? 'all_correct') === opt.value
+                return (
+                  <button key={opt.value} type="button" onClick={() => upd('scoringMode', opt.value)}
+                    className="text-left p-2.5 rounded transition-all"
+                    style={{ border: `1px solid ${active ? '#6366f1' : '#E0E0E0'}`, background: active ? '#EEF2FF' : '#fff' }}>
+                    <p className="text-xs font-semibold" style={{ color: active ? '#4338CA' : '#424242' }}>{opt.label}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{opt.desc}</p>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
       )
 
@@ -789,7 +809,7 @@ export default function AddQuestionModal({ onClose, onAdd, existingGroups = [] }
             {selectedType !== 'text' && <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>배점 <span style={{ color: '#EF4444' }}>*</span></label>
-                <input type="number" value={form.points} min={1}
+                <input type="number" value={form.points} min={0.5} step={0.5}
                   onChange={e => setForm(prev => ({ ...prev, points: e.target.value }))}
                   className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none"
                   style={{ border: '1px solid #E0E0E0', color: '#222222' }}

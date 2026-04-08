@@ -404,6 +404,7 @@ function StudentQuizCard({ quiz, studentId }) {
   const myAttempts = attempts.filter(a => a.studentId === studentId)
   const myAttempt = myAttempts[myAttempts.length - 1] ?? null
   const attemptCount = myAttempts.length
+  const [showHistory, setShowHistory] = useState(false)
   const maxAttempts = quiz.allowAttempts ?? 1
   const isAttemptExceeded = maxAttempts !== -1 && attemptCount >= maxAttempts
   const isOpen   = quiz.status === 'open'
@@ -520,33 +521,79 @@ function StudentQuizCard({ quiz, studentId }) {
           released = true // 필드 없는 기존 mock
         }
 
-        // 수동채점 미완료 문항 점수는 0으로 포함 (정책 결정: §4-3)
+        // 미채점=0 정책(§2-2): 수동채점 대기 문항도 0점으로 계산, 분모는 퀴즈 전체 배점
         const autoScore = myAttempt.totalAutoScore ?? 0
         const manualScore = myAttempt.manualPending > 0 ? 0 : (myAttempt.totalManualScore ?? 0)
         const totalScore = autoScore + manualScore
-        const totalPossible = myAttempt.totalPossibleAuto ?? quiz.totalPoints
+        const totalPossible = quiz.totalPoints ?? myAttempt.totalPossibleAuto
 
         return (
-          <div className="px-5 py-3" style={{ background: '#F5F7FF', borderTop: '1px solid #E8EBFF' }}>
-            <div className="flex items-center gap-4 text-xs flex-wrap">
-              {released ? (
-                <span style={{ color: '#4f46e5', fontWeight: 600 }}>
-                  {totalScore}점 / {totalPossible}점
-                  {myAttempt.manualPending > 0 && <span style={{ color: '#9E9E9E', fontWeight: 400 }}> (수동채점 대기 0점 반영)</span>}
-                </span>
-              ) : (
-                <span style={{ color: '#9E9E9E' }}>
-                  {quiz.scoreRevealEnabled === false || quiz.scoreReleasePolicy === null ? '성적 비공개' : '공개 예정'}
-                </span>
-              )}
-              {myAttempt.manualPending > 0 && released && (
-                <span className="flex items-center gap-1" style={{ color: '#d97706' }}>
-                  <AlertCircle size={11} />
-                  수동채점 {myAttempt.manualPending}문항 대기 중
-                </span>
-              )}
-              <span style={{ color: '#9E9E9E' }}>제출 {myAttempt.submittedAt}</span>
+          <div style={{ borderTop: '1px solid #E8EBFF' }}>
+            <div className="px-5 py-3" style={{ background: '#F5F7FF' }}>
+              <div className="flex items-center gap-4 text-xs flex-wrap">
+                {released ? (
+                  <span style={{ color: '#4f46e5', fontWeight: 600 }}>
+                    {totalScore}점 / {totalPossible}점
+                    {myAttempt.manualPending > 0 && <span style={{ color: '#9E9E9E', fontWeight: 400 }}> (수동채점 대기 0점 반영)</span>}
+                  </span>
+                ) : (
+                  <span style={{ color: '#9E9E9E' }}>
+                    {quiz.scoreRevealEnabled === false || quiz.scoreReleasePolicy === null ? '성적 비공개' : '공개 예정'}
+                  </span>
+                )}
+                {myAttempt.manualPending > 0 && released && (
+                  <span className="flex items-center gap-1" style={{ color: '#d97706' }}>
+                    <AlertCircle size={11} />
+                    수동채점 {myAttempt.manualPending}문항 대기 중
+                  </span>
+                )}
+                <span style={{ color: '#9E9E9E' }}>제출 {myAttempt.submittedAt}</span>
+
+                {/* 복수 응시 기록 토글 */}
+                {myAttempts.length > 1 && (
+                  <button
+                    onClick={() => setShowHistory(h => !h)}
+                    className="text-xs ml-auto transition-colors"
+                    style={{ color: showHistory ? '#4f46e5' : '#9E9E9E' }}
+                  >
+                    응시 기록 {myAttempts.length}회 {showHistory ? '▲' : '▼'}
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* 응시 이력 상세 */}
+            {showHistory && myAttempts.length > 1 && (
+              <div className="px-5 pb-3 space-y-1.5" style={{ background: '#F5F7FF' }}>
+                <div style={{ borderTop: '1px solid #E0E6FF' }} className="pt-2">
+                  {myAttempts.map((att, idx) => {
+                    const attAuto = att.totalAutoScore ?? 0
+                    const attManual = att.manualPending > 0 ? 0 : (att.totalManualScore ?? 0)
+                    const attTotal = attAuto + attManual
+                    const isLast = idx === myAttempts.length - 1
+                    return (
+                      <div key={idx} className="flex items-center justify-between text-xs py-1">
+                        <span style={{ color: isLast ? '#4f46e5' : '#9E9E9E', fontWeight: isLast ? 600 : 400 }}>
+                          {idx + 1}회차 {isLast ? '(최근)' : ''}
+                        </span>
+                        <span style={{ color: '#9E9E9E' }}>{att.submittedAt}</span>
+                        {released ? (
+                          <span style={{ color: isLast ? '#4f46e5' : '#616161', fontWeight: isLast ? 600 : 400 }}>
+                            {attTotal}점 / {totalPossible}점
+                            {att.manualPending > 0 && <span style={{ color: '#BDBDBD' }}> *</span>}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#BDBDBD' }}>비공개</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {released && myAttempts.some(a => a.manualPending > 0) && (
+                    <p className="text-xs mt-1" style={{ color: '#BDBDBD' }}>* 수동채점 대기 0점 반영</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )
       })()}

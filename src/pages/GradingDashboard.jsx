@@ -882,6 +882,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
             placeholder="—"
             min={0}
             max={question.points}
+            step={0.5}
             className="w-14 bg-white text-xs px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
             style={{ border: pendingScore !== undefined ? '1px solid #6366f1' : '1px solid #E0E0E0', color: '#222222' }}
           />
@@ -1109,6 +1110,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
             onChange={e => { setScore(e.target.value); setSaved(false) }}
             min={0}
             max={question.points}
+            step={0.5}
             placeholder="0"
             className="w-16 bg-white text-xs px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
             style={{ border: '1px solid #E0E0E0', color: '#222222' }}
