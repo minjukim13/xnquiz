@@ -2,23 +2,40 @@
 title: XN Quizzes — 학생 퀴즈 응시 흐름
 ---
 flowchart TD
-    START([학생 진입]) --> QL["`**퀴즈 목록 — 학생 뷰**
-    안녕하세요, {학생명}님`"]
+    START([학생 진입]) --> QL["`**내 퀴즈 — 학생 뷰**
+    주차/차시 필터 (1~16 + 미지정)
+    draft 퀴즈 미표시`"]
 
     QL --> SEC{퀴즈 상태 섹션}
-    SEC -->|응시 가능| SEC_OPEN["`응시 가능 섹션 (녹색)
-    시간제한 / 문항수 / 마감일 표시`"]
-    SEC -->|채점 중| SEC_GRADING["`채점 중 섹션 (주황색)
-    자동채점 점수 / 수동채점 대기 문항 수
-    제출 시간 표시`"]
-    SEC -->|종료| SEC_CLOSED["`종료 섹션 (회색)
-    최종 점수 표시`"]
 
-    SEC_OPEN -->|응시하기 버튼| QA["`**퀴즈 응시 화면**
-    퀴즈 제목 / 답변완료 카운트 (0/N)
-    남은 시간 타이머`"]
+    SEC -->|open| SEC_OPEN["`**응시 가능 섹션**
+    상태 배지: 응시중(녹색)
+    D-day 배지 (진행중 퀴즈)
+    스펙: 문항수 / 총점 / 시간제한
+    내 응시 배지: 채점 대기 / 채점 완료`"]
 
-    %% ── 응시 중 ─────────────────────────────────
+    SEC -->|closed 또는 grading| SEC_CLOSED["`**종료 섹션**
+    상태 배지: 종료(회색)
+    내 응시 결과 인라인 표시:
+    자동채점 점수 / 수동채점 대기 건수
+    제출 일시`"]
+
+    %% ── 응시하기 / 재응시 버튼 분기 ─────────────
+    SEC_OPEN --> CHECK_ATTEMPTS{응시 횟수 확인}
+    CHECK_ATTEMPTS -->|allowAttempts 미초과 + 첫 응시| BTN_FIRST["`**응시하기** 버튼 (활성)`"]
+    CHECK_ATTEMPTS -->|allowAttempts 미초과 + 재응시| BTN_RETRY["`**재응시** 버튼 (활성)`"]
+    CHECK_ATTEMPTS -->|allowAttempts 초과| BTN_DISABLED["`응시하기 버튼 비활성화(회색)
+    호버 툴팁: '응시 가능 횟수(N회)를 초과했습니다'`"]
+
+    BTN_FIRST --> QA
+    BTN_RETRY --> QA
+
+    %% ── 응시 화면 ────────────────────────────────
+    QA["`**퀴즈 응시 화면**
+    퀴즈 제목
+    답변완료 카운트 (N/Total)
+    남은 시간 타이머 (timeLimit=0이면 미표시)`"]
+
     QA --> ANS_LOOP["`문항 순차 표시
     유형별 입력 영역`"]
 
@@ -28,23 +45,21 @@ flowchart TD
     Q_TYPE -->|서술형| INPUT_TEXTAREA["`서술 텍스트 입력`"]
     Q_TYPE -->|수치형| INPUT_NUMBER["`숫자 입력`"]
 
-    INPUT_RADIO    --> ANSWERED["`답변완료 표시
-    아이콘 + 텍스트`"]
+    INPUT_RADIO    --> ANSWERED["`답변완료 표시`"]
     INPUT_TEXT     --> ANSWERED
     INPUT_TEXTAREA --> ANSWERED
     INPUT_NUMBER   --> ANSWERED
 
     ANSWERED -->|다음 문항| ANS_LOOP
 
-    %% ── 타이머 경고 ──────────────────────────────
-    QA --> TIMER["`타이머 카운트다운
-    시간제한(분) × 60초`"]
-    TIMER -->|5분 미만| TIMER_WARN["`배경/텍스트 빨간색으로 변경`"]
+    %% ── 타이머 ───────────────────────────────────
+    QA --> TIMER["`타이머 카운트다운`"]
+    TIMER -->|5분 미만| TIMER_WARN["`타이머 빨간색으로 변경`"]
     TIMER -->|0초 도달| AUTO_SUBMIT["`자동 제출 처리`"]
 
     %% ── 제출 흐름 ────────────────────────────────
     ANS_LOOP -->|제출하기 버튼| CHECK_UNANSWERED{미답변 문항 있음?}
-    CHECK_UNANSWERED -->|있음| WARN["`경고 메시지 표시
+    CHECK_UNANSWERED -->|있음| WARN["`경고 메시지
     '미답변 문항이 X개 있습니다'
     계속 진행 / 취소`"]
     WARN -->|계속 진행| SUBMIT
@@ -56,31 +71,38 @@ flowchart TD
     SUBMIT["`**제출 처리**
     자동채점 실행
     응시 기록 구성
-    브라우저 저장소에 저장`"]
+    localStorage 저장`"]
 
     SUBMIT --> RESULT_MODAL["`**제출 완료 모달**
-    자동채점 점수
+    자동채점 점수 / 총점
     수동채점 대기 문항 수 안내
-    응시 정보 (제출 시간, 소요 시간)`"]
+    소요 시간 / 제출 일시`"]
 
     RESULT_MODAL -->|퀴즈 목록으로| QL
 
-    %% ── 제출 후 목록 상태 변화 ──────────────────
-    QL -.->|재접속 시 반영| SEC_GRADING
+    %% ── 제출 후 카드 상태 변화 ──────────────────
+    QL -.->|재접속 시 반영| SEC_CLOSED
 
     %% ── 스타일 ───────────────────────────────────
     style QL             fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
     style QA             fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
     style ANS_LOOP       fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
     style RESULT_MODAL   fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+
+    style SEC_OPEN       fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style SEC_CLOSED     fill:#F1F5F9,stroke:#94A3B8,color:#334155
+    style BTN_FIRST      fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style BTN_RETRY      fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style BTN_DISABLED   fill:#F1F5F9,stroke:#94A3B8,color:#334155
+
     style WARN           fill:#FEE2E2,stroke:#DC2626,color:#7f1d1d
     style TIMER_WARN     fill:#FEE2E2,stroke:#DC2626,color:#7f1d1d
     style AUTO_SUBMIT    fill:#FEE2E2,stroke:#DC2626,color:#7f1d1d
     style SUBMIT         fill:#DCFCE7,stroke:#16A34A,color:#14532d
+
     style CHECK_UNANSWERED fill:#DCFCE7,stroke:#16A34A,color:#14532d
-    style Q_TYPE         fill:#DCFCE7,stroke:#16A34A,color:#14532d
-    style SEC            fill:#DCFCE7,stroke:#16A34A,color:#14532d
-    style SEC_OPEN       fill:#DCFCE7,stroke:#16A34A,color:#14532d
-    style SEC_GRADING    fill:#FEF3C7,stroke:#D97706,color:#78350f
-    style SEC_CLOSED     fill:#F1F5F9,stroke:#94A3B8,color:#334155
-    style START          fill:#F0FDF4,stroke:#22C55E,color:#14532d
+    style CHECK_ATTEMPTS   fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style Q_TYPE           fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style SEC              fill:#DCFCE7,stroke:#16A34A,color:#14532d
+
+    style START fill:#F0FDF4,stroke:#22C55E,color:#14532d
