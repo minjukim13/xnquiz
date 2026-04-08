@@ -45,9 +45,11 @@ export default function QuizEdit() {
   // 표시 설정
   const [shuffleChoices, setShuffleChoices] = useState(false)
   const [shuffleQuestions, setShuffleQuestions] = useState(false)
-  const [scoreReleasePolicy, setScoreReleasePolicy] = useState(quiz.scoreReleasePolicy ?? null)
-  const [scoreRevealStart, setScoreRevealStart] = useState(quiz.scoreRevealStart ?? '')
-  const [scoreRevealEnd, setScoreRevealEnd] = useState(quiz.scoreRevealEnd ?? '')
+  const [scoreRevealEnabled, setScoreRevealEnabled] = useState(quiz.scoreRevealEnabled ?? false)
+  const [scoreRevealScope,   setScoreRevealScope]   = useState(quiz.scoreRevealScope   ?? 'wrong_only')
+  const [scoreRevealTiming,  setScoreRevealTiming]  = useState(quiz.scoreRevealTiming  ?? 'immediately')
+  const [scoreRevealStart,   setScoreRevealStart]   = useState(quiz.scoreRevealStart   ?? '')
+  const [scoreRevealEnd,     setScoreRevealEnd]     = useState(quiz.scoreRevealEnd     ?? '')
 
   // 퀴즈 접근 제한
   const [accessCode, setAccessCode] = useState('')
@@ -106,9 +108,11 @@ export default function QuizEdit() {
         timeLimit: timeLimitType === -1 ? Number(timeLimitCustom) : timeLimitType,
         allowAttempts,
         scorePolicy,
-        scoreReleasePolicy,
-        scoreRevealStart: scoreReleasePolicy === 'period' ? scoreRevealStart || null : null,
-        scoreRevealEnd:   scoreReleasePolicy === 'period' ? scoreRevealEnd   || null : null,
+        scoreRevealEnabled,
+        scoreRevealScope:  scoreRevealEnabled ? scoreRevealScope  : null,
+        scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null,
+        scoreRevealStart:  (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null,
+        scoreRevealEnd:    (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd   || null : null,
       }
     }
     navigate('/')
@@ -293,42 +297,63 @@ export default function QuizEdit() {
                 <Toggle checked={shuffleChoices} onChange={setShuffleChoices} label="선택지 무작위 배열" />
                 <Toggle checked={shuffleQuestions} onChange={setShuffleQuestions} label="문항 순서 무작위" />
 
-                {/* 성적공개 정책 */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium" style={{ color: '#212121' }}>성적공개 정책</p>
-                  <div className="space-y-2">
-                    {[
-                      { value: null,          label: '비공개',          desc: '성적·정오답·정답 모두 공개하지 않습니다' },
-                      { value: 'wrong_only',  label: '오답여부만 공개', desc: '정오답(✓/✗)만 표시. 정답은 공개하지 않습니다' },
-                      { value: 'with_answer', label: '정답까지 공개',   desc: '정오답과 함께 정답·해설을 즉시 공개합니다' },
-                      { value: 'after_due',   label: '마감 후 자동공개',desc: '마감일 경과 후 정오답·정답·점수를 자동 공개합니다' },
-                      { value: 'period',      label: '기간 설정',       desc: '지정한 기간에만 정오답·정답·점수를 공개합니다' },
-                    ].map(opt => (
-                      <label key={String(opt.value)} className="flex items-start gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="scoreReleasePolicyEdit"
-                          checked={scoreReleasePolicy === opt.value}
-                          onChange={() => setScoreReleasePolicy(opt.value)}
-                          className="mt-0.5"
-                          style={{ accentColor: '#6366f1' }}
-                        />
-                        <div>
-                          <span className="text-xs font-medium" style={{ color: '#212121' }}>{opt.label}</span>
-                          <p className="text-xs" style={{ color: '#9E9E9E' }}>{opt.desc}</p>
+                {/* 성적 공개 정책 */}
+                <div className="space-y-3">
+                  <Toggle checked={scoreRevealEnabled} onChange={setScoreRevealEnabled} label="성적 공개" description="제출 후 학생에게 성적 정보를 공개합니다" />
+                  {scoreRevealEnabled && (
+                    <div className="space-y-3">
+                      {/* 공개 범위 */}
+                      <div className="p-3 rounded-lg" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
+                        <p className="text-xs font-semibold mb-2" style={{ color: '#4F46E5' }}>공개 범위</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { value: 'wrong_only',  label: '오답 여부만', desc: '정오답(✓/✗) + 점수' },
+                            { value: 'with_answer', label: '정답까지',    desc: '정오답 + 점수 + 정답' },
+                          ].map(opt => (
+                            <label
+                              key={opt.value}
+                              className="flex flex-col gap-0.5 p-2.5 rounded-lg cursor-pointer"
+                              style={{
+                                border: `2px solid ${scoreRevealScope === opt.value ? '#6366f1' : '#E0E0E0'}`,
+                                background: scoreRevealScope === opt.value ? '#EEF2FF' : '#FFFFFF',
+                              }}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <input type="radio" name="scoreRevealScopeEdit" checked={scoreRevealScope === opt.value} onChange={() => setScoreRevealScope(opt.value)} style={{ accentColor: '#6366f1' }} />
+                                <span className="text-xs font-semibold" style={{ color: scoreRevealScope === opt.value ? '#4F46E5' : '#212121' }}>{opt.label}</span>
+                              </div>
+                              <p className="text-xs pl-4" style={{ color: '#9E9E9E' }}>{opt.desc}</p>
+                            </label>
+                          ))}
                         </div>
-                      </label>
-                    ))}
-                  </div>
-                  {scoreReleasePolicy === 'period' && (
-                    <div className="ml-5 pl-3 py-2 space-y-1.5" style={{ borderLeft: '2px solid #E0E0E0' }}>
-                      <div>
-                        <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
-                        <input type="datetime-local" value={scoreRevealStart} onChange={e => setScoreRevealStart(e.target.value)} className="input text-xs" />
                       </div>
-                      <div>
-                        <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 종료일</label>
-                        <input type="datetime-local" value={scoreRevealEnd} onChange={e => setScoreRevealEnd(e.target.value)} className="input text-xs" />
+                      {/* 공개 시점 */}
+                      <div className="p-3 rounded-lg" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
+                        <p className="text-xs font-semibold mb-2" style={{ color: '#4F46E5' }}>공개 시점</p>
+                        <div className="space-y-1.5">
+                          {[
+                            { value: 'immediately', label: '제출 즉시' },
+                            { value: 'after_due',   label: '마감 후' },
+                            { value: 'period',      label: '기간 설정' },
+                          ].map(opt => (
+                            <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                              <input type="radio" name="scoreRevealTimingEdit" checked={scoreRevealTiming === opt.value} onChange={() => setScoreRevealTiming(opt.value)} style={{ accentColor: '#6366f1' }} />
+                              <span className="text-xs font-medium" style={{ color: '#212121' }}>{opt.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {scoreRevealTiming === 'period' && (
+                          <div className="mt-2 pt-2 space-y-1.5" style={{ borderTop: '1px solid #E8EBFF' }}>
+                            <div>
+                              <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
+                              <input type="datetime-local" value={scoreRevealStart} onChange={e => setScoreRevealStart(e.target.value)} className="input text-xs" />
+                            </div>
+                            <div>
+                              <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 종료일</label>
+                              <input type="datetime-local" value={scoreRevealEnd} onChange={e => setScoreRevealEnd(e.target.value)} className="input text-xs" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

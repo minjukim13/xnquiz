@@ -55,8 +55,10 @@ export default function QuizCreate() {
     scorePolicy: '최고 점수 유지',
     shuffleChoices: false,
     shuffleQuestions: false,
-    // 성적공개 정책: 'wrong_only' | 'with_answer' | 'after_due' | 'period' | null(비공개)
-    scoreReleasePolicy: null,
+    // 성적공개 정책
+    scoreRevealEnabled: false,
+    scoreRevealScope: 'wrong_only',       // 'wrong_only' | 'with_answer'
+    scoreRevealTiming: 'immediately',     // 'immediately' | 'after_due' | 'period'
     scoreRevealStart: '',
     scoreRevealEnd: '',
     quizMode: 'graded',
@@ -173,7 +175,8 @@ export default function QuizCreate() {
                   }
 
                   const isMultiAttempt = form.allowAttempts >= 2 || form.allowAttempts === -1
-                  const noRevealPeriod = form.scoreReleasePolicy !== 'period' && form.scoreReleasePolicy !== 'after_due'
+                  const noRevealPeriod = form.scoreRevealEnabled
+                    && form.scoreRevealTiming !== 'period' && form.scoreRevealTiming !== 'after_due'
                   const doPublish = () => {
                     mockQuizzes.push({
                       id: String(Date.now()),
@@ -195,9 +198,11 @@ export default function QuizCreate() {
                         : null,
                       shuffleChoices: form.shuffleChoices,
                       shuffleQuestions: form.shuffleQuestions,
-                      scoreReleasePolicy: form.scoreReleasePolicy,
-                      scoreRevealStart: (form.scoreReleasePolicy === 'period') ? form.scoreRevealStart || null : null,
-                      scoreRevealEnd: (form.scoreReleasePolicy === 'period') ? form.scoreRevealEnd || null : null,
+                      scoreRevealEnabled: form.scoreRevealEnabled,
+                      scoreRevealScope: form.scoreRevealEnabled ? form.scoreRevealScope : null,
+                      scoreRevealTiming: form.scoreRevealEnabled ? form.scoreRevealTiming : null,
+                      scoreRevealStart: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealStart || null : null,
+                      scoreRevealEnd:   (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd   || null : null,
                       accessCode: form.accessCode || null,
                       ipRestriction: form.ipRestriction || null,
                       assignments: form.assignments.filter(a => a.assignTo.length > 0),
@@ -423,58 +428,99 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
         )}
       </Section>
 
-      {/* 표시 설정 */}
-      <Section title="표시 설정">
+      {/* 문항 표시 설정 */}
+      <Section title="문항 표시 설정">
         <div className="space-y-3">
           <Toggle checked={form.shuffleChoices} onChange={v => set('shuffleChoices', v)} label="선택지 무작위 배열" description="학생마다 선택지 순서가 달라집니다" />
           <Toggle checked={form.shuffleQuestions} onChange={v => set('shuffleQuestions', v)} label="문항 순서 무작위" description="학생마다 문항 순서가 달라집니다" />
+        </div>
+      </Section>
 
-          {/* 성적공개 정책 */}
-          <div className="space-y-2">
-            <div>
-              <p className="text-sm font-medium mb-0.5" style={{ color: '#212121' }}>성적공개 정책</p>
-              <p className="text-xs mb-3" style={{ color: '#9E9E9E' }}>제출 후 학생에게 공개할 성적 정보 범위와 시점을 설정합니다</p>
-              <div className="space-y-2">
-                {[
-                  { value: null,         label: '비공개',         desc: '성적·정오답·정답 모두 공개하지 않습니다' },
-                  { value: 'wrong_only', label: '오답여부만 공개', desc: '정오답(✓/✗)만 표시. 정답은 공개하지 않습니다' },
-                  { value: 'with_answer',label: '정답까지 공개',   desc: '정오답과 함께 정답·해설을 즉시 공개합니다' },
-                  { value: 'after_due',  label: '마감 후 자동공개',desc: '마감일 경과 후 정오답·정답·점수를 자동 공개합니다' },
-                  { value: 'period',     label: '기간 설정',       desc: '지정한 기간에만 정오답·정답·점수를 공개합니다' },
-                ].map(opt => (
-                  <label key={String(opt.value)} className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="scoreReleasePolicy"
-                      checked={form.scoreReleasePolicy === opt.value}
-                      onChange={() => set('scoreReleasePolicy', opt.value)}
-                      className="mt-0.5"
-                      style={{ accentColor: '#6366f1' }}
-                    />
-                    <div>
-                      <span className="text-sm font-medium" style={{ color: '#212121' }}>{opt.label}</span>
-                      <p className="text-xs" style={{ color: '#9E9E9E' }}>{opt.desc}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-            {form.scoreReleasePolicy === 'period' && (
-              <div className="ml-6 pl-3 py-3" style={{ borderLeft: '2px solid #E0E0E0' }}>
-                <p className="text-xs font-medium mb-2" style={{ color: '#616161' }}>공개 기간</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
-                    <input type="datetime-local" value={form.scoreRevealStart} onChange={e => set('scoreRevealStart', e.target.value)} className="input text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 종료일</label>
-                    <input type="datetime-local" value={form.scoreRevealEnd} onChange={e => set('scoreRevealEnd', e.target.value)} className="input text-sm" />
-                  </div>
+      {/* 성적 공개 정책 */}
+      <Section title="성적 공개 정책">
+        <div className="space-y-4">
+          <Toggle
+            checked={form.scoreRevealEnabled}
+            onChange={v => set('scoreRevealEnabled', v)}
+            label="성적 공개"
+            description="제출 후 학생에게 성적 정보를 공개합니다"
+          />
+          {form.scoreRevealEnabled && (
+            <div className="space-y-4 pt-1">
+
+              {/* 공개 범위 */}
+              <div className="p-4 rounded-lg" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
+                <p className="text-xs font-semibold mb-3" style={{ color: '#4F46E5' }}>공개 범위</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'wrong_only',  label: '오답 여부만',  desc: '정오답(✓/✗) + 점수만 표시\n정답은 공개하지 않습니다' },
+                    { value: 'with_answer', label: '정답까지',     desc: '정오답(✓/✗) + 점수 +\n정답을 함께 표시합니다' },
+                  ].map(opt => (
+                    <label
+                      key={opt.value}
+                      className="flex flex-col gap-1 p-3 rounded-lg cursor-pointer transition-all"
+                      style={{
+                        border: `2px solid ${form.scoreRevealScope === opt.value ? '#6366f1' : '#E0E0E0'}`,
+                        background: form.scoreRevealScope === opt.value ? '#EEF2FF' : '#FFFFFF',
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="scoreRevealScope"
+                          checked={form.scoreRevealScope === opt.value}
+                          onChange={() => set('scoreRevealScope', opt.value)}
+                          style={{ accentColor: '#6366f1' }}
+                        />
+                        <span className="text-sm font-semibold" style={{ color: form.scoreRevealScope === opt.value ? '#4F46E5' : '#212121' }}>{opt.label}</span>
+                      </div>
+                      <p className="text-xs leading-relaxed pl-5" style={{ color: '#9E9E9E', whiteSpace: 'pre-line' }}>{opt.desc}</p>
+                    </label>
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
+
+              {/* 공개 시점 */}
+              <div className="p-4 rounded-lg" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
+                <p className="text-xs font-semibold mb-3" style={{ color: '#4F46E5' }}>공개 시점</p>
+                <div className="space-y-2">
+                  {[
+                    { value: 'immediately', label: '제출 즉시',     desc: '학생이 제출하는 순간 바로 공개됩니다' },
+                    { value: 'after_due',   label: '마감 후',        desc: '퀴즈 마감일이 지나면 자동으로 공개됩니다' },
+                    { value: 'period',      label: '기간 설정',      desc: '지정한 기간에만 공개됩니다' },
+                  ].map(opt => (
+                    <label key={opt.value} className="flex items-start gap-2.5 cursor-pointer py-1">
+                      <input
+                        type="radio"
+                        name="scoreRevealTiming"
+                        checked={form.scoreRevealTiming === opt.value}
+                        onChange={() => set('scoreRevealTiming', opt.value)}
+                        className="mt-0.5"
+                        style={{ accentColor: '#6366f1' }}
+                      />
+                      <div>
+                        <span className="text-sm font-medium" style={{ color: '#212121' }}>{opt.label}</span>
+                        <p className="text-xs" style={{ color: '#9E9E9E' }}>{opt.desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {form.scoreRevealTiming === 'period' && (
+                  <div className="mt-3 pt-3 grid grid-cols-2 gap-3" style={{ borderTop: '1px solid #E8EBFF' }}>
+                    <div>
+                      <label className="block text-xs font-medium mb-1" style={{ color: '#616161' }}>공개 시작일</label>
+                      <input type="datetime-local" value={form.scoreRevealStart} onChange={e => set('scoreRevealStart', e.target.value)} className="input text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1" style={{ color: '#616161' }}>공개 종료일</label>
+                      <input type="datetime-local" value={form.scoreRevealEnd} onChange={e => set('scoreRevealEnd', e.target.value)} className="input text-sm" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
         </div>
       </Section>
 

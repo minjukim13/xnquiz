@@ -423,8 +423,26 @@ function ResultModal({ result, quiz, questions, onClose }) {
 
   let showScoreNow, showWrongAnswerNow, showAnswerNow
 
-  if (quiz.scoreReleasePolicy !== undefined) {
-    // 신규 정책 필드 기반
+  if (quiz.scoreRevealEnabled !== undefined) {
+    // 신규 정책 필드 기반 (scoreRevealEnabled / scoreRevealScope / scoreRevealTiming)
+    const afterDue = dueDate && now >= dueDate
+    const inPeriod = (() => {
+      const s = quiz.scoreRevealStart ? new Date(quiz.scoreRevealStart) : null
+      const e = quiz.scoreRevealEnd   ? new Date(quiz.scoreRevealEnd)   : null
+      return (!s || now >= s) && (!e || now <= e)
+    })()
+    const timingMet = quiz.scoreRevealTiming === 'immediately' ? true
+                    : quiz.scoreRevealTiming === 'after_due'   ? afterDue
+                    : quiz.scoreRevealTiming === 'period'      ? inPeriod
+                    : false
+
+    const released = quiz.scoreRevealEnabled && timingMet
+
+    showScoreNow       = released
+    showWrongAnswerNow = released
+    showAnswerNow      = released && quiz.scoreRevealScope === 'with_answer'
+  } else if (quiz.scoreReleasePolicy !== undefined) {
+    // 구형 scoreReleasePolicy 필드 (하위 호환)
     const policy = quiz.scoreReleasePolicy
     const afterDue = dueDate && now >= dueDate
     const inPeriod = (() => {
@@ -432,16 +450,13 @@ function ResultModal({ result, quiz, questions, onClose }) {
       const e = quiz.scoreRevealEnd   ? new Date(quiz.scoreRevealEnd)   : null
       return (!s || now >= s) && (!e || now <= e)
     })()
-
-    const released = policy === 'wrong_only'  ? true
-                   : policy === 'with_answer' ? true
-                   : policy === 'after_due'   ? afterDue
-                   : policy === 'period'      ? inPeriod
-                   : false // null = 비공개
-
-    showScoreNow        = released
-    showWrongAnswerNow  = released && policy !== null
-    showAnswerNow       = released && (policy === 'with_answer' || policy === 'after_due' || policy === 'period')
+    const released = policy === 'wrong_only' || policy === 'with_answer' ? true
+                   : policy === 'after_due'  ? afterDue
+                   : policy === 'period'     ? inPeriod
+                   : false
+    showScoreNow       = released
+    showWrongAnswerNow = released && policy !== null
+    showAnswerNow      = released && (policy === 'with_answer' || policy === 'after_due' || policy === 'period')
   } else {
     // 하위 호환: 기존 mock 퀴즈 필드 (showScore / showWrongAnswer / showAnswer)
     const isTimingMet = (timing, start, end) => {

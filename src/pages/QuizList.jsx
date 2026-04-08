@@ -494,7 +494,6 @@ function StudentQuizCard({ quiz, studentId }) {
 
       {/* 내 응시 결과 */}
       {myAttempt && (() => {
-        const policy = quiz.scoreReleasePolicy
         const now = new Date()
         const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null
         const inPeriod = (() => {
@@ -502,12 +501,24 @@ function StudentQuizCard({ quiz, studentId }) {
           const e = quiz.scoreRevealEnd   ? new Date(quiz.scoreRevealEnd)   : null
           return (!s || now >= s) && (!e || now <= e)
         })()
-        const released = policy === undefined ? true // 기존 mock (하위 호환)
-          : policy === 'wrong_only'  ? true
-          : policy === 'with_answer' ? true
-          : policy === 'after_due'   ? (dueDate && now >= dueDate)
-          : policy === 'period'      ? inPeriod
-          : false // null = 비공개
+        let released
+        if (quiz.scoreRevealEnabled !== undefined) {
+          // 신규 필드
+          const timingMet = quiz.scoreRevealTiming === 'immediately' ? true
+                          : quiz.scoreRevealTiming === 'after_due'   ? (dueDate && now >= dueDate)
+                          : quiz.scoreRevealTiming === 'period'      ? inPeriod
+                          : false
+          released = quiz.scoreRevealEnabled && timingMet
+        } else if (quiz.scoreReleasePolicy !== undefined) {
+          // 구형 필드 (하위 호환)
+          const p = quiz.scoreReleasePolicy
+          released = p === 'wrong_only' || p === 'with_answer' ? true
+                   : p === 'after_due'  ? (dueDate && now >= dueDate)
+                   : p === 'period'     ? inPeriod
+                   : false
+        } else {
+          released = true // 필드 없는 기존 mock
+        }
 
         // 수동채점 미완료 문항 점수는 0으로 포함 (정책 결정: §4-3)
         const autoScore = myAttempt.totalAutoScore ?? 0
@@ -525,7 +536,7 @@ function StudentQuizCard({ quiz, studentId }) {
                 </span>
               ) : (
                 <span style={{ color: '#9E9E9E' }}>
-                  {policy === null ? '성적 비공개' : '공개 예정'}
+                  {quiz.scoreRevealEnabled === false || quiz.scoreReleasePolicy === null ? '성적 비공개' : '공개 예정'}
                 </span>
               )}
               {myAttempt.manualPending > 0 && released && (
