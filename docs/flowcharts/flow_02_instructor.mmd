@@ -2,97 +2,125 @@
 title: XN Quizzes — 교수자 퀴즈 관리 흐름
 ---
 flowchart TD
-    START([교수자 진입]) --> QL["`**퀴즈 목록 — 교수자 뷰**
-    - 채점 필요 섹션
-    - 전체 퀴즈 목록
-    - 상태별 정렬: 초안 → 진행중 → 종료`"]
+    START([교수자 진입]) --> QL["`**퀴즈 관리 — 교수자 뷰**
+    - 단일 목록, 최근 생성순
+    - 주차/차시 필터 (1~16 + 미지정)
+    - 카드: 상태 배지 / D-day 배지 / 주차·차시 태그
+    - 응시율 / 응시인원 / 미제출 / 평균점수 (발행 후)`"]
 
     %% ── 퀴즈 생성 흐름 ──────────────────────────
-    QL -->|새 퀴즈 버튼| QC_T1["`**퀴즈 생성 — 1단계: 기본정보**
-    제목 / 주차 / 차시
+    QL -->|새 퀴즈 버튼| QC_INFO["`**퀴즈 생성 — 기본 정보 탭**
+    제목 / 설명 / 주차·차시 (연결 안함 포함)
     시작일 / 마감일
-    시간제한 유형 / 최대 응시횟수
-    채점 방식 / 체크박스 4개 / 안내사항`"]
+    시간제한 / 최대 응시횟수 / 채점 정책
+    정오답·정답 공개 설정 / 점수 공개 설정
+    액세스 코드 / IP 제한 / 지각 제출 허용
+    추가 기간 설정 / 안내사항`"]
 
-    QC_T1 -->|다음: 문항 구성| QC_T2["`**퀴즈 생성 — 2단계: 문항구성**
-    선택된 문항 목록 (드래그 정렬)`"]
+    QC_INFO -->|다음: 문항 구성 탭| QC_Q["`**퀴즈 생성 — 문항 구성 탭**
+    선택된 문항 목록 (드래그 정렬)
+    총 N문항 / 총점 N점`"]
 
-    QC_T2 -->|문제은행에서 추가| M_BANK["`**문제은행 모달**
+    QC_Q -->|문제은행에서 추가| M_BANK["`**문제은행 모달**
     1단계: 은행 선택
     2단계: 문항 선택 + 검색/필터`"]
-    QC_T2 -->|직접 추가| M_ADD["`**문항 추가 모달**
+    QC_Q -->|직접 추가| M_ADD["`**문항 추가 모달**
     문항내용 / 유형 / 선택지 / 배점 입력`"]
-    M_BANK -->|선택 완료| QC_T2
-    M_ADD  -->|추가| QC_T2
+    M_BANK -->|선택 완료| QC_Q
+    M_ADD  -->|추가| QC_Q
 
-    QC_T2 -->|발행하기| NEW_QUIZ_OPEN["`퀴즈 상태: **진행중**
+    QC_Q -->|임시저장| DRAFT_SAVE["`임시저장 (UI만, 로직 미구현)`"]
+    DRAFT_SAVE --> QC_Q
+
+    QC_Q -->|발행하기| CHECK_MULTI{재응시 허용 AND
+    점수 공개 기간 미설정?}
+    CHECK_MULTI -->|해당 없음| PUBLISH_OPEN
+    CHECK_MULTI -->|해당| CONFIRM_WARN["`확인 다이얼로그
+    '점수 공개 기간 미설정 안내'`"]
+    CONFIRM_WARN -->|그대로 발행| PUBLISH_OPEN
+    CONFIRM_WARN -->|취소 → 수정| QC_INFO
+
+    PUBLISH_OPEN["`퀴즈 생성 + 상태: **open(진행중)**
     퀴즈 목록에 추가`"]
-    NEW_QUIZ_OPEN --> QL
+    PUBLISH_OPEN --> QL
+
+    %% ── 미리보기 ────────────────────────────────
+    QL -->|미리보기 버튼| QA_PREVIEW["`**퀴즈 응시 — 미리보기 모드**
+    ?preview=true
+    제출 버튼 비활성화`"]
+    QA_PREVIEW --> QL
 
     %% ── 퀴즈 편집 흐름 ──────────────────────────
-    QL -->|편집 버튼 초안 퀴즈| QE["`**퀴즈 편집**
-    문항 추가 / 제거
-    설정 패널:
-    응시시간 / 최대횟수 / 채점방식 / 체크박스`"]
+    QL -->|편집 버튼| QE["`**퀴즈 편집**
+    문항 추가 / 제거 / 재정렬
+    기본 정보 / 설정 패널`"]
 
     QE -->|문제은행에서 추가| M_BANK
     QE -->|직접 추가| M_ADD
-    QE -->|저장 및 발행| SAVE_QUIZ["`퀴즈 목록 업데이트`"]
+    QE -->|저장| SAVE_QUIZ["`퀴즈 목록 업데이트`"]
     SAVE_QUIZ --> QL
 
-    %% ── 퀴즈 발행 (목록에서 직접) ──────────────
-    QL -->|발행 버튼 초안 퀴즈| CONFIRM_PUB{"`확인 다이얼로그
-    '정말 발행하시겠습니까?'`"}
-    CONFIRM_PUB -->|확인| STATUS_OPEN["`상태 변경: 초안 → **진행중**`"]
+    %% ── 퀴즈 발행 (목록 카드에서 직접) ──────────
+    QL -->|발행 버튼 draft 카드| CONFIRM_PUB{"`인라인 확인 UI
+    '발행할까요?'`"}
+    CONFIRM_PUB -->|확인| STATUS_OPEN["`상태 변경: draft → **open**`"]
     CONFIRM_PUB -->|취소| QL
     STATUS_OPEN --> QL
 
-    %% ── 채점 흐름 ────────────────────────────────
-    QL -->|채점하기 링크 진행중 퀴즈| GD["`**채점 대시보드**
-    모드 전환 탭: 문항중심 / 학생중심`"]
+    %% ── 채점 대시보드 진입 ───────────────────────
+    QL -->|카드 클릭 open·grading·closed| GD["`**채점 대시보드**
+    퀴즈 정보 카드: 주차·차시 / 상태 / 제목 / 기간
+    응시 현황: 제출률 / 제출인원 / 채점완료
+    채점 진행률 바`"]
 
-    GD -->|문항중심 모드| GD_Q["`문항 목록
-    - 채점 필요 섹션 접기/펼치기
-    - 채점 완료 섹션 접기/펼치기
+    GD --> GRADE_MODE{채점 모드 선택}
+
+    %% 문항 중심
+    GRADE_MODE -->|문항 중심| GD_Q["`**문항 목록 (좌)**
+    - 미채점 섹션 (기본 노출)
+    - 채점 완료 섹션 (접기/펼치기)
     - 정렬: 미채점 우선 / 문항번호순`"]
-    GD_Q -->|문항 선택| GD_Q_RESP["`선택 문항 — 학생 응답 목록
-    학생별 답변 텍스트
-    점수 입력창`"]
-    GD_Q_RESP -->|점수 입력| SAVE_GRADE["`채점 결과 저장
-    브라우저 저장소에 기록`"]
+    GD_Q -->|문항 선택| GD_Q_DETAIL["`**문항 상세 (우)**
+    탭: 응답 / 통계`"]
+    GD_Q_DETAIL -->|응답 탭| GD_Q_RESP["`학생 응답 목록
+    학생별 답변 텍스트 / 점수 입력창
+    검색 / 페이지네이션`"]
+    GD_Q_DETAIL -->|통계 탭| GD_Q_STATS["`해당 문항 응답 분포
+    선택지별 선택 비율 차트`"]
+    GD_Q_DETAIL -->|엑셀 일괄 채점 버튼 수동채점 문항| M_EXCEL["`**엑셀 일괄 채점 모달**
+    채점표 다운로드
+    파일 업로드 → 파싱 → 미리보기
+    일괄 저장`"]
+    GD_Q_RESP -->|점수 입력 + 저장| SAVE_GRADE["`채점 결과 저장
+    localStorage 기록`"]
     SAVE_GRADE --> GD_Q
 
-    GD -->|학생중심 모드| GD_S["`학생 목록
-    - 검색
-    - 채점 진행률 표시`"]
-    GD_S -->|학생 선택| GD_S_RESP["`선택 학생 — 전체 응답 보기
-    문항별 답변 + 점수 입력창`"]
-    GD_S_RESP -->|점수 입력| SAVE_GRADE
+    %% 학생 중심
+    GRADE_MODE -->|학생 중심| GD_S["`**학생 목록 (좌)**
+    - 검색 (이름 / 학번)
+    - 채점 완료 / 미채점 구분`"]
+    GD_S -->|학생 선택| GD_S_RESP["`**학생 상세 (우)**
+    전체 문항 응답 + 점수 입력창`"]
+    GD_S_RESP -->|점수 입력 + 저장| SAVE_GRADE
 
+    %% 공통 액션 바
     GD -->|답안지 다운로드| DL_ANSWER["`답안지 엑셀 다운로드`"]
-    GD -->|채점표 다운로드| DL_GRADING["`채점표 엑셀 다운로드`"]
-    GD -->|엑셀 업로드| M_EXCEL["`엑셀 파일 선택
-    → 파일 파싱
-    → 일괄 채점 반영`"]
+    GD -->|재채점 버튼| M_REGRADE["`**재채점 모달**
+    (UI만, 로직 미구현)`"]
+    GD -->|퀴즈 통계 버튼| QS["`**퀴즈 통계**`"]
+    GD -->|퀴즈 관리로| QL
 
-    GD -->|퀴즈 마감 버튼| CONFIRM_CLOSE{"`확인 모달
-    '퀴즈를 마감하시겠습니까?'`"}
-    CONFIRM_CLOSE -->|확인| STATUS_CLOSED["`상태 변경: 진행중 → **종료**`"]
-    CONFIRM_CLOSE -->|취소| GD
-    STATUS_CLOSED --> QL
-
-    GD -->|목록으로| QL
-    GD -->|통계 보기| QS
+    %% 퀴즈 마감: 미구현 (§4-3 상태 전이 자동화 정책 미결)
 
     %% ── 통계 조회 흐름 ───────────────────────────
-    QL -->|통계 / 결과 보기 링크| QS["`**퀴즈 통계**`"]
-    QS -->|학생별 성적 조회 탭| QS_GRADES["`학생 성적 테이블
+    QL -->|통계 버튼 발행된 퀴즈| QS
+    QS -->|학생별 성적 탭| QS_GRADES["`학생 성적 테이블
     학번 / 이름 / 응시일
     자동채점 / 수동채점 대기 / 최종점수
     검색 + 정렬`"]
-    QS -->|퀴즈 통계 탭| QS_STATS["`문항 분석: 정답률 / 판별도 / 난이도
+    QS -->|퀴즈 통계 탭| QS_STATS["`문항 분석: 정답률 / 난이도
     점수 분포 막대 그래프
-    기본 통계: 평균 / 표준편차 / 최고/최저점 / 응시율`"]
+    기본 통계: 평균 / 표준편차 / 최고·최저점 / 응시율`"]
 
     QS_GRADES -->|성적표 다운로드| DL_GRADES["`성적표 엑셀 다운로드`"]
     QS_STATS  -->|문항분석 다운로드| DL_ITEM["`문항분석표 엑셀 다운로드`"]
@@ -100,35 +128,42 @@ flowchart TD
     QS -->|목록으로| QL
 
     %% ── 퀴즈 상태 전이 요약 ─────────────────────
-    subgraph STATUS ["퀴즈 상태 전이"]
+    subgraph STATUS ["퀴즈 상태 전이 (§4-3 일부 미결)"]
         direction LR
-        S_DRAFT([초안]) -->|발행| S_OPEN([진행중])
-        S_OPEN  -->|마감| S_CLOSED([종료])
-        S_OPEN  -.->|수동채점 대기 문항 존재 시| S_GRADING(["채점 필요 표시"])
+        S_DRAFT([draft 발행 전]) -->|교수자 발행| S_OPEN([open 진행중])
+        S_OPEN  -.->|dueDate 경과 자동? 미결| S_GRADING(["grading 채점 필요"])
+        S_GRADING -.->|전체 채점 완료 자동? 미결| S_CLOSED([closed 마감])
     end
 
     %% ── 스타일 ───────────────────────────────────
-    style QL         fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QC_T1      fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QC_T2      fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QE         fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style GD         fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style GD_Q       fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style GD_Q_RESP  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style GD_S       fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style GD_S_RESP  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QS         fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QS_GRADES  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QS_STATS   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QL            fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QC_INFO       fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QC_Q          fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QE            fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD            fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD_Q          fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD_Q_DETAIL   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD_Q_RESP     fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD_Q_STATS    fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD_S          fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style GD_S_RESP     fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QS            fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QS_GRADES     fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QS_STATS      fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style QA_PREVIEW    fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
 
-    style M_BANK     fill:#FEF9C3,stroke:#CA8A04,color:#713f12
-    style M_ADD      fill:#FEF9C3,stroke:#CA8A04,color:#713f12
-    style M_EXCEL    fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style M_BANK        fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style M_ADD         fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style M_EXCEL       fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style M_REGRADE     fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style DRAFT_SAVE    fill:#FEF9C3,stroke:#CA8A04,color:#713f12
 
     style CONFIRM_PUB   fill:#DCFCE7,stroke:#16A34A,color:#14532d
-    style CONFIRM_CLOSE fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style CONFIRM_WARN  fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style CHECK_MULTI   fill:#DCFCE7,stroke:#16A34A,color:#14532d
 
     style STATUS_OPEN   fill:#DCFCE7,stroke:#16A34A,color:#14532d
-    style STATUS_CLOSED fill:#FEE2E2,stroke:#DC2626,color:#7f1d1d
+    style PUBLISH_OPEN  fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style SAVE_GRADE    fill:#DCFCE7,stroke:#16A34A,color:#14532d
 
     style START fill:#F0FDF4,stroke:#22C55E,color:#14532d
