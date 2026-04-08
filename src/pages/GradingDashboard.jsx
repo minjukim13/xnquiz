@@ -396,7 +396,7 @@ export default function GradingDashboard() {
                       type="text"
                       value={studentSearch}
                       onChange={e => setStudentSearch(e.target.value)}
-                      placeholder="학생 이름 또는 학번"
+                      placeholder="학생 이름 또는 학번 검색"
                       className="w-full bg-white text-xs pl-8 pr-3 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100"
                       style={{ border: '1px solid #E0E0E0', color: '#222222' }}
                     />

@@ -192,7 +192,7 @@ function GradesTab({ quiz, students: allStudents }) {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9E9E9E' }} />
           <input
             type="text"
-            placeholder="이름 또는 학번 검색"
+            placeholder="학생 이름 또는 학번 검색"
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="input pl-8 py-2 text-sm w-full"

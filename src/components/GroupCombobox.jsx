@@ -104,7 +104,7 @@ export function GroupCombobox({ value = '', onChange, existingGroups = [], disab
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="검색 또는 새 그룹 입력..."
+              placeholder="검색 또는 새 그룹 입력"
               className="w-full focus:outline-none"
               style={{
                 fontSize: 13,

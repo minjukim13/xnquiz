@@ -787,7 +787,7 @@ function AssignToSelector({ selected, onChange }) {
             style={{ border: '1px solid #E0E0E0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxHeight: 200, overflowY: 'auto' }}
           >
             {filtered.length === 0 ? (
-              <div className="px-3 py-4 text-sm text-center" style={{ color: '#9E9E9E' }}>검색 결과 없음</div>
+              <div className="px-3 py-4 text-sm text-center" style={{ color: '#9E9E9E' }}>검색 결과가 없습니다</div>
             ) : (
               filtered.map(opt => (
                 <button

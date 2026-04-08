@@ -524,7 +524,7 @@ function AssignToSelector({ selected, onChange }) {
           type="text" value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder={selected.length === 0 ? '이름 또는 학번 검색' : ''}
+          placeholder={selected.length === 0 ? '학생 이름 또는 학번 검색' : ''}
           className="flex-1 min-w-16 text-xs bg-transparent focus:outline-none"
           style={{ color: '#222222' }}
         />
@@ -535,7 +535,7 @@ function AssignToSelector({ selected, onChange }) {
           <div className="absolute z-20 w-full mt-1 bg-white rounded overflow-hidden"
             style={{ border: '1px solid #E0E0E0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxHeight: 160, overflowY: 'auto' }}>
             {filtered.length === 0
-              ? <div className="px-3 py-3 text-xs text-center" style={{ color: '#9E9E9E' }}>검색 결과 없음</div>
+              ? <div className="px-3 py-3 text-xs text-center" style={{ color: '#9E9E9E' }}>검색 결과가 없습니다</div>
               : filtered.map(opt => (
                 <button key={opt.id} onMouseDown={e => { e.preventDefault(); addItem(opt) }}
                   className="w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors"

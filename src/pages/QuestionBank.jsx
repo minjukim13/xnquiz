@@ -265,7 +265,7 @@ export default function QuestionBank() {
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="문항 내용 검색..."
+                placeholder="문항 내용 검색"
                 className="w-full text-sm pl-9 pr-3 py-2 focus:outline-none"
                 style={{ background: '#FAFAFA', border: '1px solid #E0E0E0', borderRadius: 6, color: '#222222' }}
                 onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
@@ -283,7 +283,7 @@ export default function QuestionBank() {
           {filtered.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-sm mb-1" style={{ color: '#9E9E9E' }}>
-                {questions.length === 0 ? '아직 문항이 없습니다' : '검색 결과가 없습니다'}
+                {questions.length === 0 ? '아직 추가된 문항이 없습니다' : '검색 결과가 없습니다'}
               </p>
               {questions.length === 0 && (
                 <button
@@ -716,7 +716,7 @@ function DuplicateBankModal({ bank, questions, onClose, onDuplicate }) {
                     type="text"
                     value={courseSearch}
                     onChange={e => setCourseSearch(e.target.value)}
-                    placeholder="과목 검색..."
+                    placeholder="과목 검색"
                     className="w-full text-xs pl-6 pr-2 py-1.5 focus:outline-none"
                     style={{ background: '#F5F5F5', border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
                   />
@@ -1253,7 +1253,7 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
                   type="text"
                   value={courseSearch}
                   onChange={e => setCourseSearch(e.target.value)}
-                  placeholder="과목 검색..."
+                  placeholder="과목 검색"
                   className="w-full text-xs pl-7 pr-2 py-1.5 focus:outline-none"
                   style={{ background: '#F5F5F5', border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
                 />
