@@ -493,22 +493,52 @@ function StudentQuizCard({ quiz, studentId }) {
       </div>
 
       {/* 내 응시 결과 */}
-      {myAttempt && (
-        <div className="px-5 py-3" style={{ background: '#F5F7FF', borderTop: '1px solid #E8EBFF' }}>
-          <div className="flex items-center gap-4 text-xs">
-            <span style={{ color: '#4f46e5', fontWeight: 600 }}>
-              {myAttempt.totalAutoScore}점 / {myAttempt.totalPossibleAuto}점 (자동채점)
-            </span>
-            {myAttempt.manualPending > 0 && (
-              <span className="flex items-center gap-1" style={{ color: '#d97706' }}>
-                <AlertCircle size={11} />
-                수동채점 {myAttempt.manualPending}문항 대기 중
-              </span>
-            )}
-            <span style={{ color: '#9E9E9E' }}>제출 {myAttempt.submittedAt}</span>
+      {myAttempt && (() => {
+        const policy = quiz.scoreReleasePolicy
+        const now = new Date()
+        const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null
+        const inPeriod = (() => {
+          const s = quiz.scoreRevealStart ? new Date(quiz.scoreRevealStart) : null
+          const e = quiz.scoreRevealEnd   ? new Date(quiz.scoreRevealEnd)   : null
+          return (!s || now >= s) && (!e || now <= e)
+        })()
+        const released = policy === undefined ? true // 기존 mock (하위 호환)
+          : policy === 'wrong_only'  ? true
+          : policy === 'with_answer' ? true
+          : policy === 'after_due'   ? (dueDate && now >= dueDate)
+          : policy === 'period'      ? inPeriod
+          : false // null = 비공개
+
+        // 수동채점 미완료 문항 점수는 0으로 포함 (정책 결정: §4-3)
+        const autoScore = myAttempt.totalAutoScore ?? 0
+        const manualScore = myAttempt.manualPending > 0 ? 0 : (myAttempt.totalManualScore ?? 0)
+        const totalScore = autoScore + manualScore
+        const totalPossible = myAttempt.totalPossibleAuto ?? quiz.totalPoints
+
+        return (
+          <div className="px-5 py-3" style={{ background: '#F5F7FF', borderTop: '1px solid #E8EBFF' }}>
+            <div className="flex items-center gap-4 text-xs flex-wrap">
+              {released ? (
+                <span style={{ color: '#4f46e5', fontWeight: 600 }}>
+                  {totalScore}점 / {totalPossible}점
+                  {myAttempt.manualPending > 0 && <span style={{ color: '#9E9E9E', fontWeight: 400 }}> (수동채점 대기 0점 반영)</span>}
+                </span>
+              ) : (
+                <span style={{ color: '#9E9E9E' }}>
+                  {policy === null ? '성적 비공개' : '공개 예정'}
+                </span>
+              )}
+              {myAttempt.manualPending > 0 && released && (
+                <span className="flex items-center gap-1" style={{ color: '#d97706' }}>
+                  <AlertCircle size={11} />
+                  수동채점 {myAttempt.manualPending}문항 대기 중
+                </span>
+              )}
+              <span style={{ color: '#9E9E9E' }}>제출 {myAttempt.submittedAt}</span>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
