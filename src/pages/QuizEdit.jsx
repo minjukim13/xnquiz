@@ -330,8 +330,8 @@ export default function QuizEdit() {
                         </div>
                       </div>
                       {/* 공개 시점 */}
-                      <div className="p-3 rounded-lg" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
-                        <p className="text-xs font-semibold mb-2" style={{ color: '#4F46E5' }}>공개 시점</p>
+                      <div>
+                        <p className="text-xs font-semibold mb-2" style={{ color: '#616161' }}>공개 시점</p>
                         <div className="space-y-1.5">
                           {[
                             { value: 'immediately', label: '제출 즉시' },
