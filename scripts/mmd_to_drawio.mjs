@@ -2,7 +2,13 @@
 /**
  * mmd_to_drawio.mjs
  * Mermaid 플로우차트 .mmd → draw.io 편집 가능 XML(.drawio) 변환기
- * 사용법: node scripts/mmd_to_drawio.mjs
+ *
+ * 사용법:
+ *   node scripts/mmd_to_drawio.mjs          (또는 npm run convert)
+ *
+ * 출력:
+ *   docs/flowcharts/flow_0N_*.drawio        (페이지별 개별 파일)
+ *   docs/flowcharts/XN_Quizzes_화면흐름도.drawio  (4페이지 합본 — draw.io에서 바로 열기)
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -11,6 +17,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIR = join(__dirname, '../docs/flowcharts');
+const COMBINED_OUT = join(DIR, 'XN_Quizzes_화면흐름도.drawio');
 
 const FILES = [
   'flow_01_sitemap',
@@ -112,13 +119,19 @@ function parseLine(line, nodes, edges, styles) {
   parseNodeFrag(t, nodes);
 }
 
+function parseFrontmatterTitle(raw) {
+  const m = raw.match(/^---\s*\ntitle:\s*(.+)\n---/);
+  return m ? m[1].trim() : '';
+}
+
 function parseMermaid(raw) {
+  const title   = parseFrontmatterTitle(raw);
   const content = raw.replace(/^---[\s\S]*?---\s*\n/, '');
   const nodes  = new Map();
   const edges  = [];
   const styles = new Map();
   for (const line of normalizeLines(content)) parseLine(line, nodes, edges, styles);
-  return { nodes, edges, styles };
+  return { nodes, edges, styles, title };
 }
 
 // ── 2. 레이아웃 ────────────────────────────────────────────────────────────
@@ -259,23 +272,56 @@ ${cells}  </root>
 </mxGraphModel>`;
 }
 
-// ── 4. 실행 ────────────────────────────────────────────────────────────────
+// ── 4. 합본 파일 생성 ──────────────────────────────────────────────────────
+
+/** 여러 페이지를 하나의 .drawio 파일(mxfile)로 묶음 */
+function generateCombinedDrawio(pages) {
+  const diagrams = pages.map(({ name, id, xml }) =>
+    `  <diagram name="${esc(name)}" id="${id}">\n    ${xml}\n  </diagram>`
+  ).join('\n');
+
+  return `<mxfile host="app.diagrams.net" modified="${new Date().toISOString()}" agent="mmd-to-drawio" version="21.0.0" type="device">
+${diagrams}
+</mxfile>`;
+}
+
+// ── 5. 실행 ────────────────────────────────────────────────────────────────
+
+const PAGE_NAMES = [
+  '01 사이트맵',
+  '02 교수자흐름',
+  '03 학생응시',
+  '04 문제은행',
+];
 
 let ok = 0;
-for (const file of FILES) {
+const combinedPages = [];
+
+for (let i = 0; i < FILES.length; i++) {
+  const file = FILES[i];
   try {
     const raw = readFileSync(join(DIR, `${file}.mmd`), 'utf-8');
-    const { nodes, edges, styles } = parseMermaid(raw);
+    const { nodes, edges, styles, title } = parseMermaid(raw);
     const positions = computeLayout(nodes, edges);
     const xml = generateXml(nodes, edges, styles, positions);
+
+    // 개별 파일 저장
     writeFileSync(join(DIR, `${file}.drawio`), xml, 'utf-8');
-    console.log(`✓  ${file}.drawio  (노드 ${nodes.size}개, 엣지 ${edges.size}개)`);
+    console.log(`✓  ${file}.drawio  (노드 ${nodes.size}개, 엣지 ${edges.length}개)`);
+
+    // 합본용 페이지 누적
+    combinedPages.push({ name: PAGE_NAMES[i] || file, id: `p0${i + 1}`, xml });
     ok++;
   } catch (e) {
     console.error(`✗  ${file}: ${e.message}`);
   }
 }
+
+// 합본 파일 저장
+if (combinedPages.length > 0) {
+  writeFileSync(COMBINED_OUT, generateCombinedDrawio(combinedPages), 'utf-8');
+  console.log(`\n✓  XN_Quizzes_화면흐름도.drawio  (${combinedPages.length}페이지 합본)`);
+}
+
 console.log(`\n완료: ${ok}/${FILES.length} 파일 변환`);
-console.log(`저장 위치: docs/flowcharts/*.drawio`);
-console.log(`\ndraw.io에서 열기:`);
-console.log(`  파일 → 열기 → 이 장치에서 → .drawio 파일 선택`);
+console.log(`저장 위치: docs/flowcharts/`);
