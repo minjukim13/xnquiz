@@ -45,12 +45,9 @@ export default function QuizEdit() {
   // 표시 설정
   const [shuffleChoices, setShuffleChoices] = useState(false)
   const [shuffleQuestions, setShuffleQuestions] = useState(false)
-  const [showWrongAnswer, setShowWrongAnswer] = useState(false)
-  const [showWrongAnswerOnce, setShowWrongAnswerOnce] = useState(false)
-  const [showScore, setShowScore] = useState(false)
-  const [showAnswer, setShowAnswer] = useState(false)
-  const [scoreRevealStartDate, setScoreRevealStartDate] = useState('')
-  const [scoreRevealEndDate, setScoreRevealEndDate] = useState('')
+  const [scoreReleasePolicy, setScoreReleasePolicy] = useState(quiz.scoreReleasePolicy ?? null)
+  const [scoreRevealStart, setScoreRevealStart] = useState(quiz.scoreRevealStart ?? '')
+  const [scoreRevealEnd, setScoreRevealEnd] = useState(quiz.scoreRevealEnd ?? '')
 
   // 퀴즈 접근 제한
   const [accessCode, setAccessCode] = useState('')
@@ -109,6 +106,9 @@ export default function QuizEdit() {
         timeLimit: timeLimitType === -1 ? Number(timeLimitCustom) : timeLimitType,
         allowAttempts,
         scorePolicy,
+        scoreReleasePolicy,
+        scoreRevealStart: scoreReleasePolicy === 'period' ? scoreRevealStart || null : null,
+        scoreRevealEnd:   scoreReleasePolicy === 'period' ? scoreRevealEnd   || null : null,
       }
     }
     navigate('/')
@@ -293,41 +293,42 @@ export default function QuizEdit() {
                 <Toggle checked={shuffleChoices} onChange={setShuffleChoices} label="선택지 무작위 배열" />
                 <Toggle checked={shuffleQuestions} onChange={setShuffleQuestions} label="문항 순서 무작위" />
 
-                {/* 오답 여부 표시 */}
+                {/* 성적공개 정책 */}
                 <div className="space-y-2">
-                  <Toggle checked={showWrongAnswer} onChange={setShowWrongAnswer} label="오답 여부 표시" />
-                  {showWrongAnswer && (
-                    <div className="ml-10 pl-3 py-2 space-y-1" style={{ borderLeft: '2px solid #E0E0E0' }}>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={showWrongAnswerOnce} onChange={e => setShowWrongAnswerOnce(e.target.checked)} className="rounded" style={{ accentColor: '#6366f1' }} />
-                        <span className="text-xs" style={{ color: '#424242' }}>응시 직후 1회만 표시</span>
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                {/* 점수 공개 */}
-                <div className="space-y-2">
-                  <Toggle checked={showScore} onChange={setShowScore} label="점수 공개" />
-                  {showScore && (
-                    <div className="ml-10 pl-3 py-2 space-y-2.5" style={{ borderLeft: '2px solid #E0E0E0' }}>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={showAnswer} onChange={e => setShowAnswer(e.target.checked)} className="rounded" style={{ accentColor: '#6366f1' }} />
-                        <span className="text-xs" style={{ color: '#424242' }}>정답 공개</span>
-                      </label>
-                      <div>
-                        <p className="text-xs font-medium mb-1.5" style={{ color: '#616161' }}>공개 기간 (선택)</p>
-                        <div className="space-y-1.5">
-                          <div>
-                            <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>시작일</label>
-                            <input type="datetime-local" value={scoreRevealStartDate} onChange={e => setScoreRevealStartDate(e.target.value)} className="input text-xs" />
-                          </div>
-                          <div>
-                            <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>마감일</label>
-                            <input type="datetime-local" value={scoreRevealEndDate} onChange={e => setScoreRevealEndDate(e.target.value)} className="input text-xs" />
-                          </div>
+                  <p className="text-sm font-medium" style={{ color: '#212121' }}>성적공개 정책</p>
+                  <div className="space-y-2">
+                    {[
+                      { value: null,          label: '비공개',          desc: '성적·정오답·정답 모두 공개하지 않습니다' },
+                      { value: 'wrong_only',  label: '오답여부만 공개', desc: '정오답(✓/✗)만 표시. 정답은 공개하지 않습니다' },
+                      { value: 'with_answer', label: '정답까지 공개',   desc: '정오답과 함께 정답·해설을 즉시 공개합니다' },
+                      { value: 'after_due',   label: '마감 후 자동공개',desc: '마감일 경과 후 정오답·정답·점수를 자동 공개합니다' },
+                      { value: 'period',      label: '기간 설정',       desc: '지정한 기간에만 정오답·정답·점수를 공개합니다' },
+                    ].map(opt => (
+                      <label key={String(opt.value)} className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="scoreReleasePolicyEdit"
+                          checked={scoreReleasePolicy === opt.value}
+                          onChange={() => setScoreReleasePolicy(opt.value)}
+                          className="mt-0.5"
+                          style={{ accentColor: '#6366f1' }}
+                        />
+                        <div>
+                          <span className="text-xs font-medium" style={{ color: '#212121' }}>{opt.label}</span>
+                          <p className="text-xs" style={{ color: '#9E9E9E' }}>{opt.desc}</p>
                         </div>
-                        <p className="text-xs mt-1.5" style={{ color: '#9E9E9E' }}>미설정 시 마감 후 즉시 공개</p>
+                      </label>
+                    ))}
+                  </div>
+                  {scoreReleasePolicy === 'period' && (
+                    <div className="ml-5 pl-3 py-2 space-y-1.5" style={{ borderLeft: '2px solid #E0E0E0' }}>
+                      <div>
+                        <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
+                        <input type="datetime-local" value={scoreRevealStart} onChange={e => setScoreRevealStart(e.target.value)} className="input text-xs" />
+                      </div>
+                      <div>
+                        <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 종료일</label>
+                        <input type="datetime-local" value={scoreRevealEnd} onChange={e => setScoreRevealEnd(e.target.value)} className="input text-xs" />
                       </div>
                     </div>
                   )}
