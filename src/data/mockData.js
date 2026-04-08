@@ -54,6 +54,7 @@ export const mockQuizzes = [
     avgScore: 38.2,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
+    scoreReleasePolicy: 'wrong_only',  // [테스트] 오답여부만 공개
   },
   {
     id: '3',
@@ -72,6 +73,7 @@ export const mockQuizzes = [
     totalPoints: 20,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 3,
+    scoreReleasePolicy: 'after_due',   // [테스트] 마감 후 자동공개
   },
   {
     id: '4',
@@ -110,6 +112,7 @@ export const mockQuizzes = [
     avgScore: 15.4,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 2,
+    scoreReleasePolicy: 'with_answer', // [테스트] 정답까지 공개
   },
   {
     id: '6',
@@ -168,6 +171,9 @@ export const mockQuizzes = [
     avgScore: 34.9,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
+    scoreReleasePolicy: 'period',      // [테스트] 기간 설정
+    scoreRevealStart: '2026-04-01 00:00',
+    scoreRevealEnd:   '2026-04-30 23:59',
   },
 ]
 
