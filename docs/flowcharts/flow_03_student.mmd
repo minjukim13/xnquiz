@@ -16,9 +16,15 @@ flowchart TD
 
     SEC -->|closed 또는 grading| SEC_CLOSED["`**종료 섹션**
     상태 배지: 종료(회색)
-    내 응시 결과 인라인 표시:
-    자동채점 점수 / 수동채점 대기 건수
     제출 일시`"]
+
+    SEC_CLOSED --> POLICY_CHECK{성적공개 정책}
+    POLICY_CHECK -->|비공개| HIDDEN["`점수·정오답·정답 미표시`"]
+    POLICY_CHECK -->|오답여부만| SHOW_WRONG["`정오답(✓/✗) 표시
+    정답 비공개`"]
+    POLICY_CHECK -->|정답까지·마감후·기간내| SHOW_FULL["`점수 + 정오답(✓/✗) + 정답 표시
+    수동채점 대기 건수 안내`"]
+    POLICY_CHECK -->|기간 외| HIDDEN
 
     %% ── 응시하기 / 재응시 버튼 분기 ─────────────
     SEC_OPEN --> CHECK_ATTEMPTS{응시 횟수 확인}
@@ -80,6 +86,9 @@ flowchart TD
 
     RESULT_MODAL -->|퀴즈 목록으로| QL
 
+    %% ── 제출 완료 모달 성적 표시도 동일 정책 적용 ──
+    RESULT_MODAL -.->|동일 정책 적용| POLICY_CHECK
+
     %% ── 제출 후 카드 상태 변화 ──────────────────
     QL -.->|재접속 시 반영| SEC_CLOSED
 
@@ -104,5 +113,9 @@ flowchart TD
     style CHECK_ATTEMPTS   fill:#DCFCE7,stroke:#16A34A,color:#14532d
     style Q_TYPE           fill:#DCFCE7,stroke:#16A34A,color:#14532d
     style SEC              fill:#DCFCE7,stroke:#16A34A,color:#14532d
+    style POLICY_CHECK     fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    style HIDDEN           fill:#F1F5F9,stroke:#94A3B8,color:#334155
+    style SHOW_WRONG       fill:#FEF9C3,stroke:#CA8A04,color:#713f12
+    style SHOW_FULL        fill:#DCFCE7,stroke:#16A34A,color:#14532d
 
     style START fill:#F0FDF4,stroke:#22C55E,color:#14532d

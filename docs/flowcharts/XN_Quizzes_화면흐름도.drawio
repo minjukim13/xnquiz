@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2026-04-08T03:47:03.227Z" agent="mmd-to-drawio" version="21.0.0" type="device">
+<mxfile host="app.diagrams.net" modified="2026-04-08T05:23:41.508Z" agent="mmd-to-drawio" version="21.0.0" type="device">
   <diagram name="01 사이트맵" id="p01">
     <mxGraphModel dx="2400" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="1169" math="0" shadow="0">
   <root>
@@ -374,103 +374,121 @@
   <root>
     <mxCell id="0" />
     <mxCell id="1" parent="0" />
-    <mxCell id="e26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n2" target="n3" parent="1">
+    <mxCell id="e30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n2" target="n3" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n3" target="n4" parent="1">
+    <mxCell id="e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n3" target="n4" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e28" value="open" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n4" target="n5" parent="1">
+    <mxCell id="e32" value="open" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n4" target="n5" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e29" value="closed 또는 grading" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n4" target="n6" parent="1">
+    <mxCell id="e33" value="closed 또는 grading" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n4" target="n6" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n5" target="n7" parent="1">
+    <mxCell id="e34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n6" target="n7" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e31" value="allowAttempts 미초과 + 첫 응시" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n7" target="n8" parent="1">
+    <mxCell id="e35" value="비공개" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n7" target="n8" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e32" value="allowAttempts 미초과 + 재응시" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n7" target="n9" parent="1">
+    <mxCell id="e36" value="오답여부만" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n7" target="n9" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e33" value="allowAttempts 초과" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n7" target="n10" parent="1">
+    <mxCell id="e37" value="정답까지·마감후·기간내" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n7" target="n10" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n8" target="n11" parent="1">
+    <mxCell id="e38" value="기간 외" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n7" target="n8" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n9" target="n11" parent="1">
+    <mxCell id="e39" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n5" target="n11" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n11" target="n12" parent="1">
+    <mxCell id="e40" value="allowAttempts 미초과 + 첫 응시" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n11" target="n12" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e37" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n12" target="n13" parent="1">
+    <mxCell id="e41" value="allowAttempts 미초과 + 재응시" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n11" target="n13" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e38" value="객관식 / 참거짓" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n13" target="n14" parent="1">
+    <mxCell id="e42" value="allowAttempts 초과" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n11" target="n14" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e39" value="단답형" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n13" target="n15" parent="1">
+    <mxCell id="e43" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n12" target="n15" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e40" value="서술형" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n13" target="n16" parent="1">
+    <mxCell id="e44" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n13" target="n15" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e41" value="수치형" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n13" target="n17" parent="1">
+    <mxCell id="e45" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n15" target="n16" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e42" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n14" target="n18" parent="1">
+    <mxCell id="e46" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n16" target="n17" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e43" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n15" target="n18" parent="1">
+    <mxCell id="e47" value="객관식 / 참거짓" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n17" target="n18" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e44" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n16" target="n18" parent="1">
+    <mxCell id="e48" value="단답형" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n17" target="n19" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e45" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n17" target="n18" parent="1">
+    <mxCell id="e49" value="서술형" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n17" target="n20" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e46" value="다음 문항" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n18" target="n12" parent="1">
+    <mxCell id="e50" value="수치형" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n17" target="n21" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e47" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n11" target="n19" parent="1">
+    <mxCell id="e51" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n18" target="n22" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e48" value="5분 미만" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n19" target="n20" parent="1">
+    <mxCell id="e52" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n19" target="n22" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e49" value="0초 도달" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n19" target="n21" parent="1">
+    <mxCell id="e53" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n20" target="n22" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e50" value="제출하기 버튼" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n12" target="n22" parent="1">
+    <mxCell id="e54" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n21" target="n22" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e51" value="있음" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n22" target="n23" parent="1">
+    <mxCell id="e55" value="다음 문항" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n22" target="n16" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e52" value="계속 진행" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n23" target="n24" parent="1">
+    <mxCell id="e56" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n15" target="n23" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e53" value="취소" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n23" target="n12" parent="1">
+    <mxCell id="e57" value="5분 미만" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n23" target="n24" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e54" value="없음" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n22" target="n24" parent="1">
+    <mxCell id="e58" value="0초 도달" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n23" target="n25" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e55" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n21" target="n24" parent="1">
+    <mxCell id="e59" value="제출하기 버튼" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n16" target="n26" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e56" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n24" target="n25" parent="1">
+    <mxCell id="e60" value="있음" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n26" target="n27" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e57" value="퀴즈 목록으로" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n25" target="n3" parent="1">
+    <mxCell id="e61" value="계속 진행" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n27" target="n28" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="e58" value="재접속 시 반영" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n3" target="n6" parent="1">
+    <mxCell id="e62" value="취소" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n27" target="n16" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e63" value="없음" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n26" target="n28" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e64" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n25" target="n28" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e65" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n28" target="n29" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e66" value="퀴즈 목록으로" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n29" target="n3" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e67" value="동일 정책 적용" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n29" target="n7" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e68" value="재접속 시 반영" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=11;fontFamily=Pretendard,sans-serif;labelBackgroundColor=#FFFFFF;labelBorderColor=#CCCCCC;" edge="1" source="n3" target="n6" parent="1">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
     <mxCell id="n2" value="학생 진입" style="ellipse;fillColor=#F0FDF4;strokeColor=#22C55E;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
@@ -485,64 +503,76 @@
     <mxCell id="n5" value="응시 가능 섹션 상태 배지: 응시중(녹색) D-day 배지 (진행중 퀴즈) 스펙: 문항수 / 총점 / 시간제한 내 응시 배지: 채점 대기 / 채점 완료" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="1020" y="60" width="942" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n6" value="종료 섹션 상태 배지: 종료(회색) 내 응시 결과 인라인 표시: 자동채점 점수 / 수동채점 대기 건수 제출 일시" style="rounded=1;arcSize=10;fillColor=#F1F5F9;strokeColor=#94A3B8;fontColor=#334155;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-      <mxGeometry x="700" y="200" width="736" height="50" as="geometry" />
+    <mxCell id="n6" value="종료 섹션 상태 배지: 종료(회색) 제출 일시" style="rounded=1;arcSize=10;fillColor=#F1F5F9;strokeColor=#94A3B8;fontColor=#334155;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="700" y="200" width="320" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n7" value="응시 횟수 확인" style="rhombus;verticalLabelPosition=middle;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n7" value="성적공개 정책" style="rhombus;verticalLabelPosition=middle;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="1020" y="200" width="180" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="n8" value="점수·정오답·정답 미표시" style="rounded=1;arcSize=10;fillColor=#F1F5F9;strokeColor=#94A3B8;fontColor=#334155;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="1340" y="200" width="220" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="n9" value="정오답(✓/✗) 표시 정답 비공개" style="rounded=1;arcSize=10;fillColor=#FEF9C3;strokeColor=#CA8A04;fontColor=#713f12;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="1340" y="340" width="234" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="n10" value="점수 + 정오답(✓/✗) + 정답 표시 수동채점 대기 건수 안내" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="1340" y="480" width="415" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="n11" value="응시 횟수 확인" style="rhombus;verticalLabelPosition=middle;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="1340" y="60" width="180" height="80" as="geometry" />
     </mxCell>
-    <mxCell id="n8" value="응시하기 버튼 (활성)" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n12" value="응시하기 버튼 (활성)" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="1660" y="60" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n9" value="재응시 버튼 (활성)" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n13" value="재응시 버튼 (활성)" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="1660" y="200" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n10" value="응시하기 버튼 비활성화(회색) 호버 툴팁: '응시 가능 횟수(N회)를 초과했습니다" style="rounded=1;arcSize=10;fillColor=#F1F5F9;strokeColor=#94A3B8;fontColor=#334155;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n14" value="응시하기 버튼 비활성화(회색) 호버 툴팁: '응시 가능 횟수(N회)를 초과했습니다" style="rounded=1;arcSize=10;fillColor=#F1F5F9;strokeColor=#94A3B8;fontColor=#334155;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="1660" y="340" width="550" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n11" value="QA" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n15" value="QA" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="1980" y="60" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n12" value="문항 순차 표시 유형별 입력 영역" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n16" value="문항 순차 표시 유형별 입력 영역" style="rounded=1;arcSize=10;fillColor=#EEF2FF;strokeColor=#6366F1;fontColor=#1e1b4b;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2300" y="60" width="249" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n13" value="문항 유형" style="rhombus;verticalLabelPosition=middle;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n17" value="문항 유형" style="rhombus;verticalLabelPosition=middle;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2620" y="60" width="180" height="80" as="geometry" />
     </mxCell>
-    <mxCell id="n14" value="라디오 버튼 선택" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n18" value="라디오 버튼 선택" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2940" y="60" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n15" value="단답 텍스트 입력" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n19" value="단답 텍스트 입력" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2940" y="200" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n16" value="서술 텍스트 입력" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n20" value="서술 텍스트 입력" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2940" y="340" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n17" value="숫자 입력" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n21" value="숫자 입력" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2940" y="480" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n18" value="답변완료 표시" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n22" value="답변완료 표시" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="3260" y="60" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n19" value="타이머 카운트다운" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n23" value="타이머 카운트다운" style="rounded=1;arcSize=10;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2300" y="200" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n20" value="타이머 빨간색으로 변경" style="rounded=1;arcSize=10;fillColor=#FEE2E2;strokeColor=#DC2626;fontColor=#7f1d1d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n24" value="타이머 빨간색으로 변경" style="rounded=1;arcSize=10;fillColor=#FEE2E2;strokeColor=#DC2626;fontColor=#7f1d1d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2620" y="340" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n21" value="자동 제출 처리" style="rounded=1;arcSize=10;fillColor=#FEE2E2;strokeColor=#DC2626;fontColor=#7f1d1d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n25" value="자동 제출 처리" style="rounded=1;arcSize=10;fillColor=#FEE2E2;strokeColor=#DC2626;fontColor=#7f1d1d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2620" y="480" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n22" value="미답변 문항 있음?" style="rhombus;verticalLabelPosition=middle;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n26" value="미답변 문항 있음?" style="rhombus;verticalLabelPosition=middle;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2620" y="200" width="180" height="80" as="geometry" />
     </mxCell>
-    <mxCell id="n23" value="경고 메시지 '미답변 문항이 X개 있습니다' 계속 진행 / 취소" style="rounded=1;arcSize=10;fillColor=#FEE2E2;strokeColor=#DC2626;fontColor=#7f1d1d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n27" value="경고 메시지 '미답변 문항이 X개 있습니다' 계속 진행 / 취소" style="rounded=1;arcSize=10;fillColor=#FEE2E2;strokeColor=#DC2626;fontColor=#7f1d1d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2940" y="620" width="430" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n24" value="SUBMIT" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n28" value="SUBMIT" style="rounded=1;arcSize=10;fillColor=#DCFCE7;strokeColor=#16A34A;fontColor=#14532d;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="2940" y="760" width="220" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="n25" value="제출 완료 모달 자동채점 점수 / 총점 수동채점 대기 문항 수 안내 소요 시간 / 제출 일시" style="rounded=1;arcSize=10;fillColor=#FEF9C3;strokeColor=#CA8A04;fontColor=#713f12;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+    <mxCell id="n29" value="제출 완료 모달 자동채점 점수 / 총점 수동채점 대기 문항 수 안내 소요 시간 / 제출 일시" style="rounded=1;arcSize=10;fillColor=#FEF9C3;strokeColor=#CA8A04;fontColor=#713f12;fontFamily=Pretendard,sans-serif;fontSize=12;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
       <mxGeometry x="3260" y="200" width="613" height="50" as="geometry" />
     </mxCell>
   </root>
