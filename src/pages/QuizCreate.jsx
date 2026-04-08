@@ -485,19 +485,19 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
                     { value: 'after_due',   label: '마감 후',   desc: '퀴즈 마감일이 지나면 자동으로 공개됩니다' },
                     { value: 'period',      label: '기간 설정', desc: '지정한 기간에만 공개됩니다' },
                   ].map(opt => (
-                    <label key={opt.value} className="flex items-start gap-2.5 cursor-pointer py-1.5 px-0.5">
-                      <input
-                        type="radio"
-                        name="scoreRevealTiming"
-                        checked={form.scoreRevealTiming === opt.value}
-                        onChange={() => set('scoreRevealTiming', opt.value)}
-                        className="mt-0.5 shrink-0"
-                        style={{ accentColor: '#6366f1' }}
-                      />
-                      <div>
+                    <label key={opt.value} className="flex flex-col gap-0.5 cursor-pointer py-1.5">
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="scoreRevealTiming"
+                          checked={form.scoreRevealTiming === opt.value}
+                          onChange={() => set('scoreRevealTiming', opt.value)}
+                          className="shrink-0"
+                          style={{ accentColor: '#6366f1' }}
+                        />
                         <span className="text-sm font-medium" style={{ color: '#212121' }}>{opt.label}</span>
-                        <p className="text-xs" style={{ color: '#9E9E9E' }}>{opt.desc}</p>
                       </div>
+                      <p className="text-xs" style={{ color: '#9E9E9E', paddingLeft: '22px' }}>{opt.desc}</p>
                     </label>
                   ))}
                 </div>
