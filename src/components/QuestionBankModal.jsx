@@ -235,7 +235,7 @@ export default function QuestionBankModal({ onClose, onAdd, added, currentCourse
                   type="text"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setVisibleCount(15) }}
-                  placeholder="문항 내용 검색..."
+                  placeholder="문항 내용 검색"
                   className="w-full text-sm pl-9 pr-3 py-2 focus:outline-none"
                   style={{ background: '#FAFAFA', border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
                 />
@@ -367,7 +367,7 @@ export default function QuestionBankModal({ onClose, onAdd, added, currentCourse
                   onMouseEnter={e => { if (checked.size > 0) e.currentTarget.style.background = '#4f46e5' }}
                   onMouseLeave={e => e.currentTarget.style.background = '#6366f1'}
                 >
-                  {checked.size > 0 ? `${checked.size}개 추가하기` : '추가하기'}
+                  {checked.size > 0 ? `${checked.size}개 추가` : '추가'}
                 </button>
             </div>
           </>
