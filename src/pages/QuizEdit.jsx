@@ -1,11 +1,20 @@
 import { useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, GripVertical, Trash2, BookOpen, Settings2 } from 'lucide-react'
+import { Plus, GripVertical, Trash2, BookOpen, RefreshCw, CheckCircle2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import CustomSelect from '../components/CustomSelect'
 import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, mockStudents } from '../data/mockData'
+
+const WEEK_OPTIONS = [
+  { value: null, label: '선택 안함' },
+  ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` })),
+]
+const SESSION_OPTIONS = [
+  { value: null, label: '선택 안함' },
+  ...[1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` })),
+]
 
 const TIME_LIMIT_OPTIONS = [
   { value: 0,   label: '제한 없음' },
@@ -35,6 +44,12 @@ export default function QuizEdit() {
   // 기본 정보
   const [title, setTitle] = useState(quiz.title ?? '')
   const [description, setDescription] = useState(quiz.description ?? '')
+  const [week, setWeek] = useState(quiz.week ?? null)
+  const [session, setSession] = useState(quiz.session ?? null)
+
+  // 지각 제출
+  const [allowLateSubmit, setAllowLateSubmit] = useState(quiz.allowLateSubmit ?? false)
+  const [lateSubmitHours, setLateSubmitHours] = useState(quiz.lateSubmitHours ? String(quiz.lateSubmitHours) : '')
 
   // 응시 설정
   const [timeLimitType, setTimeLimitType] = useState(quiz.timeLimit ?? 60)
@@ -95,6 +110,16 @@ export default function QuizEdit() {
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
   const isMultiAttempt = allowAttempts >= 2 || allowAttempts === -1
 
+  // 재채점
+  const [regradeTarget, setRegradeTarget] = useState(null) // { id, text }
+  const [regradeSuccess, setRegradeSuccess] = useState(null) // question id
+  const handleRegrade = (q) => setRegradeTarget(q)
+  const confirmRegrade = () => {
+    setRegradeSuccess(regradeTarget.id)
+    setRegradeTarget(null)
+    setTimeout(() => setRegradeSuccess(null), 2500)
+  }
+
   const handleSave = () => {
     const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
     if (idx !== -1) {
@@ -102,12 +127,16 @@ export default function QuizEdit() {
         ...mockQuizzes[idx],
         title,
         description,
+        week: week ?? null,
+        session: session ?? null,
         status: quiz.status === 'draft' ? 'open' : quiz.status,
         questions: questions.length,
         totalPoints,
         timeLimit: timeLimitType === -1 ? Number(timeLimitCustom) : timeLimitType,
         allowAttempts,
         scorePolicy,
+        allowLateSubmit,
+        lateSubmitHours: allowLateSubmit && lateSubmitHours ? Number(lateSubmitHours) : null,
         scoreRevealEnabled,
         scoreRevealScope:  scoreRevealEnabled ? scoreRevealScope  : null,
         scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null,
@@ -206,16 +235,35 @@ export default function QuizEdit() {
                         )}
                       </div>
                       <p className="text-sm line-clamp-2" style={{ color: '#424242' }}>{q.text}</p>
+                      {regradeSuccess === q.id && (
+                        <p className="text-xs flex items-center gap-1 mt-1" style={{ color: '#018600' }}>
+                          <CheckCircle2 size={11} />재채점 완료
+                        </p>
+                      )}
                     </div>
-                    <button
-                      onClick={() => removeQuestion(q.id)}
-                      className="shrink-0 transition-colors opacity-0 group-hover:opacity-100 p-1"
-                      style={{ color: '#BDBDBD' }}
-                      onMouseEnter={e => e.currentTarget.style.color = '#EF2B2A'}
-                      onMouseLeave={e => e.currentTarget.style.color = '#BDBDBD'}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                      {QUIZ_TYPES[q.type]?.autoGrade !== false && QUIZ_TYPES[q.type]?.autoGrade !== null && (
+                        <button
+                          onClick={() => handleRegrade(q)}
+                          title="이 문항 재채점"
+                          className="p-1 transition-colors"
+                          style={{ color: '#BDBDBD' }}
+                          onMouseEnter={e => e.currentTarget.style.color = '#6366f1'}
+                          onMouseLeave={e => e.currentTarget.style.color = '#BDBDBD'}
+                        >
+                          <RefreshCw size={13} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => removeQuestion(q.id)}
+                        className="p-1 transition-colors"
+                        style={{ color: '#BDBDBD' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#EF2B2A'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#BDBDBD'}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -245,6 +293,14 @@ export default function QuizEdit() {
                   placeholder="학생에게 표시될 퀴즈 설명 (선택)"
                 />
               </SettingField>
+              <div className="grid grid-cols-2 gap-2">
+                <SettingField label="주차">
+                  <CustomSelect value={week} onChange={setWeek} options={WEEK_OPTIONS} placeholder="선택 안함" />
+                </SettingField>
+                <SettingField label="차시">
+                  <CustomSelect value={session} onChange={setSession} options={SESSION_OPTIONS} placeholder="선택 안함" />
+                </SettingField>
+              </div>
             </SettingCard>
 
             {/* 퀴즈 유형 */}
@@ -289,6 +345,32 @@ export default function QuizEdit() {
                   <CustomSelect value={scorePolicy} onChange={setScorePolicy} options={SCORE_POLICIES} />
                 </SettingField>
               )}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allowLateSubmit}
+                    onChange={e => setAllowLateSubmit(e.target.checked)}
+                    className="rounded"
+                    style={{ accentColor: '#6366f1' }}
+                  />
+                  <span className="text-xs" style={{ color: '#616161' }}>마감 후 지각 제출 허용</span>
+                </label>
+                {allowLateSubmit && (
+                  <div className="flex items-center gap-2 pl-5">
+                    <input
+                      type="number"
+                      value={lateSubmitHours}
+                      onChange={e => setLateSubmitHours(e.target.value)}
+                      placeholder="예: 24"
+                      min={1}
+                      className="input w-20 text-xs"
+                    />
+                    <span className="text-xs" style={{ color: '#616161' }}>시간</span>
+                    <span className="text-xs" style={{ color: '#9E9E9E' }}>(비우면 무제한)</span>
+                  </div>
+                )}
+              </div>
             </SettingCard>
 
             {/* 표시 설정 */}
@@ -447,6 +529,44 @@ export default function QuizEdit() {
           onClose={() => setShowAddModal(false)}
           onAdd={addNewQuestion}
         />
+      )}
+
+      {/* 재채점 확인 다이얼로그 */}
+      {regradeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-sm font-bold mb-2" style={{ color: '#222222' }}>문항 재채점</h3>
+            <p className="text-sm mb-1" style={{ color: '#424242' }}>
+              다음 문항의 현재 정답 기준으로 모든 제출 기록을 재채점합니다.
+            </p>
+            <p className="text-xs px-3 py-2 rounded mb-4 line-clamp-2" style={{ background: '#F5F5F5', color: '#616161' }}>
+              {regradeTarget.text}
+            </p>
+            <p className="text-xs mb-4" style={{ color: '#9E9E9E' }}>
+              진행 중인 응시 세션은 제외되며, 이미 제출된 응답에만 소급 적용됩니다.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setRegradeTarget(null)}
+                className="text-sm px-4 py-2 rounded transition-colors"
+                style={{ color: '#9E9E9E', border: '1px solid #E0E0E0' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmRegrade}
+                className="text-sm px-4 py-2 rounded text-white transition-colors"
+                style={{ background: '#6366f1' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#4F46E5'}
+                onMouseLeave={e => e.currentTarget.style.background = '#6366f1'}
+              >
+                재채점 실행
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   )

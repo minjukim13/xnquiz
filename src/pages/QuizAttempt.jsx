@@ -413,8 +413,10 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
 
 function ResultModal({ result, quiz, questions, onClose }) {
   const autoTotal = result.totalAutoScore
-  const autoMax = result.totalPossibleAuto
-  const hasAutoGrade = autoMax > 0
+  // 미채점=0 정책: 수동채점 대기 문항도 0점으로 계산하여 전체 배점 기준으로 표시
+  const totalPoints = quiz.totalPoints || questions.reduce((s, q) => s + q.points, 0)
+  const autoMax = totalPoints > 0 ? totalPoints : result.totalPossibleAuto
+  const hasAutoGrade = (quiz.totalPoints || questions.reduce((s, q) => s + q.points, 0)) > 0
   const scorePercent = hasAutoGrade ? Math.round((autoTotal / autoMax) * 100) : null
 
   // 성적공개 정책 기반 visibility 판단

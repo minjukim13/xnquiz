@@ -10,11 +10,11 @@ import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 
 // ── 옵션 상수 ──────────────────────────────────────────────────────────────
 const WEEK_OPTIONS = [
-  { value: 0, label: '연결 안함' },
+  { value: null, label: '선택 안함' },
   ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` })),
 ]
 const SESSION_OPTIONS = [
-  { value: 0, label: '연결 안함' },
+  { value: null, label: '선택 안함' },
   ...[1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` })),
 ]
 const TIME_LIMIT_OPTIONS = [
@@ -45,8 +45,8 @@ export default function QuizCreate() {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    week: '',
-    session: '',
+    week: null,
+    session: null,
     startDate: '',
     dueDate: '',
     timeLimitType: 60,
@@ -66,6 +66,7 @@ export default function QuizCreate() {
     ipRestriction: '',
     assignments: [],
     allowLateSubmit: false,
+    lateSubmitHours: '',
     notice: DEFAULT_NOTICE,
   })
   const [questions, setQuestions] = useState([])
@@ -187,8 +188,8 @@ export default function QuizCreate() {
                       status: 'open',
                       startDate: form.startDate,
                       dueDate: form.dueDate,
-                      week: form.week || null,
-                      session: form.session || null,
+                      week: form.week ?? null,
+                      session: form.session ?? null,
                       timeLimit: form.timeLimitType === -1
                         ? Number(form.timeLimitCustom) || 0
                         : form.timeLimitType,
@@ -207,6 +208,7 @@ export default function QuizCreate() {
                       ipRestriction: form.ipRestriction || null,
                       assignments: form.assignments.filter(a => a.assignTo.length > 0),
                       allowLateSubmit: form.allowLateSubmit,
+                      lateSubmitHours: form.allowLateSubmit && form.lateSubmitHours ? Number(form.lateSubmitHours) : null,
                       notice: form.notice,
                       totalStudents: 0,
                       submitted: 0,
@@ -373,16 +375,32 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
             <input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className="input" />
           </Field>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer mt-1">
-          <input
-            type="checkbox"
-            checked={form.allowLateSubmit}
-            onChange={e => set('allowLateSubmit', e.target.checked)}
-            className="rounded text-indigo-500"
-            style={{ borderColor: '#BDBDBD' }}
-          />
-          <span className="text-sm" style={{ color: '#616161' }}>마감 후 지각 제출 허용</span>
-        </label>
+        <div className="mt-1 space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.allowLateSubmit}
+              onChange={e => set('allowLateSubmit', e.target.checked)}
+              className="rounded text-indigo-500"
+              style={{ borderColor: '#BDBDBD' }}
+            />
+            <span className="text-sm" style={{ color: '#616161' }}>마감 후 지각 제출 허용</span>
+          </label>
+          {form.allowLateSubmit && (
+            <div className="flex items-center gap-2 pl-6">
+              <input
+                type="number"
+                value={form.lateSubmitHours}
+                onChange={e => set('lateSubmitHours', e.target.value)}
+                placeholder="예: 24"
+                min={1}
+                className="input w-24 text-sm"
+              />
+              <span className="text-sm" style={{ color: '#616161' }}>시간까지 허용</span>
+              <span className="text-xs" style={{ color: '#9E9E9E' }}>(비우면 무제한)</span>
+            </div>
+          )}
+        </div>
       </Section>
 
       {/* 응시 설정 */}
