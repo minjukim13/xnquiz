@@ -463,29 +463,30 @@ function ResetNotice() {
     ['응시 기간', '설정 안함'],
     ['성적 공개 정책', '공개 안함'],
     ['지각 제출', '비활성화'],
-    ['접근 코드 / IP 제한', '제거'],
+    ['접근 코드 · IP 제한', '제거'],
     ['추가 기간 설정', '설정 안함'],
   ]
   return (
-    <div className="rounded-md overflow-hidden" style={{ border: '1px solid #C7D2FE' }}>
-      <div className="px-3 py-2.5" style={{ background: '#EEF2FF' }}>
-        <p className="text-xs font-semibold" style={{ color: '#4338CA' }}>복사 후 직접 설정이 필요한 항목</p>
-        <p className="text-xs mt-0.5" style={{ color: '#818CF8' }}>아래 항목은 초기화된 상태로 저장됩니다. 복사 후 퀴즈 편집에서 설정하세요.</p>
+    <div style={{ borderRadius: 6, border: '1px solid #E8E8E8', overflow: 'hidden' }}>
+      <div style={{ padding: '7px 12px', background: '#F5F5F5', borderBottom: '1px solid #EEEEEE' }}>
+        <p style={{ fontSize: 11, fontWeight: 600, color: '#757575', lineHeight: 1.4 }}>
+          복사 후 초기화되는 항목 — 퀴즈 편집에서 직접 설정하세요
+        </p>
       </div>
-      <div style={{ background: '#F5F7FF' }}>
+      <div style={{ background: '#FAFAFA' }}>
         {items.map(([label, value], idx) => (
           <div
             key={label}
-            className="flex items-center justify-between px-3 py-2"
-            style={{ borderTop: idx === 0 ? 'none' : '1px solid #E0E7FF' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 12px',
+              borderTop: idx > 0 ? '1px solid #F0F0F0' : 'none',
+            }}
           >
-            <span className="text-xs" style={{ color: '#374151' }}>{label}</span>
-            <span
-              className="text-xs font-semibold px-2 py-0.5 rounded-full"
-              style={{ background: '#E0E7FF', color: '#6366F1' }}
-            >
-              {value}
-            </span>
+            <span style={{ fontSize: 12, color: '#424242' }}>{label}</span>
+            <span style={{ fontSize: 11, color: '#BDBDBD' }}>{value}</span>
           </div>
         ))}
       </div>
