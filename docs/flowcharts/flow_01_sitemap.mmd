@@ -1,60 +1,26 @@
 ---
-title: XN Quizzes — 전체 페이지 구조 및 라우트 맵
+title: XN Quizzes — 전체 페이지 구조
 ---
 flowchart LR
-    START([앱 진입]) --> ROLE{역할 구분}
+    START([앱 진입]) --> ROLE{역할}
 
-    %% 교수자 영역
-    ROLE -->|교수자| QL_I["`**퀴즈 관리**
-    교수자 뷰 /
-    단일 목록 + 최근 생성순
-    주차/차시 필터`"]
+    ROLE -->|교수자| QL_I[퀴즈 관리\n/]
+    QL_I --> QC[퀴즈 생성\n/quiz/new]
+    QL_I --> QE[퀴즈 편집\n/quiz/:id/edit]
+    QL_I --> QA_P[응시 미리보기\n/quiz/:id/attempt?preview=true]
+    QL_I --> GD[채점 대시보드\n/quiz/:id/grade]
+    QL_I --> QS[퀴즈 통계\n/quiz/:id/stats]
+    QL_I --> QBL[문제은행 목록\n/question-banks]
+    QBL --> QB[문제은행 상세\n/question-banks/:bankId]
+    GD --> QS
 
-    QL_I -->|새 퀴즈| QC["`**퀴즈 생성**
-    /quiz/new`"]
-    QL_I -->|미리보기 버튼| QA_P["`**퀴즈 응시 (미리보기)**
-    /quiz/:id/attempt?preview=true`"]
-    QL_I -->|편집 버튼| QE["`**퀴즈 편집**
-    /quiz/:id/edit`"]
-    QL_I -->|카드 클릭 진행중/마감| GD["`**채점 대시보드**
-    /quiz/:id/grade`"]
-    QL_I -->|통계 버튼 발행 후| QS["`**퀴즈 통계**
-    /quiz/:id/stats`"]
-    QL_I -->|문제은행| QBL["`**문제은행 목록**
-    /question-banks`"]
-    QBL --> QB["`**문제은행 상세**
-    /question-banks/:bankId`"]
+    ROLE -->|학생| QL_S[내 퀴즈\n/]
+    QL_S --> QA[퀴즈 응시\n/quiz/:id/attempt]
 
-    GD -->|퀴즈 통계 버튼| QS
+    classDef page fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    classDef preview fill:#FEF9C3,stroke:#CA8A04,color:#713f12
 
-    %% 학생 영역 — 교수자 영역과 완전히 분리
-    ROLE -->|학생| QL_S["`**내 퀴즈**
-    학생 뷰 /
-    주차/차시 필터`"]
-    QL_S -->|응시하기 / 재응시| QA["`**퀴즈 응시**
-    /quiz/:id/attempt`"]
-
-    %% 퀴즈 상태 범례
-    subgraph STATUS ["퀴즈 상태"]
-        direction LR
-        ST1([draft 발행 전])
-        ST2([scheduled 예정])
-        ST3([open 진행중])
-        ST4([grading 채점중])
-        ST5([closed 마감])
-    end
-
-    %% 스타일
-    style QL_I fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QC   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QE   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style GD   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QS   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QBL  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QB   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QL_S fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QA   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QA_P fill:#FEF9C3,stroke:#CA8A04,color:#713f12
-
-    style START fill:#F0FDF4,stroke:#22C55E,color:#14532d
-    style ROLE  fill:#DCFCE7,stroke:#22C55E,color:#14532d
+    class QL_I,QC,QE,GD,QS,QBL,QB,QL_S,QA page
+    class QA_P preview
+    class START fill:#F0FDF4,stroke:#22C55E,color:#14532d
+    class ROLE fill:#DCFCE7,stroke:#22C55E,color:#14532d

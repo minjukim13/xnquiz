@@ -1,106 +1,23 @@
 ---
-title: XN Quizzes — 문제은행 관리 흐름
+title: XN Quizzes — 문제은행 흐름
 ---
 flowchart TD
-    START([문제은행 진입]) --> QBL["`**문제은행 목록**
-    은행 목록 그리드
-    은행명 / 문항 수 / 사용 중인 퀴즈 수 / 마지막 수정일`"]
+    START([문제은행 진입]) --> QBL[문제은행 목록\n은행명 · 문항 수 · 사용 중 퀴즈 수]
 
-    %% ── 은행 생성 ────────────────────────────────
-    QBL -->|새 문제은행 버튼| M_NEW_BANK["`**문제은행 추가 모달**
-    은행명 입력
-    취소 / 만들기 버튼
-    은행명 비어있으면 비활성화`"]
-    M_NEW_BANK -->|만들기| ADD_BANK["`은행 생성
-    문제은행 목록 업데이트
-    브라우저 저장소에 저장`"]
-    ADD_BANK --> QBL
+    QBL -->|새 문제은행| M_NEW[은행 추가 모달\n은행명 입력] --> QBL
+    QBL -->|삭제| QBL
+    QBL -->|은행 클릭| QB[문제은행 상세\n문항 목록 · 검색 · 유형 필터]
 
-    %% ── 은행 삭제 ────────────────────────────────
-    QBL -->|삭제 버튼 마우스 올릴 때 표시| DEL_BANK["`은행 삭제
-    관련 문항도 함께 삭제
-    문항 저장소 업데이트`"]
-    DEL_BANK --> QBL
+    QB -->|문항 추가| M_ADD[문항 추가 모달\n유형 · 선택지 · 배점 입력] --> QB
+    QB -->|일괄 업로드| M_UPLOAD[엑셀 업로드 모달\n템플릿 다운로드 → 파일 업로드 → 미리보기] --> QB
+    QB -->|다른 은행에서 복사| M_COPY[은행 선택 → 문항 선택 모달] --> QB
+    QB -->|인라인 편집| QB
+    QB -->|삭제| QB
+    QB -->|뒤로가기| QBL
 
-    %% ── 은행 상세 진입 ───────────────────────────
-    QBL -->|은행 카드 클릭| QB["`**문제은행 상세**
-    은행명 / 문항 수 / 사용 중인 퀴즈 수`"]
+    classDef page  fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
+    classDef modal fill:#FEF9C3,stroke:#CA8A04,color:#713f12
 
-    QB --> FILTER["`검색창 + 유형 필터
-    실시간 필터링`"]
-    FILTER --> Q_LIST["`문항 목록
-    유형 배지 / 배점 / 사용 중인 퀴즈 수
-    문항 텍스트 요약
-    편집/삭제 버튼 (마우스 올릴 때)`"]
-
-    %% ── 문항 추가 ────────────────────────────────
-    QB -->|문항 추가 버튼| M_ADD_Q["`**문항 추가 모달**
-    문항내용 입력
-    유형 선택
-    선택지 입력 (객관식인 경우)
-    배점 입력`"]
-    M_ADD_Q -->|추가| ADD_Q["`문항 추가
-    문항 저장소 업데이트`"]
-    ADD_Q --> Q_LIST
-
-    %% ── 문항 편집 (인라인) ───────────────────────
-    Q_LIST -->|편집 버튼| EDIT_FORM["`**인라인 편집 폼** 펼침
-    문항내용 수정
-    유형 / 배점 수정
-    저장 / 취소 버튼`"]
-    EDIT_FORM -->|저장| UPD_Q["`문항 수정 저장
-    브라우저 저장소 업데이트`"]
-    EDIT_FORM -->|취소| Q_LIST
-    UPD_Q --> Q_LIST
-
-    %% ── 문항 삭제 ────────────────────────────────
-    Q_LIST -->|삭제 버튼| DEL_Q["`문항 삭제
-    문항 저장소 업데이트`"]
-    DEL_Q --> Q_LIST
-
-    %% ── 일괄 업로드 ──────────────────────────────
-    QB -->|일괄 업로드 버튼| M_UPLOAD["`**일괄 업로드 모달**
-    엑셀 템플릿 다운로드 버튼
-    파일 드래그 / 클릭 업로드`"]
-    M_UPLOAD -->|파일 선택| PARSE["`파일 파싱
-    미리보기 표시`"]
-    PARSE -->|추가 버튼| ADD_BULK["`문항 일괄 추가
-    문항 저장소 업데이트`"]
-    ADD_BULK --> Q_LIST
-
-    %% ── 다른 은행에서 복사 ───────────────────────
-    QB -->|다른 은행에서 복사 버튼| M_COPY["`**은행 복사 모달**
-    1단계: 은행 선택`"]
-    M_COPY -->|은행 선택| M_COPY2["`2단계: 문항 선택
-    검색 / 필터
-    체크박스 다중선택`"]
-    M_COPY2 -->|복사 버튼| COPY_Q["`문항 복사
-    선택 문항 현재 은행에 추가`"]
-    COPY_Q --> Q_LIST
-
-    %% ── 뒤로가기 ─────────────────────────────────
-    QB -->|뒤로가기 링크| QBL
-
-    %% ── 스타일 ───────────────────────────────────
-    style QBL      fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style QB       fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style FILTER   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style Q_LIST   fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-    style EDIT_FORM fill:#EEF2FF,stroke:#6366F1,color:#1e1b4b
-
-    style M_NEW_BANK fill:#FEF9C3,stroke:#CA8A04,color:#713f12
-    style M_ADD_Q    fill:#FEF9C3,stroke:#CA8A04,color:#713f12
-    style M_UPLOAD   fill:#FEF9C3,stroke:#CA8A04,color:#713f12
-    style M_COPY     fill:#FEF9C3,stroke:#CA8A04,color:#713f12
-    style M_COPY2    fill:#FEF9C3,stroke:#CA8A04,color:#713f12
-
-    style ADD_BANK  fill:#DCFCE7,stroke:#16A34A,color:#14532d
-    style ADD_Q     fill:#DCFCE7,stroke:#16A34A,color:#14532d
-    style UPD_Q     fill:#DCFCE7,stroke:#16A34A,color:#14532d
-    style ADD_BULK  fill:#DCFCE7,stroke:#16A34A,color:#14532d
-    style COPY_Q    fill:#DCFCE7,stroke:#16A34A,color:#14532d
-
-    style DEL_BANK fill:#FEE2E2,stroke:#DC2626,color:#7f1d1d
-    style DEL_Q    fill:#FEE2E2,stroke:#DC2626,color:#7f1d1d
-
-    style START fill:#F0FDF4,stroke:#22C55E,color:#14532d
+    class QBL,QB page
+    class M_NEW,M_ADD,M_UPLOAD,M_COPY modal
+    class START fill:#F0FDF4,stroke:#22C55E,color:#14532d
