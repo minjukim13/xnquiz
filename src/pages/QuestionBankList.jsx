@@ -1,17 +1,28 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Trash2, FolderInput, CheckCircle2 } from 'lucide-react'
+import { Plus, BookOpen, Trash2, FolderInput, FolderOutput, Search, X, GripVertical, AlertCircle, CheckCircle2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useQuestionBank } from '../context/QuestionBankContext'
 import { CopyFromBankModal } from './QuestionBank'
+import { QUIZ_TYPES, MOCK_COURSES } from '../data/mockData'
+import { DropdownSelect } from '../components/DropdownSelect'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
+
+const DIFFICULTY_META = {
+  high:   { label: '상', color: '#DC2626', bg: '#FEF2F2' },
+  medium: { label: '중', color: '#D97706', bg: '#FFFBEB' },
+  low:    { label: '하', color: '#16A34A', bg: '#F0FDF4' },
+}
+
+const DIFF_LABEL = { '': '미지정', high: '상', medium: '중', low: '하' }
 
 export default function QuestionBankList() {
   const navigate = useNavigate()
   const { banks, addBank, deleteBank, getBankQuestions, addQuestions } = useQuestionBank()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [toast, setToast] = useState(null)
 
@@ -42,6 +53,16 @@ export default function QuestionBankList() {
               가져오기
             </button>
             <button
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-2 text-sm font-medium px-4 py-2 transition-colors"
+              style={{ color: '#424242', border: '1px solid #E0E0E0', borderRadius: 4 }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <FolderOutput size={14} />
+              내보내기
+            </button>
+            <button
               onClick={() => setShowAddModal(true)}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 transition-colors"
               style={{ borderRadius: 4 }}
@@ -59,6 +80,7 @@ export default function QuestionBankList() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {banks.map(bank => {
             const qCount = getQuestionCount(bank.id)
+            const diffLabel = bank.difficulty ? DIFF_LABEL[bank.difficulty] : ''
             return (
               <div
                 key={bank.id}
@@ -94,6 +116,18 @@ export default function QuestionBankList() {
                 <h3 className="font-semibold text-base mb-1" style={{ color: '#222222' }}>{bank.name}</h3>
                 <div className="flex items-center gap-2 text-xs" style={{ color: '#9E9E9E' }}>
                   <span>{qCount}개 문항</span>
+                  {diffLabel && (
+                    <span
+                      className="px-1.5 py-0.5 font-medium"
+                      style={{
+                        background: DIFFICULTY_META[bank.difficulty]?.bg,
+                        color: DIFFICULTY_META[bank.difficulty]?.color,
+                        borderRadius: 4,
+                      }}
+                    >
+                      난이도 {diffLabel}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs mt-2" style={{ color: '#BDBDBD' }}>최종 수정 {bank.updatedAt}</p>
               </div>
@@ -133,10 +167,11 @@ export default function QuestionBankList() {
       {showAddModal && (
         <AddBankModal
           onClose={() => setShowAddModal(false)}
-          onAdd={name => {
+          onAdd={(name, difficulty) => {
             addBank({
               id: `bank_custom_${Date.now()}`,
               name,
+              difficulty,
               course: CURRENT_COURSE,
               updatedAt: new Date().toISOString().split('T')[0],
               usedInQuizIds: [],
@@ -194,6 +229,7 @@ export default function QuestionBankList() {
             addBank({
               id: newId,
               name: bankName,
+              difficulty: '',
               course: CURRENT_COURSE,
               updatedAt: new Date().toISOString().split('T')[0],
               usedInQuizIds: [],
@@ -208,6 +244,38 @@ export default function QuestionBankList() {
           }}
         />
       )}
+
+      {showExportModal && (
+        <ExportToBankModal
+          onClose={() => setShowExportModal(false)}
+          onExport={(questions, targetCourse, targetBankId, newBankName) => {
+            let bankId = targetBankId
+            let bankName = newBankName
+            if (targetBankId === '__new__') {
+              bankId = `bank_export_${Date.now()}`
+              addBank({
+                id: bankId,
+                name: bankName,
+                difficulty: '',
+                course: targetCourse,
+                updatedAt: new Date().toISOString().split('T')[0],
+                usedInQuizIds: [],
+              })
+            } else {
+              bankName = banks.find(b => b.id === bankId)?.name || bankName
+            }
+            addQuestions(questions.map(q => ({
+              ...q,
+              _sourceBankName: undefined,
+              id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              bankId,
+            })))
+            setShowExportModal(false)
+            showToast(`"${bankName}" 문제은행에 ${questions.length}개 문항을 내보냈습니다`, bankId)
+          }}
+        />
+      )}
+
       {toast && (
         <div
           className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white"
@@ -232,8 +300,18 @@ export default function QuestionBankList() {
   )
 }
 
+// ── 새 문제은행 모달 ──────────────────────────────────────────────────────────
 function AddBankModal({ onClose, onAdd }) {
   const [name, setName] = useState('')
+  const [difficulty, setDifficulty] = useState('')
+
+  const diffOptions = [
+    { value: '', label: '미지정' },
+    { value: 'high', label: '상' },
+    { value: 'medium', label: '중' },
+    { value: 'low', label: '하' },
+  ]
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30" />
@@ -243,20 +321,53 @@ function AddBankModal({ onClose, onAdd }) {
         onClick={e => e.stopPropagation()}
       >
         <h3 className="font-semibold mb-4" style={{ color: '#222222' }}>새 문제은행 만들기</h3>
-        <input
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && name.trim() && onAdd(name.trim())}
-          placeholder="문제은행 이름 (예: 기말고사 문제은행)"
-          autoFocus
-          className="w-full text-sm px-3 py-2 mb-4 focus:outline-none focus:border-indigo-400"
-          style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
-        />
+        <div className="mb-3">
+          <label className="text-xs font-medium block mb-1" style={{ color: '#616161' }}>이름</label>
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && name.trim() && onAdd(name.trim(), difficulty)}
+            placeholder="문제은행 이름 (예: 기말고사 문제은행)"
+            autoFocus
+            className="w-full text-sm px-3 py-2 focus:outline-none focus:border-indigo-400"
+            style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
+          />
+        </div>
+        <div className="mb-5">
+          <label className="text-xs font-medium block mb-1.5" style={{ color: '#616161' }}>난이도</label>
+          <div className="flex gap-2">
+            {diffOptions.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setDifficulty(opt.value)}
+                className="flex-1 text-xs py-1.5 font-medium transition-all"
+                style={{
+                  border: difficulty === opt.value ? '1.5px solid #6366f1' : '1px solid #E0E0E0',
+                  borderRadius: 4,
+                  background: difficulty === opt.value ? '#EEF2FF' : 'transparent',
+                  color: difficulty === opt.value ? '#4338CA'
+                    : opt.value === 'high' ? '#DC2626'
+                    : opt.value === 'medium' ? '#D97706'
+                    : opt.value === 'low' ? '#16A34A'
+                    : '#616161',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {difficulty && (
+            <p className="text-xs mt-1.5" style={{ color: '#9E9E9E' }}>
+              난이도 '{DIFF_LABEL[difficulty]}'인 문항만 추가할 수 있습니다
+            </p>
+          )}
+        </div>
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
           <button
-            onClick={() => name.trim() && onAdd(name.trim())}
+            onClick={() => name.trim() && onAdd(name.trim(), difficulty)}
             disabled={!name.trim()}
             className="text-sm font-medium px-4 py-2 bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
             style={{ borderRadius: 4 }}
@@ -269,3 +380,457 @@ function AddBankModal({ onClose, onAdd }) {
   )
 }
 
+// ── 내보내기 모달 ─────────────────────────────────────────────────────────────
+function ExportToBankModal({ onClose, onExport }) {
+  const { banks, getBankQuestions } = useQuestionBank()
+
+  const [selectedSourceIds, setSelectedSourceIds] = useState([])
+  const [courseSearch, setCourseSearch] = useState('')
+  const [targetCourse, setTargetCourse] = useState(CURRENT_COURSE)
+  const [targetBankId, setTargetBankId] = useState(null)
+  const [newBankName, setNewBankName] = useState('')
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState([])
+  const [filterType, setFilterType] = useState('all')
+  const [filterDifficulty, setFilterDifficulty] = useState('all')
+  const dragIndexRef = useRef(null)
+  const [dragOverIndex, setDragOverIndex] = useState(null)
+
+  const targetBank = targetBankId && targetBankId !== '__new__' ? banks.find(b => b.id === targetBankId) : null
+  const targetDifficulty = targetBank?.difficulty || ''
+  const courseBanks = banks.filter(b => b.course === targetCourse)
+
+  // 소스 문제은행들의 문항 (sourceBankName 첨부)
+  const sourceQuestions = useMemo(() => {
+    return selectedSourceIds.flatMap(bankId => {
+      const bankName = banks.find(b => b.id === bankId)?.name || ''
+      return getBankQuestions(bankId).map(q => ({ ...q, _sourceBankName: bankName }))
+    })
+  }, [selectedSourceIds, banks, getBankQuestions])
+
+  // 필터 적용
+  const filtered = useMemo(() => sourceQuestions.filter(q => {
+    const matchType = filterType === 'all' || q.type === filterType
+    const matchDiff = filterDifficulty === 'all' || q.difficulty === filterDifficulty
+    return matchType && matchDiff
+  }), [sourceQuestions, filterType, filterDifficulty])
+
+  // 타겟 난이도 제한
+  const isSelectable = (q) => !targetDifficulty || q.difficulty === targetDifficulty
+
+  const selectableFiltered = filtered.filter(isSelectable)
+  const allFilteredSelected = selectableFiltered.length > 0 && selectableFiltered.every(q => selectedQuestionIds.includes(q.id))
+  const someFilteredSelected = selectableFiltered.some(q => selectedQuestionIds.includes(q.id)) && !allFilteredSelected
+
+  const toggle = (q) => {
+    if (!isSelectable(q)) return
+    setSelectedQuestionIds(prev =>
+      prev.includes(q.id) ? prev.filter(x => x !== q.id) : [...prev, q.id]
+    )
+  }
+
+  const toggleAll = () => {
+    if (allFilteredSelected) {
+      setSelectedQuestionIds(prev => prev.filter(id => !selectableFiltered.find(q => q.id === id)))
+    } else {
+      setSelectedQuestionIds(prev => [...new Set([...prev, ...selectableFiltered.map(q => q.id)])])
+    }
+  }
+
+  const selectedQuestions = useMemo(() =>
+    selectedQuestionIds.map(id => sourceQuestions.find(q => q.id === id)).filter(Boolean),
+    [selectedQuestionIds, sourceQuestions]
+  )
+
+  const handleDragStart = (index) => { dragIndexRef.current = index }
+  const handleDragOver = (e, index) => { e.preventDefault(); setDragOverIndex(index) }
+  const handleDragLeave = () => setDragOverIndex(null)
+  const handleDrop = (index) => {
+    const from = dragIndexRef.current
+    setDragOverIndex(null)
+    if (from === null || from === index) return
+    setSelectedQuestionIds(prev => {
+      const next = [...prev]
+      const [moved] = next.splice(from, 1)
+      next.splice(index, 0, moved)
+      return next
+    })
+    dragIndexRef.current = null
+  }
+
+  const handleTargetBankChange = (id) => {
+    setTargetBankId(id)
+    if (id && id !== '__new__') {
+      const tb = banks.find(b => b.id === id)
+      if (tb?.difficulty) {
+        setSelectedQuestionIds(prev => prev.filter(qId => {
+          const q = sourceQuestions.find(x => x.id === qId)
+          return q?.difficulty === tb.difficulty
+        }))
+      }
+    }
+  }
+
+  const handleTargetCourseChange = (course) => {
+    setTargetCourse(course)
+    setTargetBankId(null)
+  }
+
+  const handleSourceToggle = (bankId) => {
+    const isChecked = selectedSourceIds.includes(bankId)
+    setSelectedSourceIds(prev => isChecked ? prev.filter(id => id !== bankId) : [...prev, bankId])
+    if (isChecked) {
+      const bankQIds = getBankQuestions(bankId).map(q => q.id)
+      setSelectedQuestionIds(prev => prev.filter(id => !bankQIds.includes(id)))
+    }
+  }
+
+  const canSubmit = selectedQuestions.length > 0 &&
+    (targetBankId === '__new__' ? newBankName.trim() !== '' : targetBankId !== null)
+
+  const availableCourses = useMemo(() =>
+    MOCK_COURSES.filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase())),
+    [courseSearch]
+  )
+
+  // 과목별 은행 그룹
+  const courseGroups = useMemo(() => {
+    const groups = {}
+    banks.forEach(b => {
+      const course = b.course || CURRENT_COURSE
+      if (!groups[course]) groups[course] = []
+      groups[course].push(b)
+    })
+    return groups
+  }, [banks])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30" />
+      <div
+        className="relative bg-white w-full max-w-4xl flex flex-col"
+        style={{ maxHeight: '85vh', borderRadius: 8, border: '1px solid #E0E0E0', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 헤더 */}
+        <div className="px-4 py-3 shrink-0 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
+          <h3 className="font-semibold" style={{ color: '#222222' }}>문제은행 내보내기</h3>
+          <button onClick={onClose} style={{ color: '#9E9E9E' }}><X size={18} /></button>
+        </div>
+
+        {/* 본문: 3컬럼 */}
+        <div className="flex flex-1 min-h-0">
+
+          {/* 1열: 소스 문제은행 선택 (상단) + 대상 문제은행 (하단) */}
+          <div className="flex flex-col shrink-0" style={{ width: 200, borderRight: '1px solid #EEEEEE' }}>
+            {/* 소스 */}
+            <div className="flex flex-col" style={{ flex: '0 0 50%', borderBottom: '1px solid #EEEEEE', overflow: 'hidden' }}>
+              <div className="px-3 pt-2.5 pb-1.5 shrink-0">
+                <p className="text-xs font-semibold mb-1.5" style={{ color: '#9E9E9E' }}>소스 문제은행</p>
+                <div className="relative">
+                  <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: '#BDBDBD' }} />
+                  <input
+                    type="text"
+                    value={courseSearch}
+                    onChange={e => setCourseSearch(e.target.value)}
+                    placeholder="과목/은행 검색"
+                    className="w-full text-xs pl-6 pr-2 py-1.5 focus:outline-none"
+                    style={{ background: '#F5F5F5', border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
+                  />
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {availableCourses.map(c => {
+                  const list = (courseGroups[c.name] || [])
+                  if (list.length === 0) return null
+                  return (
+                    <div key={c.id}>
+                      <p className="px-3 py-1 text-xs font-medium truncate" style={{ color: '#9E9E9E', background: '#FAFAFA' }}>{c.name}</p>
+                      {list.map(b => {
+                        const isChecked = selectedSourceIds.includes(b.id)
+                        return (
+                          <label
+                            key={b.id}
+                            className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer transition-colors"
+                            style={{ background: isChecked ? '#EEF2FF' : 'transparent', color: isChecked ? '#4338CA' : '#424242' }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleSourceToggle(b.id)}
+                              className="accent-indigo-600 shrink-0"
+                            />
+                            <span className="truncate flex-1">{b.name}</span>
+                            {b.difficulty && (
+                              <span className="shrink-0 text-xs" style={{ color: DIFFICULTY_META[b.difficulty]?.color }}>
+                                {DIFF_LABEL[b.difficulty]}
+                              </span>
+                            )}
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 대상 */}
+            <div className="flex flex-col" style={{ flex: '0 0 50%', overflow: 'hidden' }}>
+              <p className="px-3 pt-2.5 pb-1 text-xs font-semibold shrink-0" style={{ color: '#9E9E9E' }}>대상 문제은행</p>
+              {/* 과목 선택 */}
+              <div className="px-2 pb-1 shrink-0">
+                <select
+                  value={targetCourse}
+                  onChange={e => handleTargetCourseChange(e.target.value)}
+                  className="w-full text-xs px-2 py-1.5 focus:outline-none"
+                  style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#424242', background: '#fff' }}
+                >
+                  {MOCK_COURSES.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              {/* 새 문제은행 */}
+              <div className="px-2 pb-1 shrink-0 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setTargetBankId('__new__')}
+                  className="w-full text-left px-2 py-1.5 text-xs transition-colors flex items-center gap-1"
+                  style={{
+                    border: targetBankId === '__new__' ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
+                    borderRadius: 4,
+                    background: targetBankId === '__new__' ? '#EEF2FF' : 'transparent',
+                    color: targetBankId === '__new__' ? '#4338CA' : '#6366F1',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Plus size={11} />새 문제은행
+                </button>
+                {targetBankId === '__new__' && (
+                  <input
+                    type="text"
+                    value={newBankName}
+                    onChange={e => setNewBankName(e.target.value)}
+                    placeholder="이름 입력"
+                    autoFocus
+                    className="w-full text-xs px-2 py-1.5 focus:outline-none"
+                    style={{
+                      border: newBankName.trim() ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
+                      borderRadius: 4,
+                      color: '#222222',
+                    }}
+                  />
+                )}
+              </div>
+              {/* 기존 문제은행 */}
+              <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1">
+                {courseBanks.map(b => {
+                  const isSelected = b.id === targetBankId
+                  const diffLabel = b.difficulty ? DIFF_LABEL[b.difficulty] : ''
+                  return (
+                    <button
+                      type="button"
+                      key={b.id}
+                      onClick={() => handleTargetBankChange(b.id)}
+                      className="w-full text-left px-2 py-1.5 text-xs transition-colors"
+                      style={{
+                        border: isSelected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
+                        borderRadius: 4,
+                        background: isSelected ? '#EEF2FF' : 'transparent',
+                        color: isSelected ? '#4338CA' : '#424242',
+                        fontWeight: isSelected ? 600 : 400,
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="truncate">{b.name}</span>
+                        {diffLabel && <span className="shrink-0" style={{ color: DIFFICULTY_META[b.difficulty]?.color, fontWeight: 400 }}>{diffLabel}</span>}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* 2열: 문항 체크리스트 */}
+          <div className="flex flex-col flex-1 min-w-0" style={{ borderRight: '1px solid #EEEEEE' }}>
+            {selectedSourceIds.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center py-12">
+                <p className="text-sm text-center" style={{ color: '#9E9E9E' }}>좌측에서 소스 문제은행을 선택하세요</p>
+              </div>
+            ) : (
+              <>
+                {/* 필터 */}
+                <div className="px-3 pt-2.5 pb-2 shrink-0" style={{ borderBottom: '1px solid #EEEEEE' }}>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <DropdownSelect
+                      value={filterType}
+                      onChange={setFilterType}
+                      filterMode
+                      options={[
+                        { value: 'all', label: '모든 유형' },
+                        ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
+                      ]}
+                    />
+                    <DropdownSelect
+                      value={filterDifficulty}
+                      onChange={setFilterDifficulty}
+                      filterMode
+                      options={[
+                        { value: 'all', label: '모든 난이도' },
+                        { value: '', label: '미지정' },
+                        { value: 'high', label: '상' },
+                        { value: 'medium', label: '중' },
+                        { value: 'low', label: '하' },
+                      ]}
+                    />
+                  </div>
+                </div>
+                {/* 난이도 제한 배너 */}
+                {targetDifficulty && (
+                  <div className="px-3 py-1.5 shrink-0 text-xs flex items-center gap-1.5" style={{ background: '#FFFBEB', color: '#B45309', borderBottom: '1px solid #FDE68A' }}>
+                    <AlertCircle size={12} className="shrink-0" />
+                    난이도 '{DIFF_LABEL[targetDifficulty]}' 문제은행 — 해당 난이도 문항만 선택 가능
+                  </div>
+                )}
+                {/* 전체선택 */}
+                {filtered.length > 0 && (
+                  <div className="px-3 py-1.5 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid #F5F5F5' }}>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={allFilteredSelected}
+                        ref={el => { if (el) el.indeterminate = someFilteredSelected }}
+                        onChange={toggleAll}
+                        className="accent-indigo-600"
+                      />
+                      <span className="text-xs font-medium" style={{ color: '#616161' }}>
+                        {allFilteredSelected ? '전체 해제' : '전체선택'}
+                      </span>
+                    </label>
+                    <span className="text-xs" style={{ color: selectedQuestionIds.length > 0 ? '#6366F1' : '#9E9E9E' }}>
+                      {selectedQuestionIds.length > 0 ? `${selectedQuestionIds.length}개 선택` : `총 ${filtered.length}개`}
+                    </span>
+                  </div>
+                )}
+                <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+                  {filtered.length === 0 ? (
+                    <p className="py-8 text-center text-sm" style={{ color: '#9E9E9E' }}>해당하는 문항이 없습니다</p>
+                  ) : (
+                    filtered.map(q => {
+                      const selected = selectedQuestionIds.includes(q.id)
+                      const selectable = isSelectable(q)
+                      return (
+                        <div
+                          key={q.id}
+                          onClick={() => toggle(q)}
+                          className="flex items-start gap-2.5 p-2.5 transition-all"
+                          style={{
+                            border: selected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
+                            borderRadius: 6,
+                            background: selected ? '#EEF2FF' : selectable ? '#fff' : '#FAFAFA',
+                            cursor: selectable ? 'pointer' : 'not-allowed',
+                            opacity: selectable ? 1 : 0.45,
+                          }}
+                        >
+                          <input type="checkbox" checked={selected} readOnly disabled={!selectable} className="mt-0.5 shrink-0 accent-indigo-600" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                              <span className="text-xs px-1.5 py-0.5 font-medium" style={{ background: '#F5F5F5', color: '#616161', borderRadius: 4 }}>
+                                {QUIZ_TYPES[q.type]?.label}
+                              </span>
+                              {q.difficulty && DIFFICULTY_META[q.difficulty] && (
+                                <span className="text-xs px-1.5 py-0.5" style={{ background: DIFFICULTY_META[q.difficulty].bg, color: DIFFICULTY_META[q.difficulty].color, borderRadius: 4 }}>
+                                  {DIFFICULTY_META[q.difficulty].label}
+                                </span>
+                              )}
+                              <span className="text-xs" style={{ color: '#9E9E9E' }}>{q.points}점</span>
+                              {q._sourceBankName && (
+                                <span className="text-xs" style={{ color: '#BDBDBD' }}>{q._sourceBankName}</span>
+                              )}
+                            </div>
+                            <p className="text-xs leading-relaxed line-clamp-2" style={{ color: '#424242' }}>{q.text}</p>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 3열: 선택된 문항 */}
+          <div className="flex flex-col shrink-0" style={{ width: 220 }}>
+            <div className="px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid #EEEEEE' }}>
+              <p className="text-xs font-semibold" style={{ color: '#616161' }}>
+                선택된 문항
+                <span className="ml-1.5 font-normal" style={{ color: '#9E9E9E' }}>{selectedQuestions.length}개</span>
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {selectedQuestions.length === 0 ? (
+                <p className="py-6 text-center text-xs" style={{ color: '#BDBDBD' }}>선택된 문항이 없습니다</p>
+              ) : (
+                selectedQuestions.map((q, index) => (
+                  <div
+                    key={q.id}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={e => handleDragOver(e, index)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={() => handleDrop(index)}
+                    className="flex items-start gap-1.5 p-2"
+                    style={{
+                      background: '#FAFAFA',
+                      borderRadius: 6,
+                      cursor: 'grab',
+                      borderTop: dragOverIndex === index ? '2px solid #6366F1' : '2px solid transparent',
+                    }}
+                  >
+                    <GripVertical size={13} className="shrink-0 mt-0.5" style={{ color: '#BDBDBD' }} />
+                    <p className="flex-1 text-xs leading-relaxed line-clamp-2" style={{ color: '#424242' }}>{q.text}</p>
+                    <button
+                      onClick={() => setSelectedQuestionIds(prev => prev.filter(id => id !== q.id))}
+                      className="shrink-0 mt-0.5 transition-colors"
+                      style={{ color: '#BDBDBD' }}
+                      onMouseEnter={e => e.currentTarget.style.color = '#EF2B2A'}
+                      onMouseLeave={e => e.currentTarget.style.color = '#BDBDBD'}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 푸터 */}
+        <div className="px-4 py-3 shrink-0 flex items-center justify-between gap-4" style={{ borderTop: '1px solid #EEEEEE' }}>
+          <p className="text-xs truncate" style={{ color: '#9E9E9E' }}>
+            {targetBankId === null
+              ? '대상 문제은행을 선택하세요'
+              : targetBankId === '__new__'
+                ? newBankName.trim()
+                  ? <><span style={{ color: '#6366F1', fontWeight: 600 }}>{targetCourse}</span> › <span style={{ color: '#6366F1', fontWeight: 600 }}>{newBankName.trim()}</span> 으로 새 문제은행 생성</>
+                  : '새 문제은행 이름을 입력하세요'
+                : <><span style={{ color: '#6366F1', fontWeight: 600 }}>{targetCourse}</span> › <span style={{ color: '#6366F1', fontWeight: 600 }}>{banks.find(b => b.id === targetBankId)?.name}</span> 에 추가</>
+            }
+          </p>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
+            <button
+              onClick={() => onExport(selectedQuestions, targetCourse, targetBankId, newBankName.trim())}
+              disabled={!canSubmit}
+              className="text-sm font-medium px-4 py-2 bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
+              style={{ borderRadius: 4 }}
+            >
+              내보내기 ({selectedQuestions.length}개)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
