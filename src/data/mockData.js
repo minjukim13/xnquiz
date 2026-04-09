@@ -886,6 +886,32 @@ export function regradeQuestion(quizId, updatedQuestion) {
   }
 }
 
+/**
+ * scorePolicy 변경 시 기존 응시 기록에 소급 적용
+ * - 모든 응시 attempt의 scorePolicy 필드를 새 값으로 업데이트
+ * - getStudentAttempts 호출 시 새 정책이 반영되어 최종 점수 재계산됨
+ * @param {string} quizId
+ * @param {string} newPolicy - '최고 점수 유지' | '평균 점수' | '최신 점수 유지'
+ * @returns {number} 업데이트된 응시 건수
+ */
+export function recalculateScorePolicy(quizId, newPolicy) {
+  try {
+    const raw = localStorage.getItem('xnq_student_attempts')
+    if (!raw) return 0
+    const all = JSON.parse(raw)
+    const attempts = all[quizId]
+    if (!attempts || attempts.length === 0) return 0
+    attempts.forEach(attempt => {
+      attempt.scorePolicy = newPolicy
+    })
+    localStorage.setItem('xnq_student_attempts', JSON.stringify(all))
+    return attempts.length
+  } catch (err) {
+    console.error('[xnquiz] scorePolicy 소급 재계산 실패:', err)
+    return 0
+  }
+}
+
 export function gradeQuiz3Answer(questionId, answer) {
   const correct = AUTO_CORRECT_Q3[questionId]
   if (!correct || !answer) return 0
