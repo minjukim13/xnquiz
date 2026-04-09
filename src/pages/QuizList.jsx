@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X, Info } from 'lucide-react'
+import { Plus, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -465,33 +465,39 @@ function ActiveStats({ quiz }) {
 
 // ─────────────────────────────── 공통: 초기화 안내 박스 ───────────────────────────────
 function ResetNotice({ mode = 'import' }) {
-  const tags = ['주차/차시', '응시 기간', '성적 공개 정책', '지각 제출', '접근 코드·IP 제한', '추가 기간 설정']
-  const label = mode === 'copy' ? '복사' : '가져오기'
+  const items = [
+    ['주차/차시', '미지정'],
+    ['응시 기간', '설정 안함'],
+    ['성적 공개 정책', '공개 안함'],
+    ['지각 제출', '비활성화'],
+    ['접근 코드·IP 제한', '제거'],
+    ['추가 기간 설정', '설정 안함'],
+  ]
+  const action = mode === 'copy' ? '복사한' : '가져온'
   return (
-    <div style={{ borderRadius: 8, background: '#F0F4FF', padding: '10px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
-        <Info size={12} strokeWidth={2.2} style={{ color: '#6366F1', flexShrink: 0 }} />
-        <span style={{ fontSize: 12, color: '#4B5563', fontWeight: 500 }}>
-          {label} 후 다음 항목들을 다시 설정해 주세요.
+    <div style={{ borderRadius: 8, background: '#F8FAFF', border: '1px solid #E8ECFF', padding: '11px 14px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 10 }}>
+        <span style={{ fontSize: 13, lineHeight: 1.3, flexShrink: 0 }}>💡</span>
+        <span style={{ fontSize: 11.5, color: '#4B5563', fontWeight: 500, lineHeight: 1.5 }}>
+          퀴즈를 {action} 후 아래 항목들은 초기화되므로 다시 설정해 주세요.
         </span>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {tags.map(tag => (
-          <span
-            key={tag}
-            style={{
-              fontSize: 11,
-              color: '#4F46E5',
-              background: '#E0E7FF',
-              border: '1px solid #C7D2FE',
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
+        {items.map(([label, value]) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+            <span style={{ fontSize: 11.5, color: '#374151' }}>{label}</span>
+            <span style={{
+              fontSize: 10.5,
+              color: '#6B7280',
+              background: '#F3F4F6',
+              border: '1px solid #E5E7EB',
               borderRadius: 999,
-              padding: '3px 10px',
-              fontWeight: 500,
-              lineHeight: 1.4,
-            }}
-          >
-            {tag}
-          </span>
+              padding: '1px 7px',
+              whiteSpace: 'nowrap',
+            }}>
+              {value}
+            </span>
+          </div>
         ))}
       </div>
     </div>
