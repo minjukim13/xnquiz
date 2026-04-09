@@ -5,7 +5,7 @@ import Layout from '../components/Layout'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import CustomSelect from '../components/CustomSelect'
-import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, mockStudents, regradeQuestion, recalculateScorePolicy } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, mockStudents, regradeQuestion, recalculateScorePolicy } from '../data/mockData'
 
 const WEEK_OPTIONS = [
   { value: null, label: '선택 안함' },
@@ -150,6 +150,8 @@ export default function QuizEdit() {
         scoreRevealEnd:    (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd   || null : null,
       }
     }
+    // 편집된 문항 배열을 quizQuestionsMap에 반영
+    setQuizQuestions(quiz.id, questions)
     navigate('/')
   }
 

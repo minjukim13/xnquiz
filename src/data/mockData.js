@@ -203,6 +203,126 @@ export const mockQuizzes = [
     scoreRevealStart: '2026-04-01 00:00',
     scoreRevealEnd:   '2026-04-30 23:59',
   },
+  // CS201 운영체제
+  {
+    id: 'cs201_1',
+    title: '중간고사 - 프로세스 및 스레드',
+    description: '프로세스 생명주기, 스레드 모델, 동기화 문제를 다룹니다.',
+    course: 'CS201 운영체제',
+    status: 'closed',
+    startDate: '2026-03-18 09:00',
+    dueDate: '2026-03-18 11:00',
+    week: 8,
+    session: 1,
+    totalStudents: 45,
+    submitted: 44,
+    graded: 44,
+    pendingGrade: 0,
+    questions: 15,
+    totalPoints: 100,
+    avgScore: 72.3,
+    timeLimit: 120,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
+    scoreRevealEnabled: false,
+    scoreRevealScope: null,
+    scoreRevealTiming: null,
+  },
+  {
+    id: 'cs201_2',
+    title: '1차 형성평가 - 프로세스 스케줄링',
+    description: 'CPU 스케줄링 알고리즘(FCFS, SJF, Round Robin)을 평가합니다.',
+    course: 'CS201 운영체제',
+    status: 'closed',
+    startDate: '2026-03-10 09:00',
+    dueDate: '2026-03-10 23:59',
+    week: 5,
+    session: 1,
+    totalStudents: 45,
+    submitted: 43,
+    graded: 43,
+    pendingGrade: 0,
+    questions: 10,
+    totalPoints: 30,
+    avgScore: 22.1,
+    timeLimit: 30,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 2,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: 'immediately',
+  },
+  {
+    id: 'cs201_3',
+    title: '주차별 퀴즈 - 메모리 관리',
+    description: '페이징, 세그멘테이션, 가상 메모리 기초 개념을 다룹니다.',
+    course: 'CS201 운영체제',
+    status: 'draft',
+    startDate: '2026-04-14 09:00',
+    dueDate: '2026-04-14 23:59',
+    week: 10,
+    session: 1,
+    totalStudents: 45,
+    submitted: 0,
+    graded: 0,
+    pendingGrade: 0,
+    questions: 8,
+    totalPoints: 20,
+    timeLimit: 20,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 3,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'with_answer',
+    scoreRevealTiming: 'after_due',
+  },
+  // CS401 알고리즘
+  {
+    id: 'cs401_1',
+    title: '중간고사 - 정렬 알고리즘',
+    description: '버블 정렬부터 퀵 정렬까지 시간복잡도 및 동작 원리를 평가합니다.',
+    course: 'CS401 알고리즘',
+    status: 'closed',
+    startDate: '2026-03-20 09:00',
+    dueDate: '2026-03-20 11:00',
+    week: 8,
+    session: 1,
+    totalStudents: 38,
+    submitted: 37,
+    graded: 37,
+    pendingGrade: 0,
+    questions: 20,
+    totalPoints: 100,
+    avgScore: 68.5,
+    timeLimit: 120,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'with_answer',
+    scoreRevealTiming: 'after_due',
+  },
+  {
+    id: 'cs401_2',
+    title: '1차 형성평가 - 탐색 알고리즘',
+    description: '이진 탐색, BFS, DFS의 시간복잡도와 활용 사례를 다룹니다.',
+    course: 'CS401 알고리즘',
+    status: 'draft',
+    startDate: '2026-04-17 09:00',
+    dueDate: '2026-04-17 23:59',
+    week: 11,
+    session: 1,
+    totalStudents: 38,
+    submitted: 0,
+    graded: 0,
+    pendingGrade: 0,
+    questions: 12,
+    totalPoints: 40,
+    timeLimit: 40,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 2,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: 'immediately',
+  },
 ]
 
 // 배점 합계: 5+5+10+10+20+5+10+15+10+10 = 100점
@@ -773,16 +893,235 @@ const mockQuiz7Questions = [
   },
 ]
 
-// 퀴즈 ID별 문항 반환 — GradingDashboard에서 사용
+// 동적으로 추가되는 퀴즈 문항 저장소 (복사/가져오기 시 사용)
+const quizQuestionsMap = {}
+
+// 퀴즈 ID별 문항 반환 — GradingDashboard, QuizEdit에서 사용
 export function getQuizQuestions(quizId) {
+  if (quizId in quizQuestionsMap) return quizQuestionsMap[quizId]
   if (quizId === '1') return mockQuestions
   if (quizId === '2') return mockQuiz2Questions
   if (quizId === '3') return mockQuiz3Questions
   if (quizId === '4') return mockQuiz4Questions
   if (quizId === '7') return mockQuiz7Questions
   if (quizId === '8') return mockQuiz8Questions
+  if (quizId === 'cs201_1') return mockCs201Quiz1Questions
+  if (quizId === 'cs201_2') return mockCs201Quiz2Questions
+  if (quizId === 'cs401_1') return mockCs401Quiz1Questions
   return []
 }
+
+// 복사/가져오기 시 새 quizId에 문항 등록
+export function setQuizQuestions(quizId, questions) {
+  quizQuestionsMap[quizId] = questions
+}
+
+// CS201 운영체제 — 중간고사 문항
+const mockCs201Quiz1Questions = [
+  {
+    id: 'cs201_1_q1', order: 1, type: 'multiple_choice',
+    text: '다음 중 프로세스(Process)와 스레드(Thread)의 차이점으로 올바른 것은?',
+    points: 10, autoGrade: true,
+    correctAnswer: '스레드는 프로세스의 메모리 공간을 공유하지만 프로세스는 독립적인 메모리 공간을 가진다',
+    choices: [
+      '스레드는 프로세스의 메모리 공간을 공유하지만 프로세스는 독립적인 메모리 공간을 가진다',
+      '프로세스가 스레드보다 생성 비용이 낮다',
+      '스레드는 독립적인 PCB를 가진다',
+      '프로세스 간 통신은 스레드 간 통신보다 빠르다',
+    ],
+  },
+  {
+    id: 'cs201_1_q2', order: 2, type: 'multiple_choice',
+    text: 'CPU 스케줄링에서 선점형(Preemptive) 방식이 아닌 것은?',
+    points: 10, autoGrade: true,
+    correctAnswer: 'FCFS (First-Come, First-Served)',
+    choices: ['Round Robin', 'FCFS (First-Come, First-Served)', 'SRT (Shortest Remaining Time)', 'Priority Scheduling (Preemptive)'],
+  },
+  {
+    id: 'cs201_1_q3', order: 3, type: 'true_false',
+    text: '교착상태(Deadlock)는 자원 선점이 가능한 환경에서는 발생하지 않는다.',
+    points: 5, autoGrade: true,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'cs201_1_q4', order: 4, type: 'short_answer',
+    text: '프로세스가 CPU를 점유하지 않고 이벤트를 기다리는 상태를 무엇이라 하는가?',
+    points: 10, autoGrade: false,
+    correctAnswer: '대기(Waiting) 상태',
+  },
+  {
+    id: 'cs201_1_q5', order: 5, type: 'essay',
+    text: '세마포어(Semaphore)와 뮤텍스(Mutex)의 차이점을 설명하고, 각각 어떤 상황에서 사용하는 것이 적합한지 구체적인 예를 들어 서술하시오.',
+    points: 20, autoGrade: false,
+    correctAnswer: null,
+  },
+  {
+    id: 'cs201_1_q6', order: 6, type: 'multiple_choice',
+    text: '다음 중 교착상태 발생의 필요 조건이 아닌 것은?',
+    points: 10, autoGrade: true,
+    correctAnswer: '선점(Preemption)',
+    choices: ['상호 배제(Mutual Exclusion)', '점유와 대기(Hold and Wait)', '선점(Preemption)', '순환 대기(Circular Wait)'],
+  },
+  {
+    id: 'cs201_1_q7', order: 7, type: 'multiple_answers',
+    text: '다음 중 프로세스 간 통신(IPC) 방법에 해당하는 것을 모두 고르시오.',
+    points: 10, autoGrade: true,
+    correctAnswer: '파이프(Pipe), 공유 메모리(Shared Memory), 메시지 큐(Message Queue)',
+    choices: ['파이프(Pipe)', '공유 메모리(Shared Memory)', '메시지 큐(Message Queue)', '레지스터(Register)', '캐시(Cache)'],
+  },
+  {
+    id: 'cs201_1_q8', order: 8, type: 'numerical',
+    text: 'FCFS 스케줄링에서 도착 순서가 P1(버스트 8ms), P2(버스트 4ms), P3(버스트 9ms), P4(버스트 5ms)일 때 평균 대기 시간(ms)은?',
+    points: 10, autoGrade: true,
+    correctAnswer: '13.25',
+  },
+  {
+    id: 'cs201_1_q9', order: 9, type: 'true_false',
+    text: '스레드는 코드(Code), 데이터(Data), 힙(Heap) 영역을 공유하고 스택(Stack)은 독립적으로 가진다.',
+    points: 5, autoGrade: true,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'cs201_1_q10', order: 10, type: 'essay',
+    text: '페이지 교체 알고리즘 중 LRU(Least Recently Used)와 FIFO(First-In First-Out)를 비교하고, 벨라디의 이상 현상(Belady\'s Anomaly)이 발생하는 알고리즘과 그 원인을 설명하시오.',
+    points: 10, autoGrade: false,
+    correctAnswer: null,
+  },
+]
+
+// CS201 운영체제 — 1차 형성평가 문항
+const mockCs201Quiz2Questions = [
+  {
+    id: 'cs201_2_q1', order: 1, type: 'multiple_choice',
+    text: 'Round Robin 스케줄링의 타임 퀀텀(Time Quantum)이 매우 클 경우 어떤 스케줄링과 동일해지는가?',
+    points: 5, autoGrade: true,
+    correctAnswer: 'FCFS',
+    choices: ['SJF', 'FCFS', 'Priority Scheduling', 'Multilevel Queue'],
+  },
+  {
+    id: 'cs201_2_q2', order: 2, type: 'true_false',
+    text: 'SJF(Shortest Job First) 스케줄링은 평균 대기 시간을 최소화하는 최적 알고리즘이다.',
+    points: 3, autoGrade: true,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'cs201_2_q3', order: 3, type: 'multiple_choice',
+    text: '다음 중 기아(Starvation) 현상을 해결하기 위한 기법으로 가장 적절한 것은?',
+    points: 5, autoGrade: true,
+    correctAnswer: '에이징(Aging)',
+    choices: ['에이징(Aging)', '라운드 로빈(Round Robin)', '멀티레벨 큐(Multilevel Queue)', 'FCFS'],
+  },
+  {
+    id: 'cs201_2_q4', order: 4, type: 'multiple_choice',
+    text: 'CPU 스케줄러가 준비 큐에서 프로세스를 선택하는 시점이 아닌 것은?',
+    points: 5, autoGrade: true,
+    correctAnswer: '프로세스가 I/O를 요청하여 대기 상태로 전환될 때',
+    choices: [
+      '실행 중인 프로세스가 종료될 때',
+      '프로세스가 I/O를 요청하여 대기 상태로 전환될 때',
+      '타임 슬라이스가 만료될 때',
+      '인터럽트가 처리된 후 준비 큐에 프로세스가 추가될 때',
+    ],
+  },
+  {
+    id: 'cs201_2_q5', order: 5, type: 'short_answer',
+    text: '준비(Ready) 상태의 프로세스가 CPU를 할당받아 실행 중인 상태로 전환되는 것을 무엇이라 하는가?',
+    points: 3, autoGrade: false,
+    correctAnswer: '디스패치(Dispatch)',
+  },
+  {
+    id: 'cs201_2_q6', order: 6, type: 'multiple_answers',
+    text: '선점형(Preemptive) 스케줄링 알고리즘에 해당하는 것을 모두 고르시오.',
+    points: 5, autoGrade: true,
+    correctAnswer: 'Round Robin, SRT, Preemptive Priority',
+    choices: ['Round Robin', 'SRT (Shortest Remaining Time)', 'FCFS', 'Preemptive Priority', 'SJF (Non-preemptive)'],
+  },
+  {
+    id: 'cs201_2_q7', order: 7, type: 'numerical',
+    text: 'Round Robin(타임 퀀텀 4ms)에서 P1(10ms), P2(6ms), P3(4ms)가 동시에 도착할 때 P2의 완료 시간(ms)은?',
+    points: 4, autoGrade: true,
+    correctAnswer: '14',
+  },
+]
+
+// CS401 알고리즘 — 중간고사 문항
+const mockCs401Quiz1Questions = [
+  {
+    id: 'cs401_1_q1', order: 1, type: 'multiple_choice',
+    text: '다음 중 최악의 경우(Worst Case) 시간복잡도가 O(n log n)인 정렬 알고리즘은?',
+    points: 5, autoGrade: true,
+    correctAnswer: '합병 정렬(Merge Sort)',
+    choices: ['퀵 정렬(Quick Sort)', '합병 정렬(Merge Sort)', '버블 정렬(Bubble Sort)', '삽입 정렬(Insertion Sort)'],
+  },
+  {
+    id: 'cs401_1_q2', order: 2, type: 'true_false',
+    text: '퀵 정렬(Quick Sort)은 평균 O(n log n)이지만 최악의 경우 O(n²)의 시간복잡도를 가진다.',
+    points: 5, autoGrade: true,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'cs401_1_q3', order: 3, type: 'multiple_choice',
+    text: '안정 정렬(Stable Sort)에 해당하는 알고리즘으로만 묶인 것은?',
+    points: 5, autoGrade: true,
+    correctAnswer: '버블 정렬, 합병 정렬, 삽입 정렬',
+    choices: [
+      '버블 정렬, 합병 정렬, 삽입 정렬',
+      '퀵 정렬, 합병 정렬, 힙 정렬',
+      '선택 정렬, 퀵 정렬, 합병 정렬',
+      '힙 정렬, 삽입 정렬, 선택 정렬',
+    ],
+  },
+  {
+    id: 'cs401_1_q4', order: 4, type: 'short_answer',
+    text: '입력 배열이 거의 정렬된 상태일 때 가장 효율적인 정렬 알고리즘은 무엇인가?',
+    points: 5, autoGrade: false,
+    correctAnswer: '삽입 정렬(Insertion Sort)',
+  },
+  {
+    id: 'cs401_1_q5', order: 5, type: 'essay',
+    text: '힙 정렬(Heap Sort)의 동작 원리를 설명하고, 최선/평균/최악 시간복잡도를 분석하시오. 또한 퀵 정렬과 힙 정렬 중 실제 환경에서 더 빠른 이유를 설명하시오.',
+    points: 15, autoGrade: false,
+    correctAnswer: null,
+  },
+  {
+    id: 'cs401_1_q6', order: 6, type: 'multiple_choice',
+    text: '비교 기반 정렬 알고리즘의 이론적 하한선은?',
+    points: 5, autoGrade: true,
+    correctAnswer: 'O(n log n)',
+    choices: ['O(n)', 'O(n log n)', 'O(n²)', 'O(log n)'],
+  },
+  {
+    id: 'cs401_1_q7', order: 7, type: 'numerical',
+    text: '크기 8인 배열을 합병 정렬로 정렬할 때 총 비교 횟수의 최댓값은? (n log n 기준)',
+    points: 5, autoGrade: true,
+    correctAnswer: '24',
+  },
+  {
+    id: 'cs401_1_q8', order: 8, type: 'multiple_answers',
+    text: '제자리 정렬(In-place Sort)에 해당하는 알고리즘을 모두 고르시오.',
+    points: 5, autoGrade: true,
+    correctAnswer: '버블 정렬, 삽입 정렬, 선택 정렬, 퀵 정렬, 힙 정렬',
+    choices: ['버블 정렬', '삽입 정렬', '선택 정렬', '퀵 정렬', '힙 정렬', '합병 정렬', '기수 정렬'],
+  },
+  {
+    id: 'cs401_1_q9', order: 9, type: 'true_false',
+    text: '기수 정렬(Radix Sort)은 비교 기반 정렬 알고리즘이다.',
+    points: 5, autoGrade: true,
+    correctAnswer: '거짓',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'cs401_1_q10', order: 10, type: 'multiple_choice',
+    text: '퀵 정렬에서 피벗을 항상 배열의 첫 번째 원소로 선택할 때 최악의 경우가 발생하는 입력은?',
+    points: 5, autoGrade: true,
+    correctAnswer: '이미 정렬된 배열',
+    choices: ['역순으로 정렬된 배열', '이미 정렬된 배열', '무작위 배열', '모든 원소가 동일한 배열'],
+  },
+]
 
 // 학생 응시 결과 저장/불러오기
 // 복수응시 정책에 따라 학생별 최종 유효 응시 반환
