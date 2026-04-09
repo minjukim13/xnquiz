@@ -536,14 +536,17 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
                 }}
               >
                 <span
-                  className="shrink-0 rounded-full"
+                  className="shrink-0 rounded-full flex items-center justify-center"
                   style={{
-                    width: 14, height: 14,
-                    border: `2px solid ${isSelected ? '#6366F1' : '#D1D5DB'}`,
-                    background: isSelected ? '#6366F1' : 'transparent',
-                    display: 'inline-block',
+                    width: 16, height: 16,
+                    border: `2px solid ${isSelected ? '#6366F1' : '#BDBDBD'}`,
+                    background: isSelected ? '#6366F1' : '#fff',
+                    display: 'inline-flex',
+                    flexShrink: 0,
                   }}
-                />
+                >
+                  {isSelected && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', display: 'block' }} />}
+                </span>
                 <span className="flex-1">{course.name}</span>
                 {isCurrent && (
                   <span className="text-xs font-normal shrink-0" style={{ color: '#9E9E9E' }}>현재 과목</span>
