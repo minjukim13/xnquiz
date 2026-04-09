@@ -1318,18 +1318,6 @@ export function isAnswerCorrect(answer, questionId) {
 
 // ── 문제은행 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──
 
-const BANK_QUESTION_TEXTS = [
-  'SQL SELECT 문의 기본 구조를 설명하시오.',
-  '정규화의 목적과 단계를 서술하시오.',
-  'JOIN의 종류와 각 특징을 설명하시오.',
-  'PRIMARY KEY와 FOREIGN KEY의 차이점은?',
-  'WHERE 절과 HAVING 절의 차이는?',
-  '인덱스의 역할과 장단점을 설명하시오.',
-  'ACID 속성이란 무엇인가?',
-  '뷰(View)의 개념과 사용 목적은?',
-  '서브쿼리와 JOIN의 성능 차이는?',
-  'GROUP BY 절의 사용 방법을 예시와 함께 설명하시오.',
-]
 
 export const MOCK_COURSES = [
   { id: 'cs301', name: 'CS301 데이터베이스' },
@@ -1339,45 +1327,59 @@ export const MOCK_COURSES = [
 ]
 
 export const MOCK_BANKS = [
-  { id: 'bank1', name: 'DB 기초',       course: 'CS301 데이터베이스', difficulty: '', updatedAt: '2026-03-20', usedInQuizIds: ['1', '2'] },
-  { id: 'bank2', name: 'SQL 심화',      course: 'CS301 데이터베이스', difficulty: '', updatedAt: '2026-03-24', usedInQuizIds: ['1'] },
-  { id: 'bank3', name: '프로세스 관리', course: 'CS201 운영체제',     difficulty: '', updatedAt: '2026-03-15', usedInQuizIds: [] },
-  { id: 'bank4', name: '메모리 관리',   course: 'CS201 운영체제',     difficulty: '', updatedAt: '2026-03-10', usedInQuizIds: [] },
-  { id: 'bank5', name: '정렬 알고리즘', course: 'CS401 알고리즘',     difficulty: '', updatedAt: '2026-02-28', usedInQuizIds: [] },
-  { id: 'bank6', name: '그래프 탐색',   course: 'CS401 알고리즘',     difficulty: '', updatedAt: '2026-03-05', usedInQuizIds: [] },
-  { id: 'bank7', name: '선형 자료구조', course: 'CS102 자료구조',     difficulty: '', updatedAt: '2026-02-20', usedInQuizIds: [] },
-  { id: 'bank8', name: '트리 및 해시',  course: 'CS102 자료구조',     difficulty: '', updatedAt: '2026-02-25', usedInQuizIds: [] },
+  { id: 'bank1', name: 'DB 종합 문제집', course: 'CS301 데이터베이스', difficulty: '',       updatedAt: '2026-04-01', usedInQuizIds: ['1', '2'] },
+  { id: 'bank2', name: 'SQL 심화',       course: 'CS301 데이터베이스', difficulty: 'high',   updatedAt: '2026-03-28', usedInQuizIds: ['1'] },
+  { id: 'bank3', name: 'SQL 기초',       course: 'CS301 데이터베이스', difficulty: 'medium', updatedAt: '2026-03-20', usedInQuizIds: [] },
+  { id: 'bank4', name: 'DB 입문',        course: 'CS301 데이터베이스', difficulty: 'low',    updatedAt: '2026-03-15', usedInQuizIds: [] },
+  { id: 'bank5', name: '운영체제 종합',  course: 'CS201 운영체제',     difficulty: '',       updatedAt: '2026-03-10', usedInQuizIds: [] },
+  { id: 'bank6', name: '알고리즘 심화',  course: 'CS401 알고리즘',     difficulty: 'high',   updatedAt: '2026-03-05', usedInQuizIds: [] },
 ]
 
-const BANK_GROUP_MAP = {
-  bank1: ['1단원 - 관계형 모델', '2단원 - SQL 기초', '3단원 - 정규화', '4단원 - 트랜잭션'],
-  bank2: ['기본 쿼리', '조인 및 서브쿼리', '인덱스 최적화', '뷰 및 저장 프로시저'],
-  bank3: ['프로세스 개념', '스케줄링', '동기화', '교착 상태'],
-  bank4: ['메모리 기초', '가상 메모리', '페이지 교체', '세그멘테이션'],
-  bank5: ['시간복잡도', '비교 기반 정렬', '비교 비기반 정렬', '정렬 응용'],
-  bank6: ['그래프 기초', 'BFS/DFS', '최단 경로', '최소 신장 트리'],
-  bank7: ['배열과 연결 리스트', '스택과 큐', '덱', '해시 기초'],
-  bank8: ['이진 트리', 'BST', '힙', '해시 테이블'],
-}
-export const BANK_GROUP_MAP_EXPORTED = BANK_GROUP_MAP
-const DIFFICULTIES = ['high', 'medium', 'low']
+export const MOCK_BANK_QUESTIONS = [
+  // bank1: DB 종합 문제집 (난이도 미지정 — 혼합)
+  { id: 'bq1',  bankId: 'bank1', type: 'multiple_choice', difficulty: 'low',    points: 5,  usageCount: 3, text: '관계형 데이터베이스에서 기본키(Primary Key)의 역할은?' },
+  { id: 'bq2',  bankId: 'bank1', type: 'multiple_choice', difficulty: 'medium', points: 5,  usageCount: 2, text: 'SQL에서 NULL 값을 비교할 때 올바른 방법은?' },
+  { id: 'bq3',  bankId: 'bank1', type: 'short_answer',    difficulty: 'high',   points: 10, usageCount: 1, text: '트랜잭션의 ACID 속성 중 Atomicity가 보장하는 것을 설명하시오.' },
+  { id: 'bq4',  bankId: 'bank1', type: 'true_false',      difficulty: 'low',    points: 3,  usageCount: 4, text: 'SELECT 쿼리는 데이터를 변경하지 않는다.' },
+  { id: 'bq5',  bankId: 'bank1', type: 'essay',           difficulty: 'high',   points: 15, usageCount: 0, text: 'ERD(개체-관계 다이어그램)와 관계형 스키마의 차이를 설명하시오.' },
+  { id: 'bq6',  bankId: 'bank1', type: 'multiple_choice', difficulty: 'medium', points: 5,  usageCount: 2, text: '정규화 과정에서 2NF(제2정규형)를 만족하려면 어떤 조건이 필요한가?' },
 
-const BANK_IDS = ['bank1', 'bank2', 'bank3', 'bank4', 'bank5', 'bank6', 'bank7', 'bank8']
+  // bank2: SQL 심화 (난이도: 상 — 모든 문항이 상이어야 함)
+  { id: 'bq7',  bankId: 'bank2', type: 'multiple_choice', difficulty: 'high',   points: 10, usageCount: 1, text: '서브쿼리와 JOIN 중 일반적으로 성능 측면에서 유리한 경우를 비교한 것으로 올바른 것은?' },
+  { id: 'bq8',  bankId: 'bank2', type: 'essay',           difficulty: 'high',   points: 20, usageCount: 0, text: '인덱스가 쿼리 성능에 미치는 영향을 설명하고, 인덱스 생성 기준을 논하시오.' },
+  { id: 'bq9',  bankId: 'bank2', type: 'short_answer',    difficulty: 'high',   points: 10, usageCount: 2, text: 'EXPLAIN 명령어를 통해 쿼리 실행 계획에서 확인할 수 있는 주요 정보는?' },
+  { id: 'bq10', bankId: 'bank2', type: 'multiple_choice', difficulty: 'high',   points: 10, usageCount: 3, text: '다음 중 인덱스가 무시될 수 있는 상황으로 올바른 것은?' },
+  { id: 'bq11', bankId: 'bank2', type: 'essay',           difficulty: 'high',   points: 20, usageCount: 0, text: '파티셔닝(Partitioning)과 샤딩(Sharding)의 개념 차이를 설명하시오.' },
+  { id: 'bq12', bankId: 'bank2', type: 'short_answer',    difficulty: 'high',   points: 10, usageCount: 1, text: 'WITH 절(CTE)이 서브쿼리 대비 갖는 장점을 두 가지 이상 설명하시오.' },
 
-export const MOCK_BANK_QUESTIONS = Array.from({ length: 120 }, (_, i) => {
-  const bankId = BANK_IDS[i % 8]
-  const groups = BANK_GROUP_MAP[bankId]
-  return {
-    id: `bank_q${i + 1}`,
-    text: BANK_QUESTION_TEXTS[i % 10] + (i >= 10 ? ` (${Math.floor(i / 10) + 1})` : ''),
-    type: Object.keys(QUIZ_TYPES)[i % Object.keys(QUIZ_TYPES).length],
-    points: [3, 5, 8, 10, 15][i % 5],
-    bankId,
-    usageCount: [0, 2, 5, 1, 3, 8, 0, 4][i % 8],
-    difficulty: DIFFICULTIES[i % 3],
-    groupTag: groups[i % groups.length],
-  }
-})
+  // bank3: SQL 기초 (난이도: 중 — 모든 문항이 중이어야 함)
+  { id: 'bq13', bankId: 'bank3', type: 'multiple_choice',  difficulty: 'medium', points: 5, usageCount: 4, text: 'INNER JOIN과 LEFT JOIN의 결과 차이는 무엇인가?' },
+  { id: 'bq14', bankId: 'bank3', type: 'multiple_choice',  difficulty: 'medium', points: 5, usageCount: 2, text: 'GROUP BY와 HAVING 절을 함께 사용하는 상황으로 올바른 것은?' },
+  { id: 'bq15', bankId: 'bank3', type: 'short_answer',     difficulty: 'medium', points: 8, usageCount: 1, text: 'DISTINCT 키워드의 역할과 사용 예시를 작성하시오.' },
+  { id: 'bq16', bankId: 'bank3', type: 'multiple_choice',  difficulty: 'medium', points: 5, usageCount: 3, text: 'SELECT 쿼리의 논리적 실행 순서를 올바르게 나열한 것은?' },
+  { id: 'bq17', bankId: 'bank3', type: 'multiple_answers', difficulty: 'medium', points: 5, usageCount: 0, text: '다음 중 집계 함수(Aggregate Function)에 해당하는 것을 모두 고르시오.' },
+
+  // bank4: DB 입문 (난이도: 하 — 모든 문항이 하이어야 함)
+  { id: 'bq18', bankId: 'bank4', type: 'true_false',      difficulty: 'low',    points: 3, usageCount: 5, text: 'SQL에서 SELECT * 은 테이블의 모든 열을 조회한다.' },
+  { id: 'bq19', bankId: 'bank4', type: 'multiple_choice', difficulty: 'low',    points: 3, usageCount: 3, text: 'WHERE 절에서 사용할 수 없는 연산자는?' },
+  { id: 'bq20', bankId: 'bank4', type: 'multiple_choice', difficulty: 'low',    points: 3, usageCount: 2, text: 'CREATE TABLE 문에서 열의 데이터 타입을 지정하는 이유는?' },
+  { id: 'bq21', bankId: 'bank4', type: 'true_false',      difficulty: 'low',    points: 3, usageCount: 1, text: 'DELETE 문은 테이블 구조(스키마)를 삭제한다.' },
+  { id: 'bq22', bankId: 'bank4', type: 'short_answer',    difficulty: 'low',    points: 5, usageCount: 2, text: 'INSERT INTO 문의 기본 문법을 예시와 함께 작성하시오.' },
+
+  // bank5: 운영체제 종합 (난이도 미지정 — 혼합)
+  { id: 'bq23', bankId: 'bank5', type: 'multiple_choice', difficulty: 'low',    points: 5,  usageCount: 3, text: '프로세스와 스레드의 가장 큰 차이점은?' },
+  { id: 'bq24', bankId: 'bank5', type: 'multiple_choice', difficulty: 'medium', points: 5,  usageCount: 2, text: 'CPU 스케줄링 알고리즘 중 선점형(Preemptive)에 해당하는 것은?' },
+  { id: 'bq25', bankId: 'bank5', type: 'essay',           difficulty: 'high',   points: 20, usageCount: 0, text: '교착 상태(Deadlock)의 발생 조건 4가지를 서술하고 각각 예시를 들어 설명하시오.' },
+  { id: 'bq26', bankId: 'bank5', type: 'true_false',      difficulty: 'medium', points: 5,  usageCount: 1, text: 'LRU 페이지 교체 알고리즘은 가장 오래전에 사용된 페이지를 교체한다.' },
+  { id: 'bq27', bankId: 'bank5', type: 'short_answer',    difficulty: 'high',   points: 10, usageCount: 1, text: '세마포어(Semaphore)와 뮤텍스(Mutex)의 차이를 설명하시오.' },
+
+  // bank6: 알고리즘 심화 (난이도: 상 — 모든 문항이 상이어야 함)
+  { id: 'bq28', bankId: 'bank6', type: 'multiple_choice', difficulty: 'high',   points: 10, usageCount: 2, text: '다익스트라(Dijkstra) 알고리즘이 올바르게 동작하지 않는 경우는?' },
+  { id: 'bq29', bankId: 'bank6', type: 'essay',           difficulty: 'high',   points: 20, usageCount: 0, text: 'NP-완전(NP-Complete) 문제의 정의를 설명하고 대표적인 예시를 드시오.' },
+  { id: 'bq30', bankId: 'bank6', type: 'short_answer',    difficulty: 'high',   points: 10, usageCount: 1, text: '동적 프로그래밍(DP)과 분할 정복(Divide & Conquer)의 차이를 비교하시오.' },
+  { id: 'bq31', bankId: 'bank6', type: 'multiple_choice', difficulty: 'high',   points: 10, usageCount: 3, text: '다음 중 평균 시간복잡도가 O(n log n)인 정렬 알고리즘만 묶인 것은?' },
+  { id: 'bq32', bankId: 'bank6', type: 'essay',           difficulty: 'high',   points: 20, usageCount: 0, text: '그리디(Greedy) 알고리즘이 최적해를 보장하기 위한 조건을 설명하시오.' },
+]
 
 // 데모용 가상 데이터 — 실제 개인정보 아님
 // Q3 단답형(10점) 개별 점수

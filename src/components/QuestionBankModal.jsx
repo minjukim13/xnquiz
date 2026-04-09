@@ -18,23 +18,16 @@ export default function QuestionBankModal({ onClose, onAdd, added, currentCourse
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
-  const [filterGroup, setFilterGroup] = useState('all')
   const [checked, setChecked] = useState(new Set()) // 현재 모달에서 선택 중인 문항 IDs
   const [visibleCount, setVisibleCount] = useState(15)
 
   const selectedBank = banks.find(b => b.id === selectedBankId)
   const bankQuestions = selectedBankId ? getBankQuestions(selectedBankId) : []
 
-  // 해당 은행의 그룹 목록
-  const groupOptions = selectedBankId
-    ? [...new Set(bankQuestions.map(q => q.groupTag).filter(Boolean))]
-    : []
-
   const filtered = bankQuestions.filter(q => {
     if (search && !q.text.toLowerCase().includes(search.toLowerCase())) return false
     if (filterType !== 'all' && q.type !== filterType) return false
     if (filterDifficulty !== 'all' && q.difficulty !== filterDifficulty) return false
-    if (filterGroup !== 'all' && q.groupTag !== filterGroup) return false
     return true
   })
 
@@ -83,7 +76,6 @@ export default function QuestionBankModal({ onClose, onAdd, added, currentCourse
     setSearch('')
     setFilterType('all')
     setFilterDifficulty('all')
-    setFilterGroup('all')
     setVisibleCount(15)
     setChecked(new Set())
     setShowOtherCourses(false)
@@ -278,18 +270,6 @@ export default function QuestionBankModal({ onClose, onAdd, added, currentCourse
                     { value: 'low', label: '하' },
                   ]}
                 />
-                {/* 그룹 필터 */}
-                {groupOptions.length > 0 && (
-                  <DropdownSelect
-                    value={filterGroup}
-                    onChange={v => { setFilterGroup(v); setVisibleCount(15) }}
-                    filterMode
-                    options={[
-                      { value: 'all', label: '모든 그룹' },
-                      ...groupOptions.map(g => ({ value: g, label: g })),
-                    ]}
-                  />
-                )}
                 <span className="text-xs ml-auto" style={{ color: '#9E9E9E' }}>{filtered.length}개</span>
               </div>
             </div>
@@ -327,11 +307,6 @@ export default function QuestionBankModal({ onClose, onAdd, added, currentCourse
                         {q.difficulty && (
                           <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: diff?.bg, color: diff?.text }}>
                             {DIFFICULTY_LABELS[q.difficulty]}
-                          </span>
-                        )}
-                        {q.groupTag && (
-                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#F5F5F5', color: '#616161' }}>
-                            {q.groupTag}
                           </span>
                         )}
                         {isAdded && (

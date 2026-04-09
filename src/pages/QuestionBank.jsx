@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Search, X, Edit2, Trash2, Upload, Download, FolderInput, ChevronLeft, Copy, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
+import { Plus, Search, X, Edit2, Trash2, Upload, Download, FolderInput, FolderOutput, ChevronLeft, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
 import Layout from '../components/Layout'
 import { QUIZ_TYPES, MOCK_COURSES } from '../data/mockData'
 import { AppSelect } from '../components/AppSelect'
@@ -180,8 +180,8 @@ export default function QuestionBank() {
                 onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <Copy size={14} />
-                <span className="hidden sm:block">복제하기</span>
+                <FolderOutput size={14} />
+                <span className="hidden sm:block">내보내기</span>
               </button>
               <button
                 onClick={() => setShowCopyModal(true)}
@@ -191,7 +191,7 @@ export default function QuestionBank() {
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <FolderInput size={14} />
-                <span className="hidden sm:block">다른 은행에서 복사</span>
+                <span className="hidden sm:block">가져오기</span>
               </button>
               <button
                 onClick={() => setShowUploadModal(true)}
@@ -362,7 +362,7 @@ export default function QuestionBank() {
               bankId,
             })))
             setShowDuplicateModal(false)
-            showToast(`"${bankName}" 문제은행으로 복제되었습니다`, bankId)
+            showToast(`"${bankName}" 문제은행으로 내보내기 완료`, bankId)
           }}
         />
       )}
@@ -685,7 +685,7 @@ function DuplicateBankModal({ bank, questions, onClose, onDuplicate }) {
       >
         {/* 헤더 */}
         <div className="px-4 py-3 shrink-0 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
-          <h3 className="font-semibold" style={{ color: '#222222' }}>문제은행 복제</h3>
+          <h3 className="font-semibold" style={{ color: '#222222' }}>내보내기</h3>
           <button onClick={onClose} style={{ color: '#9E9E9E' }}><X size={18} /></button>
         </div>
 
@@ -966,7 +966,7 @@ function DuplicateBankModal({ bank, questions, onClose, onDuplicate }) {
               className="text-sm font-medium px-4 py-2 bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
               style={{ borderRadius: 4 }}
             >
-              복제하기 ({selectedIds.length}개)
+              내보내기 ({selectedIds.length}개)
             </button>
           </div>
         </div>
@@ -1109,7 +1109,7 @@ function ExcelUploadModal({ onClose, onImport }) {
 }
 
 // ── 다른 은행에서 복사 모달 ───────────────────────────────────────────────────
-export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다른 은행에서 복사', initialCourse }) {
+export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '가져오기', initialCourse }) {
   const { banks, getBankQuestions } = useQuestionBank()
   const currentBank = banks.find(b => b.id === currentBankId)
   // course가 없는 은행은 첫 번째 과목(CS301)에 속하는 것으로 간주

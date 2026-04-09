@@ -114,7 +114,7 @@ export default function GradingDashboard() {
 
   const questionStudents = useMemo(() => {
     if (!selectedQ) return []
-    return quizStudents.filter(s => s.submitted).filter(s =>
+    return quizStudents.filter(s =>
       searchStudent === '' ||
       s.name.includes(searchStudent) ||
       s.studentId.includes(searchStudent)
@@ -538,63 +538,90 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
   return (
     <div className="flex flex-col h-full">
       {/* 문항 정보 */}
-      <div className="bg-white p-4 mb-3" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <p className="text-sm leading-relaxed" style={{ color: '#222222' }}>{question.text}</p>
-            {question.choices && question.choices.length > 0 && (
-              <div className="mt-3 flex flex-col gap-1">
-                {question.choices.map((choice, i) => {
-                  const isCorrect = choice === question.correctAnswer
-                  return (
-                    <div key={i} className="flex items-baseline gap-2"
-                      style={{ fontSize: 13, color: isCorrect ? '#3730a3' : '#6B7280', fontWeight: isCorrect ? 600 : 400 }}>
-                      <span style={{ minWidth: 16, flexShrink: 0, color: isCorrect ? '#6366f1' : '#9CA3AF' }}>{i + 1}.</span>
-                      <span>{choice}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-            {question.correctAnswer && (
-              <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: '#EEF2FF', color: '#6366f1' }}>모범 답안</span>
-                {question.type === 'true_false' ? (
-                  <div className="flex items-center gap-1.5">
-                    {['참', '거짓'].map(opt => {
-                      const isCorrect = opt === question.correctAnswer
-                      return (
-                        <span key={opt} className="px-2.5 py-0.5 rounded-full text-xs font-medium"
-                          style={isCorrect ? { background: '#6366f1', color: '#fff' } : { background: '#F1F5F9', color: '#94A3B8' }}>
-                          {opt}
-                        </span>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <span className="text-xs" style={{ color: '#1E293B' }}>{question.correctAnswer}</span>
-                )}
-              </div>
-            )}
+      <div className="bg-white mb-3" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
+        {/* 문항 메타 */}
+        <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold" style={{ color: '#6366f1' }}>Q{question.order}</span>
+            <TypeBadge type={question.type} small />
           </div>
+          <span className="text-sm font-semibold" style={{ color: '#374151' }}>{question.points}점</span>
+        </div>
+        {/* 문항 본문 */}
+        <div className="px-4 pb-4" style={{ borderTop: '1px solid #F3F4F6' }}>
+          <p className="text-sm leading-relaxed" style={{ color: '#222222' }}>{question.text}</p>
+          {question.choices && question.choices.length > 0 && (
+            <div className="mt-3 flex flex-col gap-1">
+              {question.choices.map((choice, i) => {
+                const isCorrect = choice === question.correctAnswer
+                return (
+                  <div key={i} className="flex items-baseline gap-2"
+                    style={{ fontSize: 13, color: isCorrect ? '#3730a3' : '#6B7280', fontWeight: isCorrect ? 600 : 400 }}>
+                    <span style={{ minWidth: 16, flexShrink: 0, color: isCorrect ? '#6366f1' : '#9CA3AF' }}>{i + 1}.</span>
+                    <span>{choice}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {question.correctAnswer && (
+            <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: '#EEF2FF', color: '#6366f1' }}>정답</span>
+              {question.type === 'true_false' ? (
+                <div className="flex items-center gap-1.5">
+                  {['참', '거짓'].map(opt => {
+                    const isCorrect = opt === question.correctAnswer
+                    return (
+                      <span key={opt} className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        style={isCorrect ? { background: '#6366f1', color: '#fff' } : { background: '#F1F5F9', color: '#94A3B8' }}>
+                        {opt}
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : (
+                <span className="text-xs" style={{ color: '#1E293B' }}>{question.correctAnswer}</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* 탭 + 엑셀 */}
-      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-        <div className="flex p-0.5 rounded" style={{ background: '#F5F5F5', border: '1px solid #E0E0E0' }}>
-          <TabBtn active={activeTab === 'responses'} onClick={() => onTabChange('responses')}>
-            <Users size={12} />응시 현황 ({question.totalCount})
-          </TabBtn>
-          <TabBtn active={activeTab === 'stats'} onClick={() => onTabChange('stats')}>
-            <BarChart3 size={12} />통계
-          </TabBtn>
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <div className="flex" style={{ borderBottom: '2px solid #E5E7EB' }}>
+          {[
+            { key: 'responses', icon: <Users size={12} />, label: `응시 현황`, count: question.totalCount },
+            { key: 'stats', icon: <BarChart3 size={12} />, label: '통계' },
+          ].map(({ key, icon, label, count }) => (
+            <button
+              key={key}
+              onClick={() => onTabChange(key)}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors whitespace-nowrap"
+              style={activeTab === key
+                ? { color: '#4F46E5', borderBottom: '2px solid #4F46E5', marginBottom: -2 }
+                : { color: '#9CA3AF', borderBottom: '2px solid transparent', marginBottom: -2 }
+              }
+            >
+              {icon}
+              {label}
+              {count != null && (
+                <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold"
+                  style={activeTab === key
+                    ? { background: '#EEF2FF', color: '#4F46E5' }
+                    : { background: '#F3F4F6', color: '#9CA3AF' }
+                  }>
+                  {count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
         {activeTab === 'responses' && (
           <button
             onClick={onExcel}
-            className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 px-3 py-1.5 rounded transition-colors"
-            style={{ border: '1px solid #c7d2fe' }}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors shrink-0"
+            style={{ border: '1px solid #C7D2FE', color: '#4F46E5', background: '#EEF2FF' }}
           >
             <Download size={12} />
             엑셀 일괄 채점
@@ -605,7 +632,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
       {activeTab === 'responses' ? (
         <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} />
       ) : (
-        <StatsTab question={question} students={quizStudents} />
+        <StatsTab question={question} students={students} />
       )}
     </div>
   )
@@ -622,21 +649,24 @@ const PAGE_SIZE_OPTIONS = [
 function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed }) {
   const [pageSize, setPageSize] = useState(20)
   const [page, setPage] = useState(1)
-  const [pendingScores, setPendingScores] = useState({}) // { [student.id]: scoreValue }
-  const [saveStatus, setSaveStatus] = useState('idle') // 'idle' | 'saved'
+  const [pendingScores, setPendingScores] = useState({})
+  const [saveStatus, setSaveStatus] = useState('idle')
+  const [sortBy, setSortBy] = useState('name')
+  const [sortDir, setSortDir] = useState('asc')
+  const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'graded' | 'ungraded'
   const isFirstRender = useRef(true)
 
-  // 검색 or pageSize 변경 시 첫 페이지로
-  useEffect(() => { setPage(1) }, [search, pageSize])
+  useEffect(() => { setPage(1) }, [search, pageSize, sortBy, sortDir, filterStatus])
 
-  // 문항 전환 시 초기화
   useEffect(() => {
     setPendingScores({})
     setSaveStatus('idle')
+    setSortBy('name')
+    setSortDir('asc')
+    setFilterStatus('all')
     isFirstRender.current = true
   }, [question?.id])
 
-  // 엑셀 업로드 rows → pendingScores에 병합 (저장은 일괄 저장 버튼으로)
   useEffect(() => {
     if (!excelRows?.length) return
     const merged = {}
@@ -648,22 +678,37 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     onExcelRowsConsumed?.()
   }, [excelRows]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 일괄 저장 후 "저장 완료" 표시
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return }
     setSaveStatus('saved')
     setTimeout(() => setSaveStatus('idle'), 3000)
   }, [gradeVersion]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ungradedAll = students.filter(s => s.score === null)
-  const gradedAll   = students.filter(s => s.score !== null)
-  const flat = [...ungradedAll, ...gradedAll]
+  const sorted = useMemo(() => {
+    const list = [...students]
+    list.sort((a, b) => {
+      let cmp = 0
+      if (sortBy === 'name') cmp = a.name.localeCompare(b.name, 'ko')
+      if (sortBy === 'studentId') cmp = a.studentId.localeCompare(b.studentId)
+      if (sortBy === 'score') cmp = (a.score ?? -1) - (b.score ?? -1)
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return list
+  }, [students, sortBy, sortDir])
 
-  const totalPages = pageSize === 'all' ? 1 : Math.ceil(flat.length / pageSize)
-  const visible = pageSize === 'all' ? flat : flat.slice((page - 1) * pageSize, page * pageSize)
+  const filtered = useMemo(() => {
+    if (filterStatus === 'graded') return sorted.filter(s => s.submitted && s.score !== null)
+    if (filterStatus === 'ungraded') return sorted.filter(s => s.submitted && s.score === null)
+    return sorted
+  }, [sorted, filterStatus])
 
-  const visibleUngraded = visible.filter(s => s.score === null)
-  const visibleGraded   = visible.filter(s => s.score !== null)
+  const totalPages = pageSize === 'all' ? 1 : Math.ceil(filtered.length / pageSize)
+  const visible = pageSize === 'all' ? filtered : filtered.slice((page - 1) * pageSize, page * pageSize)
+
+  const handleSortClick = (col) => {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortBy(col); setSortDir('asc') }
+  }
 
   const handleScoreChange = useCallback((studentId, score) => {
     setPendingScores(prev => ({ ...prev, [studentId]: score }))
@@ -693,18 +738,36 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     onGradeSaved?.()
   }
 
+  const gradedCount = students.filter(s => s.submitted && s.score !== null).length
+  const ungradedCount = students.filter(s => s.submitted && s.score === null).length
+
+  const SortTh = ({ col, children, className = '', style = {} }) => {
+    const isActive = sortBy === col
+    return (
+      <button
+        onClick={() => handleSortClick(col)}
+        className={`flex items-center gap-0.5 transition-colors ${className}`}
+        style={{ fontSize: 14, fontWeight: 600, color: isActive ? '#4F46E5' : '#6B7280', ...style }}
+      >
+        {children}
+        <ArrowUpDown size={11} style={{ color: isActive ? '#6366f1' : '#D1D5DB', transform: isActive && sortDir === 'desc' ? 'scaleY(-1)' : undefined, flexShrink: 0 }} />
+      </button>
+    )
+  }
+
   return (
     <div className="flex-1 bg-white overflow-hidden flex flex-col" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
-      <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEEEE', background: '#FAFAFA' }}>
+      {/* 툴바 */}
+      <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: '1px solid #F3F4F6', background: '#FAFAFA' }}>
         <div className="flex-1 relative">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#9E9E9E' }} />
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#9CA3AF' }} />
           <input
             type="text"
             value={search}
             onChange={e => onSearch(e.target.value)}
-            placeholder="학생 이름 또는 학번 검색"
-            className="w-full bg-white text-xs pl-8 pr-3 py-1.5 rounded focus:outline-none"
-            style={{ border: '1px solid #E0E0E0', color: '#222222' }}
+            placeholder="이름 또는 학번"
+            className="w-full bg-white text-xs pl-7 pr-3 py-1.5 rounded focus:outline-none"
+            style={{ border: '1px solid #E5E7EB', color: '#222222' }}
           />
         </div>
         <DropdownSelect
@@ -716,100 +779,128 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
         />
         <div className="flex items-center gap-2 shrink-0" style={{ borderLeft: '1px solid #E5E7EB', paddingLeft: 8 }}>
           {saveStatus === 'saved' && (
-            <span className="text-xs" style={{ color: '#4B5563' }}>저장 완료</span>
+            <span className="text-xs font-medium" style={{ color: '#059669' }}>저장 완료</span>
           )}
-<button
+          <button
             onClick={handleBulkSave}
             disabled={pendingCount === 0}
             className="text-xs font-semibold px-3 py-1.5 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: '#4F46E5', color: '#fff' }}
-            onMouseEnter={e => { if (pendingCount > 0) e.currentTarget.style.background = '#4338CA' }}
-            onMouseLeave={e => { if (pendingCount > 0) e.currentTarget.style.background = '#4F46E5' }}
           >
-            일괄 저장
+            일괄 저장{pendingCount > 0 ? ` (${pendingCount})` : ''}
           </button>
         </div>
       </div>
 
+      {/* 필터 */}
+      <div className="px-3 py-2" style={{ borderBottom: '1px solid #F3F4F6', background: '#fff' }}>
+        <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: '#F3F4F6', display: 'inline-flex' }}>
+          {[
+            { key: 'all',      label: '전체',    count: students.length, dotColor: null },
+            { key: 'graded',   label: '채점완료', count: gradedCount,     dotColor: '#10B981' },
+            { key: 'ungraded', label: '미채점',   count: ungradedCount,   dotColor: '#F59E0B' },
+          ].map(({ key, label, count, dotColor }) => {
+            const isActive = filterStatus === key
+            return (
+              <button
+                key={key}
+                onClick={() => setFilterStatus(key)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all"
+                style={isActive
+                  ? { background: '#fff', color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' }
+                  : { background: 'transparent', color: '#6B7280' }
+                }
+              >
+                {dotColor && (
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0, display: 'inline-block' }} />
+                )}
+                {label}
+                <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? '#6366f1' : '#9CA3AF' }}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 테이블 헤더 */}
+      <div className="flex items-center px-3 py-2 gap-2" style={{ borderBottom: '2px solid #E5E7EB', background: '#F9FAFB' }}>
+        <div className="w-28 shrink-0"><SortTh col="name">이름</SortTh></div>
+        <div className="w-24 shrink-0"><SortTh col="studentId">학번</SortTh></div>
+        <div className="flex-1 text-sm font-semibold" style={{ color: '#6B7280' }}>제출 답안</div>
+        {question.autoGrade && <div className="w-16 shrink-0 text-sm font-semibold" style={{ color: '#6B7280' }}>정답 여부</div>}
+        <div className="w-40 shrink-0 flex justify-end"><SortTh col="score">점수</SortTh></div>
+      </div>
+
+      {/* 행 목록 */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
-        {visibleUngraded.length > 0 && (
-          <div>
-            <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
-              <span className="text-xs font-semibold" style={{ color: '#4B5563' }}>미채점</span>
-              <span className="text-xs" style={{ color: '#BDBDBD' }}>{ungradedAll.length}명</span>
-              <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
-            </div>
-            {visibleUngraded.map(s => (
-              <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} />
-            ))}
-          </div>
-        )}
-        {visibleGraded.length > 0 && (
-          <div>
-            <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
-              <span className="text-xs font-semibold" style={{ color: '#4B5563' }}>채점 완료</span>
-              <span className="text-xs" style={{ color: '#BDBDBD' }}>{gradedAll.length}명</span>
-              <div className="flex-1 h-px" style={{ background: '#EEEEEE' }} />
-            </div>
-            {visibleGraded.map(s => (
-              <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} />
-            ))}
-          </div>
+        {visible.length === 0 ? (
+          <div className="flex items-center justify-center h-24 text-xs" style={{ color: '#9CA3AF' }}>검색 결과가 없습니다</div>
+        ) : (
+          visible.map(s => (
+            <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} />
+          ))
         )}
       </div>
 
       {/* 페이지네이션 */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center px-3 py-2" style={{ borderTop: '1px solid #EEEEEE' }}>
+        <div className="flex items-center justify-between px-3 py-2" style={{ borderTop: '1px solid #F3F4F6' }}>
+          <span className="text-xs" style={{ color: '#9CA3AF' }}>{page} / {totalPages} 페이지</span>
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-2 py-1 rounded text-xs disabled:opacity-30 transition-colors"
-              style={{ border: '1px solid #E0E0E0', color: '#4B5563' }}
-            >
-              이전
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className="w-6 h-6 rounded text-xs flex items-center justify-center transition-colors"
-                style={p === page
-                  ? { background: '#6366f1', color: '#fff', border: '1px solid #6366f1' }
-                  : { border: '1px solid #E0E0E0', color: '#4B5563' }}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-2 py-1 rounded text-xs disabled:opacity-30 transition-colors"
-              style={{ border: '1px solid #E0E0E0', color: '#4B5563' }}
-            >
-              다음
-            </button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              className="px-2.5 py-1 rounded text-xs disabled:opacity-30"
+              style={{ border: '1px solid #E5E7EB', color: '#374151' }}>이전</button>
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              const p = totalPages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= totalPages - 3 ? totalPages - 6 + i : page - 3 + i
+              return (
+                <button key={p} onClick={() => setPage(p)}
+                  className="w-7 h-7 rounded text-xs flex items-center justify-center"
+                  style={p === page ? { background: '#6366f1', color: '#fff', fontWeight: 600 } : { border: '1px solid #E5E7EB', color: '#374151' }}>
+                  {p}
+                </button>
+              )
+            })}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+              className="px-2.5 py-1 rounded text-xs disabled:opacity-30"
+              style={{ border: '1px solid #E5E7EB', color: '#374151' }}>다음</button>
           </div>
         </div>
       )}
-
     </div>
   )
 }
 
 // ─── 문항 중심: 학생 행 (문항 유형별 채점 UI) ─────────────────────────────
 function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) {
+  // 미제출 학생은 간략 행만 표시
+  if (!student.submitted) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-3" style={{ borderBottom: '1px solid #F3F4F6', background: '#FAFAFA' }}>
+        <div className="w-28 shrink-0">
+          <p className="text-sm font-medium truncate" style={{ color: '#9CA3AF' }}>{student.name}</p>
+        </div>
+        <div className="w-24 shrink-0">
+          <p className="text-sm truncate" style={{ color: '#C4C4C4' }}>{student.studentId}</p>
+        </div>
+        <p className="flex-1 text-sm" style={{ color: '#D1D5DB' }}>—</p>
+        {question.autoGrade && <div className="w-16 shrink-0" />}
+        <div className="w-40 shrink-0 flex justify-end">
+          <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ color: '#9CA3AF', background: '#F3F4F6' }}>미제출</span>
+        </div>
+      </div>
+    )
+  }
+
   const storageKey = `${quizId}_${student.id}_${question.id}`
   const [expanded, setExpanded] = useState(false)
   const studentIdx = parseInt(student.id.replace('s', ''))
-  const rawAnswer = question.autoGrade
-    ? getStudentAnswer(studentIdx, question.id)
-    : (student.response || getStudentAnswer(studentIdx, question.id))
+  const rawAnswer = student.selections?.[question.id] ??
+    (question.autoGrade
+      ? getStudentAnswer(studentIdx, question.id)
+      : (student.response || getStudentAnswer(studentIdx, question.id)))
 
-  // 유형별 compact 표시용 답안
-  const CHOICE_LABELS = ['①', '②', '③', '④', '⑤']
-  const choiceIndex = question.choices ? question.choices.indexOf(rawAnswer) : -1
   let compactAnswer
   if (question.type === 'true_false') {
     const lower = (rawAnswer || '').toLowerCase()
@@ -829,50 +920,51 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
   })()
   const displayScore = pendingScore !== undefined ? pendingScore : initScore
 
+  const isUngraded = student.score === null
+
   return (
-    <div style={{ borderBottom: '1px solid #EEEEEE' }}>
-      {/* 인라인 행 */}
-      <div className="flex items-center gap-3 px-3 py-2.5">
-        {/* 아바타 */}
-        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0" style={{ background: '#EEEEEE', color: '#616161' }}>
-          {student.name[0]}
+    <div style={{ borderBottom: '1px solid #F3F4F6' }}>
+      <div className="flex items-center gap-2 px-3 py-3" style={isUngraded ? { background: '#FFFCF5' } : {}}>
+        {/* 이름 */}
+        <div className="w-28 shrink-0">
+          <p className="text-sm font-medium truncate" style={{ color: '#374151' }}>{student.name}</p>
         </div>
 
-        {/* 이름/학번 */}
+        {/* 학번 */}
         <div className="w-24 shrink-0">
-          <p className="text-xs truncate" style={{ color: '#6B7280' }}>{student.name}</p>
-          <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{student.studentId}</p>
+          <p className="text-sm truncate" style={{ color: '#9CA3AF' }}>{student.studentId}</p>
         </div>
 
-        {/* 답안 미리보기 */}
+        {/* 답안 */}
         {['essay', 'short_answer', 'multiple_answers'].includes(question.type) ? (
-          <button
-            className="flex-1 min-w-0 text-left flex items-center gap-1"
-            onClick={() => setExpanded(!expanded)}
-          >
-            <p className="truncate flex-1" style={{ fontSize: 13, color: expanded ? '#111827' : '#374151' }}>
-              {compactAnswer || '(답안 없음)'}
-            </p>
+          <button className="flex-1 min-w-0 text-left flex items-center gap-1" onClick={() => setExpanded(!expanded)}>
+            <p className="truncate flex-1 text-sm" style={{ color: '#374151' }}>{compactAnswer || '(답안 없음)'}</p>
             {expanded
-              ? <ChevronUp size={12} style={{ color: '#BDBDBD', flexShrink: 0 }} />
-              : <ChevronDown size={12} style={{ color: '#BDBDBD', flexShrink: 0 }} />
+              ? <ChevronUp size={13} style={{ color: '#D1D5DB', flexShrink: 0 }} />
+              : <ChevronDown size={13} style={{ color: '#D1D5DB', flexShrink: 0 }} />
             }
           </button>
         ) : (
-          <p className="flex-1 min-w-0 truncate" style={{ fontSize: 13, color: '#374151' }}>
-            {compactAnswer || '(답안 없음)'}
-          </p>
+          <p className="flex-1 min-w-0 truncate text-sm" style={{ color: '#374151' }}>{compactAnswer || '(답안 없음)'}</p>
         )}
 
-        {/* 채점 영역 */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {question.autoGrade && autoCorrect !== null && (
-            <span className="text-xs px-1.5 py-0.5 rounded shrink-0"
-              style={autoCorrect
-                ? { color: '#018600', background: '#E5FCE3' }
-                : { color: '#B43200', background: '#FFF5F5' }
-              }>
-              {autoCorrect ? '정답' : '오답'}
+        {/* 정답 여부 */}
+        {question.autoGrade && (
+          <div className="w-16 shrink-0">
+            {autoCorrect !== null && (
+              <span className="text-xs px-1.5 py-0.5 rounded font-medium"
+                style={autoCorrect ? { color: '#059669', background: '#ECFDF5' } : { color: '#DC2626', background: '#FEF2F2' }}>
+                {autoCorrect ? '정답' : '오답'}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* 채점여부 + 점수 */}
+        <div className="flex items-center gap-1.5 w-40 shrink-0 justify-end">
+          {isUngraded && (
+            <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0" style={{ color: '#D97706', background: '#FFFBEB' }}>
+              미채점
             </span>
           )}
           <input
@@ -883,20 +975,19 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
             min={0}
             max={question.points}
             step={0.5}
-            className="w-14 bg-white text-xs px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
-            style={{ border: pendingScore !== undefined ? '1px solid #6366f1' : '1px solid #E0E0E0', color: '#222222' }}
+            className="w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-indigo-200 text-center"
+            style={{ border: pendingScore !== undefined ? '1px solid #6366f1' : '1px solid #E5E7EB', color: '#222222' }}
           />
-          <span className="text-xs" style={{ color: '#BDBDBD' }}>/ {question.points}</span>
+          <span className="text-sm shrink-0" style={{ color: '#9CA3AF' }}>/ {question.points}</span>
         </div>
       </div>
 
-      {/* 확장: 서술형/단답형/복수선택만 */}
       {expanded && ['essay', 'short_answer', 'multiple_answers'].includes(question.type) && (
         <div className="px-3 pb-3">
-          <div className="p-3 rounded" style={{ background: '#FAFAFA', border: '1px solid #E0E0E0' }}>
-            <p className="leading-relaxed" style={{ fontSize: 13, color: '#424242' }}>{rawAnswer}</p>
+          <div className="p-3 rounded" style={{ background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+            <p className="leading-relaxed text-sm" style={{ color: '#374151' }}>{rawAnswer}</p>
             {autoCorrect !== null && !autoCorrect && question.correctAnswer && (
-              <p className="mt-2 text-xs" style={{ color: '#9E9E9E' }}>정답: {question.correctAnswer}</p>
+              <p className="mt-2 text-xs" style={{ color: '#9CA3AF' }}>정답: {question.correctAnswer}</p>
             )}
           </div>
         </div>
@@ -1017,7 +1108,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
     return (storageKey in grades) || student.manualScores?.[question.id] != null
   })
 
-  const answer = getStudentAnswer(studentIdx, question.id)
+  const answer = student.selections?.[question.id] ?? getStudentAnswer(studentIdx, question.id)
   const autoCorrect = question.autoGrade ? isAnswerCorrect(answer, question.id) : null
   const [answerExpanded, setAnswerExpanded] = useState(false)
 
@@ -1149,53 +1240,94 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
 
 // ─── 통계 탭 ───────────────────────────────────────────────────────────────
 function StatsTab({ question, students }) {
-  const gradedStudents = students.filter(s => s.score !== null)
-  const scores = gradedStudents.map(s => s.score)
-  const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '-'
-  const max = scores.length ? Math.max(...scores) : '-'
-  const min = scores.length ? Math.min(...scores) : '-'
+  // 문항별 득점 (총점이 아닌 해당 문항 점수)
+  const getQScore = (s) => question.autoGrade
+    ? s.autoScores?.[question.id]
+    : s.manualScores?.[question.id]
 
-  const distribution = Array.from({ length: Math.ceil(question.points / 2) }, (_, i) => {
-    const low = i * 2
-    const high = Math.min(low + 2, question.points)
-    return {
-      range: `${low}-${high}`,
-      count: scores.filter(s => s >= low && s < high + (i === Math.ceil(question.points / 2) - 1 ? 1 : 0)).length,
-    }
-  })
+  const scoredStudents = students.filter(s => getQScore(s) != null)
+  const scores = scoredStudents.map(s => getQScore(s))
+  const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '-'
+  const maxScore = scores.length ? Math.max(...scores) : '-'
+  const minScore = scores.length ? Math.min(...scores) : '-'
+
+  // 점수별 빈도 (0점 ~ 만점)
+  const freqMap = {}
+  scores.forEach(s => { freqMap[s] = (freqMap[s] || 0) + 1 })
+  const distribution = Array.from({ length: question.points + 1 }, (_, i) => ({
+    label: `${i}점`, score: i, count: freqMap[i] || 0,
+  }))
+
+  const correctCount = question.autoGrade
+    ? scoredStudents.filter(s => (getQScore(s) ?? 0) === question.points).length
+    : null
+  const correctPct = correctCount != null && scoredStudents.length > 0
+    ? Math.round((correctCount / scoredStudents.length) * 100) : null
 
   return (
-    <div className="flex-1 bg-white p-4 overflow-y-auto scrollbar-thin" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        <StatCard label="평균 점수" value={avg} unit="점" accent />
-        <StatCard label="최고 점수" value={max} unit="점" />
-        <StatCard label="최저 점수" value={min} unit="점" />
-        <StatCard label="채점 완료" value={gradedStudents.length} unit={`/ ${students.length}명`} />
+    <div className="flex-1 bg-white overflow-y-auto scrollbar-thin" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
+      {/* 요약 카드 */}
+      <div className="grid grid-cols-4 gap-3 p-4">
+        <StatCard label="문항 평균" value={avg} unit="점" accent />
+        <StatCard label="최고" value={maxScore} unit="점" />
+        <StatCard label="최저" value={minScore} unit="점" />
+        <StatCard label="채점 완료" value={scoredStudents.length} unit={`/ ${students.length}명`} />
       </div>
 
-      <div>
-        <h3 className="text-xs font-semibold mb-3" style={{ color: '#616161' }}>점수 분포</h3>
-        {gradedStudents.length === 0 ? (
-          <div className="text-center py-8 text-xs" style={{ color: '#BDBDBD' }}>채점 완료된 학생이 없습니다</div>
+      <div className="mx-4" style={{ height: 1, background: '#F3F4F6' }} />
+
+      {/* 점수 분포 */}
+      <div className="px-4 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs font-semibold" style={{ color: '#374151' }}>점수 분포</span>
+          <span className="text-xs" style={{ color: '#9CA3AF' }}>만점 {question.points}점</span>
+        </div>
+        {scoredStudents.length === 0 ? (
+          <div className="flex items-center justify-center h-28 rounded" style={{ background: '#F9FAFB', border: '1px dashed #E5E7EB' }}>
+            <span className="text-xs" style={{ color: '#C4C4C4' }}>채점 완료된 학생이 없습니다</span>
+          </div>
         ) : (
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={distribution} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <XAxis dataKey="range" tick={{ fontSize: 11, fill: '#9E9E9E' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#9E9E9E' }} />
+          <ResponsiveContainer width="100%" height={150}>
+            <BarChart data={distribution} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip
-                contentStyle={{ background: '#fff', border: '1px solid #E0E0E0', borderRadius: 4, fontSize: 12 }}
-                labelStyle={{ color: '#424242' }}
-                itemStyle={{ color: '#6366f1' }}
+                contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+                labelStyle={{ color: '#374151', fontWeight: 600 }}
+                formatter={(val) => [`${val}명`, '인원']}
               />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {distribution.map((_, i) => (
-                  <Cell key={i} fill={i === Math.floor(distribution.length / 2) ? '#6366f1' : '#e0e7ff'} />
+              <Bar dataKey="count" radius={[3, 3, 0, 0]} maxBarSize={32}>
+                {distribution.map((d, i) => (
+                  <Cell key={i} fill={d.score === maxScore ? '#6366f1' : '#C7D2FE'} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         )}
       </div>
+
+      {/* 정답률 (자동채점 문항만) */}
+      {correctPct != null && (
+        <>
+          <div className="mx-4" style={{ height: 1, background: '#F3F4F6' }} />
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold" style={{ color: '#374151' }}>정답률</span>
+              <span className="text-sm font-bold"
+                style={{ color: correctPct >= 70 ? '#059669' : correctPct >= 40 ? '#D97706' : '#DC2626' }}>
+                {correctPct}%
+              </span>
+            </div>
+            <div className="w-full h-2 rounded-full overflow-hidden mb-2" style={{ background: '#E5E7EB' }}>
+              <div className="h-full rounded-full transition-all"
+                style={{ width: `${correctPct}%`, background: correctPct >= 70 ? '#34D399' : correctPct >= 40 ? '#FBBF24' : '#F87171' }} />
+            </div>
+            <p className="text-xs" style={{ color: '#9CA3AF' }}>
+              정답 {correctCount}명 · 오답 {scoredStudents.length - correctCount}명
+            </p>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -1238,20 +1370,6 @@ function GradeStatus({ question }) {
   )
 }
 
-function TabBtn({ active, onClick, children }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors"
-      style={active
-        ? { background: '#fff', color: '#222222', fontWeight: 600, border: '1px solid #E0E0E0' }
-        : { color: '#9E9E9E', border: '1px solid transparent' }
-      }
-    >
-      {children}
-    </button>
-  )
-}
 
 function EmptyState({ message }) {
   return (
