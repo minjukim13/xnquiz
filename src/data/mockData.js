@@ -1311,9 +1311,9 @@ export function getStudentAnswer(studentIdx, questionId) {
 }
 
 export function isAnswerCorrect(answer, questionId) {
-  const correct = AUTO_CORRECT_ANSWERS[questionId]
+  const correct = AUTO_CORRECT_ANSWERS[questionId] ?? AUTO_CORRECT_Q8_MAP?.[questionId]
   if (!correct) return null
-  return correct.some(c => answer.toLowerCase().includes(c.toLowerCase()))
+  return correct.some(c => String(answer).toLowerCase().includes(c.toLowerCase()))
 }
 
 // ── 문제은행 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──
@@ -1339,14 +1339,14 @@ export const MOCK_COURSES = [
 ]
 
 export const MOCK_BANKS = [
-  { id: 'bank1', name: 'DB 기초',       course: 'CS301 데이터베이스', updatedAt: '2026-03-20', usedInQuizIds: ['1', '2'] },
-  { id: 'bank2', name: 'SQL 심화',      course: 'CS301 데이터베이스', updatedAt: '2026-03-24', usedInQuizIds: ['1'] },
-  { id: 'bank3', name: '프로세스 관리', course: 'CS201 운영체제',     updatedAt: '2026-03-15', usedInQuizIds: [] },
-  { id: 'bank4', name: '메모리 관리',   course: 'CS201 운영체제',     updatedAt: '2026-03-10', usedInQuizIds: [] },
-  { id: 'bank5', name: '정렬 알고리즘', course: 'CS401 알고리즘',     updatedAt: '2026-02-28', usedInQuizIds: [] },
-  { id: 'bank6', name: '그래프 탐색',   course: 'CS401 알고리즘',     updatedAt: '2026-03-05', usedInQuizIds: [] },
-  { id: 'bank7', name: '선형 자료구조', course: 'CS102 자료구조',     updatedAt: '2026-02-20', usedInQuizIds: [] },
-  { id: 'bank8', name: '트리 및 해시',  course: 'CS102 자료구조',     updatedAt: '2026-02-25', usedInQuizIds: [] },
+  { id: 'bank1', name: 'DB 기초',       course: 'CS301 데이터베이스', difficulty: '', updatedAt: '2026-03-20', usedInQuizIds: ['1', '2'] },
+  { id: 'bank2', name: 'SQL 심화',      course: 'CS301 데이터베이스', difficulty: '', updatedAt: '2026-03-24', usedInQuizIds: ['1'] },
+  { id: 'bank3', name: '프로세스 관리', course: 'CS201 운영체제',     difficulty: '', updatedAt: '2026-03-15', usedInQuizIds: [] },
+  { id: 'bank4', name: '메모리 관리',   course: 'CS201 운영체제',     difficulty: '', updatedAt: '2026-03-10', usedInQuizIds: [] },
+  { id: 'bank5', name: '정렬 알고리즘', course: 'CS401 알고리즘',     difficulty: '', updatedAt: '2026-02-28', usedInQuizIds: [] },
+  { id: 'bank6', name: '그래프 탐색',   course: 'CS401 알고리즘',     difficulty: '', updatedAt: '2026-03-05', usedInQuizIds: [] },
+  { id: 'bank7', name: '선형 자료구조', course: 'CS102 자료구조',     difficulty: '', updatedAt: '2026-02-20', usedInQuizIds: [] },
+  { id: 'bank8', name: '트리 및 해시',  course: 'CS102 자료구조',     difficulty: '', updatedAt: '2026-02-25', usedInQuizIds: [] },
 ]
 
 const BANK_GROUP_MAP = {
@@ -1517,6 +1517,18 @@ const AUTO_CORRECT_Q8_MAP = {
 const S8_Q9  = [6, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10]   // mean ≈ 8.33
 const S8_Q10 = [8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 13, 13, 14, 15] // mean ≈ 11.2
 
+// 퀴즈 8 오답 선택지 (정답 아닌 것들)
+const Q8_WRONG = {
+  q8_1: ['부분 함수적 종속 제거', '이행적 함수 종속 제거', 'BCNF 만족'],
+  q8_2: ['값이 존재하지 않음을 의미한다', '아직 알려지지 않은 값을 나타낸다', 'IS NULL로 비교해야 한다'],
+  q8_3: ['거짓'],
+  q8_4: ['완전 함수 종속', '이행적 함수 종속', '다치 종속'],
+  q8_5: ['기본키', '다중값 속성', '파생 속성'],
+  q8_6: ['거짓'],
+  q8_7: ['완전 함수 종속', '부분 함수 종속', '다치 종속'],
+  q8_8: ['분해된 릴레이션의 행 수가 동일해야 한다', '분해된 릴레이션의 속성 수가 동일해야 한다', '분해된 릴레이션이 같은 도메인을 가져야 한다'],
+}
+
 export const mockStudents8 = Array.from({ length: 116 }, (_, i) => {
   // 자동채점 점수 (난이도별 정답률 반영)
   const a1 = i % 10 !== 9  ? 3 : 0    // ~90% 정답 (쉬움)
@@ -1547,6 +1559,16 @@ export const mockStudents8 = Array.from({ length: 116 }, (_, i) => {
     response: ['삽입 이상, 삭제 이상, 갱신 이상', '삽입이상, 삭제이상, 갱신이상', '삽입 이상과 삭제 이상, 갱신 이상'][i % 3],
     autoScores: { q8_1: a1, q8_2: a2, q8_3: a3, q8_4: a4, q8_5: a5, q8_6: a6, q8_7: a7, q8_8: a8 },
     manualScores: { q8_9: m9, q8_10: m10 },
+    selections: {
+      q8_1: a1 > 0 ? '원자값으로만 구성된 도메인' : Q8_WRONG.q8_1[i % 3],
+      q8_2: a2 > 0 ? '정수 0과 동일한 값이다' : Q8_WRONG.q8_2[i % 3],
+      q8_3: a3 > 0 ? '참' : '거짓',
+      q8_4: a4 > 0 ? '부분 함수 종속' : Q8_WRONG.q8_4[i % 3],
+      q8_5: a5 > 0 ? '식별 관계(Identifying Relationship)' : Q8_WRONG.q8_5[i % 3],
+      q8_6: a6 > 0 ? '참' : '거짓',
+      q8_7: a7 > 0 ? '이행적 함수 종속' : Q8_WRONG.q8_7[i % 3],
+      q8_8: a8 > 0 ? '분해된 릴레이션의 공통 속성이 어느 한쪽의 슈퍼키여야 한다' : Q8_WRONG.q8_8[i % 3],
+    },
   }
 })
 

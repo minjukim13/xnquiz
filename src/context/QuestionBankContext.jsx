@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { MOCK_BANKS, MOCK_BANK_QUESTIONS, BANK_GROUP_MAP_EXPORTED as BANK_GROUP_MAP, QUIZ_TYPES } from '../data/mockData'
+import { MOCK_BANKS, MOCK_BANK_QUESTIONS, QUIZ_TYPES } from '../data/mockData'
 
 const LS_BANKS_KEY = 'xnq_banks'
 const LS_QUESTIONS_KEY = 'xnq_bank_questions'
@@ -10,7 +10,9 @@ export function QuestionBankProvider({ children }) {
   const [banks, setBanks] = useState(() => {
     try {
       const raw = localStorage.getItem(LS_BANKS_KEY)
-      return raw ? JSON.parse(raw) : MOCK_BANKS
+      const loaded = raw ? JSON.parse(raw) : MOCK_BANKS
+      // migration: difficulty 필드 없는 기존 bank 데이터에 기본값 주입
+      return loaded.map(b => ({ difficulty: '', ...b }))
     } catch { return MOCK_BANKS }
   })
 
@@ -22,9 +24,8 @@ export function QuestionBankProvider({ children }) {
       // groupTag가 빈 경우 mock 원본 값으로 복원
       return loaded.map(q => {
         const mockQ = MOCK_BANK_QUESTIONS.find(m => m.id === q.id)
-        const groupTag = q.groupTag || mockQ?.groupTag || ''
         const type = (q.type && QUIZ_TYPES[q.type]) ? q.type : (mockQ?.type || 'multiple_choice')
-        return { difficulty: '', ...q, groupTag, type }
+        return { difficulty: '', ...q, type }
       })
     } catch { return MOCK_BANK_QUESTIONS }
   })

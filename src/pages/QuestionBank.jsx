@@ -5,7 +5,6 @@ import Layout from '../components/Layout'
 import { QUIZ_TYPES, MOCK_COURSES } from '../data/mockData'
 import { AppSelect } from '../components/AppSelect'
 import { DropdownSelect } from '../components/DropdownSelect'
-import { GroupCombobox } from '../components/GroupCombobox'
 import { useQuestionBank } from '../context/QuestionBankContext'
 import AddQuestionModal from '../components/AddQuestionModal'
 import { downloadQuestionTemplate, parseExcelOrCsv } from '../utils/excelUtils'
@@ -28,7 +27,6 @@ export default function QuestionBank() {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
-  const [filterGroup, setFilterGroup] = useState('all')
   const [editingId, setEditingId] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
@@ -40,7 +38,7 @@ export default function QuestionBank() {
   const dragIndexRef = useRef(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
 
-  const isFiltered = search !== '' || filterType !== 'all' || filterDifficulty !== 'all' || filterGroup !== 'all'
+  const isFiltered = search !== '' || filterType !== 'all' || filterDifficulty !== 'all'
 
   const handleDragStart = (index) => { dragIndexRef.current = index }
   const handleDragOver = (e, index) => { e.preventDefault(); setDragOverIndex(index) }
@@ -58,21 +56,16 @@ export default function QuestionBank() {
     setTimeout(() => setToast(null), 4000)
   }
 
-  const allGroups = useMemo(() => {
-    const groups = [...new Set(questions.map(q => q.groupTag).filter(Boolean))]
-    return groups.sort()
-  }, [questions])
-
   const filtered = useMemo(() => questions.filter(q => {
     const matchSearch = search === '' || q.text.toLowerCase().includes(search.toLowerCase())
     const matchType = filterType === 'all' || q.type === filterType
     const matchDiff = filterDifficulty === 'all' || q.difficulty === filterDifficulty
-    const matchGroup = filterGroup === 'all' || q.groupTag === filterGroup
-    return matchSearch && matchType && matchDiff && matchGroup
-  }), [questions, search, filterType, filterDifficulty, filterGroup])
+    return matchSearch && matchType && matchDiff
+  }), [questions, search, filterType, filterDifficulty])
 
   const handleSaveEdit = (id, updated) => {
-    updateQuestion(id, updated)
+    const enforced = bank.difficulty ? { ...updated, difficulty: bank.difficulty } : updated
+    updateQuestion(id, enforced)
     setEditingId(null)
   }
 
@@ -88,7 +81,8 @@ export default function QuestionBank() {
   }
 
   const handleAddQuestion = (newQ) => {
-    addQuestions([{ ...newQ, id: `q_${Date.now()}`, bankId: bank.id, usageCount: 0 }])
+    const difficulty = bank.difficulty || newQ.difficulty
+    addQuestions([{ ...newQ, id: `q_${Date.now()}`, bankId: bank.id, usageCount: 0, difficulty }])
     setShowAddModal(false)
   }
 
@@ -248,16 +242,6 @@ export default function QuestionBank() {
                 { value: 'low', label: '하' },
               ]}
             />
-            <DropdownSelect
-              value={filterGroup}
-              onChange={setFilterGroup}
-              filterMode
-              style={{ width: 160 }}
-              options={[
-                { value: 'all', label: '모든 그룹' },
-                ...allGroups.map(g => ({ value: g, label: g })),
-              ]}
-            />
             {/* 검색 입력 */}
             <div className="relative flex-1">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9E9E9E' }} />
@@ -320,7 +304,7 @@ export default function QuestionBank() {
                     onSave={(updated) => handleSaveEdit(q.id, updated)}
                     onDelete={() => handleDelete(q.id)}
                     isLast={idx === filtered.length - 1}
-                    allGroups={allGroups}
+                    bankDifficulty={bank.difficulty || ''}
                   />
                 </div>
               ))}
@@ -333,7 +317,7 @@ export default function QuestionBank() {
         <AddQuestionModal
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddQuestion}
-          existingGroups={allGroups}
+          bankDifficulty={bank.difficulty || ''}
         />
       )}
 
@@ -442,7 +426,7 @@ export default function QuestionBank() {
 }
 
 // ── 문항 아이템 ───────────────────────────────────────────────────────────────
-function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast, allGroups = [] }) {
+function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast, bankDifficulty = '' }) {
   return (
     <div
       className="p-4 transition-colors"
@@ -450,7 +434,7 @@ function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast, a
     >
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          {/* 1행: 유형 배지 + 점수 */}
+          {/* 1행: 유형 배지 + 점수 + 난이도 */}
           <div className="flex items-center gap-2 mb-1">
             <span
               className="text-xs px-1.5 py-0.5 font-semibold"
@@ -459,26 +443,15 @@ function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast, a
               {QUIZ_TYPES[question.type]?.label}
             </span>
             <span className="text-xs font-medium" style={{ color: '#424242' }}>{question.points}점</span>
+            {question.difficulty && DIFFICULTY_META[question.difficulty] && (
+              <span
+                className="text-xs font-medium px-1.5 py-0.5"
+                style={{ background: DIFFICULTY_META[question.difficulty].bg, color: DIFFICULTY_META[question.difficulty].color, borderRadius: 4 }}
+              >
+                {DIFFICULTY_META[question.difficulty].label}
+              </span>
+            )}
           </div>
-          {/* 2행: 메타 정보 (그룹 · 난이도 · 사용현황) */}
-          {(question.groupTag || question.difficulty || question.usageCount > 0) && (
-            <div className="flex items-center gap-1 mb-1.5 flex-wrap">
-              {question.groupTag && (
-                <span className="text-xs" style={{ color: '#9E9E9E' }}>{question.groupTag}</span>
-              )}
-              {question.groupTag && (question.difficulty || question.usageCount > 0) && (
-                <span style={{ color: '#D1D5DB', fontSize: 10 }}>·</span>
-              )}
-              {question.difficulty && DIFFICULTY_META[question.difficulty] && (
-                <span
-                  className="text-xs font-medium"
-                  style={{ color: DIFFICULTY_META[question.difficulty].color }}
-                >
-                  난이도 {DIFFICULTY_META[question.difficulty].label}
-                </span>
-              )}
-            </div>
-          )}
           {/* 문항 내용 */}
           <p className="text-sm leading-relaxed" style={{ color: '#222222' }}>{question.text}</p>
         </div>
@@ -510,7 +483,7 @@ function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast, a
             initial={question}
             onSave={onSave}
             onCancel={onEdit}
-            allGroups={allGroups}
+            bankDifficulty={bankDifficulty}
           />
         </div>
       )}
@@ -519,16 +492,15 @@ function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast, a
 }
 
 // ── 문항 추가/편집 폼 ─────────────────────────────────────────────────────────
-function QuestionForm({ initial, onSave, onCancel, allGroups = [] }) {
+function QuestionForm({ initial, onSave, onCancel, bankDifficulty = '' }) {
   const [text, setText] = useState(initial?.text ?? '')
   const [type, setType] = useState(initial?.type ?? 'multiple_choice')
   const [points, setPoints] = useState(initial?.points ?? 5)
-  const [difficulty, setDifficulty] = useState(initial?.difficulty ?? '')
-  const [groupTag, setGroupTag] = useState(initial?.groupTag ?? '')
+  const [difficulty, setDifficulty] = useState(bankDifficulty || (initial?.difficulty ?? ''))
 
   const handleSubmit = () => {
     if (!text.trim()) return
-    onSave({ text: text.trim(), type, points: Number(points), difficulty, groupTag: groupTag.trim() })
+    onSave({ text: text.trim(), type, points: Number(points), difficulty })
   }
 
   return (
@@ -545,7 +517,7 @@ function QuestionForm({ initial, onSave, onCancel, allGroups = [] }) {
           autoFocus
         />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div>
           <label className="text-xs font-medium block mb-1" style={{ color: '#616161' }}>문항 유형</label>
           <DropdownSelect
@@ -567,24 +539,23 @@ function QuestionForm({ initial, onSave, onCancel, allGroups = [] }) {
         </div>
         <div>
           <label className="text-xs font-medium block mb-1" style={{ color: '#616161' }}>난이도</label>
-          <DropdownSelect
-            value={difficulty}
-            onChange={setDifficulty}
-            options={[
-              { value: '', label: '미지정' },
-              { value: 'high', label: '상' },
-              { value: 'medium', label: '중' },
-              { value: 'low', label: '하' },
-            ]}
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium block mb-1" style={{ color: '#616161' }}>그룹</label>
-          <GroupCombobox
-            value={groupTag}
-            onChange={setGroupTag}
-            existingGroups={allGroups}
-          />
+          {bankDifficulty ? (
+            <div className="text-xs px-2 py-1.5 flex items-center gap-1.5" style={{ background: '#F5F5F5', border: '1px solid #E0E0E0', borderRadius: 4, color: '#424242' }}>
+              <span className="font-medium">{bankDifficulty === 'high' ? '상' : bankDifficulty === 'medium' ? '중' : '하'}</span>
+              <span style={{ color: '#9E9E9E' }}>고정</span>
+            </div>
+          ) : (
+            <DropdownSelect
+              value={difficulty}
+              onChange={setDifficulty}
+              options={[
+                { value: '', label: '미지정' },
+                { value: 'high', label: '상' },
+                { value: 'medium', label: '중' },
+                { value: 'low', label: '하' },
+              ]}
+            />
+          )}
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-1">
@@ -618,14 +589,8 @@ function DuplicateBankModal({ bank, questions, onClose, onDuplicate }) {
   const [selectedIds, setSelectedIds] = useState(questions.map(q => q.id))
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
-  const [filterGroup, setFilterGroup] = useState('all')
   const dragIndexRef = useRef(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
-
-  const allGroups = useMemo(() => {
-    const groups = [...new Set(questions.map(q => q.groupTag).filter(Boolean))]
-    return groups.sort()
-  }, [questions])
 
   const filteredCourses = useMemo(() =>
     MOCK_COURSES.filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase())),
@@ -634,26 +599,35 @@ function DuplicateBankModal({ bank, questions, onClose, onDuplicate }) {
 
   const courseBanks = banks.filter(b => b.course === targetCourse)
 
+  // 타겟 은행 난이도 — 설정된 경우 해당 난이도 문항만 선택 가능
+  const targetBank = targetBankId && targetBankId !== '__new__' ? banks.find(b => b.id === targetBankId) : null
+  const targetDifficulty = targetBank?.difficulty || ''
+
   const filtered = questions.filter(q => {
     const matchType = filterType === 'all' || q.type === filterType
     const matchDiff = filterDifficulty === 'all' || q.difficulty === filterDifficulty
-    const matchGroup = filterGroup === 'all' || q.groupTag === filterGroup
-    return matchType && matchDiff && matchGroup
+    return matchType && matchDiff
   })
+
+  const isSelectable = (q) => !targetDifficulty || q.difficulty === targetDifficulty
 
   const selectedQuestions = selectedIds.map(id => questions.find(q => q.id === id)).filter(Boolean)
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every(q => selectedIds.includes(q.id))
-  const someFilteredSelected = filtered.some(q => selectedIds.includes(q.id)) && !allFilteredSelected
+  const selectableFiltered = filtered.filter(isSelectable)
+  const allFilteredSelected = selectableFiltered.length > 0 && selectableFiltered.every(q => selectedIds.includes(q.id))
+  const someFilteredSelected = selectableFiltered.some(q => selectedIds.includes(q.id)) && !allFilteredSelected
 
   const toggleAll = () => {
     if (allFilteredSelected) {
-      setSelectedIds(prev => prev.filter(id => !filtered.find(q => q.id === id)))
+      setSelectedIds(prev => prev.filter(id => !selectableFiltered.find(q => q.id === id)))
     } else {
-      setSelectedIds(prev => [...new Set([...prev, ...filtered.map(q => q.id)])])
+      setSelectedIds(prev => [...new Set([...prev, ...selectableFiltered.map(q => q.id)])])
     }
   }
-  const toggle = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggle = (id, q) => {
+    if (!isSelectable(q)) return
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
 
   const handleDragStart = (index) => { dragIndexRef.current = index }
   const handleDragOver = (e, index) => { e.preventDefault(); setDragOverIndex(index) }
@@ -674,6 +648,20 @@ function DuplicateBankModal({ bank, questions, onClose, onDuplicate }) {
   const handleCourseChange = (course) => {
     setTargetCourse(course)
     setTargetBankId(null)
+  }
+
+  // 타겟 은행이 바뀌면 선택 불가 문항을 selectedIds에서 제거
+  const handleTargetBankChange = (id) => {
+    setTargetBankId(id)
+    if (id && id !== '__new__') {
+      const tb = banks.find(b => b.id === id)
+      if (tb?.difficulty) {
+        setSelectedIds(prev => prev.filter(qId => {
+          const q = questions.find(x => x.id === qId)
+          return q?.difficulty === tb.difficulty
+        }))
+      }
+    }
   }
 
   const canSubmit = selectedIds.length > 0 &&
@@ -785,11 +773,12 @@ function DuplicateBankModal({ bank, questions, onClose, onDuplicate }) {
               <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1">
                 {courseBanks.map(b => {
                   const isSelected = b.id === targetBankId
+                  const diffLabel = b.difficulty === 'high' ? '상' : b.difficulty === 'medium' ? '중' : b.difficulty === 'low' ? '하' : ''
                   return (
                     <button
                       type="button"
                       key={b.id}
-                      onClick={() => setTargetBankId(b.id)}
+                      onClick={() => handleTargetBankChange(b.id)}
                       className="w-full text-left px-2 py-1.5 text-xs transition-colors"
                       style={{
                         border: isSelected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
@@ -799,7 +788,10 @@ function DuplicateBankModal({ bank, questions, onClose, onDuplicate }) {
                         fontWeight: isSelected ? 600 : 400,
                       }}
                     >
-                      <span className="block truncate">{b.name}</span>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="truncate">{b.name}</span>
+                        {diffLabel && <span className="shrink-0" style={{ color: '#9E9E9E', fontWeight: 400 }}>{diffLabel}</span>}
+                      </div>
                     </button>
                   )
                 })}
@@ -827,22 +819,21 @@ function DuplicateBankModal({ bank, questions, onClose, onDuplicate }) {
                   filterMode
                   options={[
                     { value: 'all', label: '모든 난이도' },
+                    { value: '', label: '미지정' },
                     { value: 'high', label: '상' },
                     { value: 'medium', label: '중' },
                     { value: 'low', label: '하' },
                   ]}
                 />
-                <DropdownSelect
-                  value={filterGroup}
-                  onChange={setFilterGroup}
-                  filterMode
-                  options={[
-                    { value: 'all', label: '모든 그룹' },
-                    ...allGroups.map(g => ({ value: g, label: g })),
-                  ]}
-                />
               </div>
             </div>
+            {/* 난이도 제한 배너 */}
+            {targetDifficulty && (
+              <div className="px-3 py-1.5 shrink-0 text-xs flex items-center gap-1.5" style={{ background: '#FFFBEB', color: '#B45309', borderBottom: '1px solid #FDE68A' }}>
+                <AlertCircle size={12} className="shrink-0" />
+                난이도 '{targetDifficulty === 'high' ? '상' : targetDifficulty === 'medium' ? '중' : '하'}' 문제은행 — 해당 난이도 문항만 선택 가능
+              </div>
+            )}
             {/* 전체선택 + 카운트 */}
             {filtered.length > 0 && (
               <div className="px-3 py-1.5 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid #F5F5F5' }}>
@@ -869,30 +860,33 @@ function DuplicateBankModal({ bank, questions, onClose, onDuplicate }) {
               ) : (
                 filtered.map(q => {
                   const selected = selectedIds.includes(q.id)
+                  const selectable = isSelectable(q)
                   return (
                     <div
                       key={q.id}
-                      onClick={() => toggle(q.id)}
-                      className="flex items-start gap-2.5 p-2.5 cursor-pointer transition-all"
+                      onClick={() => toggle(q.id, q)}
+                      className="flex items-start gap-2.5 p-2.5 transition-all"
                       style={{
                         border: selected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
                         borderRadius: 6,
-                        background: selected ? '#EEF2FF' : '#fff',
+                        background: selected ? '#EEF2FF' : selectable ? '#fff' : '#FAFAFA',
+                        cursor: selectable ? 'pointer' : 'not-allowed',
+                        opacity: selectable ? 1 : 0.45,
                       }}
                     >
-                      <input type="checkbox" checked={selected} readOnly className="mt-0.5 shrink-0 accent-indigo-600" />
+                      <input type="checkbox" checked={selected} readOnly disabled={!selectable} className="mt-0.5 shrink-0 accent-indigo-600" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                           <span className="text-xs px-1.5 py-0.5 font-medium" style={{ background: '#F5F5F5', color: '#616161', borderRadius: 4 }}>
                             {QUIZ_TYPES[q.type]?.label}
                           </span>
-                          {q.difficulty && (
+                          {q.difficulty && DIFFICULTY_META[q.difficulty] && (
                             <span className="text-xs px-1.5 py-0.5" style={{
-                              background: DIFFICULTY_META[q.difficulty]?.bg,
-                              color: DIFFICULTY_META[q.difficulty]?.color,
+                              background: DIFFICULTY_META[q.difficulty].bg,
+                              color: DIFFICULTY_META[q.difficulty].color,
                               borderRadius: 4,
                             }}>
-                              {DIFFICULTY_META[q.difficulty]?.label}
+                              {DIFFICULTY_META[q.difficulty].label}
                             </span>
                           )}
                           <span className="text-xs" style={{ color: '#9E9E9E' }}>{q.points}점</span>
@@ -1126,10 +1120,12 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
   const [selectedIds, setSelectedIds] = useState([])
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
-  const [filterGroup, setFilterGroup] = useState('all')
   const [courseSearch, setCourseSearch] = useState('')
   const dragIndexRef = useRef(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
+
+  // 현재(대상) 은행 난이도 제한
+  const destDifficulty = currentBank?.difficulty || ''
 
   // 선택된 과목의 은행 목록 (현재 은행 제외)
   // course 필드가 없는 은행은 현재 과목(currentCourse)에 속하는 것으로 처리
@@ -1140,31 +1136,30 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
   const selectedBank = banks.find(b => b.id === selectedBankId)
   const bankQuestions = selectedBankId ? getBankQuestions(selectedBankId) : []
 
-  const allGroups = useMemo(() => {
-    const groups = [...new Set(bankQuestions.map(q => q.groupTag).filter(Boolean))]
-    return groups.sort()
-  }, [bankQuestions])
-
   const filtered = bankQuestions.filter(q => {
     const matchType = filterType === 'all' || q.type === filterType
     const matchDiff = filterDifficulty === 'all' || q.difficulty === filterDifficulty
-    const matchGroup = filterGroup === 'all' || q.groupTag === filterGroup
-    return matchType && matchDiff && matchGroup
+    return matchType && matchDiff
   })
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every(q => selectedIds.includes(q.id))
-  const someFilteredSelected = filtered.some(q => selectedIds.includes(q.id)) && !allFilteredSelected
+  const isSelectable = (q) => !destDifficulty || q.difficulty === destDifficulty
+
+  const selectableFiltered = filtered.filter(isSelectable)
+  const allFilteredSelected = selectableFiltered.length > 0 && selectableFiltered.every(q => selectedIds.includes(q.id))
+  const someFilteredSelected = selectableFiltered.some(q => selectedIds.includes(q.id)) && !allFilteredSelected
 
   const toggleSelectAll = () => {
     if (allFilteredSelected) {
-      setSelectedIds(prev => prev.filter(id => !filtered.find(q => q.id === id)))
+      setSelectedIds(prev => prev.filter(id => !selectableFiltered.find(q => q.id === id)))
     } else {
-      setSelectedIds(prev => [...new Set([...prev, ...filtered.map(q => q.id)])])
+      setSelectedIds(prev => [...new Set([...prev, ...selectableFiltered.map(q => q.id)])])
     }
   }
 
-  const toggleSelect = (id) =>
+  const toggleSelect = (id, q) => {
+    if (!isSelectable(q)) return
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
 
   // selectedIds 순서 유지
   const selectedQuestions = selectedIds.map(id => bankQuestions.find(q => q.id === id)).filter(Boolean)
@@ -1192,7 +1187,6 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
   const resetFilters = () => {
     setFilterType('all')
     setFilterDifficulty('all')
-    setFilterGroup('all')
   }
 
   const handleCourseChange = (course) => {
@@ -1336,22 +1330,21 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
                       filterMode
                       options={[
                         { value: 'all', label: '모든 난이도' },
+                        { value: '', label: '미지정' },
                         { value: 'high', label: '상' },
                         { value: 'medium', label: '중' },
                         { value: 'low', label: '하' },
                       ]}
                     />
-                    <DropdownSelect
-                      value={filterGroup}
-                      onChange={setFilterGroup}
-                      filterMode
-                      options={[
-                        { value: 'all', label: '모든 그룹' },
-                        ...allGroups.map(g => ({ value: g, label: g })),
-                      ]}
-                    />
                   </div>
                 </div>
+                {/* 난이도 제한 배너 */}
+                {destDifficulty && (
+                  <div className="px-3 py-1.5 shrink-0 text-xs flex items-center gap-1.5" style={{ background: '#FFFBEB', color: '#B45309', borderBottom: '1px solid #FDE68A' }}>
+                    <AlertCircle size={12} className="shrink-0" />
+                    난이도 '{destDifficulty === 'high' ? '상' : destDifficulty === 'medium' ? '중' : '하'}' 문제은행 — 해당 난이도 문항만 선택 가능
+                  </div>
+                )}
                 {/* 전체선택 + 카운트 */}
                 {filtered.length > 0 && (
                   <div className="px-3 py-1.5 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid #F5F5F5' }}>
@@ -1375,23 +1368,31 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
                   {filtered.map(q => {
                     const selected = selectedIds.includes(q.id)
+                    const selectable = isSelectable(q)
                     return (
                       <div
                         key={q.id}
-                        onClick={() => toggleSelect(q.id)}
-                        className="flex items-start gap-3 p-3 cursor-pointer transition-all"
+                        onClick={() => toggleSelect(q.id, q)}
+                        className="flex items-start gap-3 p-3 transition-all"
                         style={{
                           border: selected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
                           borderRadius: 6,
-                          background: selected ? '#EEF2FF' : '#fff',
+                          background: selected ? '#EEF2FF' : selectable ? '#fff' : '#FAFAFA',
+                          cursor: selectable ? 'pointer' : 'not-allowed',
+                          opacity: selectable ? 1 : 0.45,
                         }}
                       >
-                        <input type="checkbox" checked={selected} readOnly className="mt-0.5 shrink-0 accent-indigo-600" />
+                        <input type="checkbox" checked={selected} readOnly disabled={!selectable} className="mt-0.5 shrink-0 accent-indigo-600" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="text-xs px-1.5 py-0.5 font-medium" style={{ background: '#F5F5F5', color: '#616161', borderRadius: 4 }}>
                               {QUIZ_TYPES[q.type]?.label}
                             </span>
+                            {q.difficulty && DIFFICULTY_META[q.difficulty] && (
+                              <span className="text-xs px-1.5 py-0.5" style={{ background: DIFFICULTY_META[q.difficulty].bg, color: DIFFICULTY_META[q.difficulty].color, borderRadius: 4 }}>
+                                {DIFFICULTY_META[q.difficulty].label}
+                              </span>
+                            )}
                             <span className="text-xs" style={{ color: '#9E9E9E' }}>{q.points}점</span>
                           </div>
                           <p className="text-sm leading-relaxed line-clamp-2" style={{ color: '#424242' }}>{q.text}</p>

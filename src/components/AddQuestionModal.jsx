@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { X, Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
-import { GroupCombobox } from './GroupCombobox'
 import { DropdownSelect } from './DropdownSelect'
 
 // ── 유형별 아이콘 + 설명 메타 ──────────────────────────────────────────────
@@ -683,7 +682,7 @@ function TypeForm({ type, form, setForm }) {
 }
 
 // ── 메인 모달 ──────────────────────────────────────────────────────────────
-export default function AddQuestionModal({ onClose, onAdd, existingGroups = [] }) {
+export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '' }) {
   const [step, setStep] = useState('type')
   const [selectedType, setSelectedType] = useState(null)
   const [hoveredType, setHoveredType] = useState(null)
@@ -691,7 +690,9 @@ export default function AddQuestionModal({ onClose, onAdd, existingGroups = [] }
 
   const handleSelectType = (type) => {
     setSelectedType(type)
-    setForm(initForm(type))
+    const f = initForm(type)
+    if (bankDifficulty) f.difficulty = bankDifficulty
+    setForm(f)
     setStep('form')
   }
 
@@ -819,24 +820,23 @@ export default function AddQuestionModal({ onClose, onAdd, existingGroups = [] }
               </div>
               <div>
                 <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>난이도</label>
-                <DropdownSelect
-                  value={form.difficulty || ''}
-                  onChange={v => setForm(prev => ({ ...prev, difficulty: v }))}
-                  options={[
-                    { value: '', label: '미지정' },
-                    { value: 'high', label: '상' },
-                    { value: 'medium', label: '중' },
-                    { value: 'low', label: '하' },
-                  ]}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>그룹</label>
-                <GroupCombobox
-                  value={form.groupTag || ''}
-                  onChange={v => setForm(prev => ({ ...prev, groupTag: v }))}
-                  existingGroups={existingGroups}
-                />
+                {bankDifficulty ? (
+                  <div className="text-sm px-3 py-2 flex items-center gap-2" style={{ background: '#F5F5F5', border: '1px solid #E0E0E0', borderRadius: 4, color: '#424242' }}>
+                    <span className="font-medium">{bankDifficulty === 'high' ? '상' : bankDifficulty === 'medium' ? '중' : '하'}</span>
+                    <span className="text-xs" style={{ color: '#9E9E9E' }}>이 문제은행 고정</span>
+                  </div>
+                ) : (
+                  <DropdownSelect
+                    value={form.difficulty || ''}
+                    onChange={v => setForm(prev => ({ ...prev, difficulty: v }))}
+                    options={[
+                      { value: '', label: '미지정' },
+                      { value: 'high', label: '상' },
+                      { value: 'medium', label: '중' },
+                      { value: 'low', label: '하' },
+                    ]}
+                  />
+                )}
               </div>
             </div>}
 
