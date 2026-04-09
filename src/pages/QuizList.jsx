@@ -535,12 +535,6 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
                   fontWeight: isSelected ? 600 : 400,
                 }}
               >
-                <input
-                  type="radio"
-                  readOnly
-                  checked={isSelected}
-                  style={{ accentColor: '#6366F1', width: 14, height: 14, flexShrink: 0 }}
-                />
                 <span className="flex-1">{course.name}</span>
                 {isCurrent && (
                   <span className="text-xs font-normal shrink-0" style={{ color: '#9E9E9E' }}>현재 과목</span>
