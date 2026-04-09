@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GripVertical, Trash2 } from 'lucide-react'
+import { GripVertical, Trash2, AlertCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
 import AddQuestionModal from '../components/AddQuestionModal'
@@ -317,8 +317,8 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
         </div>
         {form.quizMode === 'practice' && (
           <div className="flex items-start gap-2 p-2.5 rounded text-xs" style={{ background: '#FFF9E6', border: '1px solid #FBBF24', color: '#92400E' }}>
-            <span className="shrink-0 font-bold mt-0.5">!</span>
-            <span>연습용 퀴즈는 성적부에 반영되지 않으며, 학생이 반복 응시하여 학습 용도로 활용할 수 있습니다.</span>
+            <AlertCircle size={14} className="shrink-0 mt-0.5" style={{ color: '#B45309' }} />
+            <span>연습용 퀴즈는 성적에 반영되지 않습니다.</span>
           </div>
         )}
       </Section>
