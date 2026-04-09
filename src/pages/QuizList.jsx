@@ -471,27 +471,15 @@ function ResetNotice({ mode = 'import' }) {
   ]
   const action = mode === 'copy' ? '복사한' : '가져온'
   return (
-    <div style={{ borderRadius: 8, background: '#F8FAFF', border: '1px solid #E8ECFF', borderLeft: '3px solid #6366F1', padding: '11px 14px' }}>
-      <div style={{ marginBottom: 10 }}>
-        <span style={{ fontSize: 11.5, color: '#4B5563', fontWeight: 500, lineHeight: 1.5 }}>
-          퀴즈를 {action} 후 아래 항목들은 초기화되므로 다시 설정해 주세요.
-        </span>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
+    <div style={{ borderTop: '1px solid #F0F0F0', paddingTop: 12 }}>
+      <p style={{ fontSize: 11, color: '#9E9E9E', marginBottom: 8 }}>
+        퀴즈를 {action} 후 아래 항목은 초기화됩니다.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 16px' }}>
         {items.map(([label, value]) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-            <span style={{ fontSize: 11.5, color: '#374151' }}>{label}</span>
-            <span style={{
-              fontSize: 10.5,
-              color: '#6B7280',
-              background: '#F3F4F6',
-              border: '1px solid #E5E7EB',
-              borderRadius: 999,
-              padding: '1px 7px',
-              whiteSpace: 'nowrap',
-            }}>
-              {value}
-            </span>
+          <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 11.5, color: '#424242' }}>{label}</span>
+            <span style={{ fontSize: 11, color: '#BDBDBD' }}>{value}</span>
           </div>
         ))}
       </div>
