@@ -837,6 +837,55 @@ export function saveStudentAttempt(quizId, attempt) {
   }
 }
 
+/**
+ * 특정 문항 정답 변경 후 소급 재채점
+ * - 이미 제출 완료된 응시: 자동 재채점 (수동 조정된 점수는 유지)
+ * - 이후 응시 예정: 정답이 mockData에 반영되므로 자동 적용
+ * - 현재 풀이 중 세션: localStorage에 미저장 상태이므로 자연히 미반영
+ * @param {string} quizId
+ * @param {object} updatedQuestion - 정답이 변경된 문항 객체
+ * @returns {number} 재채점된 응시 건수
+ */
+export function regradeQuestion(quizId, updatedQuestion) {
+  try {
+    const raw = localStorage.getItem('xnq_student_attempts')
+    if (!raw) return 0
+    const all = JSON.parse(raw)
+    const attempts = all[quizId]
+    if (!attempts || attempts.length === 0) return 0
+
+    const manualGradesRaw = localStorage.getItem('xnq_manual_grades')
+    const manualGrades = manualGradesRaw ? JSON.parse(manualGradesRaw) : {}
+
+    let count = 0
+    attempts.forEach(attempt => {
+      const answer = attempt.answers?.[updatedQuestion.id]
+      if (answer === undefined) return // 해당 문항 응답 없음
+
+      // 수동 조정된 점수가 있으면 재채점 제외
+      const manualKey = `${attempt.studentId}_${quizId}_${updatedQuestion.id}`
+      if (manualGrades[manualKey] !== undefined) return
+
+      const newScore = autoGradeAnswer(updatedQuestion, answer)
+      if (newScore === null) return // 수동채점 필요 유형은 제외
+
+      const oldScore = attempt.autoScores?.[updatedQuestion.id] ?? 0
+      const diff = newScore - oldScore
+
+      if (!attempt.autoScores) attempt.autoScores = {}
+      attempt.autoScores[updatedQuestion.id] = newScore
+      attempt.totalAutoScore = (attempt.totalAutoScore ?? 0) + diff
+      count++
+    })
+
+    localStorage.setItem('xnq_student_attempts', JSON.stringify(all))
+    return count
+  } catch (err) {
+    console.error('[xnquiz] 재채점 실패:', err)
+    return 0
+  }
+}
+
 export function gradeQuiz3Answer(questionId, answer) {
   const correct = AUTO_CORRECT_Q3[questionId]
   if (!correct || !answer) return 0

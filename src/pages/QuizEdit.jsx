@@ -5,7 +5,7 @@ import Layout from '../components/Layout'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import CustomSelect from '../components/CustomSelect'
-import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, mockStudents } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, mockStudents, regradeQuestion } from '../data/mockData'
 
 const WEEK_OPTIONS = [
   { value: null, label: '선택 안함' },
@@ -115,6 +115,8 @@ export default function QuizEdit() {
   const [regradeSuccess, setRegradeSuccess] = useState(null) // question id
   const handleRegrade = (q) => setRegradeTarget(q)
   const confirmRegrade = () => {
+    // 이미 제출 완료된 응시 기록에 소급 재채점 적용 (진행 중 세션 미반영, 수동 조정 문항 제외)
+    regradeQuestion(quiz.id, regradeTarget)
     setRegradeSuccess(regradeTarget.id)
     setRegradeTarget(null)
     setTimeout(() => setRegradeSuccess(null), 2500)
