@@ -475,6 +475,7 @@ function ResetNotice({ mode = 'import' }) {
       <p style={{ fontSize: 11, color: '#9E9E9E', marginBottom: 8 }}>
         퀴즈를 {action} 후 아래 항목은 초기화됩니다.
       </p>
+      <div style={{ borderTop: '1px solid #F0F0F0', marginBottom: 8 }} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 16px' }}>
         {items.map(([label, value]) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
