@@ -458,36 +458,32 @@ function ActiveStats({ quiz }) {
 
 // ─────────────────────────────── 공통: 초기화 안내 박스 ───────────────────────────────
 function ResetNotice() {
-  const items = [
-    ['주차/차시', '미지정'],
-    ['응시 기간', '설정 안함'],
-    ['성적 공개 정책', '공개 안함'],
-    ['지각 제출', '비활성화'],
-    ['접근 코드 · IP 제한', '제거'],
-    ['추가 기간 설정', '설정 안함'],
-  ]
+  const tags = ['주차/차시', '응시 기간', '성적 공개 정책', '지각 제출', '접근 코드·IP 제한', '추가 기간 설정']
   return (
-    <div style={{ borderRadius: 6, border: '1px solid #E8E8E8', overflow: 'hidden' }}>
-      <div style={{ padding: '7px 12px', background: '#F5F5F5', borderBottom: '1px solid #EEEEEE' }}>
-        <p style={{ fontSize: 11, fontWeight: 600, color: '#757575', lineHeight: 1.4 }}>
-          복사 후 초기화되는 항목 — 퀴즈 편집에서 직접 설정하세요
-        </p>
+    <div style={{ borderRadius: 8, background: '#F0F4FF', padding: '10px 14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
+        <AlertCircle size={13} style={{ color: '#6366F1', flexShrink: 0 }} />
+        <span style={{ fontSize: 12, color: '#4B5563', fontWeight: 500 }}>
+          가져오기 후 다음 항목들을 다시 설정해 주세요.
+        </span>
       </div>
-      <div style={{ background: '#FAFAFA' }}>
-        {items.map(([label, value], idx) => (
-          <div
-            key={label}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {tags.map(tag => (
+          <span
+            key={tag}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '6px 12px',
-              borderTop: idx > 0 ? '1px solid #F0F0F0' : 'none',
+              fontSize: 11,
+              color: '#4F46E5',
+              background: '#E0E7FF',
+              border: '1px solid #C7D2FE',
+              borderRadius: 999,
+              padding: '3px 10px',
+              fontWeight: 500,
+              lineHeight: 1.4,
             }}
           >
-            <span style={{ fontSize: 12, color: '#424242' }}>{label}</span>
-            <span style={{ fontSize: 11, color: '#BDBDBD' }}>{value}</span>
-          </div>
+            {tag}
+          </span>
         ))}
       </div>
     </div>
