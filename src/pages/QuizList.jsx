@@ -472,11 +472,10 @@ function ResetNotice({ mode = 'import' }) {
   const action = mode === 'copy' ? '복사한' : '가져온'
   return (
     <div style={{ borderTop: '1px solid #F0F0F0', paddingTop: 12 }}>
-      <p style={{ fontSize: 11, color: '#9E9E9E', marginBottom: 8 }}>
+      <p style={{ fontSize: 11, color: '#9E9E9E', marginBottom: 14 }}>
         퀴즈를 {action} 후 아래 항목은 초기화됩니다.
       </p>
-      <div style={{ borderTop: '1px solid #F0F0F0', marginBottom: 8 }} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '9px 16px' }}>
         {items.map(([label, value]) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 11.5, color: '#424242' }}>{label}</span>
