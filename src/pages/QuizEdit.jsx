@@ -5,7 +5,7 @@ import Layout from '../components/Layout'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import CustomSelect from '../components/CustomSelect'
-import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, mockStudents, regradeQuestion } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, mockStudents, regradeQuestion, recalculateScorePolicy } from '../data/mockData'
 
 const WEEK_OPTIONS = [
   { value: null, label: '선택 안함' },
@@ -125,6 +125,10 @@ export default function QuizEdit() {
   const handleSave = () => {
     const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
     if (idx !== -1) {
+      // scorePolicy 변경 시 기존 응시 기록에 소급 적용
+      if (scorePolicy !== quiz.scorePolicy) {
+        recalculateScorePolicy(quiz.id, scorePolicy)
+      }
       mockQuizzes[idx] = {
         ...mockQuizzes[idx],
         title,
