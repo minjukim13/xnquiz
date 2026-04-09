@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X } from 'lucide-react'
+import { Plus, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X, Search } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -498,6 +498,10 @@ function ResetNotice({ mode = 'import' }) {
 // ─────────────────────────────── 퀴즈 복사 모달 ───────────────────────────────
 function QuizCopyModal({ quiz, onClose, onCopy }) {
   const [selected, setSelected] = useState(null)
+  const [courseSearch, setCourseSearch] = useState('')
+  const filteredCourses = MOCK_COURSES.filter(c =>
+    c.name.toLowerCase().includes(courseSearch.toLowerCase())
+  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -518,8 +522,22 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
         </div>
 
         <div className="px-4 pt-4 pb-3 space-y-2">
-          <p className="text-xs mb-3" style={{ color: '#9E9E9E' }}>복사할 대상 과목을 선택하세요</p>
-          {MOCK_COURSES.map(course => {
+          <div className="relative mb-3">
+            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#BDBDBD', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              placeholder="과목 검색"
+              value={courseSearch}
+              onChange={e => setCourseSearch(e.target.value)}
+              style={{ width: '100%', fontSize: 12, padding: '7px 10px 7px 30px', border: '1px solid #E0E0E0', borderRadius: 6, outline: 'none', color: '#424242' }}
+              onFocus={e => e.target.style.borderColor = '#6366F1'}
+              onBlur={e => e.target.style.borderColor = '#E0E0E0'}
+            />
+          </div>
+          {filteredCourses.length === 0 && (
+            <p className="text-xs text-center py-4" style={{ color: '#BDBDBD' }}>검색 결과가 없습니다</p>
+          )}
+          {filteredCourses.map(course => {
             const isCurrent = course.name === CURRENT_COURSE
             const isSelected = selected === course.name
             return (
@@ -570,7 +588,11 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
 function QuizImportModal({ onClose, onImport }) {
   const [selectedCourse, setSelectedCourse] = useState(null)
   const [checkedIds, setCheckedIds] = useState(new Set())
+  const [courseSearch, setCourseSearch] = useState('')
   const otherCourses = MOCK_COURSES.filter(c => c.name !== CURRENT_COURSE)
+  const filteredCourses = otherCourses.filter(c =>
+    c.name.toLowerCase().includes(courseSearch.toLowerCase())
+  )
 
   const courseQuizzes = useMemo(() => {
     if (!selectedCourse) return []
@@ -618,9 +640,25 @@ function QuizImportModal({ onClose, onImport }) {
         {/* 바디: 2열 */}
         <div className="flex flex-1 overflow-hidden">
           {/* 왼쪽: 과목 목록 */}
-          <div className="w-44 shrink-0 overflow-y-auto p-3 space-y-1" style={{ borderRight: '1px solid #F0F0F0' }}>
-            <p className="text-xs px-2 mb-2" style={{ color: '#9E9E9E' }}>과목 선택</p>
-            {otherCourses.map(course => (
+          <div className="w-44 shrink-0 flex flex-col" style={{ borderRight: '1px solid #F0F0F0' }}>
+            <div className="p-3 pb-2" style={{ borderBottom: '1px solid #F5F5F5' }}>
+              <div className="relative">
+                <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: '#BDBDBD', pointerEvents: 'none' }} />
+                <input
+                  type="text"
+                  placeholder="과목 검색"
+                  value={courseSearch}
+                  onChange={e => setCourseSearch(e.target.value)}
+                  style={{ width: '100%', fontSize: 11.5, padding: '6px 8px 6px 26px', border: '1px solid #E0E0E0', borderRadius: 5, outline: 'none', color: '#424242' }}
+                  onFocus={e => e.target.style.borderColor = '#6366F1'}
+                  onBlur={e => e.target.style.borderColor = '#E0E0E0'}
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {filteredCourses.length === 0 ? (
+              <p className="text-xs text-center py-3" style={{ color: '#BDBDBD' }}>없음</p>
+            ) : filteredCourses.map(course => (
               <button
                 key={course.id}
                 onClick={() => handleSelectCourse(course.name)}
@@ -636,6 +674,7 @@ function QuizImportModal({ onClose, onImport }) {
                 {course.name}
               </button>
             ))}
+            </div>
           </div>
 
           {/* 오른쪽: 퀴즈 목록 */}
