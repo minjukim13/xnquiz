@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X } from 'lucide-react'
+import { Plus, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X, Info } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -457,14 +457,15 @@ function ActiveStats({ quiz }) {
 
 
 // ─────────────────────────────── 공통: 초기화 안내 박스 ───────────────────────────────
-function ResetNotice() {
+function ResetNotice({ mode = 'import' }) {
   const tags = ['주차/차시', '응시 기간', '성적 공개 정책', '지각 제출', '접근 코드·IP 제한', '추가 기간 설정']
+  const label = mode === 'copy' ? '복사' : '가져오기'
   return (
     <div style={{ borderRadius: 8, background: '#F0F4FF', padding: '10px 14px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
-        <AlertCircle size={13} style={{ color: '#6366F1', flexShrink: 0 }} />
+        <Info size={12} strokeWidth={2.2} style={{ color: '#6366F1', flexShrink: 0 }} />
         <span style={{ fontSize: 12, color: '#4B5563', fontWeight: 500 }}>
-          가져오기 후 다음 항목들을 다시 설정해 주세요.
+          {label} 후 다음 항목들을 다시 설정해 주세요.
         </span>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -493,61 +494,6 @@ function ResetNotice() {
 // ─────────────────────────────── 퀴즈 복사 모달 ───────────────────────────────
 function QuizCopyModal({ quiz, onClose, onCopy }) {
   const [selected, setSelected] = useState(null)
-  const [confirmed, setConfirmed] = useState(false)
-
-  if (confirmed) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-        <div className="absolute inset-0 bg-black/30" />
-        <div
-          className="relative bg-white w-full max-w-sm"
-          style={{ borderRadius: 8, border: '1px solid #E0E0E0', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
-          onClick={e => e.stopPropagation()}
-        >
-          <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px solid #F0F0F0' }}>
-            <h3 className="font-semibold text-sm" style={{ color: '#222222' }}>복사 확인</h3>
-          </div>
-          <div className="px-5 py-4 space-y-3">
-            <div className="rounded-md p-3" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
-              <p className="text-xs mb-1" style={{ color: '#9E9E9E' }}>복사할 퀴즈</p>
-              <p className="text-sm font-semibold truncate" style={{ color: '#222222' }}>{quiz.title}</p>
-              <p className="text-xs mt-0.5" style={{ color: '#6366F1' }}>{quiz.questions}문항 · {quiz.totalPoints}점</p>
-            </div>
-            <div className="rounded-md p-3" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
-              <p className="text-xs mb-1" style={{ color: '#9E9E9E' }}>대상 과목</p>
-              <p className="text-sm font-semibold" style={{ color: '#222222' }}>
-                {selected}
-                {selected === CURRENT_COURSE && (
-                  <span className="ml-1.5 text-xs font-normal" style={{ color: '#9E9E9E' }}>(현재 과목)</span>
-                )}
-              </p>
-            </div>
-            <ResetNotice />
-          </div>
-          <div className="flex justify-end gap-2 px-5 pb-5">
-            <button
-              onClick={() => setConfirmed(false)}
-              className="text-sm px-4 py-2 rounded transition-colors"
-              style={{ color: '#616161', border: '1px solid #E0E0E0' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              이전
-            </button>
-            <button
-              onClick={() => onCopy(quiz, selected)}
-              className="text-sm font-medium px-4 py-2 text-white rounded transition-colors"
-              style={{ background: '#4F46E5' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#4338CA'}
-              onMouseLeave={e => e.currentTarget.style.background = '#4F46E5'}
-            >
-              복사하기
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -567,7 +513,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
           </button>
         </div>
 
-        <div className="p-4 space-y-2">
+        <div className="px-4 pt-4 pb-3 space-y-2">
           <p className="text-xs mb-3" style={{ color: '#9E9E9E' }}>복사할 대상 과목을 선택하세요</p>
           {MOCK_COURSES.map(course => {
             const isCurrent = course.name === CURRENT_COURSE
@@ -603,17 +549,21 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
           })}
         </div>
 
-        <div className="flex justify-end gap-2 px-4 pb-4">
+        <div className="px-4 pb-4">
+          <ResetNotice mode="copy" />
+        </div>
+
+        <div className="flex justify-end gap-2 px-4 pb-4" style={{ borderTop: '1px solid #F0F0F0', paddingTop: 12 }}>
           <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
           <button
             disabled={!selected}
-            onClick={() => setConfirmed(true)}
+            onClick={() => onCopy(quiz, selected)}
             className="text-sm font-medium px-4 py-2 text-white transition-colors disabled:opacity-40"
             style={{ background: '#4F46E5', borderRadius: 4 }}
             onMouseEnter={e => { if (selected) e.currentTarget.style.background = '#4338CA' }}
             onMouseLeave={e => e.currentTarget.style.background = '#4F46E5'}
           >
-            다음
+            복사하기
           </button>
         </div>
       </div>
@@ -748,7 +698,7 @@ function QuizImportModal({ onClose, onImport }) {
         {/* 초기화 안내 */}
         {checkedIds.size > 0 && (
           <div className="px-4 pt-3 pb-0" style={{ borderTop: '1px solid #F0F0F0' }}>
-            <ResetNotice />
+            <ResetNotice mode="import" />
           </div>
         )}
 
