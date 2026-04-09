@@ -1,11 +1,13 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Clock, FileText, CheckCircle2, AlertCircle, Send, BarChart2 } from 'lucide-react'
+import { Plus, Clock, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X, ChevronRight } from 'lucide-react'
 import Layout from '../components/Layout'
-import { mockQuizzes } from '../data/mockData'
+import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { getStudentAttempts } from '../data/mockData'
 import { DropdownSelect } from '../components/DropdownSelect'
+
+const CURRENT_COURSE = 'CS301 데이터베이스'
 
 // ─────────────────────────────── 공통: 주차/차시 드롭다운 필터 ───────────────────────────────
 const WEEK_OPTIONS = [
@@ -83,24 +85,100 @@ export default function QuizList() {
 
 // ─────────────────────────────── 교수자 뷰 ───────────────────────────────
 function InstructorQuizList() {
-  const [quizzes, setQuizzes] = useState(() => [...mockQuizzes])
+  const [quizzes, setQuizzes] = useState(() => mockQuizzes.filter(q => q.course === CURRENT_COURSE))
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
+  const [copySourceQuiz, setCopySourceQuiz] = useState(null)
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [toast, setToast] = useState(null)
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 4000)
+  }
 
   const handlePublishQuiz = (quizId) => {
     const idx = quizzes.findIndex(q => q.id === quizId)
     if (idx === -1) return
     const updated = [...quizzes]
     updated[idx] = { ...updated[idx], status: 'open' }
-    mockQuizzes[mockQuizzes.findIndex(q => q.id === quizId)] = updated[idx]
+    const globalIdx = mockQuizzes.findIndex(q => q.id === quizId)
+    if (globalIdx !== -1) mockQuizzes[globalIdx] = updated[idx]
     setQuizzes(updated)
+  }
+
+  const cloneQuestions = (srcId, newId) => {
+    const srcQs = getQuizQuestions(srcId)
+    if (srcQs.length === 0) return
+    const cloned = srcQs.map((q, i) => ({
+      ...q,
+      id: `${newId}_q${i + 1}`,
+      gradedCount: 0,
+      totalCount: 0,
+      avgScore: undefined,
+    }))
+    setQuizQuestions(newId, cloned)
+  }
+
+  const handleCopyQuiz = (quiz, targetCourse, week, session) => {
+    const newId = `copy_${Date.now()}`
+    const copy = {
+      ...quiz,
+      id: newId,
+      course: targetCourse,
+      status: 'draft',
+      startDate: '',
+      dueDate: '',
+      week: week ?? null,
+      session: session ?? null,
+      submitted: 0,
+      graded: 0,
+      pendingGrade: 0,
+      avgScore: undefined,
+    }
+    mockQuizzes.push(copy)
+    cloneQuestions(quiz.id, newId)
+    showToast(`"${quiz.title}"을(를) ${targetCourse}으로 복사했습니다`)
+    setCopySourceQuiz(null)
+  }
+
+  const handleImportQuizzes = (selectedQuizzes, weekSettings) => {
+    const imported = selectedQuizzes.map(q => {
+      const newId = `import_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`
+      const ws = weekSettings?.[q.id] ?? {}
+      const copy = {
+        ...q,
+        id: newId,
+        course: CURRENT_COURSE,
+        status: 'draft',
+        startDate: '',
+        dueDate: '',
+        week: ws.week ?? null,
+        session: ws.session ?? null,
+        submitted: 0,
+        graded: 0,
+        pendingGrade: 0,
+        avgScore: undefined,
+      }
+      mockQuizzes.push(copy)
+      cloneQuestions(q.id, newId)
+      return copy
+    })
+    setQuizzes(prev => [...imported, ...prev])
+    showToast(`퀴즈 ${imported.length}개를 가져왔습니다`)
+    setShowImportModal(false)
   }
 
   // 최근 생성 순(id 내림차순) 단일 목록
   const sortedQuizzes = useMemo(
     () => applyWeekSessionFilter(quizzes, filterWeek, filterSession)
       .slice()
-      .sort((a, b) => Number(b.id) - Number(a.id)),
+      .sort((a, b) => {
+        const aNum = Number(a.id)
+        const bNum = Number(b.id)
+        if (!isNaN(aNum) && !isNaN(bNum)) return bNum - aNum
+        return String(b.id).localeCompare(String(a.id))
+      }),
     [quizzes, filterWeek, filterSession]
   )
 
@@ -108,15 +186,27 @@ function InstructorQuizList() {
     <Layout>
       <div className="max-w-4xl mx-auto px-6 sm:px-10 py-6">
 
-        {/* 헤더: 제목 + 새 퀴즈 */}
+        {/* 헤더: 제목 + 버튼 */}
         <div className="flex items-end justify-between mb-5 gap-4">
           <div>
             <h1 className="text-xl font-bold leading-tight" style={{ color: '#222222' }}>퀴즈 관리</h1>
           </div>
-          <Link to="/quiz/new" className="btn-primary shrink-0">
-            <Plus size={15} />
-            새 퀴즈
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 transition-colors"
+              style={{ color: '#424242', border: '1px solid #E0E0E0', borderRadius: 4 }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <FolderInput size={14} />
+              가져오기
+            </button>
+            <Link to="/quiz/new" className="btn-primary">
+              <Plus size={15} />
+              새 퀴즈
+            </Link>
+          </div>
         </div>
 
         {/* 툴바: 필터 */}
@@ -133,7 +223,7 @@ function InstructorQuizList() {
         {sortedQuizzes.length > 0 ? (
           <div className="grid gap-3">
             {sortedQuizzes.map(quiz => (
-              <QuizCard key={quiz.id} quiz={quiz} onPublishQuiz={handlePublishQuiz} />
+              <QuizCard key={quiz.id} quiz={quiz} onPublishQuiz={handlePublishQuiz} onCopy={setCopySourceQuiz} />
             ))}
           </div>
         ) : (
@@ -143,6 +233,31 @@ function InstructorQuizList() {
           </div>
         )}
       </div>
+
+      {copySourceQuiz && (
+        <QuizCopyModal
+          quiz={copySourceQuiz}
+          onClose={() => setCopySourceQuiz(null)}
+          onCopy={handleCopyQuiz}
+        />
+      )}
+
+      {showImportModal && (
+        <QuizImportModal
+          onClose={() => setShowImportModal(false)}
+          onImport={handleImportQuizzes}
+        />
+      )}
+
+      {toast && (
+        <div
+          className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white"
+          style={{ background: '#1E1E1E', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}
+        >
+          <CheckCircle2 size={15} className="shrink-0" style={{ color: '#A5B4FC' }} />
+          <span>{toast}</span>
+        </div>
+      )}
     </Layout>
   )
 }
@@ -159,7 +274,7 @@ function getDdayBadge(quiz) {
   return { label: `D-${diff}`, color: '#B45309', bg: '#FFF9E6' }
 }
 
-function QuizCard({ quiz, onPublishQuiz }) {
+function QuizCard({ quiz, onPublishQuiz, onCopy }) {
   const cfg = STATUS_CONFIG[quiz.status]
   const [confirmPublish, setConfirmPublish] = useState(false)
   const ddayBadge = getDdayBadge(quiz)
@@ -231,6 +346,16 @@ function QuizCard({ quiz, onPublishQuiz }) {
             >
               편집
             </Link>
+            <button
+              onClick={() => onCopy(quiz)}
+              className="flex items-center gap-1 text-xs font-medium px-2.5 py-2 rounded transition-colors"
+              style={{ color: '#9E9E9E' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F5'; e.currentTarget.style.color = '#616161' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9E9E9E' }}
+            >
+              <Copy size={11} />
+              복사
+            </button>
           </div>
 
           {/* 구분선 */}
@@ -323,6 +448,300 @@ function ActiveStats({ quiz }) {
           <p className="text-xs mt-1" style={{ color: '#9E9E9E' }}>{item.label}</p>
         </div>
       ))}
+    </div>
+  )
+}
+
+
+// ─────────────────────────────── 공통: 주차/차시 미니 셀렉터 ───────────────────────────────
+function WeekSessionMini({ week, session, onWeekChange, onSessionChange }) {
+  const selectStyle = {
+    fontSize: 12, padding: '4px 8px', border: '1px solid #E0E0E0',
+    borderRadius: 4, color: '#424242', background: '#fff', cursor: 'pointer',
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <select value={week ?? ''} onChange={e => onWeekChange(e.target.value ? Number(e.target.value) : null)} style={selectStyle}>
+        <option value="">주차 미지정</option>
+        {Array.from({ length: 16 }, (_, i) => (
+          <option key={i + 1} value={i + 1}>{i + 1}주차</option>
+        ))}
+      </select>
+      <select value={session ?? ''} onChange={e => onSessionChange(e.target.value ? Number(e.target.value) : null)} style={selectStyle}>
+        <option value="">차시 미지정</option>
+        {[1, 2, 3, 4].map(s => <option key={s} value={s}>{s}차시</option>)}
+      </select>
+    </div>
+  )
+}
+
+// ─────────────────────────────── 퀴즈 복사 모달 ───────────────────────────────
+function QuizCopyModal({ quiz, onClose, onCopy }) {
+  const [selected, setSelected] = useState(null)
+  const [confirmed, setConfirmed] = useState(false)
+  const [week, setWeek] = useState(null)
+  const [session, setSession] = useState(null)
+  const otherCourses = MOCK_COURSES.filter(c => c.name !== CURRENT_COURSE)
+
+  if (confirmed) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="absolute inset-0 bg-black/30" />
+        <div
+          className="relative bg-white p-6 w-full max-w-sm"
+          style={{ borderRadius: 8, border: '1px solid #E0E0E0', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
+          onClick={e => e.stopPropagation()}
+        >
+          <h3 className="font-semibold mb-2" style={{ color: '#222222' }}>퀴즈 복사</h3>
+          <p className="text-sm mb-1" style={{ color: '#424242' }}>
+            <span style={{ fontWeight: 600 }}>"{quiz.title}"</span>을(를)
+          </p>
+          <p className="text-sm mb-4" style={{ color: '#424242' }}>
+            <span style={{ fontWeight: 600 }}>{selected}</span>으로 복사합니다.
+          </p>
+          <div className="mb-4">
+            <p className="text-xs mb-2" style={{ color: '#9E9E9E' }}>주차/차시 설정 (선택)</p>
+            <WeekSessionMini week={week} session={session} onWeekChange={setWeek} onSessionChange={setSession} />
+          </div>
+          <p className="text-xs mb-5" style={{ color: '#9E9E9E' }}>복사된 퀴즈는 발행 전(초안) 상태로 저장됩니다.</p>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setConfirmed(false)} className="text-sm px-4 py-2" style={{ color: '#616161' }}>이전</button>
+            <button
+              onClick={() => onCopy(quiz, selected, week, session)}
+              className="text-sm font-medium px-4 py-2 text-white transition-colors"
+              style={{ background: '#4F46E5', borderRadius: 4 }}
+              onMouseEnter={e => e.currentTarget.style.background = '#4338CA'}
+              onMouseLeave={e => e.currentTarget.style.background = '#4F46E5'}
+            >
+              복사
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30" />
+      <div
+        className="relative bg-white w-full max-w-sm"
+        style={{ borderRadius: 8, border: '1px solid #E0E0E0', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 pt-5 pb-4" style={{ borderBottom: '1px solid #F0F0F0' }}>
+          <div>
+            <h3 className="font-semibold text-sm" style={{ color: '#222222' }}>타 과목으로 복사</h3>
+            <p className="text-xs mt-0.5 truncate max-w-[240px]" style={{ color: '#9E9E9E' }}>{quiz.title}</p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded" style={{ color: '#BDBDBD' }} onMouseEnter={e => e.currentTarget.style.color = '#616161'} onMouseLeave={e => e.currentTarget.style.color = '#BDBDBD'}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-2">
+          <p className="text-xs mb-3" style={{ color: '#9E9E9E' }}>복사할 대상 과목을 선택하세요</p>
+          {otherCourses.map(course => (
+            <button
+              key={course.id}
+              onClick={() => setSelected(course.name)}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors"
+              style={{
+                borderRadius: 6,
+                border: `1px solid ${selected === course.name ? '#6366F1' : '#E0E0E0'}`,
+                background: selected === course.name ? '#EEF2FF' : '#fff',
+                color: selected === course.name ? '#4338CA' : '#424242',
+                fontWeight: selected === course.name ? 600 : 400,
+              }}
+            >
+              {course.name}
+              {selected === course.name && <ChevronRight size={14} style={{ color: '#6366F1' }} />}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex justify-end gap-2 px-4 pb-4">
+          <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
+          <button
+            disabled={!selected}
+            onClick={() => setConfirmed(true)}
+            className="text-sm font-medium px-4 py-2 text-white transition-colors disabled:opacity-40"
+            style={{ background: '#4F46E5', borderRadius: 4 }}
+            onMouseEnter={e => { if (selected) e.currentTarget.style.background = '#4338CA' }}
+            onMouseLeave={e => e.currentTarget.style.background = '#4F46E5'}
+          >
+            다음
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────── 퀴즈 가져오기 모달 ───────────────────────────────
+function QuizImportModal({ onClose, onImport }) {
+  const [selectedCourse, setSelectedCourse] = useState(null)
+  const [checkedIds, setCheckedIds] = useState(new Set())
+  const [weekSettings, setWeekSettings] = useState({}) // { quizId: { week, session } }
+  const otherCourses = MOCK_COURSES.filter(c => c.name !== CURRENT_COURSE)
+
+  const courseQuizzes = useMemo(() => {
+    if (!selectedCourse) return []
+    return mockQuizzes.filter(q => q.course === selectedCourse && q.status !== 'draft')
+  }, [selectedCourse])
+
+  const toggleCheck = (id) => {
+    setCheckedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+        setWeekSettings(ws => { const n = { ...ws }; delete n[id]; return n })
+      } else {
+        next.add(id)
+        setWeekSettings(ws => ({ ...ws, [id]: { week: null, session: null } }))
+      }
+      return next
+    })
+  }
+
+  const updateWeekSetting = (quizId, field, value) => {
+    setWeekSettings(ws => ({ ...ws, [quizId]: { ...ws[quizId], [field]: value } }))
+  }
+
+  const handleSelectCourse = (courseName) => {
+    setSelectedCourse(courseName)
+    setCheckedIds(new Set())
+    setWeekSettings({})
+  }
+
+  const handleImport = () => {
+    const selected = courseQuizzes.filter(q => checkedIds.has(q.id))
+    if (selected.length === 0) return
+    onImport(selected, weekSettings)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30" />
+      <div
+        className="relative bg-white w-full flex flex-col"
+        style={{ borderRadius: 8, border: '1px solid #E0E0E0', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', maxWidth: 660, maxHeight: '80vh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 헤더 */}
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #F0F0F0' }}>
+          <h3 className="font-semibold text-sm" style={{ color: '#222222' }}>타 과목 퀴즈 가져오기</h3>
+          <button onClick={onClose} className="p-1 rounded" style={{ color: '#BDBDBD' }} onMouseEnter={e => e.currentTarget.style.color = '#616161'} onMouseLeave={e => e.currentTarget.style.color = '#BDBDBD'}>
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* 바디: 2열 */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* 왼쪽: 과목 목록 */}
+          <div className="w-44 shrink-0 overflow-y-auto p-3 space-y-1" style={{ borderRight: '1px solid #F0F0F0' }}>
+            <p className="text-xs px-2 mb-2" style={{ color: '#9E9E9E' }}>과목 선택</p>
+            {otherCourses.map(course => (
+              <button
+                key={course.id}
+                onClick={() => handleSelectCourse(course.name)}
+                className="w-full text-left text-xs px-3 py-2.5 rounded transition-colors"
+                style={{
+                  background: selectedCourse === course.name ? '#EEF2FF' : 'transparent',
+                  color: selectedCourse === course.name ? '#4338CA' : '#424242',
+                  fontWeight: selectedCourse === course.name ? 600 : 400,
+                }}
+              >
+                {course.name}
+              </button>
+            ))}
+          </div>
+
+          {/* 오른쪽: 퀴즈 목록 */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {!selectedCourse ? (
+              <div className="flex items-center justify-center h-full" style={{ color: '#BDBDBD' }}>
+                <p className="text-sm">과목을 선택하세요</p>
+              </div>
+            ) : courseQuizzes.length === 0 ? (
+              <div className="flex items-center justify-center h-full" style={{ color: '#BDBDBD' }}>
+                <p className="text-sm">발행된 퀴즈가 없습니다</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {courseQuizzes.map(quiz => {
+                  const checked = checkedIds.has(quiz.id)
+                  const statusCfg = STATUS_CONFIG[quiz.status] ?? STATUS_CONFIG.draft
+                  const ws = weekSettings[quiz.id] ?? {}
+                  return (
+                    <div
+                      key={quiz.id}
+                      className="rounded transition-colors"
+                      style={{
+                        border: `1px solid ${checked ? '#6366F1' : '#E8E8E8'}`,
+                        background: checked ? '#EEF2FF' : '#fff',
+                        borderRadius: 6,
+                      }}
+                    >
+                      <label className="flex items-start gap-3 p-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleCheck(quiz.id)}
+                          className="mt-0.5 shrink-0 accent-indigo-600"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${statusCfg.badge}`} style={statusCfg.bgStyle}>
+                              {statusCfg.label}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium truncate" style={{ color: '#222222' }}>{quiz.title}</p>
+                          <p className="text-xs mt-0.5" style={{ color: '#BDBDBD' }}>
+                            문항 {quiz.questions}개 | {quiz.totalPoints}점
+                            {quiz.dueDate ? ` | ${quiz.dueDate.split(' ')[0]}` : ''}
+                          </p>
+                        </div>
+                      </label>
+                      {checked && (
+                        <div className="px-3 pb-3 pt-0 flex items-center gap-2">
+                          <span className="text-xs shrink-0" style={{ color: '#9E9E9E' }}>주차/차시</span>
+                          <WeekSessionMini
+                            week={ws.week ?? null}
+                            session={ws.session ?? null}
+                            onWeekChange={v => updateWeekSetting(quiz.id, 'week', v)}
+                            onSessionChange={v => updateWeekSetting(quiz.id, 'session', v)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 푸터 */}
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: '1px solid #F0F0F0' }}>
+          <p className="text-xs" style={{ color: '#9E9E9E' }}>
+            {checkedIds.size > 0 ? `${checkedIds.size}개 선택됨` : '가져올 퀴즈를 선택하세요'}
+          </p>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
+            <button
+              disabled={checkedIds.size === 0}
+              onClick={handleImport}
+              className="text-sm font-medium px-4 py-2 text-white transition-colors disabled:opacity-40"
+              style={{ background: '#4F46E5', borderRadius: 4 }}
+              onMouseEnter={e => { if (checkedIds.size > 0) e.currentTarget.style.background = '#4338CA' }}
+              onMouseLeave={e => e.currentTarget.style.background = '#4F46E5'}
+            >
+              가져오기
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
