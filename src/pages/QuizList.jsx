@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X, RefreshCw } from 'lucide-react'
+import { Plus, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -471,9 +471,8 @@ function ResetNotice({ mode = 'import' }) {
   ]
   const action = mode === 'copy' ? '복사한' : '가져온'
   return (
-    <div style={{ borderRadius: 8, background: '#F8FAFF', border: '1px solid #E8ECFF', padding: '11px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 10 }}>
-        <RefreshCw size={12} strokeWidth={2} style={{ color: '#6366F1', flexShrink: 0, marginTop: 1 }} />
+    <div style={{ borderRadius: 8, background: '#F8FAFF', border: '1px solid #E8ECFF', borderLeft: '3px solid #6366F1', padding: '11px 14px' }}>
+      <div style={{ marginBottom: 10 }}>
         <span style={{ fontSize: 11.5, color: '#4B5563', fontWeight: 500, lineHeight: 1.5 }}>
           퀴즈를 {action} 후 아래 항목들은 초기화되므로 다시 설정해 주세요.
         </span>
