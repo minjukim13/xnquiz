@@ -197,16 +197,33 @@ export default function GradingDashboard() {
                     {(() => {
                       if (QUIZ_INFO.scoreRevealEnabled === undefined && QUIZ_INFO.scoreReleasePolicy === undefined) return null
                       const enabled = QUIZ_INFO.scoreRevealEnabled ?? (QUIZ_INFO.scoreReleasePolicy !== null)
-                      if (!enabled) return <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ background: '#F3F4F6', color: '#6B7280' }}>성적 비공개</span>
-                      const scopeLabel = QUIZ_INFO.scoreRevealScope === 'with_answer'
-                        ? '정답까지 공개'
-                        : QUIZ_INFO.scoreReleasePolicy === 'with_answer' || QUIZ_INFO.scoreReleasePolicy === 'after_due' || QUIZ_INFO.scoreReleasePolicy === 'period'
-                          ? '정답까지 공개'
-                          : '오답 여부만 공개'
-                      const timingLabel = (QUIZ_INFO.scoreRevealTiming ?? QUIZ_INFO.scoreReleasePolicy) === 'after_due' ? ' · 마감 후'
-                        : (QUIZ_INFO.scoreRevealTiming ?? QUIZ_INFO.scoreReleasePolicy) === 'period' ? ' · 기간 설정'
-                        : ' · 즉시'
-                      return <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ background: '#EEF2FF', color: '#4F46E5' }}>성적공개: {scopeLabel}{timingLabel}</span>
+                      if (!enabled) {
+                        return (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-medium" style={{ color: '#9CA3AF' }}>성적 공개</span>
+                            <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ background: '#F3F4F6', color: '#6B7280' }}>비공개</span>
+                          </div>
+                        )
+                      }
+                      const isWithAnswer = QUIZ_INFO.scoreRevealScope === 'with_answer'
+                        || QUIZ_INFO.scoreReleasePolicy === 'with_answer'
+                        || QUIZ_INFO.scoreReleasePolicy === 'after_due'
+                        || QUIZ_INFO.scoreReleasePolicy === 'period'
+                      const timing = QUIZ_INFO.scoreRevealTiming ?? QUIZ_INFO.scoreReleasePolicy
+                      const timingLabel = timing === 'after_due' ? '마감 후 공개'
+                        : timing === 'period' ? '공개 기간 지정'
+                        : '즉시 공개'
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-medium" style={{ color: '#9CA3AF' }}>성적 공개</span>
+                          <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ background: '#EEF2FF', color: '#4F46E5' }}>
+                            {isWithAnswer ? '정답 포함' : '점수만'}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ background: '#F0FDF4', color: '#16A34A' }}>
+                            {timingLabel}
+                          </span>
+                        </div>
+                      )
                     })()}
                   </div>
 
