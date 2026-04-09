@@ -920,6 +920,39 @@ export function gradeQuiz3Answer(questionId, answer) {
 
 export function autoGradeAnswer(question, answer) {
   if (!answer && answer !== 0) return 0
+
+  // multiple_answers: scoringMode(all_correct | partial) 기반 별도 채점
+  if (question.type === 'multiple_answers') {
+    const opts = question.options || question.choices || []
+    // correctAnswer: 인덱스 배열(신규) | 텍스트 배열 | 쉼표구분 문자열(기존 mock)
+    let correctTexts
+    if (Array.isArray(question.correctAnswer)) {
+      correctTexts = typeof question.correctAnswer[0] === 'number'
+        ? question.correctAnswer.map(i => opts[i]).filter(Boolean)
+        : question.correctAnswer.map(s => String(s).trim())
+    } else if (typeof question.correctAnswer === 'string') {
+      correctTexts = question.correctAnswer.split(',').map(s => s.trim()).filter(Boolean)
+    } else {
+      return null
+    }
+    if (correctTexts.length === 0) return null
+
+    const studentSelected = String(answer).split(',').map(s => s.trim()).filter(Boolean)
+    const correctSet = new Set(correctTexts.map(s => s.toLowerCase()))
+
+    if ((question.scoringMode ?? 'all_correct') === 'partial') {
+      // 정답 개수 / 전체 정답 수 × 배점, 오답 선택 감점 없음 (미결 §1)
+      const correctCount = studentSelected.filter(s => correctSet.has(s.toLowerCase())).length
+      return Math.round((correctCount / correctTexts.length) * question.points * 2) / 2
+    } else {
+      // all_correct: 정답 전체 선택 + 오답 미포함 시 만점, 그 외 0점
+      const studentSet = new Set(studentSelected.map(s => s.toLowerCase()))
+      const allCorrect = correctTexts.every(c => studentSet.has(c.toLowerCase()))
+      const noWrong   = studentSelected.every(s => correctSet.has(s.toLowerCase()))
+      return (allCorrect && noWrong) ? question.points : 0
+    }
+  }
+
   let correctMap
   if (question.id.startsWith('q2_')) correctMap = AUTO_CORRECT_Q2
   else if (question.id.startsWith('q3_')) correctMap = AUTO_CORRECT_Q3

@@ -344,6 +344,40 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           </div>
         )}
 
+        {question.type === 'multiple_answers' && (
+          <div className="space-y-2">
+            {(question.options || question.choices || []).map((choice, i) => {
+              const selected = value ? value.split(',').map(s => s.trim()).includes(choice) : false
+              const toggle = () => {
+                if (disabled) return
+                const current = value ? value.split(',').map(s => s.trim()).filter(Boolean) : []
+                const next = selected ? current.filter(c => c !== choice) : [...current, choice]
+                onChange(next.join(','))
+              }
+              return (
+                <label
+                  key={i}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded transition-colors"
+                  style={{
+                    background: selected ? '#EFF6FF' : '#FAFAFA',
+                    border: `1px solid ${selected ? '#93C5FD' : '#EEEEEE'}`,
+                    cursor: disabled ? 'default' : 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={toggle}
+                    className="accent-blue-500"
+                    disabled={disabled}
+                  />
+                  <span className="text-sm" style={{ color: '#424242' }}>{choice}</span>
+                </label>
+              )
+            })}
+          </div>
+        )}
+
         {question.type === 'short_answer' && (
           <input
             type="text"
