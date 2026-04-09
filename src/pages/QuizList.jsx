@@ -85,7 +85,6 @@ export default function QuizList() {
 
 // ─────────────────────────────── 교수자 뷰 ───────────────────────────────
 function InstructorQuizList() {
-  const navigate = useNavigate()
   const [quizzes, setQuizzes] = useState(() => mockQuizzes.filter(q => q.course === CURRENT_COURSE))
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
@@ -172,13 +171,10 @@ function InstructorQuizList() {
     })
     setQuizzes(prev => [...imported, ...prev])
     setShowImportModal(false)
-    const first = imported[0]
-    if (imported.length === 1) {
-      navigate(`/quiz/${first.id}/edit`)
-    } else {
-      showToast(`${imported.length}개 가져왔습니다 — "${first.title}" 편집 화면으로 이동합니다`)
-      navigate(`/quiz/${first.id}/edit`)
-    }
+    const msg = imported.length === 1
+      ? `"${imported[0].title}" 가져오기 완료 — 목록에서 편집하세요`
+      : `퀴즈 ${imported.length}개 가져오기 완료 — 임시저장 상태로 추가되었습니다`
+    showToast(msg)
   }
 
   // 최근 생성 순(id 내림차순) 단일 목록
