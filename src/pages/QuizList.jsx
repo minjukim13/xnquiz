@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Clock, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X, ChevronRight } from 'lucide-react'
+import { Plus, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -432,8 +432,6 @@ function QuizCard({ quiz, onPublishQuiz, onCopy }) {
 function ActiveStats({ quiz }) {
   const newAttempts = getStudentAttempts(quiz.id)
   const submitted = quiz.submitted + newAttempts.length
-  const graded = quiz.graded + newAttempts.length
-  const gradeProgress = submitted > 0 ? Math.round((graded / submitted) * 100) : 0
   const submitRate = Math.round((submitted / quiz.totalStudents) * 100)
   const unsubmitted = Math.max(0, quiz.totalStudents - submitted)
   const isClosed = quiz.status === 'closed' || quiz.status === 'grading'
@@ -460,29 +458,37 @@ function ActiveStats({ quiz }) {
 
 // ─────────────────────────────── 공통: 초기화 안내 박스 ───────────────────────────────
 function ResetNotice() {
+  const items = [
+    ['주차/차시', '미지정'],
+    ['응시 기간', '설정 안함'],
+    ['성적 공개 정책', '공개 안함'],
+    ['지각 제출', '비활성화'],
+    ['접근 코드 / IP 제한', '제거'],
+    ['추가 기간 설정', '설정 안함'],
+  ]
   return (
-    <div className="rounded-md px-3 py-3" style={{ background: '#F0F4FF', border: '1px solid #C7D2FE' }}>
-      <p className="text-xs font-semibold mb-1.5" style={{ color: '#4338CA' }}>
-        복사 후 직접 설정이 필요한 항목
-      </p>
-      <p className="text-xs mb-2" style={{ color: '#6366F1' }}>
-        아래 항목은 초기화된 상태로 저장됩니다. 복사 후 퀴즈 편집에서 설정하세요.
-      </p>
-      <ul className="space-y-0.5">
-        {[
-          ['주차/차시', '미지정'],
-          ['응시 기간', '설정 안함'],
-          ['성적 공개 정책', '공개 안함'],
-          ['지각 제출', '비활성화'],
-          ['접근 코드 / IP 제한', '제거'],
-          ['추가 기간 설정', '설정 안함'],
-        ].map(([label, value]) => (
-          <li key={label} className="flex items-center justify-between text-xs" style={{ color: '#6366F1' }}>
-            <span style={{ color: '#4B5563' }}>{label}</span>
-            <span className="font-medium" style={{ color: '#9CA3AF' }}>{value}</span>
-          </li>
+    <div className="rounded-md overflow-hidden" style={{ border: '1px solid #C7D2FE' }}>
+      <div className="px-3 py-2.5" style={{ background: '#EEF2FF' }}>
+        <p className="text-xs font-semibold" style={{ color: '#4338CA' }}>복사 후 직접 설정이 필요한 항목</p>
+        <p className="text-xs mt-0.5" style={{ color: '#818CF8' }}>아래 항목은 초기화된 상태로 저장됩니다. 복사 후 퀴즈 편집에서 설정하세요.</p>
+      </div>
+      <div style={{ background: '#F5F7FF' }}>
+        {items.map(([label, value], idx) => (
+          <div
+            key={label}
+            className="flex items-center justify-between px-3 py-2"
+            style={{ borderTop: idx === 0 ? 'none' : '1px solid #E0E7FF' }}
+          >
+            <span className="text-xs" style={{ color: '#374151' }}>{label}</span>
+            <span
+              className="text-xs font-semibold px-2 py-0.5 rounded-full"
+              style={{ background: '#E0E7FF', color: '#6366F1' }}
+            >
+              {value}
+            </span>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   )
 }
