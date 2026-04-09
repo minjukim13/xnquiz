@@ -157,7 +157,7 @@ export default function QuizCreate() {
             <button className="btn-secondary text-sm">임시저장</button>
             {tab === 'info' ? (
               <button onClick={() => setTab('questions')} className="btn-primary text-sm">
-                다음: 문항 구성 →
+                문항 구성 →
               </button>
             ) : (
               <button

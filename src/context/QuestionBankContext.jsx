@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { MOCK_BANKS, MOCK_BANK_QUESTIONS, QUIZ_TYPES } from '../data/mockData'
 
-const LS_BANKS_KEY = 'xnq_banks'
-const LS_QUESTIONS_KEY = 'xnq_bank_questions'
+const LS_BANKS_KEY = 'xnq_banks_v3'
+const LS_QUESTIONS_KEY = 'xnq_bank_questions_v3'
 
 const QuestionBankContext = createContext(null)
 
@@ -20,8 +20,7 @@ export function QuestionBankProvider({ children }) {
     try {
       const raw = localStorage.getItem(LS_QUESTIONS_KEY)
       const loaded = raw ? JSON.parse(raw) : MOCK_BANK_QUESTIONS
-      // migration: difficulty/groupTag 필드 없는 기존 데이터에 기본값 주입
-      // groupTag가 빈 경우 mock 원본 값으로 복원
+      // migration: type 유효성 검증, difficulty 기본값 주입
       return loaded.map(q => {
         const mockQ = MOCK_BANK_QUESTIONS.find(m => m.id === q.id)
         const type = (q.type && QUIZ_TYPES[q.type]) ? q.type : (mockQ?.type || 'multiple_choice')
