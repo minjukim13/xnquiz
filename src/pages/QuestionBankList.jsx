@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Trash2, FolderInput, Share2, CheckCircle2 } from 'lucide-react'
+import { Plus, BookOpen, Trash2, FolderInput, CheckCircle2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useQuestionBank } from '../context/QuestionBankContext'
-import { CopyFromBankModal, GroupExportModal } from './QuestionBank'
+import { CopyFromBankModal } from './QuestionBank'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
@@ -12,7 +12,6 @@ export default function QuestionBankList() {
   const { banks, addBank, deleteBank, getBankQuestions, addQuestions } = useQuestionBank()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
-  const [showExportModal, setShowExportModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [toast, setToast] = useState(null)
 
@@ -32,16 +31,6 @@ export default function QuestionBankList() {
             <h1 className="text-2xl font-bold" style={{ color: '#222222' }}>문제은행</h1>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 text-sm font-medium px-4 py-2 transition-colors"
-              style={{ color: '#424242', border: '1px solid #E0E0E0', borderRadius: 4 }}
-              onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <Share2 size={14} />
-              그룹 내보내기
-            </button>
             <button
               onClick={() => setShowCopyModal(true)}
               className="flex items-center gap-2 text-sm font-medium px-4 py-2 transition-colors"
@@ -192,36 +181,6 @@ export default function QuestionBankList() {
             </div>
           </div>
         </div>
-      )}
-
-      {showExportModal && (
-        <GroupExportModal
-          sourceCourse={CURRENT_COURSE}
-          onClose={() => setShowExportModal(false)}
-          onExport={(selectedQuestions, targetCourse, targetBankId, newBankName) => {
-            let bankId = targetBankId
-            let bankName = newBankName
-            if (!bankId) {
-              bankId = `bank_export_${Date.now()}`
-              addBank({
-                id: bankId,
-                name: bankName || '내보내기 문제은행',
-                course: targetCourse,
-                updatedAt: new Date().toISOString().split('T')[0],
-                usedInQuizIds: [],
-              })
-            } else {
-              bankName = banks.find(b => b.id === bankId)?.name || bankName
-            }
-            addQuestions(selectedQuestions.map(q => ({
-              ...q,
-              id: `${q.id}_exp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-              bankId,
-            })))
-            setShowExportModal(false)
-            showToast(`"${bankName}"으로 ${selectedQuestions.length}개 문항을 내보냈습니다`, bankId)
-          }}
-        />
       )}
 
       {showCopyModal && (
