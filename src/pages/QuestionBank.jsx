@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Search, X, Edit2, Trash2, Upload, Download, FolderInput, ChevronLeft, Copy, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
+import { Plus, Search, X, Edit2, Trash2, Upload, Download, FolderInput, ChevronLeft, Copy, CheckCircle2, AlertCircle, GripVertical, Share2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { QUIZ_TYPES, MOCK_COURSES } from '../data/mockData'
 import { AppSelect } from '../components/AppSelect'
@@ -34,6 +34,7 @@ export default function QuestionBank() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [showDuplicateModal, setShowDuplicateModal] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
   const [editingBankName, setEditingBankName] = useState(false)
   const [bankNameDraft, setBankNameDraft] = useState('')
   const [toast, setToast] = useState(null)
@@ -120,6 +121,30 @@ export default function QuestionBank() {
     setShowCopyModal(false)
   }
 
+  const handleExport = (selectedQuestions, targetCourse, targetBankId, newBankName) => {
+    let bankId = targetBankId
+    let bankName = newBankName
+    if (!bankId) {
+      bankId = `bank_export_${Date.now()}`
+      addBank({
+        id: bankId,
+        name: bankName || `${bank.name}-내보내기`,
+        course: targetCourse,
+        updatedAt: new Date().toISOString().split('T')[0],
+        usedInQuizIds: [],
+      })
+    } else {
+      bankName = banks.find(b => b.id === bankId)?.name || bankName
+    }
+    addQuestions(selectedQuestions.map(q => ({
+      ...q,
+      id: `${q.id}_exp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      bankId,
+    })))
+    setShowExportModal(false)
+    showToast(`"${bankName}"으로 ${selectedQuestions.length}개 문항을 내보냈습니다`, bankId)
+  }
+
   return (
     <Layout breadcrumbs={[{ label: '문제은행', href: '/question-banks' }, { label: bank.name }]}>
       <div className="max-w-[1200px] mx-auto px-6 sm:px-10 xl:px-16 py-8">
@@ -188,6 +213,16 @@ export default function QuestionBank() {
               >
                 <Copy size={14} />
                 <span className="hidden sm:block">복제하기</span>
+              </button>
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="flex items-center gap-2 text-sm font-medium px-3 py-2 transition-colors"
+                style={{ color: '#424242', border: '1px solid #E0E0E0', borderRadius: 4 }}
+                onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <Share2 size={14} />
+                <span className="hidden sm:block">그룹 내보내기</span>
               </button>
               <button
                 onClick={() => setShowCopyModal(true)}
@@ -349,6 +384,14 @@ export default function QuestionBank() {
           currentBankId={bank.id}
           onClose={() => setShowCopyModal(false)}
           onCopy={handleCopyFromBank}
+        />
+      )}
+
+      {showExportModal && (
+        <GroupExportModal
+          bank={bank}
+          onClose={() => setShowExportModal(false)}
+          onExport={handleExport}
         />
       )}
 
@@ -1128,6 +1171,7 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
   const [filterDifficulty, setFilterDifficulty] = useState('all')
   const [filterGroup, setFilterGroup] = useState('all')
   const [courseSearch, setCourseSearch] = useState('')
+  const [viewMode, setViewMode] = useState('question') // 'question' | 'group'
   const dragIndexRef = useRef(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
 
@@ -1144,6 +1188,15 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
     const groups = [...new Set(bankQuestions.map(q => q.groupTag).filter(Boolean))]
     return groups.sort()
   }, [bankQuestions])
+
+  const groupStats = useMemo(() =>
+    allGroups.map(g => ({
+      name: g,
+      questions: bankQuestions.filter(q => q.groupTag === g),
+      count: bankQuestions.filter(q => q.groupTag === g).length,
+    })),
+    [allGroups, bankQuestions]
+  )
 
   const filtered = bankQuestions.filter(q => {
     const matchType = filterType === 'all' || q.type === filterType
@@ -1187,6 +1240,22 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
 
   const handleCopy = () => {
     onCopy(selectedQuestions, selectedBank)
+  }
+
+  const handleBankSelect = (bankId) => {
+    setSelectedBankId(bankId)
+    setViewMode('question')
+    setSelectedIds([])
+    resetFilters()
+  }
+
+  const toggleGroupInBank = (group) => {
+    const allSelected = group.questions.every(q => selectedIds.includes(q.id))
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !group.questions.find(q => q.id === id)))
+    } else {
+      setSelectedIds(prev => [...new Set([...prev, ...group.questions.map(q => q.id)])])
+    }
   }
 
   const resetFilters = () => {
@@ -1301,7 +1370,7 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
                   return (
                     <button
                       key={b.id}
-                      onClick={() => setSelectedBankId(b.id)}
+                      onClick={() => handleBankSelect(b.id)}
                       className="w-full flex items-center justify-between p-3 text-left transition-colors"
                       style={{ border: '1px solid #E0E0E0', borderRadius: 6 }}
                       onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#FAFAFA' }}
@@ -1316,93 +1385,159 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
             </div>
           ) : (
             <div className="flex flex-1 min-h-0 min-w-0">
-              {/* 문항 목록 */}
+              {/* 문항/그룹 목록 */}
               <div className="flex flex-col flex-1 min-w-0" style={{ borderRight: '1px solid #EEEEEE' }}>
-                {/* 필터 */}
-                <div className="px-3 pt-2.5 pb-2 shrink-0" style={{ borderBottom: '1px solid #EEEEEE' }}>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <DropdownSelect
-                      value={filterType}
-                      onChange={setFilterType}
-                      filterMode
-                      options={[
-                        { value: 'all', label: '모든 유형' },
-                        ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
-                      ]}
-                    />
-                    <DropdownSelect
-                      value={filterDifficulty}
-                      onChange={setFilterDifficulty}
-                      filterMode
-                      options={[
-                        { value: 'all', label: '모든 난이도' },
-                        { value: 'high', label: '상' },
-                        { value: 'medium', label: '중' },
-                        { value: 'low', label: '하' },
-                      ]}
-                    />
-                    <DropdownSelect
-                      value={filterGroup}
-                      onChange={setFilterGroup}
-                      filterMode
-                      options={[
-                        { value: 'all', label: '모든 그룹' },
-                        ...allGroups.map(g => ({ value: g, label: g })),
-                      ]}
-                    />
-                  </div>
+                {/* 보기 모드 토글 */}
+                <div className="px-3 py-1.5 shrink-0 flex items-center gap-1" style={{ borderBottom: '1px solid #F0F0F0' }}>
+                  <button
+                    onClick={() => setViewMode('question')}
+                    className="text-xs px-2.5 py-1 transition-colors"
+                    style={{ borderRadius: 4, background: viewMode === 'question' ? '#EEF2FF' : 'transparent', color: viewMode === 'question' ? '#4338CA' : '#9E9E9E', fontWeight: viewMode === 'question' ? 600 : 400 }}
+                  >
+                    문항 단위
+                  </button>
+                  <button
+                    onClick={() => setViewMode('group')}
+                    className="text-xs px-2.5 py-1 transition-colors"
+                    style={{ borderRadius: 4, background: viewMode === 'group' ? '#EEF2FF' : 'transparent', color: viewMode === 'group' ? '#4338CA' : '#9E9E9E', fontWeight: viewMode === 'group' ? 600 : 400 }}
+                  >
+                    그룹 단위
+                  </button>
                 </div>
-                {/* 전체선택 + 카운트 */}
-                {filtered.length > 0 && (
-                  <div className="px-3 py-1.5 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid #F5F5F5' }}>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={allFilteredSelected}
-                        ref={el => { if (el) el.indeterminate = someFilteredSelected }}
-                        onChange={toggleSelectAll}
-                        className="accent-indigo-600"
-                      />
-                      <span className="text-xs font-medium" style={{ color: '#616161' }}>
-                        {allFilteredSelected ? '전체 해제' : '전체선택'}
-                      </span>
-                    </label>
-                    <span className="text-xs" style={{ color: selectedIds.length > 0 ? '#6366F1' : '#9E9E9E' }}>
-                      {selectedIds.length > 0 ? `${selectedIds.length}개 선택` : `총 ${filtered.length}개`}
-                    </span>
+
+                {viewMode === 'question' ? (
+                  <>
+                    {/* 필터 */}
+                    <div className="px-3 pt-2.5 pb-2 shrink-0" style={{ borderBottom: '1px solid #EEEEEE' }}>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <DropdownSelect
+                          value={filterType}
+                          onChange={setFilterType}
+                          filterMode
+                          options={[
+                            { value: 'all', label: '모든 유형' },
+                            ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
+                          ]}
+                        />
+                        <DropdownSelect
+                          value={filterDifficulty}
+                          onChange={setFilterDifficulty}
+                          filterMode
+                          options={[
+                            { value: 'all', label: '모든 난이도' },
+                            { value: 'high', label: '상' },
+                            { value: 'medium', label: '중' },
+                            { value: 'low', label: '하' },
+                          ]}
+                        />
+                        <DropdownSelect
+                          value={filterGroup}
+                          onChange={setFilterGroup}
+                          filterMode
+                          options={[
+                            { value: 'all', label: '모든 그룹' },
+                            ...allGroups.map(g => ({ value: g, label: g })),
+                          ]}
+                        />
+                      </div>
+                    </div>
+                    {/* 전체선택 + 카운트 */}
+                    {filtered.length > 0 && (
+                      <div className="px-3 py-1.5 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid #F5F5F5' }}>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={allFilteredSelected}
+                            ref={el => { if (el) el.indeterminate = someFilteredSelected }}
+                            onChange={toggleSelectAll}
+                            className="accent-indigo-600"
+                          />
+                          <span className="text-xs font-medium" style={{ color: '#616161' }}>
+                            {allFilteredSelected ? '전체 해제' : '전체선택'}
+                          </span>
+                        </label>
+                        <span className="text-xs" style={{ color: selectedIds.length > 0 ? '#6366F1' : '#9E9E9E' }}>
+                          {selectedIds.length > 0 ? `${selectedIds.length}개 선택` : `총 ${filtered.length}개`}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                      {filtered.map(q => {
+                        const selected = selectedIds.includes(q.id)
+                        return (
+                          <div
+                            key={q.id}
+                            onClick={() => toggleSelect(q.id)}
+                            className="flex items-start gap-3 p-3 cursor-pointer transition-all"
+                            style={{
+                              border: selected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
+                              borderRadius: 6,
+                              background: selected ? '#EEF2FF' : '#fff',
+                            }}
+                          >
+                            <input type="checkbox" checked={selected} readOnly className="mt-0.5 shrink-0 accent-indigo-600" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="text-xs px-1.5 py-0.5 font-medium" style={{ background: '#F5F5F5', color: '#616161', borderRadius: 4 }}>
+                                  {QUIZ_TYPES[q.type]?.label}
+                                </span>
+                                <span className="text-xs" style={{ color: '#9E9E9E' }}>{q.points}점</span>
+                              </div>
+                              <p className="text-sm leading-relaxed line-clamp-2" style={{ color: '#424242' }}>{q.text}</p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {filtered.length === 0 && (
+                        <p className="py-8 text-center text-sm" style={{ color: '#9E9E9E' }}>검색 결과가 없습니다</p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  // 그룹 단위 뷰
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {groupStats.length === 0 ? (
+                      <div className="py-10 text-center">
+                        <p className="text-sm mb-1" style={{ color: '#9E9E9E' }}>그룹 태그가 없습니다</p>
+                        <button onClick={() => setViewMode('question')} className="text-xs" style={{ color: '#6366F1' }}>문항 단위로 보기</button>
+                      </div>
+                    ) : (
+                      groupStats.map(g => {
+                        const allSel = g.questions.length > 0 && g.questions.every(q => selectedIds.includes(q.id))
+                        const someSel = g.questions.some(q => selectedIds.includes(q.id)) && !allSel
+                        return (
+                          <div
+                            key={g.name}
+                            onClick={() => toggleGroupInBank(g)}
+                            className="flex items-center gap-3 p-3 cursor-pointer transition-all"
+                            style={{
+                              border: allSel ? '1px solid #c7d2fe' : someSel ? '1px solid #a5b4fc' : '1px solid #E0E0E0',
+                              borderRadius: 6,
+                              background: allSel ? '#EEF2FF' : someSel ? '#F5F7FF' : '#fff',
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={allSel}
+                              ref={el => { if (el) el.indeterminate = someSel }}
+                              readOnly
+                              className="shrink-0 accent-indigo-600"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate" style={{ color: '#222222' }}>{g.name}</p>
+                              <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{g.count}개 문항</p>
+                            </div>
+                            {(allSel || someSel) && (
+                              <span className="text-xs font-medium shrink-0" style={{ color: '#6366F1' }}>
+                                {allSel ? '전체 선택됨' : `${g.questions.filter(q => selectedIds.includes(q.id)).length}개 선택`}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
                 )}
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                  {filtered.map(q => {
-                    const selected = selectedIds.includes(q.id)
-                    return (
-                      <div
-                        key={q.id}
-                        onClick={() => toggleSelect(q.id)}
-                        className="flex items-start gap-3 p-3 cursor-pointer transition-all"
-                        style={{
-                          border: selected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
-                          borderRadius: 6,
-                          background: selected ? '#EEF2FF' : '#fff',
-                        }}
-                      >
-                        <input type="checkbox" checked={selected} readOnly className="mt-0.5 shrink-0 accent-indigo-600" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="text-xs px-1.5 py-0.5 font-medium" style={{ background: '#F5F5F5', color: '#616161', borderRadius: 4 }}>
-                              {QUIZ_TYPES[q.type]?.label}
-                            </span>
-                            <span className="text-xs" style={{ color: '#9E9E9E' }}>{q.points}점</span>
-                          </div>
-                          <p className="text-sm leading-relaxed line-clamp-2" style={{ color: '#424242' }}>{q.text}</p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {filtered.length === 0 && (
-                    <p className="py-8 text-center text-sm" style={{ color: '#9E9E9E' }}>검색 결과가 없습니다</p>
-                  )}
-                </div>
               </div>
 
               {/* 우측: 선택된 문항 (드래그 정렬) */}
@@ -1470,6 +1605,270 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
               style={{ borderRadius: 4 }}
             >
               {selectedIds.length > 0 ? `${selectedIds.length}개 복사하기` : '문항을 선택하세요'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── 그룹 내보내기 모달 ────────────────────────────────────────────────────────
+function GroupExportModal({ bank, onClose, onExport }) {
+  const { banks, getBankQuestions } = useQuestionBank()
+  const questions = getBankQuestions(bank.id)
+
+  const allGroups = useMemo(() => {
+    const gs = [...new Set(questions.map(q => q.groupTag).filter(Boolean))].sort()
+    return gs.map(g => ({
+      name: g,
+      count: questions.filter(q => q.groupTag === g).length,
+    }))
+  }, [questions])
+
+  const ungroupedCount = questions.filter(q => !q.groupTag).length
+
+  const [selectedGroups, setSelectedGroups] = useState([])
+  const [targetCourse, setTargetCourse] = useState(bank.course || MOCK_COURSES[0]?.name || '')
+  const [targetBankId, setTargetBankId] = useState(null)
+  const [newBankName, setNewBankName] = useState(`${bank.name}-사본`)
+  const [courseSearch, setCourseSearch] = useState('')
+
+  const courseBanks = banks.filter(b => b.course === targetCourse && b.id !== bank.id)
+  const filteredCourses = useMemo(() =>
+    MOCK_COURSES.filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase())),
+    [courseSearch]
+  )
+
+  const toggleGroup = (g) =>
+    setSelectedGroups(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])
+
+  const allGroupsSelected = allGroups.length > 0 && selectedGroups.length === allGroups.length
+  const someGroupsSelected = selectedGroups.length > 0 && !allGroupsSelected
+
+  const toggleAll = () => {
+    if (allGroupsSelected) setSelectedGroups([])
+    else setSelectedGroups(allGroups.map(g => g.name))
+  }
+
+  const handleCourseChange = (course) => {
+    setTargetCourse(course)
+    setTargetBankId(null)
+  }
+
+  const selectedQuestions = questions.filter(q => selectedGroups.includes(q.groupTag))
+  const totalCount = selectedQuestions.length
+
+  const canSubmit = selectedGroups.length > 0 &&
+    (targetBankId === '__new__' ? newBankName.trim() !== '' : targetBankId !== null)
+
+  const targetBankName = targetBankId === '__new__'
+    ? newBankName.trim()
+    : banks.find(b => b.id === targetBankId)?.name || ''
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30" />
+      <div
+        className="relative bg-white w-full max-w-3xl flex flex-col"
+        style={{ maxHeight: '82vh', borderRadius: 8, border: '1px solid #E0E0E0', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 헤더 */}
+        <div className="px-4 py-3 shrink-0 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
+          <div>
+            <h3 className="font-semibold text-sm" style={{ color: '#222222' }}>그룹 내보내기</h3>
+            <p className="text-xs mt-0.5" style={{ color: '#BDBDBD' }}>선택한 그룹의 문항을 다른 과목 문제은행으로 복사합니다</p>
+          </div>
+          <button onClick={onClose} style={{ color: '#9E9E9E' }}><X size={18} /></button>
+        </div>
+
+        {/* 본문 */}
+        <div className="flex flex-1 min-h-0">
+
+          {/* 1열: 내보낼 그룹 선택 */}
+          <div className="flex flex-col flex-1 min-w-0" style={{ borderRight: '1px solid #EEEEEE' }}>
+            <div className="px-4 py-2.5 shrink-0 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
+              <p className="text-xs font-semibold" style={{ color: '#616161' }}>내보낼 그룹</p>
+              {allGroups.length > 0 && (
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={allGroupsSelected}
+                    ref={el => { if (el) el.indeterminate = someGroupsSelected }}
+                    onChange={toggleAll}
+                    className="accent-indigo-600"
+                  />
+                  <span className="text-xs" style={{ color: '#9E9E9E' }}>전체선택</span>
+                </label>
+              )}
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {allGroups.length === 0 ? (
+                <p className="py-10 text-center text-sm" style={{ color: '#9E9E9E' }}>그룹 태그가 설정된 문항이 없습니다</p>
+              ) : (
+                allGroups.map(g => {
+                  const selected = selectedGroups.includes(g.name)
+                  return (
+                    <div
+                      key={g.name}
+                      onClick={() => toggleGroup(g.name)}
+                      className="flex items-center gap-3 p-3 cursor-pointer transition-all"
+                      style={{
+                        border: selected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
+                        borderRadius: 6,
+                        background: selected ? '#EEF2FF' : '#fff',
+                      }}
+                    >
+                      <input type="checkbox" checked={selected} readOnly className="shrink-0 accent-indigo-600" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate" style={{ color: '#222222' }}>{g.name}</p>
+                        <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{g.count}개 문항</p>
+                      </div>
+                      {selected && (
+                        <span className="text-xs font-medium shrink-0 px-1.5 py-0.5" style={{ background: '#E0E7FF', color: '#4338CA', borderRadius: 4 }}>
+                          선택됨
+                        </span>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+              {ungroupedCount > 0 && (
+                <div className="flex items-center gap-2 px-2 py-1.5 mt-1" style={{ color: '#BDBDBD' }}>
+                  <AlertCircle size={12} />
+                  <span className="text-xs">그룹 미지정 문항 {ungroupedCount}개는 내보내기 대상에서 제외됩니다</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 2열: 대상 과목 + 대상 은행 */}
+          <div className="flex flex-col shrink-0" style={{ width: 220 }}>
+            {/* 대상 과목 */}
+            <div className="flex flex-col" style={{ flex: '0 0 55%', borderBottom: '1px solid #EEEEEE', overflow: 'hidden' }}>
+              <div className="px-3 pt-2.5 pb-1.5 shrink-0">
+                <p className="text-xs font-semibold mb-1.5" style={{ color: '#9E9E9E' }}>대상 과목</p>
+                <div className="relative">
+                  <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: '#BDBDBD' }} />
+                  <input
+                    type="text"
+                    value={courseSearch}
+                    onChange={e => setCourseSearch(e.target.value)}
+                    placeholder="과목 검색"
+                    className="w-full text-xs pl-6 pr-2 py-1.5 focus:outline-none"
+                    style={{ background: '#F5F5F5', border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
+                  />
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {filteredCourses.map(c => {
+                  const isSelected = c.name === targetCourse
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => handleCourseChange(c.name)}
+                      className="w-full text-left px-3 py-2.5 text-xs leading-snug transition-colors"
+                      style={{
+                        color: isSelected ? '#6366F1' : '#424242',
+                        background: isSelected ? '#EEF2FF' : 'transparent',
+                        fontWeight: isSelected ? 600 : 400,
+                        borderLeft: isSelected ? '2px solid #6366F1' : '2px solid transparent',
+                      }}
+                    >
+                      <span className="block truncate">{c.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 대상 문제은행 */}
+            <div className="flex flex-col" style={{ flex: '0 0 45%', overflow: 'hidden' }}>
+              <p className="px-3 pt-2.5 pb-1 text-xs font-semibold shrink-0" style={{ color: '#9E9E9E' }}>대상 문제은행</p>
+              <div className="px-2 pb-1 shrink-0 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setTargetBankId('__new__')}
+                  className="w-full text-left px-2 py-1.5 text-xs transition-colors flex items-center gap-1"
+                  style={{
+                    border: targetBankId === '__new__' ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
+                    borderRadius: 4,
+                    background: targetBankId === '__new__' ? '#EEF2FF' : 'transparent',
+                    color: targetBankId === '__new__' ? '#4338CA' : '#6366F1',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Plus size={11} />새 문제은행
+                </button>
+                {targetBankId === '__new__' && (
+                  <input
+                    type="text"
+                    value={newBankName}
+                    onChange={e => setNewBankName(e.target.value)}
+                    placeholder="이름 입력"
+                    autoFocus
+                    className="w-full text-xs px-2 py-1.5 focus:outline-none"
+                    style={{
+                      border: newBankName.trim() ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
+                      borderRadius: 4,
+                      color: '#222222',
+                      background: newBankName.trim() ? '#EEF2FF' : '#fff',
+                    }}
+                  />
+                )}
+              </div>
+              <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1">
+                {courseBanks.length === 0 ? (
+                  <p className="py-3 text-center text-xs" style={{ color: '#BDBDBD' }}>은행이 없습니다</p>
+                ) : (
+                  courseBanks.map(b => {
+                    const isSelected = b.id === targetBankId
+                    return (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setTargetBankId(b.id)}
+                        className="w-full text-left px-2 py-1.5 text-xs transition-colors"
+                        style={{
+                          border: isSelected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
+                          borderRadius: 4,
+                          background: isSelected ? '#EEF2FF' : 'transparent',
+                          color: isSelected ? '#4338CA' : '#424242',
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
+                      >
+                        <span className="block truncate">{b.name}</span>
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 푸터 */}
+        <div className="px-4 py-3 shrink-0 flex items-center justify-between gap-4" style={{ borderTop: '1px solid #EEEEEE' }}>
+          <p className="text-xs truncate" style={{ color: '#9E9E9E' }}>
+            {selectedGroups.length === 0
+              ? '내보낼 그룹을 선택하세요'
+              : targetBankId === null
+                ? '대상 문제은행을 선택하세요'
+                : targetBankId === '__new__' && !newBankName.trim()
+                  ? '새 문제은행 이름을 입력하세요'
+                  : <><span style={{ color: '#6366F1', fontWeight: 600 }}>{selectedGroups.length}개 그룹</span> · <span style={{ color: '#6366F1', fontWeight: 600 }}>{totalCount}개 문항</span>{' → '}{targetCourse} › {targetBankName}</>
+            }
+          </p>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
+            <button
+              onClick={() => canSubmit && onExport(selectedQuestions, targetCourse, targetBankId === '__new__' ? null : targetBankId, newBankName.trim())}
+              disabled={!canSubmit}
+              className="text-sm font-medium px-4 py-2 bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
+              style={{ borderRadius: 4 }}
+            >
+              내보내기 ({totalCount}개)
             </button>
           </div>
         </div>
