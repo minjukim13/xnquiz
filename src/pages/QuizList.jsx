@@ -456,18 +456,38 @@ function ActiveStats({ quiz }) {
 // ─────────────────────────────── 공통: 주차/차시 미니 셀렉터 ───────────────────────────────
 function WeekSessionMini({ week, session, onWeekChange, onSessionChange }) {
   const selectStyle = {
-    fontSize: 12, padding: '4px 8px', border: '1px solid #E0E0E0',
-    borderRadius: 4, color: '#424242', background: '#fff', cursor: 'pointer',
+    fontSize: 12,
+    padding: '5px 10px',
+    border: '1px solid #E0E0E0',
+    borderRadius: 4,
+    color: '#424242',
+    background: '#fff',
+    cursor: 'pointer',
+    outline: 'none',
+    fontFamily: 'inherit',
+    appearance: 'auto',
   }
   return (
     <div className="flex items-center gap-2">
-      <select value={week ?? ''} onChange={e => onWeekChange(e.target.value ? Number(e.target.value) : null)} style={selectStyle}>
+      <select
+        value={week ?? ''}
+        onChange={e => onWeekChange(e.target.value ? Number(e.target.value) : null)}
+        style={selectStyle}
+        onFocus={e => { e.currentTarget.style.borderColor = '#6366F1' }}
+        onBlur={e => { e.currentTarget.style.borderColor = '#E0E0E0' }}
+      >
         <option value="">주차 미지정</option>
         {Array.from({ length: 16 }, (_, i) => (
           <option key={i + 1} value={i + 1}>{i + 1}주차</option>
         ))}
       </select>
-      <select value={session ?? ''} onChange={e => onSessionChange(e.target.value ? Number(e.target.value) : null)} style={selectStyle}>
+      <select
+        value={session ?? ''}
+        onChange={e => onSessionChange(e.target.value ? Number(e.target.value) : null)}
+        style={selectStyle}
+        onFocus={e => { e.currentTarget.style.borderColor = '#6366F1' }}
+        onBlur={e => { e.currentTarget.style.borderColor = '#E0E0E0' }}
+      >
         <option value="">차시 미지정</option>
         {[1, 2, 3, 4].map(s => <option key={s} value={s}>{s}차시</option>)}
       </select>
@@ -488,32 +508,48 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
         <div className="absolute inset-0 bg-black/30" />
         <div
-          className="relative bg-white p-6 w-full max-w-sm"
+          className="relative bg-white w-full max-w-sm"
           style={{ borderRadius: 8, border: '1px solid #E0E0E0', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
           onClick={e => e.stopPropagation()}
         >
-          <h3 className="font-semibold mb-2" style={{ color: '#222222' }}>퀴즈 복사</h3>
-          <p className="text-sm mb-1" style={{ color: '#424242' }}>
-            <span style={{ fontWeight: 600 }}>"{quiz.title}"</span>을(를)
-          </p>
-          <p className="text-sm mb-4" style={{ color: '#424242' }}>
-            <span style={{ fontWeight: 600 }}>{selected}</span>으로 복사합니다.
-          </p>
-          <div className="mb-4">
-            <p className="text-xs mb-2" style={{ color: '#9E9E9E' }}>주차/차시 설정 (선택)</p>
-            <WeekSessionMini week={week} session={session} onWeekChange={setWeek} onSessionChange={setSession} />
+          <div className="px-6 pt-6 pb-4" style={{ borderBottom: '1px solid #F0F0F0' }}>
+            <h3 className="font-semibold text-sm mb-0.5" style={{ color: '#222222' }}>복사 확인</h3>
+            <p className="text-xs" style={{ color: '#9E9E9E' }}>아래 내용을 확인 후 복사하세요</p>
           </div>
-          <p className="text-xs mb-5" style={{ color: '#9E9E9E' }}>복사된 퀴즈는 발행 전(초안) 상태로 저장됩니다.</p>
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setConfirmed(false)} className="text-sm px-4 py-2" style={{ color: '#616161' }}>이전</button>
+          <div className="px-6 py-4 space-y-3">
+            <div className="text-sm rounded p-3" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
+              <p className="text-xs mb-1" style={{ color: '#9E9E9E' }}>복사할 퀴즈</p>
+              <p className="font-semibold truncate" style={{ color: '#222222' }}>{quiz.title}</p>
+              <p className="text-xs mt-0.5" style={{ color: '#6366F1' }}>{quiz.questions}문항 · {quiz.totalPoints}점</p>
+            </div>
+            <div className="text-sm rounded p-3" style={{ background: '#F8FAFF', border: '1px solid #E8EBFF' }}>
+              <p className="text-xs mb-1" style={{ color: '#9E9E9E' }}>대상 과목</p>
+              <p className="font-semibold" style={{ color: '#222222' }}>{selected}</p>
+            </div>
+            <div>
+              <p className="text-xs mb-2" style={{ color: '#9E9E9E' }}>주차/차시 설정 <span style={{ color: '#BDBDBD' }}>(선택)</span></p>
+              <WeekSessionMini week={week} session={session} onWeekChange={setWeek} onSessionChange={setSession} />
+            </div>
+            <p className="text-xs pt-1" style={{ color: '#BDBDBD' }}>복사된 퀴즈는 발행 전(초안) 상태로 저장됩니다.</p>
+          </div>
+          <div className="flex justify-end gap-2 px-6 pb-5">
+            <button
+              onClick={() => setConfirmed(false)}
+              className="text-sm px-4 py-2 rounded transition-colors"
+              style={{ color: '#616161', border: '1px solid #E0E0E0' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              이전
+            </button>
             <button
               onClick={() => onCopy(quiz, selected, week, session)}
-              className="text-sm font-medium px-4 py-2 text-white transition-colors"
-              style={{ background: '#4F46E5', borderRadius: 4 }}
+              className="text-sm font-medium px-4 py-2 text-white rounded transition-colors"
+              style={{ background: '#4F46E5' }}
               onMouseEnter={e => e.currentTarget.style.background = '#4338CA'}
               onMouseLeave={e => e.currentTarget.style.background = '#4F46E5'}
             >
-              복사
+              복사하기
             </button>
           </div>
         </div>
@@ -545,7 +581,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
             <button
               key={course.id}
               onClick={() => setSelected(course.name)}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors"
               style={{
                 borderRadius: 6,
                 border: `1px solid ${selected === course.name ? '#6366F1' : '#E0E0E0'}`,
@@ -554,8 +590,16 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
                 fontWeight: selected === course.name ? 600 : 400,
               }}
             >
+              <span
+                className="shrink-0 rounded-full"
+                style={{
+                  width: 14, height: 14,
+                  border: `2px solid ${selected === course.name ? '#6366F1' : '#D1D5DB'}`,
+                  background: selected === course.name ? '#6366F1' : 'transparent',
+                  display: 'inline-block',
+                }}
+              />
               {course.name}
-              {selected === course.name && <ChevronRight size={14} style={{ color: '#6366F1' }} />}
             </button>
           ))}
         </div>
