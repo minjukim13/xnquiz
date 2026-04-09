@@ -471,15 +471,23 @@ function ResetNotice({ mode = 'import' }) {
   ]
   const action = mode === 'copy' ? '복사한' : '가져온'
   return (
-    <div style={{ borderTop: '1px solid #F0F0F0', paddingTop: 12 }}>
-      <p style={{ fontSize: 11, color: '#9E9E9E', marginBottom: 14 }}>
-        퀴즈를 {action} 후 아래 항목은 초기화됩니다.
+    <div style={{ borderRadius: 8, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '12px 14px' }}>
+      <p style={{ fontSize: 11.5, color: '#6B7280', marginBottom: 12 }}>
+        퀴즈를 {action} 후 아래 항목들은 초기화되므로 다시 설정해 주세요.
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '9px 16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
         {items.map(([label, value]) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11.5, color: '#424242' }}>{label}</span>
-            <span style={{ fontSize: 11, color: '#BDBDBD' }}>{value}</span>
+          <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <span style={{ fontSize: 12, color: '#374151' }}>{label}</span>
+            <span style={{
+              fontSize: 11,
+              color: '#9CA3AF',
+              background: '#F3F4F6',
+              border: '1px solid #E5E7EB',
+              borderRadius: 4,
+              padding: '1px 6px',
+              whiteSpace: 'nowrap',
+            }}>{value}</span>
           </div>
         ))}
       </div>
