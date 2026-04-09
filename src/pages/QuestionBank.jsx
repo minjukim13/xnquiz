@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Search, X, Edit2, Trash2, Upload, Download, FolderInput, ChevronLeft, Copy, CheckCircle2, AlertCircle, GripVertical, Share2 } from 'lucide-react'
+import { Plus, Search, X, Edit2, Trash2, Upload, Download, FolderInput, ChevronLeft, Copy, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
 import Layout from '../components/Layout'
 import { QUIZ_TYPES, MOCK_COURSES } from '../data/mockData'
 import { AppSelect } from '../components/AppSelect'
@@ -34,7 +34,6 @@ export default function QuestionBank() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [showDuplicateModal, setShowDuplicateModal] = useState(false)
-  const [showExportModal, setShowExportModal] = useState(false)
   const [editingBankName, setEditingBankName] = useState(false)
   const [bankNameDraft, setBankNameDraft] = useState('')
   const [toast, setToast] = useState(null)
@@ -121,30 +120,6 @@ export default function QuestionBank() {
     setShowCopyModal(false)
   }
 
-  const handleExport = (selectedQuestions, targetCourse, targetBankId, newBankName) => {
-    let bankId = targetBankId
-    let bankName = newBankName
-    if (!bankId) {
-      bankId = `bank_export_${Date.now()}`
-      addBank({
-        id: bankId,
-        name: bankName || `${bank.name}-내보내기`,
-        course: targetCourse,
-        updatedAt: new Date().toISOString().split('T')[0],
-        usedInQuizIds: [],
-      })
-    } else {
-      bankName = banks.find(b => b.id === bankId)?.name || bankName
-    }
-    addQuestions(selectedQuestions.map(q => ({
-      ...q,
-      id: `${q.id}_exp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      bankId,
-    })))
-    setShowExportModal(false)
-    showToast(`"${bankName}"으로 ${selectedQuestions.length}개 문항을 내보냈습니다`, bankId)
-  }
-
   return (
     <Layout breadcrumbs={[{ label: '문제은행', href: '/question-banks' }, { label: bank.name }]}>
       <div className="max-w-[1200px] mx-auto px-6 sm:px-10 xl:px-16 py-8">
@@ -213,16 +188,6 @@ export default function QuestionBank() {
               >
                 <Copy size={14} />
                 <span className="hidden sm:block">복제하기</span>
-              </button>
-              <button
-                onClick={() => setShowExportModal(true)}
-                className="flex items-center gap-2 text-sm font-medium px-3 py-2 transition-colors"
-                style={{ color: '#424242', border: '1px solid #E0E0E0', borderRadius: 4 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
-                <Share2 size={14} />
-                <span className="hidden sm:block">그룹 내보내기</span>
               </button>
               <button
                 onClick={() => setShowCopyModal(true)}
@@ -387,13 +352,6 @@ export default function QuestionBank() {
         />
       )}
 
-      {showExportModal && (
-        <GroupExportModal
-          bank={bank}
-          onClose={() => setShowExportModal(false)}
-          onExport={handleExport}
-        />
-      )}
 
       {showDuplicateModal && (
         <DuplicateBankModal
@@ -1613,28 +1571,47 @@ export function CopyFromBankModal({ currentBankId, onClose, onCopy, title = '다
   )
 }
 
-// ── 그룹 내보내기 모달 ────────────────────────────────────────────────────────
-function GroupExportModal({ bank, onClose, onExport }) {
-  const { banks, getBankQuestions } = useQuestionBank()
-  const questions = getBankQuestions(bank.id)
+// ── 그룹 내보내기 모달 (과목 레벨 — 해당 과목 내 모든 은행의 그룹 집계) ────────
+export function GroupExportModal({ sourceCourse, onClose, onExport }) {
+  const { banks, questions } = useQuestionBank()
 
+  // 현재 과목의 모든 은행
+  const sourceBanks = useMemo(() =>
+    banks.filter(b => b.course === sourceCourse || (!b.course && sourceCourse === MOCK_COURSES[0]?.name)),
+    [banks, sourceCourse]
+  )
+  const sourceBankIds = useMemo(() => new Set(sourceBanks.map(b => b.id)), [sourceBanks])
+
+  // 해당 과목 전체 문항
+  const courseQuestions = useMemo(() =>
+    questions.filter(q => sourceBankIds.has(q.bankId)),
+    [questions, sourceBankIds]
+  )
+
+  // 과목 내 전체 그룹 집계 (어느 은행 소속인지 관계없이)
   const allGroups = useMemo(() => {
-    const gs = [...new Set(questions.map(q => q.groupTag).filter(Boolean))].sort()
-    return gs.map(g => ({
-      name: g,
-      count: questions.filter(q => q.groupTag === g).length,
-    }))
-  }, [questions])
+    const groupMap = {}
+    courseQuestions.forEach(q => {
+      if (!q.groupTag) return
+      if (!groupMap[q.groupTag]) groupMap[q.groupTag] = { name: q.groupTag, count: 0, bankNames: new Set() }
+      groupMap[q.groupTag].count++
+      const bankName = sourceBanks.find(b => b.id === q.bankId)?.name
+      if (bankName) groupMap[q.groupTag].bankNames.add(bankName)
+    })
+    return Object.values(groupMap)
+      .map(g => ({ ...g, bankNames: [...g.bankNames].sort() }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [courseQuestions, sourceBanks])
 
-  const ungroupedCount = questions.filter(q => !q.groupTag).length
+  const ungroupedCount = courseQuestions.filter(q => !q.groupTag).length
 
   const [selectedGroups, setSelectedGroups] = useState([])
-  const [targetCourse, setTargetCourse] = useState(bank.course || MOCK_COURSES[0]?.name || '')
+  const [targetCourse, setTargetCourse] = useState(sourceCourse)
   const [targetBankId, setTargetBankId] = useState(null)
-  const [newBankName, setNewBankName] = useState(`${bank.name}-사본`)
+  const [newBankName, setNewBankName] = useState('')
   const [courseSearch, setCourseSearch] = useState('')
 
-  const courseBanks = banks.filter(b => b.course === targetCourse && b.id !== bank.id)
+  const courseBanks = banks.filter(b => b.course === targetCourse)
   const filteredCourses = useMemo(() =>
     MOCK_COURSES.filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase())),
     [courseSearch]
@@ -1656,7 +1633,7 @@ function GroupExportModal({ bank, onClose, onExport }) {
     setTargetBankId(null)
   }
 
-  const selectedQuestions = questions.filter(q => selectedGroups.includes(q.groupTag))
+  const selectedQuestions = courseQuestions.filter(q => selectedGroups.includes(q.groupTag))
   const totalCount = selectedQuestions.length
 
   const canSubmit = selectedGroups.length > 0 &&
@@ -1678,7 +1655,7 @@ function GroupExportModal({ bank, onClose, onExport }) {
         <div className="px-4 py-3 shrink-0 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
           <div>
             <h3 className="font-semibold text-sm" style={{ color: '#222222' }}>그룹 내보내기</h3>
-            <p className="text-xs mt-0.5" style={{ color: '#BDBDBD' }}>선택한 그룹의 문항을 다른 과목 문제은행으로 복사합니다</p>
+            <p className="text-xs mt-0.5" style={{ color: '#BDBDBD' }}>{sourceCourse} 내 전체 은행의 그룹을 선택해 다른 과목 문제은행으로 복사합니다</p>
           </div>
           <button onClick={onClose} style={{ color: '#9E9E9E' }}><X size={18} /></button>
         </div>
@@ -1723,7 +1700,9 @@ function GroupExportModal({ bank, onClose, onExport }) {
                       <input type="checkbox" checked={selected} readOnly className="shrink-0 accent-indigo-600" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate" style={{ color: '#222222' }}>{g.name}</p>
-                        <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{g.count}개 문항</p>
+                        <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>
+                          {g.count}개 문항 · {g.bankNames.length === 1 ? g.bankNames[0] : `${g.bankNames[0]} 외 ${g.bankNames.length - 1}개 은행`}
+                        </p>
                       </div>
                       {selected && (
                         <span className="text-xs font-medium shrink-0 px-1.5 py-0.5" style={{ background: '#E0E7FF', color: '#4338CA', borderRadius: 4 }}>
