@@ -158,6 +158,35 @@ export default function GradingDashboard() {
     )
   }
 
+  // draft 퀴즈: 응시 시작 전 안내
+  if (QUIZ_INFO.status === 'draft') {
+    return (
+      <Layout breadcrumbs={[
+        { label: '퀴즈 관리', href: '/' },
+        { label: QUIZ_INFO.title },
+        { label: '채점 대시보드' },
+      ]}>
+        <div className="max-w-md mx-auto px-6 py-20 text-center">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#EEF2FF' }}>
+            <FileEdit size={24} style={{ color: '#6366F1' }} />
+          </div>
+          <h3 className="text-lg font-bold mb-2" style={{ color: '#111827' }}>아직 응시가 시작되지 않았습니다</h3>
+          <p className="text-sm mb-6" style={{ color: '#6B7280' }}>
+            이 퀴즈는 임시저장 상태입니다. 퀴즈를 공개하면 학생이 응시할 수 있습니다.
+          </p>
+          <Link
+            to={`/quiz/${QUIZ_INFO.id}/edit`}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+            style={{ background: '#4F46E5', color: '#fff' }}
+          >
+            <FileEdit size={14} />
+            퀴즈 편집하기
+          </Link>
+        </div>
+      </Layout>
+    )
+  }
+
   const submitRate = Math.round((QUIZ_INFO.submitted / QUIZ_INFO.totalStudents) * 100)
   const gradeProgress = QUIZ_INFO.submitted > 0
     ? Math.round((QUIZ_INFO.graded / QUIZ_INFO.submitted) * 100) : 0
@@ -177,7 +206,7 @@ export default function GradingDashboard() {
             grading:   { label: '진행중', color: '#16A34A', bg: '#F0FDF4' },
             closed:    { label: '마감',   color: '#6B7280', bg: '#F3F4F6' },
             scheduled: { label: '예정',   color: '#D97706', bg: '#FFFBEB' },
-            draft:     { label: '발행 전',color: '#6366F1', bg: '#EEF2FF' },
+            draft:     { label: '임시저장',color: '#6366F1', bg: '#EEF2FF' },
           }
           const statusStyle = STATUS_MAP[QUIZ_INFO.status] ?? { label: QUIZ_INFO.status, color: '#6B7280', bg: '#F3F4F6' }
           return (

@@ -100,7 +100,7 @@ export default function QuizAttempt() {
 
   if (!isPreview && quiz && quiz.status !== 'open') {
     const statusMsg = {
-      draft: '아직 발행되지 않은 퀴즈입니다.',
+      draft: '아직 공개되지 않은 퀴즈입니다.',
       grading: '채점 중인 퀴즈로 응시가 마감되었습니다.',
       closed: '종료된 퀴즈입니다.',
     }[quiz.status] ?? '현재 응시할 수 없는 퀴즈입니다.'
