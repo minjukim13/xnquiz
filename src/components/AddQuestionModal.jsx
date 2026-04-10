@@ -865,7 +865,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '' }
               <button
                 disabled={!isValid(selectedType, form)}
                 onClick={handleAdd}
-                className="text-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded transition-colors font-medium">
+                className="text-sm text-white bg-[#3182F6] hover:bg-[#1B64DA] disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded transition-colors font-medium">
                 추가
               </button>
               </div>

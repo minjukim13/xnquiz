@@ -76,7 +76,7 @@ const STATUS_CONFIG = {
   open:      { label: '진행중',   badgeCls: 'text-green-700 bg-green-50' },
   grading:   { label: '진행중',   badgeCls: 'text-green-700 bg-green-50' },
   closed:    { label: '마감',     badgeCls: 'text-slate-500 bg-slate-100' },
-  draft:     { label: '임시저장', badgeCls: 'text-indigo-500 bg-indigo-50' },
+  draft:     { label: '임시저장', badgeCls: 'text-[#3182F6] bg-[#E8F3FF]' },
   scheduled: { label: '예정',     badgeCls: 'text-amber-600 bg-amber-50' },
 }
 
@@ -199,7 +199,7 @@ function InstructorQuizList() {
               <FolderInput size={14} />
               가져오기
             </button>
-            <Link to="/quiz/new" className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
+            <Link to="/quiz/new" className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded bg-[#3182F6] hover:bg-[#1B64DA] text-white transition-colors">
               <Plus size={15} />
               새 퀴즈
             </Link>
@@ -247,7 +247,7 @@ function InstructorQuizList() {
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white bg-slate-900 rounded-lg shadow-xl">
-          <CheckCircle2 size={15} className="shrink-0 text-indigo-300" />
+          <CheckCircle2 size={15} className="shrink-0 text-blue-300" />
           <span>{toast}</span>
         </div>
       )}
@@ -353,7 +353,7 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
           {quiz.status === 'draft' ? (
             <Link
               to={`/quiz/${quiz.id}/edit`}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors bg-[#3182F6] hover:bg-[#1B64DA] text-white"
             >
               <FileText size={11} />
               편집
@@ -361,7 +361,7 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
           ) : (
             <Link
               to={`/quiz/${quiz.id}/stats`}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors bg-indigo-600 hover:bg-indigo-700 text-white ml-2"
+              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors bg-[#3182F6] hover:bg-[#1B64DA] text-white ml-2"
             >
               <BarChart2 size={11} />
               통계
@@ -395,7 +395,7 @@ function ActiveStats({ quiz }) {
     { label: '응시율',   value: `${submitRate}%`,   cls: 'text-slate-900' },
     { label: '응시인원', value: `${submitted}명`,   cls: 'text-slate-900' },
     { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-red-500' : 'text-slate-400' },
-    ...(isClosed ? [{ label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-indigo-600' }] : []),
+    ...(isClosed ? [{ label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-[#3182F6]' }] : []),
   ]
 
   return (
@@ -463,7 +463,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
               placeholder="과목 검색"
               value={courseSearch}
               onChange={e => setCourseSearch(e.target.value)}
-              className="w-full text-xs py-1.5 pl-8 pr-3 border border-slate-200 rounded-md outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-slate-700"
+              className="w-full text-xs py-1.5 pl-8 pr-3 border border-slate-200 rounded-md outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 text-slate-700"
             />
           </div>
           {filteredCourses.length === 0 && (
@@ -479,7 +479,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
                 className={cn(
                   'w-full flex items-center gap-3 px-4 py-3 text-sm text-left rounded-md border transition-colors',
                   isSelected
-                    ? 'border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold'
+                    ? 'border-blue-400 bg-[#E8F3FF] text-[#1B64DA] font-semibold'
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 )}
               >
@@ -500,7 +500,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
             size="sm"
             disabled={!selected}
             onClick={() => onCopy(quiz, selected)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="bg-[#3182F6] hover:bg-[#1B64DA] text-white"
           >
             복사하기
           </Button>
@@ -563,7 +563,7 @@ function QuizImportModal({ onClose, onImport }) {
                   placeholder="과목 검색"
                   value={courseSearch}
                   onChange={e => setCourseSearch(e.target.value)}
-                  className="w-full text-[11.5px] py-1.5 pl-6 pr-2 border border-slate-200 rounded outline-none focus:border-indigo-400 text-slate-700"
+                  className="w-full text-[11.5px] py-1.5 pl-6 pr-2 border border-slate-200 rounded outline-none focus:border-blue-400 text-slate-700"
                 />
               </div>
             </div>
@@ -577,7 +577,7 @@ function QuizImportModal({ onClose, onImport }) {
                   className={cn(
                     'w-full text-left text-xs px-3 py-2.5 rounded transition-colors',
                     selectedCourse === course.name
-                      ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                      ? 'bg-[#E8F3FF] text-[#1B64DA] font-semibold'
                       : 'text-slate-700 hover:bg-slate-100'
                   )}
                 >
@@ -607,14 +607,14 @@ function QuizImportModal({ onClose, onImport }) {
                       key={quiz.id}
                       className={cn(
                         'flex items-start gap-3 p-3 cursor-pointer rounded-md border transition-colors',
-                        checked ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'
+                        checked ? 'border-blue-400 bg-[#E8F3FF]' : 'border-slate-200 bg-white hover:bg-slate-50'
                       )}
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleCheck(quiz.id)}
-                        className="mt-0.5 shrink-0 accent-indigo-600"
+                        className="mt-0.5 shrink-0 accent-[#3182F6]"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
@@ -652,7 +652,7 @@ function QuizImportModal({ onClose, onImport }) {
               size="sm"
               disabled={checkedIds.size === 0}
               onClick={handleImport}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="bg-[#3182F6] hover:bg-[#1B64DA] text-white"
             >
               가져오기
             </Button>
@@ -754,7 +754,7 @@ function StudentQuizCard({ quiz, studentId }) {
       return { label: '미제출', cls: 'text-slate-400 bg-slate-100', icon: false }
     }
     if (myAttempt.manualPending > 0) return { label: '채점 대기', cls: 'text-amber-700 bg-amber-50', icon: false }
-    return { label: '채점 완료', cls: 'text-indigo-600 bg-indigo-50', icon: true }
+    return { label: '채점 완료', cls: 'text-[#3182F6] bg-[#E8F3FF]', icon: true }
   })()
 
   return (
@@ -802,7 +802,7 @@ function StudentQuizCard({ quiz, studentId }) {
             {isOpen && !isAttemptExceeded && (
               <Link
                 to={`/quiz/${quiz.id}/attempt`}
-                className="text-xs font-semibold text-white px-4 py-2 rounded transition-colors bg-indigo-600 hover:bg-indigo-700"
+                className="text-xs font-semibold text-white px-4 py-2 rounded transition-colors bg-[#3182F6] hover:bg-[#1B64DA]"
               >
                 {attemptCount > 0 ? '재응시' : '응시하기'}
               </Link>
@@ -852,11 +852,11 @@ function StudentQuizCard({ quiz, studentId }) {
         const totalPossible = quiz.totalPoints ?? myAttempt.totalPossibleAuto
 
         return (
-          <div className="border-t border-indigo-100">
-            <div className="px-5 py-3 bg-indigo-50/30">
+          <div className="border-t border-blue-100">
+            <div className="px-5 py-3 bg-[#E8F3FF]/30">
               <div className="flex items-center gap-4 text-xs flex-wrap">
                 {released ? (
-                  <span className="text-indigo-600 font-semibold">
+                  <span className="text-[#3182F6] font-semibold">
                     {totalScore}점 / {totalPossible}점
                     {myAttempt.manualPending > 0 && <span className="text-slate-400 font-normal"> (수동채점 대기 0점 반영)</span>}
                   </span>
@@ -876,7 +876,7 @@ function StudentQuizCard({ quiz, studentId }) {
                 {myAttempts.length > 1 && (
                   <button
                     onClick={() => setShowHistory(h => !h)}
-                    className={cn('text-xs ml-auto transition-colors', showHistory ? 'text-indigo-600' : 'text-slate-400')}
+                    className={cn('text-xs ml-auto transition-colors', showHistory ? 'text-[#3182F6]' : 'text-slate-400')}
                   >
                     응시 기록 {myAttempts.length}회 {showHistory ? '▲' : '▼'}
                   </button>
@@ -885,8 +885,8 @@ function StudentQuizCard({ quiz, studentId }) {
             </div>
 
             {showHistory && myAttempts.length > 1 && (
-              <div className="px-5 pb-3 space-y-1.5 bg-indigo-50/30">
-                <div className="border-t border-indigo-200 pt-2">
+              <div className="px-5 pb-3 space-y-1.5 bg-[#E8F3FF]/30">
+                <div className="border-t border-blue-200 pt-2">
                   {myAttempts.map((att, idx) => {
                     const attAuto = att.totalAutoScore ?? 0
                     const attManual = att.manualPending > 0 ? 0 : (att.totalManualScore ?? 0)
@@ -894,12 +894,12 @@ function StudentQuizCard({ quiz, studentId }) {
                     const isLast = idx === myAttempts.length - 1
                     return (
                       <div key={idx} className="flex items-center justify-between text-xs py-1">
-                        <span className={cn(isLast ? 'text-indigo-600 font-semibold' : 'text-slate-400')}>
+                        <span className={cn(isLast ? 'text-[#3182F6] font-semibold' : 'text-slate-400')}>
                           {idx + 1}회차 {isLast ? '(최근)' : ''}
                         </span>
                         <span className="text-slate-400">{att.submittedAt}</span>
                         {released ? (
-                          <span className={cn(isLast ? 'text-indigo-600 font-semibold' : 'text-slate-500')}>
+                          <span className={cn(isLast ? 'text-[#3182F6] font-semibold' : 'text-slate-500')}>
                             {attTotal}점 / {totalPossible}점
                             {att.manualPending > 0 && <span className="text-slate-300"> *</span>}
                           </span>

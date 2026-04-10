@@ -42,11 +42,11 @@ export default function Layout({ children, breadcrumbs = [] }) {
             className={cn(
               'flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors',
               active
-                ? 'bg-indigo-50 text-indigo-700'
+                ? 'bg-[#E8F3FF] text-[#1B64DA]'
                 : 'text-muted-foreground hover:bg-muted'
             )}
           >
-            <Icon size={15} className={active ? 'text-indigo-700' : 'text-muted-foreground/60'} />
+            <Icon size={15} className={active ? 'text-[#1B64DA]' : 'text-muted-foreground/60'} />
             {item.label}
           </Link>
         )
@@ -70,7 +70,7 @@ export default function Layout({ children, breadcrumbs = [] }) {
             <SheetContent side="left" className="w-[220px] p-0">
               <div className="p-4">
                 <Link to="/" className="flex items-center gap-2" onClick={() => setMobileNavOpen(false)}>
-                  <div className="w-7 h-7 bg-indigo-600 rounded flex items-center justify-center">
+                  <div className="w-7 h-7 bg-[#3182F6] rounded flex items-center justify-center">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                       <rect x="1" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
                       <rect x="8" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.5"/>
@@ -88,7 +88,7 @@ export default function Layout({ children, breadcrumbs = [] }) {
 
           {/* 로고 */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 bg-indigo-600 rounded flex items-center justify-center">
+            <div className="w-7 h-7 bg-[#3182F6] rounded flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <rect x="1" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
                 <rect x="8" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.5"/>
@@ -158,8 +158,8 @@ export default function Layout({ children, breadcrumbs = [] }) {
                 <PopoverTrigger asChild>
                   <button
                     className={cn(
-                      'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors border border-indigo-300',
-                      studentPickerOpen ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-indigo-700'
+                      'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors border border-blue-300',
+                      studentPickerOpen ? 'bg-[#E8F3FF] text-[#1B64DA]' : 'bg-white text-[#1B64DA]'
                     )}
                   >
                     <GraduationCap size={12} />
@@ -179,7 +179,7 @@ export default function Layout({ children, breadcrumbs = [] }) {
                         className={cn(
                           'w-full text-left px-3 py-2.5 text-xs transition-colors',
                           currentStudent.id === s.id
-                            ? 'bg-indigo-50 text-indigo-700'
+                            ? 'bg-[#E8F3FF] text-[#1B64DA]'
                             : 'hover:bg-muted text-foreground'
                         )}
                       >
@@ -197,10 +197,10 @@ export default function Layout({ children, breadcrumbs = [] }) {
 
         {/* 학생 모드 안내 배너 */}
         {role === 'student' && (
-          <div className="px-4 sm:px-6 py-2 flex items-center gap-2 text-xs bg-indigo-50 border-t border-indigo-200">
-            <GraduationCap size={12} className="text-indigo-700" />
-            <span className="text-indigo-700 font-medium">학생 모드</span>
-            <span className="text-indigo-600">— {currentStudent.name} ({currentStudent.studentId}) 로 응시 중 · 데모 전용</span>
+          <div className="px-4 sm:px-6 py-2 flex items-center gap-2 text-xs bg-[#E8F3FF] border-t border-blue-200">
+            <GraduationCap size={12} className="text-[#1B64DA]" />
+            <span className="text-[#1B64DA] font-medium">학생 모드</span>
+            <span className="text-[#3182F6]">— {currentStudent.name} ({currentStudent.studentId}) 로 응시 중 · 데모 전용</span>
           </div>
         )}
       </header>

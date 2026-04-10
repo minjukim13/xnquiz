@@ -15,7 +15,7 @@ const QuizAttempt = lazy(() => import('./pages/QuizAttempt'))
 function PageLoader() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-6 h-6 border-2 border-[#3182F6] border-t-transparent rounded-full animate-spin" />
     </div>
   )
 }

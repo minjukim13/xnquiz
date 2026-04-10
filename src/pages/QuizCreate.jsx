@@ -166,9 +166,9 @@ export default function QuizCreate() {
           <div className="flex items-center gap-2">
             <Button variant="outline">임시저장</Button>
             {tab === 'info' ? (
-              <Button onClick={() => setTab('questions')} className="bg-indigo-600 hover:bg-indigo-700">문항 구성 →</Button>
+              <Button onClick={() => setTab('questions')} className="bg-[#3182F6] hover:bg-[#1B64DA]">문항 구성 →</Button>
             ) : (
-              <Button disabled={!isFormValid} onClick={handlePublish} className="bg-indigo-600 hover:bg-indigo-700">저장하기</Button>
+              <Button disabled={!isFormValid} onClick={handlePublish} className="bg-[#3182F6] hover:bg-[#1B64DA]">저장하기</Button>
             )}
           </div>
         </div>
@@ -193,10 +193,10 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
           ].map(opt => (
             <button key={opt.value} onClick={() => set('quizMode', opt.value)}
               className={cn('text-left p-3 rounded-md transition-all border-2',
-                form.quizMode === opt.value ? 'border-indigo-500 bg-indigo-50' : 'border-border bg-white'
+                form.quizMode === opt.value ? 'border-[#3182F6] bg-[#E8F3FF]' : 'border-border bg-white'
               )}>
-              <p className={cn('text-sm font-semibold', form.quizMode === opt.value ? 'text-indigo-700' : 'text-slate-700')}>{opt.label}</p>
-              <p className={cn('text-xs mt-0.5', form.quizMode === opt.value ? 'text-indigo-600' : 'text-muted-foreground')}>{opt.desc}</p>
+              <p className={cn('text-sm font-semibold', form.quizMode === opt.value ? 'text-[#1B64DA]' : 'text-slate-700')}>{opt.label}</p>
+              <p className={cn('text-xs mt-0.5', form.quizMode === opt.value ? 'text-[#3182F6]' : 'text-muted-foreground')}>{opt.desc}</p>
             </button>
           ))}
         </div>
@@ -210,10 +210,10 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
 
       <Section title="기본 정보">
         <Field label="퀴즈 제목" required>
-          <input type="text" value={form.title} onChange={e => set('title', e.target.value)} placeholder="예) 중간고사 - 데이터베이스 설계" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all" />
+          <input type="text" value={form.title} onChange={e => set('title', e.target.value)} placeholder="예) 중간고사 - 데이터베이스 설계" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all" />
         </Field>
         <Field label="설명">
-          <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder="학생에게 표시될 퀴즈 설명 (선택)" rows={2} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all resize-none" />
+          <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder="학생에게 표시될 퀴즈 설명 (선택)" rows={2} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all resize-none" />
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="주차"><CustomSelect value={form.week} onChange={v => set('week', v)} options={WEEK_OPTIONS} placeholder="주차 선택" /></Field>
@@ -223,17 +223,17 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
 
       <Section title="응시 기간">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="시작 일시" required><input type="datetime-local" value={form.startDate} onChange={e => set('startDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all" /></Field>
-          <Field label="마감 일시" required><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all" /></Field>
+          <Field label="시작 일시" required><input type="datetime-local" value={form.startDate} onChange={e => set('startDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all" /></Field>
+          <Field label="마감 일시" required><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all" /></Field>
         </div>
         <div className="mt-1 space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.allowLateSubmit} onChange={e => set('allowLateSubmit', e.target.checked)} className="rounded accent-indigo-600" />
+            <input type="checkbox" checked={form.allowLateSubmit} onChange={e => set('allowLateSubmit', e.target.checked)} className="rounded accent-[#3182F6]" />
             <span className="text-sm text-slate-600">마감 후 지각 제출 허용</span>
           </label>
           {form.allowLateSubmit && (
             <div className="flex items-center gap-2 pl-6">
-              <input type="number" value={form.lateSubmitHours} onChange={e => set('lateSubmitHours', e.target.value)} placeholder="예: 24" min={1} className="w-24 text-sm px-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-indigo-500 transition-all" />
+              <input type="number" value={form.lateSubmitHours} onChange={e => set('lateSubmitHours', e.target.value)} placeholder="예: 24" min={1} className="w-24 text-sm px-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-[#3182F6] transition-all" />
               <span className="text-sm text-slate-600">시간까지 허용</span>
               <span className="text-xs text-muted-foreground">(비우면 무제한)</span>
             </div>
@@ -247,7 +247,7 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
             <CustomSelect value={form.timeLimitType} onChange={v => set('timeLimitType', v)} options={TIME_LIMIT_OPTIONS} placeholder="제한 선택" />
             {form.timeLimitType === -1 && (
               <div className="flex items-center gap-2 mt-2">
-                <input type="number" value={form.timeLimitCustom} onChange={e => set('timeLimitCustom', e.target.value)} placeholder="분 입력" min={1} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-indigo-500 transition-all" />
+                <input type="number" value={form.timeLimitCustom} onChange={e => set('timeLimitCustom', e.target.value)} placeholder="분 입력" min={1} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-[#3182F6] transition-all" />
                 <span className="text-sm shrink-0 text-muted-foreground">분</span>
               </div>
             )}
@@ -282,9 +282,9 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
                     return (
                       <button key={opt.value} type="button" onClick={() => set('scoreRevealScope', opt.value)}
                         className={cn('flex flex-col items-start gap-1 p-3 rounded-lg text-left transition-all w-full border-2',
-                          active ? 'border-indigo-500 bg-indigo-50' : 'border-border bg-white'
+                          active ? 'border-[#3182F6] bg-[#E8F3FF]' : 'border-border bg-white'
                         )}>
-                        <span className={cn('text-sm font-semibold', active ? 'text-indigo-600' : '')}>{opt.label}</span>
+                        <span className={cn('text-sm font-semibold', active ? 'text-[#3182F6]' : '')}>{opt.label}</span>
                         <span className="text-xs leading-relaxed text-muted-foreground whitespace-pre-line">{opt.desc}</span>
                       </button>
                     )
@@ -301,7 +301,7 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
                   ].map(opt => (
                     <label key={opt.value} className="flex flex-col gap-0.5 cursor-pointer py-1.5">
                       <div className="flex items-center gap-2.5">
-                        <input type="radio" name="scoreRevealTiming" checked={form.scoreRevealTiming === opt.value} onChange={() => set('scoreRevealTiming', opt.value)} className="shrink-0 accent-indigo-600" />
+                        <input type="radio" name="scoreRevealTiming" checked={form.scoreRevealTiming === opt.value} onChange={() => set('scoreRevealTiming', opt.value)} className="shrink-0 accent-[#3182F6]" />
                         <span className="text-sm font-medium">{opt.label}</span>
                       </div>
                       <p className="text-xs text-muted-foreground pl-[22px]">{opt.desc}</p>
@@ -309,14 +309,14 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
                   ))}
                 </div>
                 {form.scoreRevealTiming === 'period' && (
-                  <div className="mt-3 pt-3 grid grid-cols-2 gap-3 border-t border-indigo-100">
+                  <div className="mt-3 pt-3 grid grid-cols-2 gap-3 border-t border-blue-100">
                     <div>
                       <label className="block text-xs font-medium mb-1 text-slate-600">공개 시작일</label>
-                      <input type="datetime-local" value={form.scoreRevealStart} onChange={e => set('scoreRevealStart', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-indigo-500 transition-all" />
+                      <input type="datetime-local" value={form.scoreRevealStart} onChange={e => set('scoreRevealStart', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-[#3182F6] transition-all" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1 text-slate-600">공개 종료일</label>
-                      <input type="datetime-local" value={form.scoreRevealEnd} onChange={e => set('scoreRevealEnd', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-indigo-500 transition-all" />
+                      <input type="datetime-local" value={form.scoreRevealEnd} onChange={e => set('scoreRevealEnd', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-[#3182F6] transition-all" />
                     </div>
                   </div>
                 )}
@@ -356,13 +356,13 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
                 <AssignToSelector selected={a.assignTo} onChange={val => updateAssignment(a.id, 'assignTo', val)} />
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div><label className="block text-xs mb-1 text-muted-foreground">마감 일시</label><input type="datetime-local" value={a.dueDate} onChange={e => updateAssignment(a.id, 'dueDate', e.target.value)} className="w-full text-xs px-2.5 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-indigo-500 transition-all" /></div>
-                <div><label className="block text-xs mb-1 text-muted-foreground">열람 시작</label><input type="datetime-local" value={a.availableFrom} onChange={e => updateAssignment(a.id, 'availableFrom', e.target.value)} className="w-full text-xs px-2.5 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-indigo-500 transition-all" /></div>
-                <div><label className="block text-xs mb-1 text-muted-foreground">열람 마감</label><input type="datetime-local" value={a.availableUntil} onChange={e => updateAssignment(a.id, 'availableUntil', e.target.value)} className="w-full text-xs px-2.5 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-indigo-500 transition-all" /></div>
+                <div><label className="block text-xs mb-1 text-muted-foreground">마감 일시</label><input type="datetime-local" value={a.dueDate} onChange={e => updateAssignment(a.id, 'dueDate', e.target.value)} className="w-full text-xs px-2.5 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-[#3182F6] transition-all" /></div>
+                <div><label className="block text-xs mb-1 text-muted-foreground">열람 시작</label><input type="datetime-local" value={a.availableFrom} onChange={e => updateAssignment(a.id, 'availableFrom', e.target.value)} className="w-full text-xs px-2.5 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-[#3182F6] transition-all" /></div>
+                <div><label className="block text-xs mb-1 text-muted-foreground">열람 마감</label><input type="datetime-local" value={a.availableUntil} onChange={e => updateAssignment(a.id, 'availableUntil', e.target.value)} className="w-full text-xs px-2.5 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-[#3182F6] transition-all" /></div>
               </div>
             </div>
           ))}
-          <button onClick={addAssignment} className="w-full text-sm py-2 rounded-md border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors">
+          <button onClick={addAssignment} className="w-full text-sm py-2 rounded-md border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-[#3182F6] hover:text-[#3182F6] hover:bg-[#E8F3FF]/50 transition-colors">
             + 학생 추가
           </button>
         </div>
@@ -370,18 +370,18 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
 
       <Section title="퀴즈 접근 제한">
         <Field label="액세스 코드">
-          <input type="text" value={form.accessCode} onChange={e => set('accessCode', e.target.value)} placeholder="코드를 입력하면 응시 시 코드 입력이 필요합니다" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all" />
+          <input type="text" value={form.accessCode} onChange={e => set('accessCode', e.target.value)} placeholder="코드를 입력하면 응시 시 코드 입력이 필요합니다" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all" />
           <p className="text-xs mt-1.5 text-muted-foreground">비워두면 액세스 코드 없이 응시 가능합니다.</p>
         </Field>
         <Field label="접근 가능한 IP 주소">
-          <textarea value={form.ipRestriction} onChange={e => set('ipRestriction', e.target.value)} placeholder={'허용할 IP 주소를 한 줄에 하나씩 입력하세요\n예) 192.168.1.0/24\n    203.0.113.10'} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all resize-none font-mono" />
+          <textarea value={form.ipRestriction} onChange={e => set('ipRestriction', e.target.value)} placeholder={'허용할 IP 주소를 한 줄에 하나씩 입력하세요\n예) 192.168.1.0/24\n    203.0.113.10'} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all resize-none font-mono" />
           <p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP에서 접근 가능합니다. CIDR 표기법 지원.</p>
         </Field>
       </Section>
 
       <Section title="퀴즈 안내사항">
         <p className="text-xs mb-2 text-muted-foreground">응시 전 학생에게 표시될 안내 문구입니다.</p>
-        <textarea value={form.notice} onChange={e => set('notice', e.target.value)} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all resize-y leading-relaxed" placeholder="학생에게 안내할 퀴즈 정책을 입력하세요." />
+        <textarea value={form.notice} onChange={e => set('notice', e.target.value)} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all resize-y leading-relaxed" placeholder="학생에게 안내할 퀴즈 정책을 입력하세요." />
       </Section>
     </div>
   )
@@ -408,7 +408,7 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove,
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onShowBank}>문제은행에서 추가</Button>
-          <Button size="sm" onClick={onShowAdd} className="bg-indigo-600 hover:bg-indigo-700">직접 추가</Button>
+          <Button size="sm" onClick={onShowAdd} className="bg-[#3182F6] hover:bg-[#1B64DA]">직접 추가</Button>
         </div>
       </div>
 
@@ -417,7 +417,7 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove,
           <p className="text-sm mb-3 text-muted-foreground/60">아직 추가된 문항이 없습니다</p>
           <div className="flex items-center justify-center gap-2">
             <Button variant="outline" size="sm" onClick={onShowBank}>문제은행에서 추가</Button>
-            <Button size="sm" onClick={onShowAdd} className="bg-indigo-600 hover:bg-indigo-700">직접 추가</Button>
+            <Button size="sm" onClick={onShowAdd} className="bg-[#3182F6] hover:bg-[#1B64DA]">직접 추가</Button>
           </div>
         </div>
       ) : (
@@ -425,7 +425,7 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove,
           {questions.map((q, i) => (
             <div key={q.id} draggable onDragStart={() => handleDragStart(i)} onDragOver={e => handleDragOver(e, i)} onDrop={() => handleDrop(i)} onDragEnd={handleDragEnd}
               className={cn('flex items-start gap-2 bg-white p-3 group transition-all rounded-md border',
-                overIdx === i && dragIdx !== i ? 'border-indigo-500 bg-indigo-50/50' : 'border-border',
+                overIdx === i && dragIdx !== i ? 'border-[#3182F6] bg-[#E8F3FF]/50' : 'border-border',
                 dragIdx === i && 'opacity-40'
               )}>
               <div className="flex items-center gap-2 shrink-0 mt-0.5">
@@ -471,7 +471,7 @@ function AssignToSelector({ selected, onChange }) {
     <div className="relative">
       <div className="min-h-10 flex flex-wrap gap-1.5 items-center px-2.5 py-1.5 cursor-text border border-border rounded-md bg-white" onClick={() => setOpen(true)}>
         {selected.map(s => (
-          <span key={s.id} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+          <span key={s.id} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[#E8F3FF] text-[#1B64DA] border border-blue-200">
             {s.label}
             <button onClick={e => { e.stopPropagation(); removeItem(s.id) }} className="ml-0.5 leading-none opacity-60">×</button>
           </span>
@@ -524,7 +524,7 @@ function Field({ label, required, children }) {
 function Toggle({ checked, onChange, label, description }) {
   return (
     <label className="flex items-start gap-3 cursor-pointer">
-      <Switch checked={checked} onCheckedChange={onChange} className="mt-0.5 data-[state=checked]:bg-indigo-600" />
+      <Switch checked={checked} onCheckedChange={onChange} className="mt-0.5 data-[state=checked]:bg-[#3182F6]" />
       <div>
         <p className="text-sm font-medium text-slate-700">{label}</p>
         {description && <p className="text-xs mt-0.5 text-muted-foreground">{description}</p>}

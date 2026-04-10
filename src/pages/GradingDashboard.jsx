@@ -43,7 +43,7 @@ const STATUS_MAP = {
   grading:   { label: '진행중', cls: 'bg-green-50 text-green-600' },
   closed:    { label: '마감',   cls: 'bg-slate-100 text-slate-500' },
   scheduled: { label: '예정',   cls: 'bg-amber-50 text-amber-600' },
-  draft:     { label: '임시저장', cls: 'bg-indigo-50 text-indigo-600' },
+  draft:     { label: '임시저장', cls: 'bg-[#E8F3FF] text-[#3182F6]' },
 }
 
 export default function GradingDashboard() {
@@ -180,7 +180,7 @@ export default function GradingDashboard() {
         <div className="max-w-2xl mx-auto px-6 py-16 text-center">
           <AlertCircle size={32} className="mx-auto mb-3 text-red-700" />
           <p className="text-sm font-medium mb-1 text-slate-900">퀴즈를 찾을 수 없습니다</p>
-          <Link to="/" className="text-xs text-indigo-600 hover:underline">퀴즈 목록으로 돌아가기</Link>
+          <Link to="/" className="text-xs text-[#3182F6] hover:underline">퀴즈 목록으로 돌아가기</Link>
         </div>
       </Layout>
     )
@@ -195,8 +195,8 @@ export default function GradingDashboard() {
         { label: '채점 대시보드' },
       ]}>
         <div className="max-w-md mx-auto px-6 py-20 text-center">
-          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-indigo-50">
-            <FileEdit size={24} className="text-indigo-600" />
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-[#E8F3FF]">
+            <FileEdit size={24} className="text-[#3182F6]" />
           </div>
           <h3 className="text-lg font-bold mb-2 text-gray-900">아직 응시가 시작되지 않았습니다</h3>
           <p className="text-sm mb-6 text-gray-500">
@@ -204,7 +204,7 @@ export default function GradingDashboard() {
           </p>
           <Link
             to={`/quiz/${QUIZ_INFO.id}/edit`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors bg-[#3182F6] hover:bg-[#1B64DA] text-white"
           >
             <FileEdit size={14} />
             퀴즈 편집하기
@@ -235,7 +235,7 @@ export default function GradingDashboard() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-xs font-medium px-2 py-0.5 rounded bg-indigo-50 text-indigo-600">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded bg-[#E8F3FF] text-[#3182F6]">
                         {QUIZ_INFO.week}주차 {QUIZ_INFO.session}차시
                       </span>
                       <span className={cn('text-xs font-medium px-2 py-0.5 rounded', statusStyle.cls)}>
@@ -265,7 +265,7 @@ export default function GradingDashboard() {
                       return (
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs font-medium text-gray-400">성적 공개</span>
-                          <span className="text-xs px-2 py-0.5 rounded font-medium bg-indigo-50 text-indigo-600">
+                          <span className="text-xs px-2 py-0.5 rounded font-medium bg-[#E8F3FF] text-[#3182F6]">
                             {isWithAnswer ? '정답 포함' : '점수만'}
                           </span>
                           <span className="text-xs px-2 py-0.5 rounded font-medium bg-green-50 text-green-600">
@@ -284,7 +284,7 @@ export default function GradingDashboard() {
                   <div className="flex items-stretch shrink-0 rounded-xl overflow-hidden border border-slate-200">
                     <div className="flex flex-col justify-center px-5 py-4 text-center" style={{ minWidth: 90 }}>
                       <p className="text-xs mb-2 text-gray-400">제출률</p>
-                      <p className="text-2xl font-bold leading-none text-indigo-600">{submitRate}%</p>
+                      <p className="text-2xl font-bold leading-none text-[#3182F6]">{submitRate}%</p>
                     </div>
                     <div className="w-px bg-slate-200" />
                     <div className="flex flex-col justify-center px-5 py-4 text-center" style={{ minWidth: 110 }}>
@@ -307,11 +307,11 @@ export default function GradingDashboard() {
                 <div className="mt-4 pt-4 border-t border-slate-100">
                   <div className="flex justify-between text-xs mb-2 text-gray-400">
                     <span>채점 진행률</span>
-                    <span className="font-semibold text-indigo-600">{gradeProgress}%</span>
+                    <span className="font-semibold text-[#3182F6]">{gradeProgress}%</span>
                   </div>
                   <div className="h-[5px] rounded-full overflow-hidden bg-slate-200">
                     <div
-                      className="h-full rounded-full transition-all bg-indigo-500"
+                      className="h-full rounded-full transition-all bg-[#3182F6]"
                       style={{ width: `${gradeProgress}%` }}
                     />
                   </div>
@@ -473,7 +473,7 @@ export default function GradingDashboard() {
                       value={studentSearch}
                       onChange={e => setStudentSearch(e.target.value)}
                       placeholder="학생 이름 또는 학번 검색"
-                      className="w-full bg-white text-xs pl-8 pr-3 py-1.5 rounded border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                      className="w-full bg-white text-xs pl-8 pr-3 py-1.5 rounded border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100"
                     />
                   </div>
                   {questionsModifiedAt && (
@@ -489,7 +489,7 @@ export default function GradingDashboard() {
                           className={cn(
                             'text-xs px-2 py-1 rounded transition-all',
                             submissionFilter === opt.value
-                              ? 'bg-indigo-50 text-indigo-600 font-semibold border border-indigo-200'
+                              ? 'bg-[#E8F3FF] text-[#3182F6] font-semibold border border-blue-200'
                               : 'bg-white text-slate-400 border border-slate-200'
                           )}
                         >
@@ -568,7 +568,7 @@ export default function GradingDashboard() {
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white bg-slate-800 rounded-lg shadow-lg">
-          <CheckCircle2 size={15} className="shrink-0 text-indigo-300" />
+          <CheckCircle2 size={15} className="shrink-0 text-blue-300" />
           <span className="font-medium">{toast}</span>
         </div>
       )}
@@ -587,7 +587,7 @@ function QuestionItem({ question, selected, onClick, dimmed }) {
       className={cn(
         'w-full text-left p-3 rounded transition-all border',
         selected
-          ? 'border-indigo-500 bg-indigo-50'
+          ? 'border-[#3182F6] bg-[#E8F3FF]'
           : dimmed
           ? 'border-slate-200 bg-slate-50 hover:border-slate-300'
           : 'border-slate-200 bg-white hover:border-slate-400'
@@ -596,7 +596,7 @@ function QuestionItem({ question, selected, onClick, dimmed }) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className={cn('text-xs font-bold', selected ? 'text-indigo-600' : 'text-slate-400')}>
+            <span className={cn('text-xs font-bold', selected ? 'text-[#3182F6]' : 'text-slate-400')}>
               Q{question.order}
             </span>
             <TypeBadge type={question.type} small />
@@ -618,7 +618,7 @@ function QuestionItem({ question, selected, onClick, dimmed }) {
             <span>{progress}%</span>
           </div>
           <div className="h-1 rounded overflow-hidden bg-slate-200">
-            <div className="h-full bg-indigo-500 rounded" style={{ width: `${progress}%` }} />
+            <div className="h-full bg-[#3182F6] rounded" style={{ width: `${progress}%` }} />
           </div>
         </div>
       )}
@@ -635,7 +635,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
         {/* 문항 메타 */}
         <div className="px-4 pt-3 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-indigo-600">Q{question.order}</span>
+            <span className="text-sm font-bold text-[#3182F6]">Q{question.order}</span>
             <TypeBadge type={question.type} small />
           </div>
           <span className="text-sm font-semibold text-gray-700">{question.points}점</span>
@@ -648,8 +648,8 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
               {question.choices.map((choice, i) => {
                 const isCorrect = choice === question.correctAnswer
                 return (
-                  <div key={i} className={cn('flex items-baseline gap-2 text-[13px]', isCorrect ? 'text-indigo-800 font-semibold' : 'text-gray-500 font-normal')}>
-                    <span className={cn('flex-shrink-0', isCorrect ? 'text-indigo-600' : 'text-gray-400')} style={{ minWidth: 16 }}>{i + 1}.</span>
+                  <div key={i} className={cn('flex items-baseline gap-2 text-[13px]', isCorrect ? 'text-[#1B64DA] font-semibold' : 'text-gray-500 font-normal')}>
+                    <span className={cn('flex-shrink-0', isCorrect ? 'text-[#3182F6]' : 'text-gray-400')} style={{ minWidth: 16 }}>{i + 1}.</span>
                     <span>{choice}</span>
                   </div>
                 )
@@ -658,13 +658,13 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
           )}
           {question.correctAnswer && (
             <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">정답</span>
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[#E8F3FF] text-[#3182F6]">정답</span>
               {question.type === 'true_false' ? (
                 <div className="flex items-center gap-1.5">
                   {['참', '거짓'].map(opt => {
                     const isCorrect = opt === question.correctAnswer
                     return (
-                      <span key={opt} className={cn('px-2.5 py-0.5 rounded-full text-xs font-medium', isCorrect ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400')}>
+                      <span key={opt} className={cn('px-2.5 py-0.5 rounded-full text-xs font-medium', isCorrect ? 'bg-[#3182F6] text-white' : 'bg-slate-100 text-slate-400')}>
                         {opt}
                       </span>
                     )
@@ -690,13 +690,13 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
               onClick={() => onTabChange(key)}
               className={cn(
                 'flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors whitespace-nowrap -mb-0.5 border-b-2',
-                activeTab === key ? 'text-indigo-600 border-indigo-500' : 'text-gray-400 border-transparent'
+                activeTab === key ? 'text-[#3182F6] border-[#3182F6]' : 'text-gray-400 border-transparent'
               )}
             >
               {icon}
               {label}
               {count != null && (
-                <span className={cn('ml-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold', activeTab === key ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-gray-400')}>
+                <span className={cn('ml-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold', activeTab === key ? 'bg-[#E8F3FF] text-[#3182F6]' : 'bg-slate-100 text-gray-400')}>
                   {count}
                 </span>
               )}
@@ -706,7 +706,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
         {activeTab === 'responses' && (
           <button
             onClick={onExcel}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors shrink-0 border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors shrink-0 border border-blue-200 text-[#3182F6] bg-[#E8F3FF] hover:bg-blue-100"
           >
             <Download size={12} />
             엑셀 일괄 채점
@@ -833,10 +833,10 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     return (
       <button
         onClick={() => handleSortClick(col)}
-        className={cn('flex items-center gap-0.5 transition-colors text-sm font-semibold', isActive ? 'text-indigo-600' : 'text-gray-500', className)}
+        className={cn('flex items-center gap-0.5 transition-colors text-sm font-semibold', isActive ? 'text-[#3182F6]' : 'text-gray-500', className)}
       >
         {children}
-        <ArrowUpDown size={11} className={cn('flex-shrink-0', isActive ? 'text-indigo-500' : 'text-gray-300')} style={isActive && sortDir === 'desc' ? { transform: 'scaleY(-1)' } : undefined} />
+        <ArrowUpDown size={11} className={cn('flex-shrink-0', isActive ? 'text-[#3182F6]' : 'text-gray-300')} style={isActive && sortDir === 'desc' ? { transform: 'scaleY(-1)' } : undefined} />
       </button>
     )
   }
@@ -869,7 +869,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
           <button
             onClick={handleBulkSave}
             disabled={pendingCount === 0}
-            className="text-xs font-semibold px-3 py-1.5 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-700"
+            className="text-xs font-semibold px-3 py-1.5 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-[#3182F6] text-white hover:bg-[#1B64DA]"
           >
             일괄 저장{pendingCount > 0 ? ` (${pendingCount})` : ''}
           </button>
@@ -899,7 +899,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 inline-block" style={{ background: dotColor }} />
                 )}
                 {label}
-                <span className={cn('text-xs font-bold', isActive ? 'text-indigo-600' : 'text-gray-400')}>
+                <span className={cn('text-xs font-bold', isActive ? 'text-[#3182F6]' : 'text-gray-400')}>
                   {count}
                 </span>
               </button>
@@ -941,7 +941,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
                 <button key={p} onClick={() => setPage(p)}
                   className={cn(
                     'w-7 h-7 rounded text-xs flex items-center justify-center',
-                    p === page ? 'bg-indigo-600 text-white font-semibold' : 'border border-slate-200 text-gray-700'
+                    p === page ? 'bg-[#3182F6] text-white font-semibold' : 'border border-slate-200 text-gray-700'
                   )}>
                   {p}
                 </button>
@@ -990,8 +990,8 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
             max={question.points}
             step={0.5}
             className={cn(
-              'w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-indigo-200 text-center border text-slate-900',
-              pendingScore !== undefined ? 'border-indigo-500' : 'border-slate-200'
+              'w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-blue-200 text-center border text-slate-900',
+              pendingScore !== undefined ? 'border-[#3182F6]' : 'border-slate-200'
             )}
           />
           <span className="text-sm shrink-0 text-gray-400">/ {question.points}</span>
@@ -1082,8 +1082,8 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
             max={question.points}
             step={0.5}
             className={cn(
-              'w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-indigo-200 text-center border text-slate-900',
-              pendingScore !== undefined ? 'border-indigo-500' : 'border-slate-200'
+              'w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-blue-200 text-center border text-slate-900',
+              pendingScore !== undefined ? 'border-[#3182F6]' : 'border-slate-200'
             )}
           />
           <span className="text-sm shrink-0 text-gray-400">/ {question.points}</span>
@@ -1117,7 +1117,7 @@ function StudentListItem({ student, selected, onClick }) {
       className={cn(
         'w-full text-left p-2.5 rounded transition-all mb-1 border',
         selected
-          ? 'border-indigo-500 bg-indigo-50'
+          ? 'border-[#3182F6] bg-[#E8F3FF]'
           : 'border-slate-200 bg-white hover:border-slate-400'
       )}
     >
@@ -1126,7 +1126,7 @@ function StudentListItem({ student, selected, onClick }) {
           {student.name[0]}
         </div>
         <div className="flex-1 min-w-0">
-          <p className={cn('text-sm font-medium truncate', selected ? 'text-indigo-600' : 'text-slate-900')}>
+          <p className={cn('text-sm font-medium truncate', selected ? 'text-[#3182F6]' : 'text-slate-900')}>
             {student.name}
           </p>
           <p className="text-xs text-slate-400">{student.studentId} · {student.department}</p>
@@ -1171,7 +1171,7 @@ function StudentDetailPanel({ student, questions, quizId }) {
       <div className="bg-white p-4 mb-3 border border-slate-200 rounded-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-indigo-50 text-indigo-600">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-[#E8F3FF] text-[#3182F6]">
               {student.name[0]}
             </div>
             <div>
@@ -1281,7 +1281,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
                   {answerExpanded ? correctAnswer : `${correctAnswer.slice(0, 30)}…`}
                   <button
                     onClick={() => setAnswerExpanded(v => !v)}
-                    className="ml-1 text-xs text-indigo-600"
+                    className="ml-1 text-xs text-[#3182F6]"
                   >
                     {answerExpanded ? '접기' : '더보기'}
                   </button>
@@ -1307,7 +1307,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
             max={question.points}
             step={0.5}
             placeholder="0"
-            className="w-16 bg-white text-xs px-2 py-1.5 rounded border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-center"
+            className="w-16 bg-white text-xs px-2 py-1.5 rounded border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 text-center"
           />
           <span className="text-xs text-slate-400">/ {question.points}</span>
           {saved && (
@@ -1330,7 +1330,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
               onSaved?.()
             }}
             disabled={Number(score) > question.points || Number(score) < 0}
-            className="ml-auto text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded transition-colors font-medium"
+            className="ml-auto text-xs text-white bg-[#3182F6] hover:bg-[#1B64DA] disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded transition-colors font-medium"
           >
             저장
           </button>
@@ -1442,7 +1442,7 @@ function StatCard({ label, value, unit, accent }) {
   return (
     <div className="bg-white p-3 text-center border border-slate-200 rounded-lg">
       <div className="flex items-baseline justify-center gap-0.5 flex-wrap">
-        <span className={cn('text-xl font-bold', accent ? 'text-indigo-600' : 'text-slate-900')}>{value}</span>
+        <span className={cn('text-xl font-bold', accent ? 'text-[#3182F6]' : 'text-slate-900')}>{value}</span>
         {unit && <span className="text-xs text-slate-400">{unit}</span>}
       </div>
       <div className="text-xs mt-1 text-slate-500">{label}</div>
@@ -1568,7 +1568,7 @@ function ExcelModal({ question, students: allStudents, quizId, onClose, onApplie
                 className={cn(
                   'flex items-center justify-center gap-2 py-3 text-sm cursor-pointer transition-colors rounded',
                   step === 'uploading'
-                    ? 'border border-indigo-200 text-indigo-600 bg-indigo-50'
+                    ? 'border border-blue-200 text-[#3182F6] bg-[#E8F3FF]'
                     : 'border border-slate-200 text-slate-700 bg-white hover:bg-slate-50'
                 )}
               >
@@ -1628,7 +1628,7 @@ function ExcelModal({ question, students: allStudents, quizId, onClose, onApplie
                   >
                     <span className="text-center">{student?.name ?? '-'}</span>
                     <span className="text-center text-slate-500">{row.studentId}</span>
-                    <span className="text-center font-medium text-indigo-600">{row.score}</span>
+                    <span className="text-center font-medium text-[#3182F6]">{row.score}</span>
                   </div>
                 )
               })}
@@ -1637,7 +1637,7 @@ function ExcelModal({ question, students: allStudents, quizId, onClose, onApplie
             <div className="px-4 py-3 border-t border-slate-200">
               <button
                 onClick={handleApply}
-                className="w-full py-2.5 text-sm font-semibold rounded transition-colors bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="w-full py-2.5 text-sm font-semibold rounded transition-colors bg-[#3182F6] hover:bg-[#1B64DA] text-white"
               >
                 {previewRows.length}명 점수 적용
               </button>
@@ -1674,7 +1674,7 @@ function PdfModal({ onClose }) {
         </div>
 
         {progress === 0 && (
-          <button onClick={handleGenerate} className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-3 rounded transition-colors">
+          <button onClick={handleGenerate} className="w-full flex items-center justify-center gap-2 bg-[#3182F6] hover:bg-[#1B64DA] text-white text-sm font-medium py-3 rounded transition-colors">
             <FileDown size={15} />PDF 생성 시작
           </button>
         )}
@@ -1686,7 +1686,7 @@ function PdfModal({ onClose }) {
               <span>{Math.min(progress, 100)}%</span>
             </div>
             <div className="h-2 rounded overflow-hidden bg-slate-200">
-              <div className="h-full bg-indigo-500 rounded transition-all duration-200" style={{ width: `${Math.min(progress, 100)}%` }} />
+              <div className="h-full bg-[#3182F6] rounded transition-all duration-200" style={{ width: `${Math.min(progress, 100)}%` }} />
             </div>
           </div>
         )}
@@ -1724,20 +1724,20 @@ function RegradeModal({ onClose }) {
           <input
             type="text"
             defaultValue="외래키(Foreign Key)"
-            className="w-full bg-white text-sm px-3 py-2 rounded border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full bg-white text-sm px-3 py-2 rounded border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100"
           />
           <p className="text-xs mt-1 text-slate-400">쉼표로 구분하면 복수 정답 처리됩니다</p>
         </div>
 
         <label className="flex items-start gap-2.5 cursor-pointer">
           <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}
-            className="mt-0.5 rounded text-indigo-500 border-slate-200" />
+            className="mt-0.5 rounded text-[#3182F6] border-slate-200" />
           <span className="text-sm text-slate-700">위 내용을 확인했으며, 전체 재채점을 진행합니다.</span>
         </label>
 
         <button
           disabled={!confirmed}
-          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium py-3 rounded transition-colors"
+          className="w-full flex items-center justify-center gap-2 bg-[#3182F6] hover:bg-[#1B64DA] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium py-3 rounded transition-colors"
         >
           <RefreshCw size={14} />재채점 실행
         </button>
