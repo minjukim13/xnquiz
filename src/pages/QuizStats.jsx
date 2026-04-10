@@ -54,10 +54,10 @@ export default function QuizStats() {
                 <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
               </div>
               <div className="flex gap-2 shrink-0">
-                <Button asChild className="bg-[#3182F6] hover:bg-[#1B64DA]" size="sm">
+                <Button asChild className="min-h-[40px] px-4 rounded-lg bg-[#3182F6] hover:bg-[#1B64DA] font-semibold border-0">
                   <Link to={`/quiz/${quiz.id}/grade`}>채점 대시보드</Link>
                 </Button>
-                <Button variant="outline" size="sm" asChild>
+                <Button asChild className="min-h-[40px] px-4 rounded-lg bg-[#F2F4F6] hover:bg-[#E5E8EB] text-[#4E5968] font-semibold border-0 shadow-none">
                   <Link to="/">목록으로</Link>
                 </Button>
               </div>
@@ -243,13 +243,13 @@ function GradesTab({ quiz, students: allStudents }) {
                     </td>
                     <td className="px-4 py-3 text-center">
                       {s.score !== null ? (
-                        <Badge variant="secondary" className="bg-green-50 text-green-600">채점 완료</Badge>
+                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-md bg-[#EAF8F1] text-[#31B46E]">채점 완료</span>
                       ) : (
-                        <Badge variant="secondary" className="bg-orange-50 text-orange-600">미채점</Badge>
+                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-md bg-[#FEF5EC] text-[#F69D37]">미채점</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      <Button asChild size="xs" className="bg-[#1B64DA] hover:bg-[#1B64DA]">
+                      <Button asChild className="h-auto px-3 py-2 text-xs rounded-lg bg-[#3182F6] hover:bg-[#1B64DA] font-semibold border-0">
                         <Link to={`/quiz/${quiz.id}/grade`}>답안 확인</Link>
                       </Button>
                     </td>
