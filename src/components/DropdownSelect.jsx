@@ -40,10 +40,10 @@ export function DropdownSelect({
         className={cn(
           'w-full flex items-center justify-between gap-2 transition-all focus:outline-none',
           s.height, s.text,
-          ghost ? 'px-3 rounded-lg' : 'px-2.5 rounded-md border',
+          ghost ? 'px-3 rounded-lg border border-[#E5E8EB]' : 'px-2.5 rounded-md border',
           disabled && 'bg-muted text-muted-foreground cursor-not-allowed',
           !disabled && isActive && 'border-[#3182F6] bg-[#E8F3FF] text-[#1B64DA] font-semibold',
-          !disabled && !isActive && ghost && 'border-transparent bg-[#F2F4F6] text-[#4E5968]',
+          !disabled && !isActive && ghost && 'bg-white text-[#4E5968] shadow-[0_1px_2px_rgba(0,0,0,0.05)]',
           !disabled && !isActive && !ghost && 'border-border bg-white text-foreground hover:border-muted-foreground/40',
           !disabled && !isActive && !selected && !ghost && 'text-muted-foreground',
           !disabled && !isActive && !selected && ghost && 'text-[#8B95A1]',
