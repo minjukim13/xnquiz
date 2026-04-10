@@ -50,7 +50,7 @@ export function DropdownSelect({
           open && !isActive && 'ring-2 ring-blue-100',
         )}
       >
-        <span className={cn(!selected && !disabled && 'text-muted-foreground')}>
+        <span className={cn('whitespace-nowrap', !selected && !disabled && 'text-muted-foreground')}>
           {disabled ? placeholder : (selected?.label ?? placeholder)}
         </span>
         <ChevronDown
