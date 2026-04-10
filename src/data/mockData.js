@@ -1512,7 +1512,8 @@ export function regradeQuestion(quizId, updatedQuestion) {
       const manualKey = `${attempt.studentId}_${quizId}_${updatedQuestion.id}`
       if (manualGrades[manualKey] !== undefined) return
 
-      const newScore = autoGradeAnswer(updatedQuestion, answer)
+      const quiz = mockQuizzes.find(q => q.id === quizId)
+      const newScore = autoGradeAnswer(updatedQuestion, answer, { penaltyEnabled: quiz?.penaltyEnabled })
       if (newScore === null) return // 수동채점 필요 유형은 제외
 
       const oldScore = attempt.autoScores?.[updatedQuestion.id] ?? 0
@@ -1566,7 +1567,7 @@ export function gradeQuiz3Answer(questionId, answer) {
   return correct.some(c => answer.trim().toLowerCase() === c.toLowerCase().trim()) ? points : 0
 }
 
-export function autoGradeAnswer(question, answer) {
+export function autoGradeAnswer(question, answer, options = {}) {
   if (!answer && answer !== 0) return 0
 
   // multiple_answers: scoringMode(all_correct | partial) 기반 별도 채점
@@ -1589,8 +1590,15 @@ export function autoGradeAnswer(question, answer) {
     const correctSet = new Set(correctTexts.map(s => s.toLowerCase()))
 
     if ((question.scoringMode ?? 'all_correct') === 'partial') {
-      // 정답 개수 / 전체 정답 수 × 배점, 오답 선택 감점 없음 (미결 §1)
       const correctCount = studentSelected.filter(s => correctSet.has(s.toLowerCase())).length
+      const wrongCount = studentSelected.filter(s => !correctSet.has(s.toLowerCase())).length
+
+      if (options.penaltyEnabled) {
+        // 감점 공식: (정답 선택 수 - 오답 선택 수) / 전체 정답 수 × 배점 (최소 0점)
+        const raw = ((correctCount - wrongCount) / correctTexts.length) * question.points
+        return Math.max(0, Math.round(raw * 2) / 2)
+      }
+      // 감점 없음: 정답 개수 / 전체 정답 수 × 배점
       return Math.round((correctCount / correctTexts.length) * question.points * 2) / 2
     } else {
       // all_correct: 정답 전체 선택 + 오답 미포함 시 만점, 그 외 0점

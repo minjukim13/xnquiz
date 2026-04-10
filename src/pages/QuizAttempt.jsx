@@ -5,6 +5,12 @@ import Layout from '../components/Layout'
 import { mockQuizzes, getQuizQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { AlertDialog } from '../components/ConfirmDialog'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export default function QuizAttempt() {
   const { id } = useParams()
@@ -24,7 +30,6 @@ export default function QuizAttempt() {
   const [alertDialog, setAlertDialog] = useState(null)
   const [showAnswerPreview, setShowAnswerPreview] = useState(false)
 
-  // 타이머 (미리보기 모드 및 제한 없음인 경우 실행하지 않음)
   useEffect(() => {
     if (submitted || noTimeLimit || timeRemaining <= 0) return
     const timer = setInterval(() => {
@@ -52,14 +57,13 @@ export default function QuizAttempt() {
     if (submitted) return
     setSubmitted(true)
 
-    // 자동채점
     const autoScores = {}
     let totalAuto = 0
     let manualPending = 0
 
     questions.forEach(q => {
       const ans = answers[q.id] ?? ''
-      const score = autoGradeAnswer(q, ans)
+      const score = autoGradeAnswer(q, ans, { penaltyEnabled: quiz?.penaltyEnabled })
       if (score !== null) {
         autoScores[q.id] = score
         totalAuto += score
@@ -95,7 +99,6 @@ export default function QuizAttempt() {
     setResult(attempt)
   }, [answers, questions, id, currentStudent, timeRemaining, submitted])
 
-  // 미리보기 모드가 아니고 학생이 아니면 홈으로 (useEffect 대신 렌더 시점에 처리)
   if (!isPreview && role !== 'student') return <Navigate to="/" replace />
 
   if (!isPreview && quiz && quiz.status !== 'open') {
@@ -106,19 +109,13 @@ export default function QuizAttempt() {
     }[quiz.status] ?? '현재 응시할 수 없는 퀴즈입니다.'
     return (
       <Layout>
-        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-          <AlertCircle size={36} className="mx-auto mb-3" style={{ color: '#BDBDBD' }} />
-          <p className="text-base font-semibold mb-1" style={{ color: '#424242' }}>응시 불가</p>
-          <p className="text-sm mb-5" style={{ color: '#9E9E9E' }}>{statusMsg}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="text-sm px-4 py-2 rounded transition-colors"
-            style={{ border: '1px solid #E0E0E0', color: '#424242' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
+        <div className="max-w-2xl mx-auto py-16 text-center">
+          <AlertCircle size={36} className="mx-auto mb-3 text-muted-foreground/40" />
+          <p className="text-base font-semibold mb-1 text-slate-700">응시 불가</p>
+          <p className="text-sm mb-5 text-muted-foreground">{statusMsg}</p>
+          <Button variant="outline" onClick={() => navigate('/')}>
             퀴즈 목록으로
-          </button>
+          </Button>
         </div>
       </Layout>
     )
@@ -127,8 +124,8 @@ export default function QuizAttempt() {
   if (!quiz || questions.length === 0) {
     return (
       <Layout>
-        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-          <p className="text-sm" style={{ color: '#9E9E9E' }}>해당 퀴즈를 찾을 수 없거나 응시 가능한 문항이 없습니다.</p>
+        <div className="max-w-2xl mx-auto py-16 text-center">
+          <p className="text-sm text-muted-foreground">해당 퀴즈를 찾을 수 없거나 응시 가능한 문항이 없습니다.</p>
         </div>
       </Layout>
     )
@@ -136,94 +133,79 @@ export default function QuizAttempt() {
 
   return (
     <Layout breadcrumbs={[{ label: isPreview ? '퀴즈 관리' : '퀴즈 참여', href: '/' }, { label: quiz.title }]}>
-      <div className="max-w-[760px] mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-3xl mx-auto py-6">
 
         {/* 미리보기 배너 */}
         {isPreview && (
-          <div
-            className="px-4 py-3 rounded-lg mb-5"
-            style={{ background: '#FFF9E6', border: '1px solid #FDE68A' }}
-          >
+          <div className="px-4 py-3 rounded-lg mb-5 bg-amber-50 border border-amber-200">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Eye size={15} style={{ color: '#D97706' }} />
-                <span className="text-sm font-semibold" style={{ color: '#92400E' }}>미리보기 모드</span>
-                <span className="text-xs" style={{ color: '#B45309' }}>학생에게 보이는 화면입니다. 실제 제출은 불가합니다.</span>
+                <Eye size={15} className="text-amber-600" />
+                <span className="text-sm font-semibold text-amber-800">미리보기 모드</span>
+                <span className="text-xs text-amber-700">학생에게 보이는 화면입니다. 실제 제출은 불가합니다.</span>
               </div>
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded transition-colors shrink-0"
-                style={{ color: '#92400E', border: '1px solid #FCD34D' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#FEF3C7'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                className="shrink-0 border-amber-300 text-amber-800 hover:bg-amber-100"
               >
                 <X size={12} />
                 미리보기 종료
-              </button>
+              </Button>
             </div>
-            {/* 정답 표시 토글 */}
-            <div className="flex items-center gap-2 mt-2.5 pt-2.5" style={{ borderTop: '1px solid #FDE68A' }}>
+            <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-amber-200">
               <label className="flex items-center gap-2 cursor-pointer select-none">
-                <div
-                  onClick={() => setShowAnswerPreview(v => !v)}
-                  className="relative w-8 h-4 rounded-full transition-colors"
-                  style={{ background: showAnswerPreview ? '#D97706' : '#E0E0E0' }}
-                >
-                  <div
-                    className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all"
-                    style={{ left: showAnswerPreview ? '18px' : '2px' }}
-                  />
-                </div>
-                <span className="text-xs font-medium" style={{ color: '#92400E' }}>정답 함께 표시</span>
+                <Switch
+                  checked={showAnswerPreview}
+                  onCheckedChange={setShowAnswerPreview}
+                  className="data-[state=checked]:bg-amber-600"
+                />
+                <span className="text-xs font-medium text-amber-800">정답 함께 표시</span>
               </label>
               {showAnswerPreview && (
-                <span className="text-xs" style={{ color: '#B45309' }}>각 문항 하단에 정답이 표시됩니다.</span>
+                <span className="text-xs text-amber-700">각 문항 하단에 정답이 표시됩니다.</span>
               )}
             </div>
           </div>
         )}
 
         {/* 퀴즈 헤더 */}
-        <div className="card p-4 mb-5">
-          <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>{quiz.week}주차 {quiz.session}차시 · {quiz.totalPoints}점</p>
-            <h1 className="text-base font-bold" style={{ color: '#222222' }}>{quiz.title}</h1>
-            {quiz.description && (
-              <p className="text-sm mt-1.5" style={{ color: '#6B7280' }}>{quiz.description}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="text-center">
-              <p className="text-xs mb-0.5" style={{ color: '#9E9E9E' }}>답변 완료</p>
-              <p className="text-base font-bold" style={{ color: answeredCount === questions.length ? '#018600' : '#222222' }}>
-                {answeredCount}<span className="text-xs font-normal" style={{ color: '#9E9E9E' }}>/{questions.length}</span>
-              </p>
+        <Card className="mb-5">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs mb-0.5 text-muted-foreground">{quiz.week}주차 {quiz.session}차시 · {quiz.totalPoints}점</p>
+                <h1 className="text-base font-bold">{quiz.title}</h1>
+                {quiz.description && (
+                  <p className="text-sm mt-1.5 text-slate-500">{quiz.description}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-center">
+                  <p className="text-xs mb-0.5 text-muted-foreground">답변 완료</p>
+                  <p className={cn('text-base font-bold', answeredCount === questions.length ? 'text-green-700' : '')}>
+                    {answeredCount}<span className="text-xs font-normal text-muted-foreground">/{questions.length}</span>
+                  </p>
+                </div>
+                {noTimeLimit ? (
+                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-muted text-slate-700 border border-border">
+                    <Clock size={13} />
+                    제한 없음
+                  </div>
+                ) : (
+                  <div className={cn(
+                    'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold border',
+                    timeRemaining < 300 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-muted text-slate-700 border-border'
+                  )}>
+                    <Clock size={13} />
+                    {formatTime(timeRemaining)}
+                  </div>
+                )}
+              </div>
             </div>
-            {noTimeLimit ? (
-              <div
-                className="flex items-center gap-1.5 px-3 py-2 rounded text-sm font-bold"
-                style={{ background: '#F5F5F5', color: '#424242', border: '1px solid #E0E0E0' }}
-              >
-                <Clock size={13} />
-                제한 없음
-              </div>
-            ) : (
-              <div
-                className="flex items-center gap-1.5 px-3 py-2 rounded text-sm font-bold"
-                style={{
-                  background: timeRemaining < 300 ? '#FFF5F5' : '#F5F5F5',
-                  color: timeRemaining < 300 ? '#BF0A03' : '#424242',
-                  border: `1px solid ${timeRemaining < 300 ? '#FFBFBF' : '#E0E0E0'}`,
-                }}
-              >
-                <Clock size={13} />
-                {formatTime(timeRemaining)}
-              </div>
-            )}
-          </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* 문항 목록 */}
         <div className="space-y-4">
@@ -243,33 +225,23 @@ export default function QuizAttempt() {
         {/* 제출 버튼 */}
         {!submitted && !isPreview && (
           <div className="mt-6 flex items-center justify-between gap-4">
-            <p className="text-xs" style={{ color: '#9E9E9E' }}>
+            <p className="text-xs text-muted-foreground">
               {questions.length - answeredCount > 0
                 ? `${questions.length - answeredCount}개 문항이 미답변 상태입니다.`
                 : '모든 문항에 답변했습니다.'}
             </p>
-            <button
-              onClick={() => handleSubmit(false)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded text-sm font-semibold text-white transition-colors"
-              style={{ background: '#4f46e5' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#4338ca'}
-              onMouseLeave={e => e.currentTarget.style.background = '#4f46e5'}
-            >
+            <Button onClick={() => handleSubmit(false)} className="bg-indigo-600 hover:bg-indigo-700">
               <Send size={14} />
               제출하기
-            </button>
+            </Button>
           </div>
         )}
         {isPreview && (
           <div className="mt-6 flex justify-end">
-            <button
-              disabled
-              className="flex items-center gap-2 px-5 py-2.5 rounded text-sm font-semibold cursor-not-allowed"
-              style={{ background: '#E0E0E0', color: '#9E9E9E' }}
-            >
+            <Button disabled className="bg-muted text-muted-foreground">
               <Send size={14} />
               제출하기 (미리보기 전용)
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -297,53 +269,45 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
   const isAnswered = value !== '' && value !== undefined
 
   return (
-    <div
-      className="card overflow-hidden"
-      style={isAnswered && !disabled ? { borderColor: '#c7d2fe' } : {}}
-    >
-      <div className="px-5 pt-4 pb-3">
+    <Card className={cn('overflow-hidden', isAnswered && !disabled && 'border-indigo-200')}>
+      <CardContent className="px-5 pt-4 pb-3">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold" style={{ color: '#9E9E9E' }}>Q{index + 1}</span>
-            <span
-              className="text-xs font-medium px-1.5 py-0.5 rounded"
-              style={{ background: '#EEF2FF', color: '#4f46e5' }}
-            >
+            <span className="text-xs font-bold text-muted-foreground">Q{index + 1}</span>
+            <Badge variant="secondary" className="bg-indigo-50 text-indigo-600 border-0">
               {typeLabels[question.type] ?? question.type}
-            </span>
+            </Badge>
           </div>
-          <span className="text-xs font-semibold shrink-0" style={{ color: '#616161' }}>{question.points}점</span>
+          <span className="text-xs font-semibold shrink-0 text-slate-600">{question.points}점</span>
         </div>
-        <p className="text-sm leading-relaxed mb-4" style={{ color: '#222222' }}>{question.text}</p>
+        <p className="text-sm leading-relaxed mb-4">{question.text}</p>
 
-        {/* 입력 영역 */}
+        {/* 객관식 / 참거짓 */}
         {(question.type === 'multiple_choice' || question.type === 'true_false') && (
           <div className="space-y-2">
             {question.choices.map((choice, i) => (
               <label
                 key={i}
-                className="flex items-center gap-3 px-3 py-2.5 rounded cursor-pointer transition-colors"
-                style={{
-                  background: value === choice ? '#EEF2FF' : '#FAFAFA',
-                  border: `1px solid ${value === choice ? '#c7d2fe' : '#EEEEEE'}`,
-                  cursor: disabled ? 'default' : 'pointer',
-                }}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-md border transition-colors',
+                  value === choice ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-100',
+                  !disabled && 'cursor-pointer hover:border-indigo-200',
+                  disabled && 'cursor-default'
+                )}
               >
                 <input
-                  type="radio"
-                  name={question.id}
-                  value={choice}
+                  type="radio" name={question.id} value={choice}
                   checked={value === choice}
                   onChange={() => !disabled && onChange(choice)}
-                  className="accent-indigo-600"
-                  disabled={disabled}
+                  className="accent-indigo-600" disabled={disabled}
                 />
-                <span className="text-sm" style={{ color: '#424242' }}>{choice}</span>
+                <span className="text-sm text-slate-700">{choice}</span>
               </label>
             ))}
           </div>
         )}
 
+        {/* 복수 선택 */}
         {question.type === 'multiple_answers' && (
           <div className="space-y-2">
             {(question.options || question.choices || []).map((choice, i) => {
@@ -357,21 +321,15 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
               return (
                 <label
                   key={i}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded transition-colors"
-                  style={{
-                    background: selected ? '#EFF6FF' : '#FAFAFA',
-                    border: `1px solid ${selected ? '#93C5FD' : '#EEEEEE'}`,
-                    cursor: disabled ? 'default' : 'pointer',
-                  }}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-md border transition-colors',
+                    selected ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-100',
+                    !disabled && 'cursor-pointer hover:border-blue-200',
+                    disabled && 'cursor-default'
+                  )}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selected}
-                    onChange={toggle}
-                    className="accent-blue-500"
-                    disabled={disabled}
-                  />
-                  <span className="text-sm" style={{ color: '#424242' }}>{choice}</span>
+                  <input type="checkbox" checked={selected} onChange={toggle} className="accent-blue-500" disabled={disabled} />
+                  <span className="text-sm text-slate-700">{choice}</span>
                 </label>
               )
             })}
@@ -380,43 +338,35 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
 
         {question.type === 'short_answer' && (
           <input
-            type="text"
-            value={value}
+            type="text" value={value}
             onChange={e => onChange(e.target.value)}
-            placeholder="답안을 입력하세요"
-            disabled={disabled}
-            className="w-full input text-sm"
+            placeholder="답안을 입력하세요" disabled={disabled}
+            className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all disabled:bg-muted"
           />
         )}
 
         {question.type === 'essay' && (
           <textarea
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            placeholder="답안을 입력하세요"
-            rows={5}
-            disabled={disabled}
-            className="w-full input text-sm resize-none"
+            value={value} onChange={e => onChange(e.target.value)}
+            placeholder="답안을 입력하세요" rows={5} disabled={disabled}
+            className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all resize-none disabled:bg-muted"
           />
         )}
 
         {question.type === 'numerical' && (
           <input
-            type="number"
-            value={value}
+            type="number" value={value}
             onChange={e => onChange(e.target.value)}
-            placeholder="숫자를 입력하세요"
-            disabled={disabled}
-            className="w-full input text-sm"
-            style={{ maxWidth: 200 }}
+            placeholder="숫자를 입력하세요" disabled={disabled}
+            className="w-full max-w-[200px] text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all disabled:bg-muted"
           />
         )}
-      </div>
+      </CardContent>
 
       {/* 답변 완료 표시 */}
       {isAnswered && !showAnswer && (
-        <div className="px-5 py-2" style={{ background: '#F5F7FF', borderTop: '1px solid #E8EBFF' }}>
-          <p className="text-xs flex items-center gap-1.5" style={{ color: '#4f46e5' }}>
+        <div className="px-5 py-2 bg-indigo-50/60 border-t border-indigo-100">
+          <p className="text-xs flex items-center gap-1.5 text-indigo-600">
             <CheckCircle2 size={11} />
             답변 완료
           </p>
@@ -425,42 +375,37 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
 
       {/* 정답 표시 (미리보기 모드 전용) */}
       {showAnswer && question.correctAnswer != null && (
-        <div className="px-5 py-2.5" style={{ background: '#F0FDF4', borderTop: '1px solid #BBF7D0' }}>
-          <p className="text-xs font-medium" style={{ color: '#15803D' }}>
+        <div className="px-5 py-2.5 bg-green-50 border-t border-green-200">
+          <p className="text-xs font-medium text-green-700">
             정답:&nbsp;
             <span className="font-semibold">
-              {Array.isArray(question.correctAnswer)
-                ? question.correctAnswer.join(', ')
-                : String(question.correctAnswer)}
+              {Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : String(question.correctAnswer)}
             </span>
           </p>
         </div>
       )}
       {showAnswer && question.correctAnswer == null && (
-        <div className="px-5 py-2.5" style={{ background: '#FAFAFA', borderTop: '1px solid #EEEEEE' }}>
-          <p className="text-xs" style={{ color: '#9E9E9E' }}>정답 없음 (수동 채점 문항)</p>
+        <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-200">
+          <p className="text-xs text-muted-foreground">정답 없음 (수동 채점 문항)</p>
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
 function ResultModal({ result, quiz, questions, onClose }) {
   const autoTotal = result.totalAutoScore
-  // 미채점=0 정책: 수동채점 대기 문항도 0점으로 계산하여 전체 배점 기준으로 표시
   const totalPoints = quiz.totalPoints || questions.reduce((s, q) => s + q.points, 0)
   const autoMax = totalPoints > 0 ? totalPoints : result.totalPossibleAuto
   const hasAutoGrade = (quiz.totalPoints || questions.reduce((s, q) => s + q.points, 0)) > 0
   const scorePercent = hasAutoGrade ? Math.round((autoTotal / autoMax) * 100) : null
 
-  // 성적공개 정책 기반 visibility 판단
   const now = new Date()
   const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null
 
   let showScoreNow, showWrongAnswerNow, showAnswerNow
 
   if (quiz.scoreRevealEnabled !== undefined) {
-    // 신규 정책 필드 기반 (scoreRevealEnabled / scoreRevealScope / scoreRevealTiming)
     const afterDue = dueDate && now >= dueDate
     const inPeriod = (() => {
       const s = quiz.scoreRevealStart ? new Date(quiz.scoreRevealStart) : null
@@ -471,14 +416,11 @@ function ResultModal({ result, quiz, questions, onClose }) {
                     : quiz.scoreRevealTiming === 'after_due'   ? afterDue
                     : quiz.scoreRevealTiming === 'period'      ? inPeriod
                     : false
-
     const released = quiz.scoreRevealEnabled && timingMet
-
     showScoreNow       = released
     showWrongAnswerNow = released
     showAnswerNow      = released && quiz.scoreRevealScope === 'with_answer'
   } else if (quiz.scoreReleasePolicy !== undefined) {
-    // 구형 scoreReleasePolicy 필드 (하위 호환)
     const policy = quiz.scoreReleasePolicy
     const afterDue = dueDate && now >= dueDate
     const inPeriod = (() => {
@@ -494,7 +436,6 @@ function ResultModal({ result, quiz, questions, onClose }) {
     showWrongAnswerNow = released && policy !== null
     showAnswerNow      = released && (policy === 'with_answer' || policy === 'after_due' || policy === 'period')
   } else {
-    // 하위 호환: 기존 mock 퀴즈 필드 (showScore / showWrongAnswer / showAnswer)
     const isTimingMet = (timing, start, end) => {
       if (timing === 'immediately') return true
       if (timing === 'after_due')   return dueDate && now >= dueDate
@@ -519,71 +460,66 @@ function ResultModal({ result, quiz, questions, onClose }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.45)' }}
-    >
-      <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
-        style={{ maxHeight: '90vh', overflowY: 'auto' }}
-      >
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-md p-0 overflow-hidden">
         {/* 헤더 */}
-        <div className="px-6 py-5 text-center" style={{ background: '#EEF2FF', borderBottom: '1px solid #c7d2fe' }}>
-          <CheckCircle2 size={32} className="mx-auto mb-2" style={{ color: '#4f46e5' }} />
-          <h2 className="text-lg font-bold mb-1" style={{ color: '#222222' }}>
-            {result.autoSubmitted ? '시간 종료 — 자동 제출되었습니다' : '제출 완료!'}
-          </h2>
-          <p className="text-xs" style={{ color: '#6366f1' }}>{result.submittedAt}</p>
+        <div className="px-6 py-5 text-center bg-indigo-50 border-b border-indigo-200">
+          <CheckCircle2 size={32} className="mx-auto mb-2 text-indigo-600" />
+          <DialogHeader>
+            <DialogTitle className="text-lg text-center">
+              {result.autoSubmitted ? '시간 종료 — 자동 제출되었습니다' : '제출 완료!'}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-indigo-600">{result.submittedAt}</p>
         </div>
 
         {/* 결과 */}
-        <div className="px-6 py-5 space-y-4">
-          {/* 자동채점 결과 */}
-          <div className="p-4 rounded-lg" style={{ background: '#F5F5F5' }}>
+        <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="p-4 rounded-lg bg-muted">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold" style={{ color: '#424242' }}>자동채점 결과</p>
+              <p className="text-sm font-semibold text-slate-700">자동채점 결과</p>
               {!hasAutoGrade ? (
-                <p className="text-sm font-medium" style={{ color: '#9E9E9E' }}>점수 없음</p>
+                <p className="text-sm font-medium text-muted-foreground">점수 없음</p>
               ) : showScoreNow ? (
-                <p className="text-xl font-bold" style={{ color: '#4f46e5' }}>
-                  {autoTotal}<span className="text-sm font-normal ml-1" style={{ color: '#9E9E9E' }}>/ {autoMax}점</span>
+                <p className="text-xl font-bold text-indigo-600">
+                  {autoTotal}<span className="text-sm font-normal ml-1 text-muted-foreground">/ {autoMax}점</span>
                 </p>
               ) : (
-                <p className="text-sm font-medium" style={{ color: '#9E9E9E' }}>
+                <p className="text-sm font-medium text-muted-foreground">
                   {quiz.showScore ? '공개 예정' : '점수 비공개'}
                 </p>
               )}
             </div>
             {hasAutoGrade && showScoreNow && (
               <>
-                <div className="h-2 rounded overflow-hidden" style={{ background: '#E0E0E0' }}>
+                <div className="h-2 rounded overflow-hidden bg-slate-200">
                   <div
-                    className="h-full rounded transition-all"
-                    style={{ width: `${scorePercent}%`, background: scorePercent >= 80 ? '#018600' : scorePercent >= 60 ? '#f59e0b' : '#BF0A03' }}
+                    className={cn('h-full rounded transition-all',
+                      scorePercent >= 80 ? 'bg-green-600' : scorePercent >= 60 ? 'bg-amber-500' : 'bg-red-600'
+                    )}
+                    style={{ width: `${scorePercent}%` }}
                   />
                 </div>
-                <p className="text-xs mt-1.5 text-right" style={{ color: '#9E9E9E' }}>{scorePercent}% 정답</p>
+                <p className="text-xs mt-1.5 text-right text-muted-foreground">{scorePercent}% 정답</p>
               </>
             )}
           </div>
 
-          {/* 수동채점 안내 */}
           {result.manualPending > 0 && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg" style={{ background: '#FFFBF0', border: '1px solid #fde68a' }}>
-              <AlertCircle size={15} className="shrink-0 mt-0.5" style={{ color: '#d97706' }} />
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <AlertCircle size={15} className="shrink-0 mt-0.5 text-amber-600" />
               <div>
-                <p className="text-xs font-semibold mb-0.5" style={{ color: '#92400e' }}>수동채점 대기 중</p>
-                <p className="text-xs" style={{ color: '#78350f' }}>
+                <p className="text-xs font-semibold mb-0.5 text-amber-800">수동채점 대기 중</p>
+                <p className="text-xs text-amber-900">
                   서술형 {result.manualPending}개 문항은 교수자 채점 후 최종 점수가 확정됩니다.
                 </p>
               </div>
             </div>
           )}
 
-          {/* 문항별 채점 결과 (정오답 공개 설정 활성 시) */}
           {showWrongAnswerNow && (
             <div>
-              <p className="text-sm font-semibold mb-2" style={{ color: '#424242' }}>문항별 채점 결과</p>
+              <p className="text-sm font-semibold mb-2 text-slate-700">문항별 채점 결과</p>
               <div className="space-y-2">
                 {questions.map((q, idx) => {
                   const scored = result.autoScores[q.id]
@@ -593,36 +529,33 @@ function ResultModal({ result, quiz, questions, onClose }) {
                   return (
                     <div
                       key={q.id}
-                      className="p-3 rounded-lg text-sm"
-                      style={{
-                        background: !isAutoGraded ? '#F5F5F5' : isCorrect ? '#F0FDF4' : isPartial ? '#FFFBEB' : '#FFF5F5',
-                        border: `1px solid ${!isAutoGraded ? '#E0E0E0' : isCorrect ? '#bbf7d0' : isPartial ? '#fde68a' : '#fecaca'}`,
-                      }}
+                      className={cn(
+                        'p-3 rounded-lg text-sm border',
+                        !isAutoGraded && 'bg-slate-50 border-slate-200',
+                        isAutoGraded && isCorrect && 'bg-green-50 border-green-200',
+                        isAutoGraded && isPartial && 'bg-amber-50 border-amber-200',
+                        isAutoGraded && !isCorrect && !isPartial && 'bg-red-50 border-red-200',
+                      )}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs font-bold shrink-0" style={{ color: '#9E9E9E' }}>Q{idx + 1}</span>
-                          <span className="text-xs truncate" style={{ color: '#424242' }}>{q.text}</span>
+                          <span className="text-xs font-bold shrink-0 text-muted-foreground">Q{idx + 1}</span>
+                          <span className="text-xs truncate text-slate-700">{q.text}</span>
                         </div>
-                        <span
-                          className="text-xs font-semibold shrink-0 px-1.5 py-0.5 rounded"
-                          style={
-                            !isAutoGraded
-                              ? { background: '#EEEEEE', color: '#757575' }
-                              : isCorrect
-                              ? { background: '#DCFCE7', color: '#15803d' }
-                              : isPartial
-                              ? { background: '#FEF9C3', color: '#a16207' }
-                              : { background: '#FEE2E2', color: '#dc2626' }
-                          }
-                        >
+                        <Badge variant="secondary" className={cn(
+                          'shrink-0 text-xs',
+                          !isAutoGraded && 'bg-slate-200 text-slate-600',
+                          isAutoGraded && isCorrect && 'bg-green-100 text-green-700',
+                          isAutoGraded && isPartial && 'bg-amber-100 text-amber-700',
+                          isAutoGraded && !isCorrect && !isPartial && 'bg-red-100 text-red-700',
+                        )}>
                           {!isAutoGraded ? '채점 대기' : isCorrect ? '정답' : isPartial ? `부분점수 ${scored}/${q.points}` : '오답'}
-                        </span>
+                        </Badge>
                       </div>
                       {showAnswerNow && isAutoGraded && !isCorrect && q.correctAnswer && (
-                        <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
-                          <p className="text-xs" style={{ color: '#6b7280' }}>
-                            정답: <span className="font-medium" style={{ color: '#374151' }}>
+                        <div className="mt-1.5 pt-1.5 border-t border-black/[0.08]">
+                          <p className="text-xs text-slate-500">
+                            정답: <span className="font-medium text-slate-700">
                               {Array.isArray(q.correctAnswer) ? q.correctAnswer.join(', ') : q.correctAnswer}
                             </span>
                           </p>
@@ -635,8 +568,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
             </div>
           )}
 
-          {/* 응시 정보 */}
-          <div className="flex items-center justify-between text-xs" style={{ color: '#9E9E9E' }}>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{result.timeTaken != null ? `응시시간 ${result.timeTaken}분` : '시간 제한 없음'}</span>
             <span>총 {quiz.questions}문항 · {quiz.totalPoints}점 만점</span>
           </div>
@@ -644,18 +576,12 @@ function ResultModal({ result, quiz, questions, onClose }) {
 
         {/* 버튼 */}
         <div className="px-6 pb-5">
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 rounded text-sm font-semibold text-white transition-colors"
-            style={{ background: '#4f46e5' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#4338ca'}
-            onMouseLeave={e => e.currentTarget.style.background = '#4f46e5'}
-          >
+          <Button onClick={onClose} className="w-full bg-indigo-600 hover:bg-indigo-700">
             퀴즈 목록으로
-            <ChevronRight size={14} className="inline ml-1" />
-          </button>
+            <ChevronRight size={14} />
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
