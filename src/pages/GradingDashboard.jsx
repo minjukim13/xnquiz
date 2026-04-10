@@ -79,13 +79,14 @@ export default function GradingDashboard() {
   const questionsWithLiveCounts = useMemo(() => {
     const grades = getLocalGrades()
     const submittedStudents = quizStudents.filter(s => s.submitted)
+    const totalCount = submittedStudents.length
     return quizQuestions.map(q => {
-      if (q.autoGrade) return q
+      if (q.autoGrade) return { ...q, totalCount, gradedCount: totalCount }
       const gradedCount = submittedStudents.filter(s => {
         const key = `${id}_${s.id}_${q.id}`
         return (key in grades) || s.manualScores?.[q.id] != null
       }).length
-      return { ...q, gradedCount }
+      return { ...q, totalCount, gradedCount }
     })
   }, [quizQuestions, id, gradeVersion]) // eslint-disable-line react-hooks/exhaustive-deps
 
