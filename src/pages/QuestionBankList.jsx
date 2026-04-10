@@ -525,12 +525,12 @@ function SourceBankList({ availableCourses, courseGroups, selectedSourceIds, onT
                     onChange={() => onToggle(b.id)}
                     className="accent-[#3182F6] shrink-0"
                   />
-                  <span className="truncate flex-1">{b.name}</span>
                   {b.difficulty && (
-                    <span className={cn('shrink-0 text-xs', DIFFICULTY_META[b.difficulty]?.textCls)}>
+                    <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[b.difficulty]?.cls)}>
                       {DIFF_LABEL[b.difficulty]}
                     </span>
                   )}
+                  <span className="truncate flex-1">{b.name}</span>
                 </label>
               )
             })}
@@ -553,9 +553,9 @@ function TargetBankBtn({ bank, isSelected, onClick }) {
         isSelected ? 'border-blue-300 bg-[#E8F3FF] text-[#1B64DA] font-semibold' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
       )}
     >
-      <div className="flex items-center justify-between gap-1">
+      <div className="flex items-center gap-1.5">
+        {diffLabel && <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[bank.difficulty]?.cls)}>{diffLabel}</span>}
         <span className="truncate">{bank.name}</span>
-        {diffLabel && <span className={cn('shrink-0 font-normal', DIFFICULTY_META[bank.difficulty]?.textCls)}>{diffLabel}</span>}
       </div>
     </button>
   )
