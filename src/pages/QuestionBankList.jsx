@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Search, X, GripVertical, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Search, X, GripVertical, AlertCircle, CheckCircle2, MoreHorizontal } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useQuestionBank } from '../context/QuestionBankContext'
 import { QUIZ_TYPES, MOCK_COURSES } from '../data/mockData'
@@ -8,13 +8,14 @@ import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
 const DIFFICULTY_META = {
-  high:   { label: '상', cls: 'text-red-600 bg-red-50',     textCls: 'text-red-600' },
-  medium: { label: '중', cls: 'text-amber-600 bg-amber-50', textCls: 'text-amber-600' },
-  low:    { label: '하', cls: 'text-green-600 bg-green-50', textCls: 'text-green-600' },
+  high:   { label: '상', cls: 'text-[#F04452] bg-[#FEECEE]', textCls: 'text-[#F04452]' },
+  medium: { label: '중', cls: 'text-[#F69D37] bg-[#FEF5EC]', textCls: 'text-[#F69D37]' },
+  low:    { label: '하', cls: 'text-[#31B46E] bg-[#EAF8F1]', textCls: 'text-[#31B46E]' },
 }
 
 const DIFF_LABEL = { '': '미지정', high: '상', medium: '중', low: '하' }
@@ -99,39 +100,49 @@ export default function QuestionBankList() {
               <div
                 key={bank.id}
                 onClick={() => navigate(`/question-banks/${bank.id}`)}
-                className="bg-white p-5 cursor-pointer transition-all border border-slate-200 rounded-lg hover:border-blue-400 hover:shadow-md"
+                className="bg-white p-5 cursor-pointer transition-all border border-[#E5E8EB] rounded-xl hover:shadow-md group"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className={cn(
-                    'w-9 h-9 rounded flex items-center justify-center text-xs font-bold',
-                    bank.difficulty && DIFFICULTY_META[bank.difficulty]
-                      ? DIFFICULTY_META[bank.difficulty].cls
-                      : 'bg-slate-100 text-slate-400'
-                  )}>
-                    {diffLabel || '미지정'}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={e => { e.stopPropagation(); setCopyTarget(bank) }}
-                      className="p-1.5 rounded text-slate-300 hover:text-[#3182F6] hover:bg-[#E8F3FF] transition-colors"
-                      title="복사본 만들기"
-                    >
-                      <Copy size={14} />
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); setDeleteTarget(bank) }}
-                      className="p-1.5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                {/* 제목 + 케밥 메뉴 (같은 줄) */}
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-[15px] leading-snug text-[#191F28]">{bank.name}</h3>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={e => e.stopPropagation()}
+                        className="shrink-0 p-1 rounded-md text-[#8B95A1] opacity-0 group-hover:opacity-100 hover:bg-[#F2F4F6] transition-all"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-[120px]">
+                      <DropdownMenuItem onClick={e => { e.stopPropagation(); setCopyTarget(bank) }}>
+                        <Copy size={14} className="mr-2 text-[#8B95A1]" />
+                        복사
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={e => { e.stopPropagation(); setDeleteTarget(bank) }} className="text-[#F04452] focus:text-[#F04452]">
+                        <Trash2 size={14} className="mr-2" />
+                        삭제
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
-                <h3 className="font-semibold text-base mb-1 text-slate-900">{bank.name}</h3>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <span>{qCount}개 문항</span>
+                {/* 메타: 난이도 뱃지 · N개 문항 */}
+                <div className="flex items-center gap-1.5 mt-2">
+                  <span className={cn(
+                    'text-xs px-1.5 py-0.5 rounded-md font-medium',
+                    bank.difficulty && DIFFICULTY_META[bank.difficulty]
+                      ? DIFFICULTY_META[bank.difficulty].cls
+                      : 'bg-[#F2F4F6] text-[#8B95A1]'
+                  )}>
+                    {diffLabel || '미지정'}
+                  </span>
+                  <span className="text-[#8B95A1] text-xs">·</span>
+                  <span className="text-xs text-[#4E5968]">{qCount}개 문항</span>
                 </div>
-                <p className="text-xs mt-2 text-slate-300">최종 수정 {bank.updatedAt}</p>
+
+                {/* 최종 수정일 */}
+                <p className="text-[13px] mt-1.5 text-[#8B95A1]">최종 수정 {bank.updatedAt}</p>
               </div>
             )
           })}
@@ -393,7 +404,7 @@ function AddBankModal({ onClose, onAdd }) {
 function DiffBadge({ difficulty, className }) {
   const meta = difficulty && DIFFICULTY_META[difficulty]
   return (
-    <span className={cn('text-xs px-1.5 py-0.5 font-medium rounded', meta ? meta.cls : 'text-slate-400 bg-slate-100', className)}>
+    <span className={cn('text-xs px-1.5 py-0.5 font-medium rounded-md', meta ? meta.cls : 'text-[#8B95A1] bg-[#F2F4F6]', className)}>
       {meta ? meta.label : '미지정'}
     </span>
   )
@@ -411,9 +422,9 @@ function QuestionRow({ q, selected, selectable, onToggle }) {
       )}
     >
       <input type="checkbox" checked={selected} readOnly disabled={!selectable} className="mt-0.5 shrink-0 accent-[#3182F6]" />
-      <DiffBadge difficulty={q.difficulty} className="shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+          <DiffBadge difficulty={q.difficulty} />
           <span className="text-xs px-1.5 py-0.5 font-medium rounded bg-slate-100 text-slate-500">
             {QUIZ_TYPES[q.type]?.label}
           </span>
@@ -620,6 +631,7 @@ function ExportToBankModal({ onClose, onExport }) {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([])
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
+  const [inlineToast, setInlineToast] = useState(null)
   const dragIndexRef = useRef(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
 
@@ -702,10 +714,18 @@ function ExportToBankModal({ onClose, onExport }) {
     if (id && id !== '__new__') {
       const tb = banks.find(b => b.id === id)
       if (tb?.difficulty) {
-        setSelectedQuestionIds(prev => prev.filter(qId => {
-          const q = sourceQuestions.find(x => x.id === qId)
-          return q?.difficulty === tb.difficulty
-        }))
+        setSelectedQuestionIds(prev => {
+          const next = prev.filter(qId => {
+            const q = sourceQuestions.find(x => x.id === qId)
+            return q?.difficulty === tb.difficulty
+          })
+          const removed = prev.length - next.length
+          if (removed > 0) {
+            setInlineToast(`난이도 불일치로 ${removed}개 문항이 제외되었습니다`)
+            setTimeout(() => setInlineToast(null), 3000)
+          }
+          return next
+        })
       }
     }
   }
@@ -910,6 +930,13 @@ function ExportToBankModal({ onClose, onExport }) {
             </div>
           </div>
         </div>
+
+        {inlineToast && (
+          <div className="px-4 py-2 shrink-0 text-xs flex items-center gap-1.5 bg-amber-50 text-amber-700 border-t border-amber-200">
+            <AlertCircle size={12} className="shrink-0" />
+            {inlineToast}
+          </div>
+        )}
 
         <div className="px-4 py-3 shrink-0 flex items-center justify-end gap-2 border-t border-slate-100">
           <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>
