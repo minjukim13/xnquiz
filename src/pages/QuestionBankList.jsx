@@ -144,18 +144,16 @@ export default function QuestionBankList() {
                 </div>
 
                 <div className="flex items-center gap-2 mb-1">
-                  {diffLabel && (
-                    <span
-                      className="text-xs px-1.5 py-0.5 font-medium shrink-0"
-                      style={{
-                        background: DIFFICULTY_META[bank.difficulty]?.bg,
-                        color: DIFFICULTY_META[bank.difficulty]?.color,
-                        borderRadius: 4,
-                      }}
-                    >
-                      {diffLabel}
-                    </span>
-                  )}
+                  <span
+                    className="text-xs px-1.5 py-0.5 font-medium shrink-0"
+                    style={{
+                      background: bank.difficulty ? DIFFICULTY_META[bank.difficulty]?.bg : '#F5F5F5',
+                      color: bank.difficulty ? DIFFICULTY_META[bank.difficulty]?.color : '#9E9E9E',
+                      borderRadius: 4,
+                    }}
+                  >
+                    {diffLabel || '미지정'}
+                  </span>
                   <h3 className="font-semibold text-base" style={{ color: '#222222' }}>{bank.name}</h3>
                 </div>
                 <div className="flex items-center gap-2 text-xs" style={{ color: '#9E9E9E' }}>
@@ -864,16 +862,21 @@ function ExportToBankModal({ onClose, onExport }) {
                           }}
                         >
                           <input type="checkbox" checked={selected} readOnly disabled={!selectable} className="mt-0.5 shrink-0 accent-indigo-600" />
+                          <span
+                            className="text-xs px-1.5 py-0.5 font-medium shrink-0 mt-0.5"
+                            style={{
+                              background: q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].bg : '#F5F5F5',
+                              color: q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].color : '#9E9E9E',
+                              borderRadius: 4,
+                            }}
+                          >
+                            {q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].label : '미지정'}
+                          </span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                               <span className="text-xs px-1.5 py-0.5 font-medium" style={{ background: '#F5F5F5', color: '#616161', borderRadius: 4 }}>
                                 {QUIZ_TYPES[q.type]?.label}
                               </span>
-                              {q.difficulty && DIFFICULTY_META[q.difficulty] && (
-                                <span className="text-xs px-1.5 py-0.5" style={{ background: DIFFICULTY_META[q.difficulty].bg, color: DIFFICULTY_META[q.difficulty].color, borderRadius: 4 }}>
-                                  {DIFFICULTY_META[q.difficulty].label}
-                                </span>
-                              )}
                               <span className="text-xs" style={{ color: '#9E9E9E' }}>{q.points}점</span>
                               {q._sourceBankName && (
                                 <span className="text-xs" style={{ color: '#BDBDBD' }}>{q._sourceBankName}</span>
@@ -937,28 +940,16 @@ function ExportToBankModal({ onClose, onExport }) {
         </div>
 
         {/* 푸터 */}
-        <div className="px-4 py-3 shrink-0 flex items-center justify-between gap-4" style={{ borderTop: '1px solid #EEEEEE' }}>
-          <p className="text-xs truncate" style={{ color: '#9E9E9E' }}>
-            {targetBankId === null
-              ? '대상 문제은행을 선택하세요'
-              : targetBankId === '__new__'
-                ? newBankName.trim()
-                  ? <><span style={{ color: '#6366F1', fontWeight: 600 }}>{targetCourse}</span> › <span style={{ color: '#6366F1', fontWeight: 600 }}>{newBankName.trim()}</span> 으로 새 문제은행 생성</>
-                  : '새 문제은행 이름을 입력하세요'
-                : <><span style={{ color: '#6366F1', fontWeight: 600 }}>{targetCourse}</span> › <span style={{ color: '#6366F1', fontWeight: 600 }}>{banks.find(b => b.id === targetBankId)?.name}</span> 에 추가</>
-            }
-          </p>
-          <div className="flex items-center gap-2 shrink-0">
-            <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
-            <button
-              onClick={() => onExport(selectedQuestions, targetCourse, targetBankId, newBankName.trim(), effectiveNewDifficulty)}
-              disabled={!canSubmit}
-              className="text-sm font-medium px-4 py-2 bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
-              style={{ borderRadius: 4 }}
-            >
-              {selectedQuestions.length}개 내보내기
-            </button>
-          </div>
+        <div className="px-4 py-3 shrink-0 flex items-center justify-end gap-2" style={{ borderTop: '1px solid #EEEEEE' }}>
+          <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
+          <button
+            onClick={() => onExport(selectedQuestions, targetCourse, targetBankId, newBankName.trim(), effectiveNewDifficulty)}
+            disabled={!canSubmit}
+            className="text-sm font-medium px-4 py-2 bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
+            style={{ borderRadius: 4 }}
+          >
+            {selectedQuestions.length}개 내보내기
+          </button>
         </div>
       </div>
     </div>
@@ -1343,16 +1334,21 @@ function ImportModal({ onClose, onImport }) {
                           }}
                         >
                           <input type="checkbox" checked={selected} readOnly disabled={!selectable} className="mt-0.5 shrink-0 accent-indigo-600" />
+                          <span
+                            className="text-xs px-1.5 py-0.5 font-medium shrink-0 mt-0.5"
+                            style={{
+                              background: q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].bg : '#F5F5F5',
+                              color: q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].color : '#9E9E9E',
+                              borderRadius: 4,
+                            }}
+                          >
+                            {q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].label : '미지정'}
+                          </span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                               <span className="text-xs px-1.5 py-0.5 font-medium" style={{ background: '#F5F5F5', color: '#616161', borderRadius: 4 }}>
                                 {QUIZ_TYPES[q.type]?.label}
                               </span>
-                              {q.difficulty && DIFFICULTY_META[q.difficulty] && (
-                                <span className="text-xs px-1.5 py-0.5" style={{ background: DIFFICULTY_META[q.difficulty].bg, color: DIFFICULTY_META[q.difficulty].color, borderRadius: 4 }}>
-                                  {DIFFICULTY_META[q.difficulty].label}
-                                </span>
-                              )}
                               <span className="text-xs" style={{ color: '#9E9E9E' }}>{q.points}점</span>
                               {q._sourceBankName && (
                                 <span className="text-xs" style={{ color: '#BDBDBD' }}>{q._sourceBankName}</span>
@@ -1416,28 +1412,16 @@ function ImportModal({ onClose, onImport }) {
         </div>
 
         {/* 푸터 */}
-        <div className="px-4 py-3 shrink-0 flex items-center justify-between gap-4" style={{ borderTop: '1px solid #EEEEEE' }}>
-          <p className="text-xs truncate" style={{ color: '#9E9E9E' }}>
-            {targetMode === 'new'
-              ? newBankName.trim()
-                ? <><span style={{ color: '#6366F1', fontWeight: 600 }}>{newBankName.trim()}</span>{effectiveDifficulty ? ` (난이도: ${DIFF_LABEL[effectiveDifficulty]})` : ''} 으로 새 문제은행 생성</>
-                : '은행 이름을 입력하세요'
-              : targetBank
-                ? <><span style={{ color: '#6366F1', fontWeight: 600 }}>{targetBank.name}</span> 에 추가</>
-                : '대상 문제은행을 선택하세요'
-            }
-          </p>
-          <div className="flex items-center gap-2 shrink-0">
-            <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
-            <button
-              onClick={() => onImport(selectedQuestions, targetMode === 'new' ? newBankName.trim() : null, effectiveDifficulty, targetMode === 'existing' ? targetBankId : null)}
-              disabled={!canSubmit}
-              className="text-sm font-medium px-4 py-2 bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
-              style={{ borderRadius: 4 }}
-            >
-              {selectedQuestions.length}개 가져오기
-            </button>
-          </div>
+        <div className="px-4 py-3 shrink-0 flex items-center justify-end gap-2" style={{ borderTop: '1px solid #EEEEEE' }}>
+          <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
+          <button
+            onClick={() => onImport(selectedQuestions, targetMode === 'new' ? newBankName.trim() : null, effectiveDifficulty, targetMode === 'existing' ? targetBankId : null)}
+            disabled={!canSubmit}
+            className="text-sm font-medium px-4 py-2 bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
+            style={{ borderRadius: 4 }}
+          >
+            {selectedQuestions.length}개 가져오기
+          </button>
         </div>
       </div>
     </div>
