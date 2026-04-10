@@ -407,6 +407,7 @@ export default function GradingDashboard() {
                     onChange={setSortBy}
                     options={SORT_OPTIONS}
                     size="sm"
+                    ghost
                   />
                 </div>
 
@@ -860,6 +861,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
           value={pageSize}
           onChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}
           options={PAGE_SIZE_OPTIONS}
+          ghost
           style={{ width: 80 }}
         />
         <div className="flex items-center gap-2 shrink-0 border-l border-slate-200 pl-2">
@@ -1059,7 +1061,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
         {question.autoGrade && (
           <div className="w-16 shrink-0">
             {autoCorrect !== null && (
-              <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', autoCorrect ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50')}>
+              <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', autoCorrect ? 'text-[#31B46E] bg-[#EAF8F1]' : 'text-[#F04452] bg-[#FEECEE]')}>
                 {autoCorrect ? '정답' : '오답'}
               </span>
             )}
@@ -1236,7 +1238,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
         {/* 점수 / 배점 */}
         <div className="shrink-0 text-right">
           {question.autoGrade ? (
-            <span className={cn('text-sm font-bold', autoCorrect ? 'text-green-700' : 'text-slate-700')}>
+            <span className={cn('text-sm font-bold', autoCorrect ? 'text-[#31B46E]' : 'text-slate-700')}>
               {autoCorrect ? question.points : 0}
               <span className="text-xs font-normal text-slate-300"> / {question.points}</span>
             </span>
@@ -1254,17 +1256,19 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
       {/* 답안 박스 — 자동채점 배경 틴트로 정오답 표시 */}
       <div
         className={cn(
-          'px-3 py-2 text-xs leading-relaxed rounded border flex items-start justify-between gap-2 text-slate-700',
+          'px-3 py-2 text-xs leading-relaxed rounded border flex items-start justify-between gap-2',
           question.autoGrade && autoCorrect !== null
-            ? autoCorrect ? 'bg-green-50 border-slate-200' : 'bg-red-50/50 border-slate-200'
-            : 'bg-slate-50 border-slate-200'
+            ? autoCorrect
+              ? 'bg-[#EAF8F1] border-[#C3E8D5] text-[#333D4B]'
+              : 'bg-[#FEECEE] border-[#F9C6C9] text-[#333D4B]'
+            : 'bg-slate-50 border-slate-200 text-slate-700'
         )}
       >
         <span className="flex-1">{answer}</span>
         {question.autoGrade && autoCorrect !== null && (
           autoCorrect
-            ? <CheckCircle2 size={13} className="shrink-0 mt-px text-green-700" />
-            : <X size={13} className="shrink-0 mt-px text-red-700" />
+            ? <CheckCircle2 size={13} className="shrink-0 mt-px text-[#31B46E]" />
+            : <X size={13} className="shrink-0 mt-px text-[#F04452]" />
         )}
       </div>
 
