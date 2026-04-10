@@ -143,21 +143,23 @@ export default function QuestionBankList() {
                   </div>
                 </div>
 
-                <h3 className="font-semibold text-base mb-1" style={{ color: '#222222' }}>{bank.name}</h3>
-                <div className="flex items-center gap-2 text-xs" style={{ color: '#9E9E9E' }}>
-                  <span>{qCount}개 문항</span>
+                <div className="flex items-center gap-2 mb-1">
                   {diffLabel && (
                     <span
-                      className="px-1.5 py-0.5 font-medium"
+                      className="text-xs px-1.5 py-0.5 font-medium shrink-0"
                       style={{
                         background: DIFFICULTY_META[bank.difficulty]?.bg,
                         color: DIFFICULTY_META[bank.difficulty]?.color,
                         borderRadius: 4,
                       }}
                     >
-                      난이도 {diffLabel}
+                      {diffLabel}
                     </span>
                   )}
+                  <h3 className="font-semibold text-base" style={{ color: '#222222' }}>{bank.name}</h3>
+                </div>
+                <div className="flex items-center gap-2 text-xs" style={{ color: '#9E9E9E' }}>
+                  <span>{qCount}개 문항</span>
                 </div>
                 <p className="text-xs mt-2" style={{ color: '#BDBDBD' }}>최종 수정 {bank.updatedAt}</p>
               </div>
@@ -288,24 +290,31 @@ export default function QuestionBankList() {
       {showCopyModal && (
         <ImportModal
           onClose={() => setShowCopyModal(false)}
-          onImport={(selectedQs, bankName, difficulty) => {
-            const newId = `bank_import_${Date.now()}`
-            addBank({
-              id: newId,
-              name: bankName,
-              difficulty: difficulty || '',
-              course: CURRENT_COURSE,
-              updatedAt: new Date().toISOString().split('T')[0],
-              usedInQuizIds: [],
-            })
+          onImport={(selectedQs, bankName, difficulty, existingBankId) => {
+            let bankId, toastName
+            if (existingBankId) {
+              bankId = existingBankId
+              toastName = banks.find(b => b.id === existingBankId)?.name || '문제은행'
+            } else {
+              bankId = `bank_import_${Date.now()}`
+              toastName = bankName
+              addBank({
+                id: bankId,
+                name: bankName,
+                difficulty: difficulty || '',
+                course: CURRENT_COURSE,
+                updatedAt: new Date().toISOString().split('T')[0],
+                usedInQuizIds: [],
+              })
+            }
             addQuestions(selectedQs.map(q => ({
               ...q,
               _sourceBankName: undefined,
               id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-              bankId: newId,
+              bankId,
             })))
             setShowCopyModal(false)
-            showToast(`"${bankName}" 문제은행이 생성되었습니다`, newId)
+            showToast(`"${toastName}" 문제은행에 ${selectedQs.length}개 문항 가져오기 완료`, bankId)
           }}
         />
       )}
@@ -721,7 +730,7 @@ function ExportToBankModal({ onClose, onExport }) {
                               type="button"
                               disabled={!isAllowed}
                               onClick={() => setNewBankDifficulty(d)}
-                              className="flex-1 text-xs py-1 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                              className="flex-1 text-xs py-1 whitespace-nowrap transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                               style={{
                                 border: isActive ? '1.5px solid #6366f1' : '1px solid #E0E0E0',
                                 borderRadius: 3,
@@ -962,6 +971,8 @@ function ImportModal({ onClose, onImport }) {
 
   const [selectedSourceIds, setSelectedSourceIds] = useState([])
   const [courseSearch, setCourseSearch] = useState('')
+  const [targetMode, setTargetMode] = useState('new') // 'new' | 'existing'
+  const [targetBankId, setTargetBankId] = useState(null)
   const [newBankName, setNewBankName] = useState('')
   const [manualDifficulty, setManualDifficulty] = useState(null) // null = auto
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([])
@@ -1022,12 +1033,32 @@ function ImportModal({ onClose, onImport }) {
 
   const effectiveDifficulty = manualDifficulty !== null ? manualDifficulty : autoDifficulty
 
+  // 기존 은행 타겟 — 소스 제외, 현재 과목
+  const existingTargetBanks = banks.filter(b => b.course === CURRENT_COURSE && !selectedSourceIds.includes(b.id))
+  const targetBank = targetMode === 'existing' && targetBankId ? banks.find(b => b.id === targetBankId) : null
+  const targetDifficulty = targetBank?.difficulty || ''
+
+  // 기존 은행 타겟 시 난이도 제한
+  const isSelectableForTarget = (q) => !targetDifficulty || q.difficulty === targetDifficulty
+
   const handleSourceToggle = (bankId) => {
     const isChecked = selectedSourceIds.includes(bankId)
     setSelectedSourceIds(prev => isChecked ? prev.filter(id => id !== bankId) : [...prev, bankId])
     if (isChecked) {
       const bankQIds = getBankQuestions(bankId).map(q => q.id)
       setSelectedQuestionIds(prev => prev.filter(id => !bankQIds.includes(id)))
+    }
+    if (!isChecked && bankId === targetBankId) setTargetBankId(null)
+  }
+
+  const handleTargetBankChange = (id) => {
+    setTargetBankId(id)
+    const tb = banks.find(b => b.id === id)
+    if (tb?.difficulty) {
+      setSelectedQuestionIds(prev => prev.filter(qId => {
+        const q = sourceQuestions.find(x => x.id === qId)
+        return q?.difficulty === tb.difficulty
+      }))
     }
   }
 
@@ -1062,7 +1093,8 @@ function ImportModal({ onClose, onImport }) {
     return groups
   }, [banks])
 
-  const canSubmit = selectedQuestions.length > 0 && newBankName.trim() !== ''
+  const canSubmit = selectedQuestions.length > 0 &&
+    (targetMode === 'new' ? newBankName.trim() !== '' : targetBankId !== null)
 
   // 자동 은행 이름 — 소스 1개 최초 선택 시
   const prevSourceLen = useRef(0)
@@ -1139,46 +1171,94 @@ function ImportModal({ onClose, onImport }) {
                 )
               })}
             </div>
-            {/* 새 은행 설정 */}
-            <div className="p-2 shrink-0 space-y-1.5" style={{ borderTop: '1px solid #EEEEEE' }}>
-              <p className="text-xs font-semibold" style={{ color: '#9E9E9E' }}>새 문제은행</p>
-              <input
-                type="text"
-                value={newBankName}
-                onChange={e => setNewBankName(e.target.value)}
-                placeholder="은행 이름"
-                className="w-full text-xs px-2 py-1.5 focus:outline-none"
-                style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
-              />
-              {selectedQuestions.length > 0 && (
-                <div className="flex items-center gap-1">
-                  <span className="text-xs shrink-0" style={{ color: '#9E9E9E' }}>난이도</span>
-                  {['', 'high', 'medium', 'low'].map(d => {
-                    const isAllowed = allowedDifficulties.includes(d)
-                    const isActive = effectiveDifficulty === d
-                    return (
-                      <button
-                        key={d}
-                        type="button"
-                        disabled={!isAllowed}
-                        onClick={() => setManualDifficulty(d)}
-                        className="flex-1 text-xs py-1 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                        style={{
-                          border: isActive ? '1.5px solid #6366f1' : '1px solid #E0E0E0',
-                          borderRadius: 3,
-                          background: isActive ? '#EEF2FF' : 'transparent',
-                          color: isActive ? '#4338CA'
-                            : d === 'high' ? '#DC2626'
-                            : d === 'medium' ? '#D97706'
-                            : d === 'low' ? '#16A34A'
-                            : '#616161',
-                          fontWeight: isActive ? 600 : 400,
-                        }}
-                      >
-                        {DIFF_LABEL[d]}
-                      </button>
-                    )
-                  })}
+            {/* 대상 은행 설정 */}
+            <div className="shrink-0" style={{ borderTop: '1px solid #EEEEEE' }}>
+              <div className="flex" style={{ borderBottom: '1px solid #EEEEEE' }}>
+                <button
+                  onClick={() => setTargetMode('new')}
+                  className="flex-1 text-xs py-1.5 font-medium transition-colors"
+                  style={{ color: targetMode === 'new' ? '#4338CA' : '#9E9E9E', borderBottom: targetMode === 'new' ? '2px solid #6366f1' : '2px solid transparent' }}
+                >
+                  새 은행
+                </button>
+                <button
+                  onClick={() => setTargetMode('existing')}
+                  className="flex-1 text-xs py-1.5 font-medium transition-colors"
+                  style={{ color: targetMode === 'existing' ? '#4338CA' : '#9E9E9E', borderBottom: targetMode === 'existing' ? '2px solid #6366f1' : '2px solid transparent' }}
+                >
+                  기존 은행
+                </button>
+              </div>
+              {targetMode === 'new' ? (
+                <div className="p-2 space-y-1.5">
+                  <input
+                    type="text"
+                    value={newBankName}
+                    onChange={e => setNewBankName(e.target.value)}
+                    placeholder="은행 이름"
+                    className="w-full text-xs px-2 py-1.5 focus:outline-none"
+                    style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
+                  />
+                  {selectedQuestions.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs shrink-0" style={{ color: '#9E9E9E' }}>난이도</span>
+                      {['', 'high', 'medium', 'low'].map(d => {
+                        const isAllowed = allowedDifficulties.includes(d)
+                        const isActive = effectiveDifficulty === d
+                        return (
+                          <button
+                            key={d}
+                            type="button"
+                            disabled={!isAllowed}
+                            onClick={() => setManualDifficulty(d)}
+                            className="flex-1 text-xs py-1 whitespace-nowrap transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            style={{
+                              border: isActive ? '1.5px solid #6366f1' : '1px solid #E0E0E0',
+                              borderRadius: 3,
+                              background: isActive ? '#EEF2FF' : 'transparent',
+                              color: isActive ? '#4338CA'
+                                : d === 'high' ? '#DC2626'
+                                : d === 'medium' ? '#D97706'
+                                : d === 'low' ? '#16A34A'
+                                : '#616161',
+                              fontWeight: isActive ? 600 : 400,
+                            }}
+                          >
+                            {DIFF_LABEL[d]}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-y-auto p-2 space-y-1" style={{ maxHeight: 120 }}>
+                  {existingTargetBanks.length === 0 ? (
+                    <p className="text-xs py-2 text-center" style={{ color: '#BDBDBD' }}>선택 가능한 은행이 없습니다</p>
+                  ) : (
+                    existingTargetBanks.map(b => {
+                      const isSelected = b.id === targetBankId
+                      return (
+                        <button
+                          key={b.id}
+                          onClick={() => handleTargetBankChange(b.id)}
+                          className="w-full text-left px-2 py-1.5 text-xs transition-colors"
+                          style={{
+                            border: isSelected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
+                            borderRadius: 4,
+                            background: isSelected ? '#EEF2FF' : 'transparent',
+                            color: isSelected ? '#4338CA' : '#424242',
+                            fontWeight: isSelected ? 600 : 400,
+                          }}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="truncate">{b.name}</span>
+                            {b.difficulty && <span className="shrink-0" style={{ color: DIFFICULTY_META[b.difficulty]?.color, fontWeight: 400 }}>{DIFF_LABEL[b.difficulty]}</span>}
+                          </div>
+                        </button>
+                      )
+                    })
+                  )}
                 </div>
               )}
             </div>
@@ -1217,6 +1297,12 @@ function ImportModal({ onClose, onImport }) {
                     />
                   </div>
                 </div>
+                {targetDifficulty && (
+                  <div className="px-3 py-1.5 shrink-0 text-xs flex items-center gap-1.5" style={{ background: '#FFFBEB', color: '#B45309', borderBottom: '1px solid #FDE68A' }}>
+                    <AlertCircle size={12} className="shrink-0" />
+                    난이도 '{DIFF_LABEL[targetDifficulty]}' 문제은행 — 해당 난이도 문항만 선택 가능
+                  </div>
+                )}
                 {filtered.length > 0 && (
                   <div className="px-3 py-1.5 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid #F5F5F5' }}>
                     <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -1242,18 +1328,21 @@ function ImportModal({ onClose, onImport }) {
                   ) : (
                     filtered.map(q => {
                       const selected = selectedQuestionIds.includes(q.id)
+                      const selectable = isSelectableForTarget(q)
                       return (
                         <div
                           key={q.id}
-                          onClick={() => toggle(q)}
-                          className="flex items-start gap-2.5 p-2.5 transition-all cursor-pointer"
+                          onClick={() => selectable && toggle(q)}
+                          className="flex items-start gap-2.5 p-2.5 transition-all"
                           style={{
                             border: selected ? '1px solid #c7d2fe' : '1px solid #E0E0E0',
                             borderRadius: 6,
-                            background: selected ? '#EEF2FF' : '#fff',
+                            background: selected ? '#EEF2FF' : selectable ? '#fff' : '#FAFAFA',
+                            cursor: selectable ? 'pointer' : 'not-allowed',
+                            opacity: selectable ? 1 : 0.45,
                           }}
                         >
-                          <input type="checkbox" checked={selected} readOnly className="mt-0.5 shrink-0 accent-indigo-600" />
+                          <input type="checkbox" checked={selected} readOnly disabled={!selectable} className="mt-0.5 shrink-0 accent-indigo-600" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                               <span className="text-xs px-1.5 py-0.5 font-medium" style={{ background: '#F5F5F5', color: '#616161', borderRadius: 4 }}>
@@ -1329,15 +1418,19 @@ function ImportModal({ onClose, onImport }) {
         {/* 푸터 */}
         <div className="px-4 py-3 shrink-0 flex items-center justify-between gap-4" style={{ borderTop: '1px solid #EEEEEE' }}>
           <p className="text-xs truncate" style={{ color: '#9E9E9E' }}>
-            {newBankName.trim()
-              ? <><span style={{ color: '#6366F1', fontWeight: 600 }}>{newBankName.trim()}</span>{effectiveDifficulty ? ` (난이도: ${DIFF_LABEL[effectiveDifficulty]})` : ''} 으로 새 문제은행 생성</>
-              : '은행 이름을 입력하세요'
+            {targetMode === 'new'
+              ? newBankName.trim()
+                ? <><span style={{ color: '#6366F1', fontWeight: 600 }}>{newBankName.trim()}</span>{effectiveDifficulty ? ` (난이도: ${DIFF_LABEL[effectiveDifficulty]})` : ''} 으로 새 문제은행 생성</>
+                : '은행 이름을 입력하세요'
+              : targetBank
+                ? <><span style={{ color: '#6366F1', fontWeight: 600 }}>{targetBank.name}</span> 에 추가</>
+                : '대상 문제은행을 선택하세요'
             }
           </p>
           <div className="flex items-center gap-2 shrink-0">
             <button onClick={onClose} className="text-sm px-4 py-2" style={{ color: '#616161' }}>취소</button>
             <button
-              onClick={() => onImport(selectedQuestions, newBankName.trim(), effectiveDifficulty)}
+              onClick={() => onImport(selectedQuestions, targetMode === 'new' ? newBankName.trim() : null, effectiveDifficulty, targetMode === 'existing' ? targetBankId : null)}
               disabled={!canSubmit}
               className="text-sm font-medium px-4 py-2 bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
               style={{ borderRadius: 4 }}
