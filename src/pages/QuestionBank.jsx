@@ -129,7 +129,7 @@ export default function QuestionBank() {
                       if (bankNameDraft.trim()) updateBank(bank.id, { name: bankNameDraft.trim() })
                       setEditingBankName(false)
                     }}
-                    className="text-2xl font-bold focus:outline-none border-b-2 border-indigo-500 bg-transparent min-w-0"
+                    className="text-2xl font-bold focus:outline-none border-b-2 border-[#3182F6] bg-transparent min-w-0"
                     style={{ width: `${Math.max(bankNameDraft.length, 4)}ch` }}
                   />
                 </div>
@@ -139,7 +139,7 @@ export default function QuestionBank() {
                   <button
                     type="button"
                     onClick={() => { setBankNameDraft(bank.name); setEditingBankName(true) }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-indigo-600"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-[#3182F6]"
                   >
                     <Edit2 size={15} />
                   </button>
@@ -154,7 +154,7 @@ export default function QuestionBank() {
                 <Upload size={14} />
                 <span className="hidden sm:block">일괄 업로드</span>
               </Button>
-              <Button onClick={() => { setShowAddModal(true); setEditingId(null) }} className="bg-indigo-600 hover:bg-indigo-700">
+              <Button onClick={() => { setShowAddModal(true); setEditingId(null) }} className="bg-[#3182F6] hover:bg-[#1B64DA]">
                 <Plus size={15} />
                 문항 추가
               </Button>
@@ -190,7 +190,7 @@ export default function QuestionBank() {
                 <input
                   type="text" value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="문항 내용 검색"
-                  className="w-full text-sm pl-9 pr-3 py-2 bg-slate-50 border border-border rounded-md focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  className="w-full text-sm pl-9 pr-3 py-2 bg-slate-50 border border-border rounded-md focus:outline-none focus:border-[#3182F6] focus:ring-2 focus:ring-blue-100 transition-all"
                 />
               </div>
             </div>
@@ -207,7 +207,7 @@ export default function QuestionBank() {
                 {questions.length === 0 ? '아직 추가된 문항이 없습니다' : '검색 결과가 없습니다'}
               </p>
               {questions.length === 0 && (
-                <Button onClick={() => setShowAddModal(true)} className="mt-3 bg-indigo-600 hover:bg-indigo-700">
+                <Button onClick={() => setShowAddModal(true)} className="mt-3 bg-[#3182F6] hover:bg-[#1B64DA]">
                   <Plus size={14} />
                   첫 문항 추가하기
                 </Button>
@@ -225,7 +225,7 @@ export default function QuestionBank() {
                   onDrop={() => !isFiltered && handleDrop(idx)}
                   className={cn(
                     'border-t-2',
-                    !isFiltered && dragOverIndex === idx ? 'border-t-indigo-500' : 'border-t-transparent',
+                    !isFiltered && dragOverIndex === idx ? 'border-t-[#3182F6]' : 'border-t-transparent',
                     !isFiltered && 'cursor-grab'
                   )}
                 >
@@ -273,12 +273,12 @@ export default function QuestionBank() {
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white bg-slate-900 rounded-lg shadow-lg">
-          <CheckCircle2 size={15} className="shrink-0 text-indigo-300" />
+          <CheckCircle2 size={15} className="shrink-0 text-blue-300" />
           <span className="font-medium">{toast.msg}</span>
           {toast.bankId && (
             <button
               onClick={() => { navigate(`/question-banks/${toast.bankId}`); setToast(null) }}
-              className="shrink-0 text-xs font-medium text-indigo-300 hover:text-indigo-200 transition-colors"
+              className="shrink-0 text-xs font-medium text-blue-300 hover:text-blue-200 transition-colors"
             >
               바로가기 →
             </button>
@@ -309,7 +309,7 @@ function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast, b
           <p className="text-sm leading-relaxed">{question.text}</p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="icon-xs" onClick={onEdit} className="text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50">
+          <Button variant="ghost" size="icon-xs" onClick={onEdit} className="text-muted-foreground hover:text-[#3182F6] hover:bg-[#E8F3FF]">
             <Edit2 size={14} />
           </Button>
           <Button variant="ghost" size="icon-xs" onClick={onDelete} className="text-muted-foreground hover:text-red-600 hover:bg-red-50">
@@ -350,7 +350,7 @@ function QuestionForm({ initial, onSave, onCancel, bankDifficulty = '' }) {
         <textarea
           value={text} onChange={e => setText(e.target.value)}
           rows={2} autoFocus
-          className="w-full bg-white text-sm px-3 py-2 border border-border rounded-md focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-none transition-all"
+          className="w-full bg-white text-sm px-3 py-2 border border-border rounded-md focus:outline-none focus:border-[#3182F6] focus:ring-2 focus:ring-blue-100 resize-none transition-all"
           placeholder="문항 내용을 입력하세요"
         />
       </div>
@@ -366,7 +366,7 @@ function QuestionForm({ initial, onSave, onCancel, bankDifficulty = '' }) {
           <label className="text-xs font-medium block mb-1 text-slate-600">배점</label>
           <input
             type="number" value={points} onChange={e => setPoints(e.target.value)} min={1}
-            className="w-full bg-white text-sm px-2 py-1.5 border border-border rounded-md focus:outline-none focus:border-indigo-500 transition-all"
+            className="w-full bg-white text-sm px-2 py-1.5 border border-border rounded-md focus:outline-none focus:border-[#3182F6] transition-all"
           />
         </div>
         <div>
@@ -391,7 +391,7 @@ function QuestionForm({ initial, onSave, onCancel, bankDifficulty = '' }) {
       </div>
       <div className="flex justify-end gap-2 pt-1">
         <Button variant="ghost" onClick={onCancel}>취소</Button>
-        <Button onClick={handleSubmit} disabled={!text.trim()} className="bg-indigo-600 hover:bg-indigo-700">
+        <Button onClick={handleSubmit} disabled={!text.trim()} className="bg-[#3182F6] hover:bg-[#1B64DA]">
           {initial ? '저장' : '추가'}
         </Button>
       </div>

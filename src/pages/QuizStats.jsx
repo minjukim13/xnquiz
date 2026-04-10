@@ -48,13 +48,13 @@ export default function QuizStats() {
           <CardContent className="p-4 sm:p-5">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <Badge className="mb-2 bg-indigo-50 text-indigo-600 border-0">{quiz.week}주차 {quiz.session}차시</Badge>
+                <Badge className="mb-2 bg-[#E8F3FF] text-[#3182F6] border-0">{quiz.week}주차 {quiz.session}차시</Badge>
                 <h2 className="text-base font-bold">{quiz.title}</h2>
                 {quiz.description && <p className="text-xs mt-1.5 text-slate-500">{quiz.description}</p>}
                 <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
               </div>
               <div className="flex gap-2 shrink-0">
-                <Button asChild className="bg-indigo-600 hover:bg-indigo-700" size="sm">
+                <Button asChild className="bg-[#3182F6] hover:bg-[#1B64DA]" size="sm">
                   <Link to={`/quiz/${quiz.id}/grade`}>채점 대시보드</Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
@@ -169,7 +169,7 @@ function GradesTab({ quiz, students: allStudents }) {
             <input
               type="text" placeholder="학생 이름 또는 학번 검색"
               value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full text-sm pl-8 py-2 border border-border rounded-md bg-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+              className="w-full text-sm pl-8 py-2 border border-border rounded-md bg-white focus:outline-none focus:border-[#3182F6] focus:ring-2 focus:ring-blue-100 transition-all"
             />
           </div>
           <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
@@ -206,7 +206,7 @@ function GradesTab({ quiz, students: allStudents }) {
                     {key ? (
                       <button
                         onClick={() => handleSort(key)}
-                        className={cn('group inline-flex items-center gap-1 transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-indigo-600' : 'text-slate-500')}
+                        className={cn('group inline-flex items-center gap-1 transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-[#3182F6]' : 'text-slate-500')}
                       >
                         {label}
                         {sortKey !== key && <ArrowUpDown size={11} className="opacity-0 group-hover:opacity-40 transition-opacity" />}
@@ -225,7 +225,7 @@ function GradesTab({ quiz, students: allStudents }) {
                 const scorePct = s.score !== null ? Math.round((s.score / quiz.totalPoints) * 100) : null
                 const elapsed = calcElapsed(s.startTime, s.submittedAt)
                 return (
-                  <tr key={s.id} className="border-b border-slate-100 hover:bg-indigo-50/30 transition-colors">
+                  <tr key={s.id} className="border-b border-slate-100 hover:bg-[#E8F3FF]/30 transition-colors">
                     <td className="px-4 py-3 text-sm">{s.name}</td>
                     <td className="px-4 py-3 text-sm text-center text-slate-500">{s.studentId}</td>
                     <td className="px-4 py-3 text-sm text-slate-500">{s.department}</td>
@@ -237,7 +237,7 @@ function GradesTab({ quiz, students: allStudents }) {
                     </td>
                     <td className="px-4 py-3 text-sm text-center">
                       {s.score !== null
-                        ? <span className={cn('font-semibold', scorePct >= 80 ? 'text-indigo-600' : scorePct >= 60 ? 'text-slate-600' : 'text-red-500')}>{s.score}점</span>
+                        ? <span className={cn('font-semibold', scorePct >= 80 ? 'text-[#3182F6]' : scorePct >= 60 ? 'text-slate-600' : 'text-red-500')}>{s.score}점</span>
                         : <span className="text-slate-300">-</span>
                       }
                     </td>
@@ -249,7 +249,7 @@ function GradesTab({ quiz, students: allStudents }) {
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      <Button asChild size="xs" className="bg-indigo-700 hover:bg-indigo-800">
+                      <Button asChild size="xs" className="bg-[#1B64DA] hover:bg-[#1B64DA]">
                         <Link to={`/quiz/${quiz.id}/grade`}>답안 확인</Link>
                       </Button>
                     </td>
@@ -336,7 +336,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
         ].map(item => (
           <Card key={item.label} className="p-3 text-center">
             <div className="flex items-baseline justify-center gap-1 leading-none">
-              <span className={cn('text-xl font-bold', item.accent ? 'text-indigo-600' : '')}>{item.value}</span>
+              <span className={cn('text-xl font-bold', item.accent ? 'text-[#3182F6]' : '')}>{item.value}</span>
               <span className="text-xs text-muted-foreground">{item.unit}</span>
             </div>
             <div className="text-xs mt-1.5 text-slate-600">{item.label}</div>
@@ -478,9 +478,9 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             </thead>
             <tbody>
               {qTableData.map((q, i) => (
-                <tr key={q.id} className={cn('border-b border-slate-100 hover:bg-indigo-50/30 transition-colors', i % 2 !== 0 && 'bg-slate-50/50')}>
+                <tr key={q.id} className={cn('border-b border-slate-100 hover:bg-[#E8F3FF]/30 transition-colors', i % 2 !== 0 && 'bg-slate-50/50')}>
                   <td className="px-4 py-2.5 text-center">
-                    <Badge className="bg-indigo-50 text-indigo-700 border-0">Q{q.order}</Badge>
+                    <Badge className="bg-[#E8F3FF] text-[#1B64DA] border-0">Q{q.order}</Badge>
                   </td>
                   <td className="px-4 py-2.5"><TypeBadge type={q.type} /></td>
                   <td className="px-4 py-2.5 text-center font-medium text-slate-700">{q.points}점</td>

@@ -40,10 +40,10 @@ export function DropdownSelect({
           'w-full flex items-center justify-between gap-2 px-2.5 rounded-md border transition-all focus:outline-none',
           s.height, s.text,
           disabled && 'bg-muted text-muted-foreground cursor-not-allowed',
-          !disabled && isActive && 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold',
+          !disabled && isActive && 'border-[#3182F6] bg-[#E8F3FF] text-[#1B64DA] font-semibold',
           !disabled && !isActive && 'border-border bg-white text-foreground hover:border-muted-foreground/40',
           !disabled && !isActive && !selected && 'text-muted-foreground',
-          open && !isActive && 'border-indigo-500 ring-2 ring-indigo-100',
+          open && !isActive && 'border-[#3182F6] ring-2 ring-blue-100',
         )}
       >
         <span className={cn(!selected && !disabled && 'text-muted-foreground')}>
@@ -67,12 +67,12 @@ export function DropdownSelect({
                 className={cn(
                   'w-full flex items-center justify-between px-2.5 whitespace-nowrap transition-colors focus:outline-none',
                   s.text, s.optionPy,
-                  isSel ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-foreground hover:bg-muted',
+                  isSel ? 'bg-[#E8F3FF] text-[#1B64DA] font-semibold' : 'text-foreground hover:bg-muted',
                 )}
               >
                 <span>{o.label}</span>
                 <span className="w-4 shrink-0 flex items-center justify-center">
-                  {isSel && <Check size={12} className="text-indigo-600" />}
+                  {isSel && <Check size={12} className="text-[#3182F6]" />}
                 </span>
               </button>
             )

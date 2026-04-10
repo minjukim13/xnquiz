@@ -35,7 +35,7 @@ export function ConfirmDialog({
           <Button
             variant={confirmDanger ? 'destructive' : 'default'}
             onClick={onConfirm}
-            className={cn(!confirmDanger && 'bg-indigo-600 hover:bg-indigo-700')}
+            className={cn(!confirmDanger && 'bg-[#3182F6] hover:bg-[#1B64DA]')}
           >
             {confirmLabel}
           </Button>
@@ -54,7 +54,7 @@ export function AlertDialog({
   variant = 'info',
 }) {
   const icons = {
-    info: { icon: 'ℹ', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+    info: { icon: 'ℹ', className: 'bg-[#E8F3FF] text-[#1B64DA] border-blue-200' },
     warning: { icon: '⚠', className: 'bg-amber-50 text-amber-700 border-amber-200' },
     error: { icon: '✕', className: 'bg-red-50 text-red-700 border-red-200' },
   }
@@ -75,7 +75,7 @@ export function AlertDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <Button onClick={onClose} className="bg-indigo-600 hover:bg-indigo-700">
+          <Button onClick={onClose} className="bg-[#3182F6] hover:bg-[#1B64DA]">
             {closeLabel}
           </Button>
         </AlertDialogFooter>

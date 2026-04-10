@@ -37,12 +37,12 @@
   /* 기존 커스텀 클래스 (Phase 5에서 제거 예정) */
   .legacy-input {
     @apply w-full bg-white text-sm px-3.5 py-2.5 rounded
-    focus:outline-none focus:ring-2 focus:ring-indigo-100
+    focus:outline-none focus:ring-2 focus:ring-blue-100
     transition-all;
     color: #222222;
     border: 1px solid #E0E0E0;
   }
-  .legacy-input:focus { border-color: #6366f1; }
+  .legacy-input:focus { border-color: #3182F6; }
   .legacy-input::placeholder {
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 0.875rem;
@@ -101,36 +101,56 @@
 }
 
 :root {
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  /* ── Background ── */
+  --background: oklch(0.988 0.003 247);        /* #F9FAFB */
+  --foreground: oklch(0.175 0.014 254);        /* #191F28 */
+
+  /* ── Card / Popover ── */
+  --card: oklch(1 0 0);                        /* #FFFFFF */
+  --card-foreground: oklch(0.175 0.014 254);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.488 0.243 264.376);
+  --popover-foreground: oklch(0.175 0.014 254);
+
+  /* ── Primary = Toss Blue #3182F6 ── */
+  --primary: oklch(0.625 0.188 257);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.6 0.2 264);
-  --chart-3: oklch(0.439 0.2 264);
-  --chart-4: oklch(0.371 0.15 264);
-  --chart-5: oklch(0.3 0.1 264);
+
+  /* ── Secondary = Gray Surface #F2F4F6 ── */
+  --secondary: oklch(0.963 0.006 248);         /* #F2F4F6 */
+  --secondary-foreground: oklch(0.285 0.020 250); /* #333D4B */
+
+  /* ── Muted ── */
+  --muted: oklch(0.963 0.006 248);
+  --muted-foreground: oklch(0.635 0.018 248);  /* #8B95A1 */
+
+  /* ── Accent = Light Blue #E8F3FF ── */
+  --accent: oklch(0.963 0.025 250);
+  --accent-foreground: oklch(0.625 0.188 257); /* #3182F6 */
+
+  /* ── Semantic ── */
+  --destructive: oklch(0.600 0.215 22);        /* #F04452 */
+
+  /* ── Border / Input ── */
+  --border: oklch(0.916 0.007 248);            /* #E5E8EB */
+  --input: oklch(0.916 0.007 248);
+  --ring: oklch(0.625 0.188 257);              /* #3182F6 */
+
+  /* ── Charts (다색 팔레트) ── */
+  --chart-1: oklch(0.625 0.188 257);           /* Blue   #3182F6 */
+  --chart-2: oklch(0.665 0.170 152);           /* Green  #31B46E */
+  --chart-3: oklch(0.600 0.215 22);            /* Red    #F04452 */
+  --chart-4: oklch(0.750 0.180 85);            /* Amber */
+  --chart-5: oklch(0.640 0.180 305);           /* Purple */
+
   --radius: 0.5rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+
+  /* ── Sidebar ── */
+  --sidebar: oklch(1 0 0);                     /* #FFFFFF */
+  --sidebar-foreground: oklch(0.175 0.014 254);
+  --sidebar-primary: oklch(0.625 0.188 257);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  --sidebar-accent: oklch(0.963 0.025 250);    /* #E8F3FF */
+  --sidebar-accent-foreground: oklch(0.625 0.188 257);
+  --sidebar-border: oklch(0.916 0.007 248);
+  --sidebar-ring: oklch(0.625 0.188 257);
 }
