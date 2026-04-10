@@ -294,7 +294,7 @@ export default function QuestionBank() {
 function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDragStart }) {
   const diff = question.difficulty && DIFFICULTY_META[question.difficulty]
   return (
-    <div className={cn('flex transition-colors hover:bg-slate-50/50', !isLast && 'border-b border-slate-100')}>
+    <div className={cn('flex transition-colors hover:bg-[#F9FAFB]', !isLast && 'border-b border-[#F2F4F6]')}>
       {/* 드래그 핸들 */}
       {showDragHandle && (
         <div
