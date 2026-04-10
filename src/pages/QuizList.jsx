@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, CheckCircle2, AlertCircle, Send, BarChart2, FolderInput, Copy, X, Search } from 'lucide-react'
+import { Plus, FileText, CheckCircle2, AlertCircle, BarChart2, FolderInput, Copy, X, Search } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -74,7 +74,7 @@ const STATUS_CONFIG = {
   open:    { label: '진행중',  badge: 'text-[#16A34A]', bgStyle: { background: '#F0FDF4' } },
   grading: { label: '진행중',  badge: 'text-[#16A34A]', bgStyle: { background: '#F0FDF4' } },
   closed:  { label: '마감',   badge: 'text-[#6B7280]', bgStyle: { background: '#F3F4F6' } },
-  draft:   { label: '발행 전', badge: 'text-[#6366F1]', bgStyle: { background: '#EEF2FF' } },
+  draft:   { label: '임시저장', badge: 'text-[#6366F1]', bgStyle: { background: '#EEF2FF' } },
   scheduled: { label: '예정', badge: 'text-[#D97706]', bgStyle: { background: '#FFFBEB' } },
 }
 
@@ -97,11 +97,13 @@ function InstructorQuizList() {
     setTimeout(() => setToast(null), 4000)
   }
 
-  const handlePublishQuiz = (quizId) => {
+  const handleToggleVisibility = (quizId) => {
     const idx = quizzes.findIndex(q => q.id === quizId)
     if (idx === -1) return
+    const quiz = quizzes[idx]
+    if (quiz.status === 'draft') return // 임시저장은 공개 불가
     const updated = [...quizzes]
-    updated[idx] = { ...updated[idx], status: 'open' }
+    updated[idx] = { ...updated[idx], visible: !quiz.visible }
     const globalIdx = mockQuizzes.findIndex(q => q.id === quizId)
     if (globalIdx !== -1) mockQuizzes[globalIdx] = updated[idx]
     setQuizzes(updated)
@@ -231,7 +233,7 @@ function InstructorQuizList() {
         {sortedQuizzes.length > 0 ? (
           <div className="grid gap-3">
             {sortedQuizzes.map(quiz => (
-              <QuizCard key={quiz.id} quiz={quiz} onPublishQuiz={handlePublishQuiz} onCopy={setCopySourceQuiz} />
+              <QuizCard key={quiz.id} quiz={quiz} onToggleVisibility={handleToggleVisibility} onCopy={setCopySourceQuiz} />
             ))}
           </div>
         ) : (
@@ -282,10 +284,10 @@ function getDdayBadge(quiz) {
   return { label: `D-${diff}`, color: '#B45309', bg: '#FFF9E6' }
 }
 
-function QuizCard({ quiz, onPublishQuiz, onCopy }) {
+function QuizCard({ quiz, onToggleVisibility, onCopy }) {
   const cfg = STATUS_CONFIG[quiz.status]
-  const [confirmPublish, setConfirmPublish] = useState(false)
   const ddayBadge = getDdayBadge(quiz)
+  const isVisible = quiz.visible !== false && quiz.status !== 'draft'
   const navigate = useNavigate()
 
   const cardTarget = (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
@@ -371,39 +373,32 @@ function QuizCard({ quiz, onPublishQuiz, onCopy }) {
             <span className="w-px h-4 mx-2" style={{ background: '#E5E7EB' }} />
           )}
 
-          {/* 주요 액션 버튼 */}
-          {quiz.status === 'draft' && !confirmPublish && (
+          {/* 공개/비공개 상태 + 주요 액션 */}
+          {quiz.status !== 'draft' && (
             <button
-              onClick={() => setConfirmPublish(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors"
-              style={{ background: '#16A34A', color: '#fff' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#15803D' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#16A34A' }}
+              onClick={() => onToggleVisibility(quiz.id)}
+              className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors"
+              style={isVisible
+                ? { background: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0' }
+                : { background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' }
+              }
             >
-              <Send size={11} />
-              발행
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: isVisible ? '#16A34A' : '#DC2626', display: 'inline-block' }} />
+              {isVisible ? '공개' : '비공개'}
             </button>
           )}
-          {quiz.status === 'draft' && confirmPublish && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs" style={{ color: '#616161' }}>발행할까요?</span>
-              <button
-                onClick={() => { onPublishQuiz(quiz.id); setConfirmPublish(false) }}
-                className="text-xs font-semibold text-white px-2.5 py-1.5 rounded transition-colors"
-                style={{ background: '#16A34A' }}
-              >
-                확인
-              </button>
-              <button
-                onClick={() => setConfirmPublish(false)}
-                className="text-xs px-2 py-1.5 rounded"
-                style={{ color: '#616161', border: '1px solid #E0E0E0' }}
-              >
-                취소
-              </button>
-            </div>
-          )}
-          {quiz.status !== 'draft' && (
+          {quiz.status === 'draft' ? (
+            <Link
+              to={`/quiz/${quiz.id}/edit`}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors"
+              style={{ background: '#4F46E5', color: '#fff' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#4338CA' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#4F46E5' }}
+            >
+              <FileText size={11} />
+              편집
+            </Link>
+          ) : (
             <Link
               to={`/quiz/${quiz.id}/stats`}
               className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors"
@@ -685,7 +680,7 @@ function QuizImportModal({ onClose, onImport }) {
               </div>
             ) : courseQuizzes.length === 0 ? (
               <div className="flex items-center justify-center h-full" style={{ color: '#BDBDBD' }}>
-                <p className="text-sm">발행된 퀴즈가 없습니다</p>
+                <p className="text-sm">공개된 퀴즈가 없습니다</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -767,7 +762,7 @@ function StudentQuizList() {
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
 
-  const allQuizzes = mockQuizzes.filter(q => q.status !== 'draft')
+  const allQuizzes = mockQuizzes.filter(q => q.status !== 'draft' && q.visible !== false)
 
   const filteredAll = useMemo(
     () => applyWeekSessionFilter(allQuizzes, filterWeek, filterSession),

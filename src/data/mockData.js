@@ -22,6 +22,7 @@ export const mockQuizzes = [
     description: 'ERD 설계, SQL 쿼리 작성, 정규화 전 범위를 다룹니다. 오픈북 불가, 제한 시간 내 제출하세요.',
     course: 'CS301 데이터베이스',
     status: 'grading',
+    visible: true,
     startDate: '2026-04-03 09:00',
     dueDate: '2026-04-03 18:00',
     week: 8,
@@ -46,6 +47,7 @@ export const mockQuizzes = [
     description: 'SELECT, WHERE, JOIN 등 SQL 기초 구문을 다룹니다. 강의 3~4주차 내용 기반으로 출제됩니다.',
     course: 'CS301 데이터베이스',
     status: 'closed',
+    visible: true,
     startDate: '2026-03-24 09:00',
     dueDate: '2026-03-24 23:59',
     week: 5,
@@ -69,6 +71,7 @@ export const mockQuizzes = [
     title: '주차별 퀴즈 4 - 인덱스와 쿼리 최적화',
     course: 'CS301 데이터베이스',
     status: 'open',
+    visible: true,
     startDate: '2026-04-06 09:00',
     dueDate: '2026-04-09 23:59',
     week: 4,
@@ -91,6 +94,7 @@ export const mockQuizzes = [
     title: '기말고사 - 데이터베이스 심화',
     course: 'CS301 데이터베이스',
     status: 'draft',
+    visible: false,
     startDate: '2026-06-15 09:00',
     dueDate: '2026-06-15 18:00',
     week: 16,
@@ -114,6 +118,7 @@ export const mockQuizzes = [
     title: '주차별 퀴즈 5-1 - ER 다이어그램',
     course: 'CS301 데이터베이스',
     status: 'closed',
+    visible: true,
     startDate: '2026-03-17 09:00',
     dueDate: '2026-03-17 23:59',
     week: 5,
@@ -137,6 +142,7 @@ export const mockQuizzes = [
     title: '5주차 형성평가 - 관계 대수',
     course: 'CS301 데이터베이스',
     status: 'closed',
+    visible: true,
     startDate: '2026-03-17 10:00',
     dueDate: '2026-03-17 23:59',
     week: 5,
@@ -160,6 +166,7 @@ export const mockQuizzes = [
     title: '5주차 서술형 과제 - 정규화 단계 분석',
     course: 'CS301 데이터베이스',
     status: 'grading',
+    visible: true,
     startDate: '2026-03-17 09:00',
     dueDate: '2026-03-21 23:59',
     week: 5,
@@ -184,6 +191,7 @@ export const mockQuizzes = [
     description: '관계형 데이터베이스 설계 원칙과 1NF~3NF 정규화 과정을 평가합니다. 강의 6~7주차 내용 기반으로 출제됩니다.',
     course: 'CS301 데이터베이스',
     status: 'closed',
+    visible: true,
     startDate: '2026-03-31 09:00',
     dueDate: '2026-03-31 23:59',
     week: 7,
@@ -210,6 +218,7 @@ export const mockQuizzes = [
     description: '프로세스 생명주기, 스레드 모델, 동기화 문제를 다룹니다.',
     course: 'CS201 운영체제',
     status: 'closed',
+    visible: true,
     startDate: '2026-03-18 09:00',
     dueDate: '2026-03-18 11:00',
     week: 8,
@@ -234,6 +243,7 @@ export const mockQuizzes = [
     description: 'CPU 스케줄링 알고리즘(FCFS, SJF, Round Robin)을 평가합니다.',
     course: 'CS201 운영체제',
     status: 'closed',
+    visible: true,
     startDate: '2026-03-10 09:00',
     dueDate: '2026-03-10 23:59',
     week: 4,
@@ -258,6 +268,7 @@ export const mockQuizzes = [
     description: '페이징, 세그멘테이션, 가상 메모리 기초 개념을 다룹니다.',
     course: 'CS201 운영체제',
     status: 'draft',
+    visible: false,
     startDate: '2026-04-14 09:00',
     dueDate: '2026-04-14 23:59',
     week: 10,
@@ -282,6 +293,7 @@ export const mockQuizzes = [
     description: '버블 정렬부터 퀵 정렬까지 시간복잡도 및 동작 원리를 평가합니다.',
     course: 'CS401 알고리즘',
     status: 'closed',
+    visible: true,
     startDate: '2026-03-20 09:00',
     dueDate: '2026-03-20 11:00',
     week: 8,
@@ -306,6 +318,7 @@ export const mockQuizzes = [
     description: '이진 탐색, BFS, DFS의 시간복잡도와 활용 사례를 다룹니다.',
     course: 'CS401 알고리즘',
     status: 'draft',
+    visible: false,
     startDate: '2026-04-17 09:00',
     dueDate: '2026-04-17 23:59',
     week: 11,
@@ -421,6 +434,124 @@ const ANSWER_POOL = {
   q8_8: ['분해된 릴레이션의 공통 속성이 어느 한쪽의 슈퍼키여야 한다', '분해된 릴레이션의 행 수가 동일해야 한다', '분해된 릴레이션의 속성 수가 동일해야 한다', '분해된 릴레이션이 같은 도메인을 가져야 한다'],
   q8_9: ['삽입 이상, 삭제 이상, 갱신 이상', '삽입이상·삭제이상·갱신이상', '삽입 이상과 삭제 이상, 갱신 이상'],
   q8_10: ['1NF는 원자값 조건을 만족해야 합니다. 2NF는 1NF를 만족하고 부분 함수 종속을 제거해야 합니다. 예시로 (학번, 과목코드, 성적, 학과명) 테이블에서 학과명이 학번에만 종속되므로 분리해야 합니다.', 'BCNF는 모든 결정자가 후보키여야 하는 조건입니다. 예를 들어 수강(학번, 과목, 교수) 테이블에서 교수→과목 종속이 있으면 1NF→2NF→3NF→BCNF 단계로 분해합니다.', '정규화 각 단계: 1NF 원자값 보장, 2NF 부분 종속 제거, 3NF 이행 종속 제거, BCNF 모든 결정자가 후보키. 과도한 정규화 시 JOIN 연산이 증가하여 성능 저하가 발생할 수 있습니다.'],
+
+  // 퀴즈 2 답안 풀 (1차 형성평가 - SQL 기초)
+  q2_1: ['TRUNCATE', 'DELETE', 'DROP', 'REMOVE'],
+  q2_2: ['ORDER BY', 'GROUP BY', 'SORT BY', 'ARRANGE BY'],
+  q2_3: ['참', '거짓'],
+  q2_4: ['두 테이블 모두에 일치하는 행', '왼쪽 테이블의 모든 행', '오른쪽 테이블의 모든 행', '두 테이블의 모든 행'],
+  q2_5: ['IS NULL', '= NULL', '== NULL', 'EQUALS NULL'],
+  q2_6: ['참', '거짓'],
+  q2_7: ['CONCAT', 'COUNT', 'SUM', 'AVG'],
+  q2_8: ['중복 행 제거', 'NULL 행 제거', '정렬 수행', '행 수 반환'],
+  q2_9: ['참', '거짓'],
+  q2_10: ['CREATE', 'SELECT', 'INSERT', 'UPDATE'],
+  q2_11: ['비교 연산자(=, >, <)와 함께 사용될 때', 'IN 연산자와 함께 사용될 때', 'EXISTS 연산자와 함께 사용될 때', 'FROM 절에 사용될 때'],
+  q2_12: ['새 행 삽입 시 자동으로 증가하는 고유 정수 값 생성', '컬럼 값을 자동으로 정렬', 'NULL 값을 자동으로 0으로 변환', '기본키를 자동으로 설정'],
+  q2_13: ['참', '거짓'],
+  q2_14: ['_', '%', '*', '?'],
+  q2_15: ['>= A AND <= B', '> A AND < B', '>= A AND < B', '> A AND <= B'],
+  q2_16: ['참', '거짓'],
+  q2_17: ['부모 행 삭제 시 자식 행도 자동으로 삭제', '부모 행 삭제 시 오류 발생', '부모 행 삭제 시 자식 행의 값이 NULL로 변경', '자식 행 삭제 시 부모 행도 자동으로 삭제'],
+  q2_18: ['뷰는 항상 물리적으로 데이터를 저장한다', '논리적 테이블이다', '기반 테이블의 데이터를 참조한다', '보안을 위해 특정 컬럼만 노출할 수 있다'],
+  q2_19: ['거짓', '참'],
+  q2_20: ['ROLLBACK', 'COMMIT', 'SAVEPOINT', 'UNDO'],
+
+  // 퀴즈 3 답안 풀 (인덱스와 쿼리 최적화)
+  q3_1: ['B-Tree 구조로 데이터를 정렬하여 탐색 범위를 줄이기 때문에', '데이터를 메모리에 캐시하기 때문에', '중복 데이터를 자동으로 제거하기 때문에', '테이블 전체 크기를 줄이기 때문에'],
+  q3_2: ['거짓', '참'],
+  q3_3: ['인덱스가 없는 컬럼으로 WHERE 조건 검색', '기본키(PK)로 단건 조회', 'LIMIT 1 조건 사용', '인덱스 컬럼 범위 검색'],
+  q3_4: ['쿼리 실행 계획을 확인하여 성능 병목을 파악하기 위해', '쿼리 결과를 외부 파일로 출력하기 위해', '데이터베이스 접근 권한을 확인하기 위해', '쿼리 오류를 자동으로 수정하기 위해'],
+  q3_5: ['WHERE B = ? AND C = ?', 'WHERE A = ?', 'WHERE A = ? AND B = ?', 'WHERE A = ? AND B = ? AND C = ?'],
+  q3_6: ['참', '거짓'],
+  q3_7: ['1번 쿼리로 N개 데이터 조회 후, 각 데이터에 대해 N번 추가 쿼리가 발생하는 현상', '하나의 테이블에 N+1개 이상의 인덱스가 생성된 상태', 'N개 테이블을 JOIN할 때 쿼리 수가 N+1이 되는 현상', '동시에 N+1명이 접속하여 데드락이 발생하는 현상'],
+  q3_8: ['인덱스를 활용하지 못하고 풀 스캔이 발생한다', '쿼리 구문 오류가 발생한다', '함수 결과가 잘못 계산된다', '인덱스가 자동으로 재생성된다'],
+  q3_9: ['EXPLAIN', 'explain', 'Explain'],
+  q3_10: ['INSERT/UPDATE/DELETE가 매우 빈번한 테이블', '고유값이 많은 컬럼 검색', '기본키(PK)로 단건 조회', 'WHERE 조건 포함 범위 검색'],
+
+  // 퀴즈 4 답안 풀 (기말고사 - 데이터베이스 심화)
+  q4_1: ['데이터베이스의 구조와 제약 조건을 정의한 명세', '저장된 데이터의 실제 집합', '데이터 접근 권한 목록', '쿼리 실행 계획'],
+  q4_2: ['2NF 만족 + 이행적 함수 종속 제거', '1NF 만족 + 부분 함수 종속 제거', '2NF 만족 + 결정자가 모두 후보키', '3NF 만족 + 다치 종속 제거'],
+  q4_3: ['참', '거짓'],
+  q4_4: ['같은 트랜잭션 내에서 동일 쿼리를 반복할 때 이전에 없던 행이 나타나는 현상', '커밋되지 않은 데이터를 읽는 현상', '한 트랜잭션이 읽은 데이터를 다른 트랜잭션이 수정한 현상', '데드락으로 인해 쿼리가 차단되는 현상'],
+  q4_5: ['일관성(Consistency), 가용성(Availability), 분할 내성(Partition Tolerance)', '동시성, 원자성, 내구성', '무결성, 정확성, 성능', '보안, 가용성, 성능'],
+  q4_6: ['참', '거짓'],
+  q4_7: ['모든 트랜잭션에 동일한 타임아웃 적용', '항상 동일한 순서로 자원 잠금', '타임아웃 설정 후 롤백', '선점(Preemption) 기법 사용'],
+  q4_8: ['Redis', 'MongoDB', 'Cassandra', 'Neo4j'],
+  q4_9: ['거짓', '참'],
+  q4_10: ['준비된 구문(Prepared Statement) 사용', '입력 길이 제한', '에러 메시지 숨기기', '데이터베이스 계정 비밀번호 복잡도 강화'],
+  q4_11: ['파티셔닝은 단일 DB 내 분할, 샤딩은 다수 DB 서버 간 분산', '파티셔닝은 수직 분할만 가능, 샤딩은 수평 분할만 가능', '파티셔닝은 NoSQL 전용, 샤딩은 RDB 전용', '샤딩은 읽기 성능만 향상, 파티셔닝은 쓰기 성능만 향상'],
+  q4_12: ['거짓', '참'],
+  q4_13: ['SERIALIZABLE', 'READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ'],
+  q4_14: ['나누기(Division)', '선택(Selection)', '프로젝션(Projection)', '합집합(Union)'],
+  q4_15: ['장애 발생 시 데이터 복구를 위한 트랜잭션 로그 기록', '쿼리 성능 최적화', '인덱스 자동 생성', '동시 접속 사용자 수 제어'],
+  q4_16: ['쿼리를 작성한 개발자의 경력', '통계 정보(Statistics)', '인덱스 존재 여부', '테이블 크기'],
+  q4_17: ['데이터 읽기 시 잠금 없이 이전 버전의 스냅샷을 제공', '모든 읽기 연산에 공유 잠금 적용', '쓰기 연산을 직렬화하여 충돌 방지', '자동으로 트랜잭션을 롤백'],
+  q4_18: ['장애 발생 시 Standby로 전환되는 동안 일시적 서비스 중단 발생', '쓰기 성능이 절반으로 감소', '데이터 정합성 보장이 불가', '읽기 분산이 불가능'],
+  q4_19: ['외부 쿼리의 각 행에 대해 서브쿼리가 반복 실행', '한 번만 실행되어 결과를 캐시', '항상 단일 값을 반환', 'FROM 절에만 사용 가능'],
+  q4_20: ['분해된 릴레이션의 공통 속성이 어느 한쪽의 키여야 한다', '분해된 릴레이션을 단순히 UNION으로 합칠 수 있으면 된다', '분해된 릴레이션의 행 수 합이 원본과 같아야 한다', '분해된 릴레이션이 항상 같은 수의 컬럼을 가져야 한다'],
+  q4_21: ['Atomicity', 'atomicity', '원자성'],
+  q4_22: ['데드락', 'deadlock', 'Deadlock', '교착 상태'],
+  q4_23: ['EXPLAIN', 'explain', 'Explain'],
+  q4_24: ['정규화의 목적은 데이터 중복 제거와 이상 현상 방지입니다. 1NF는 원자값 보장, 2NF는 부분 종속 제거, 3NF는 이행 종속 제거, BCNF는 모든 결정자가 후보키여야 합니다. 과도한 정규화는 JOIN 연산 증가로 성능 저하를 초래할 수 있으며, 이때 역정규화를 적용합니다.', '1NF~BCNF 각 단계를 거치며 데이터 무결성을 높입니다. 역정규화는 읽기 성능이 중요한 경우, 예를 들어 보고서 테이블에서 집계 데이터를 미리 저장하는 상황에서 적용합니다.', '정규화는 데이터 이상(삽입/삭제/갱신)을 제거하기 위한 과정입니다. 단계별로 종속성을 제거하며, 역정규화는 대시보드나 OLAP 환경에서 조회 성능 향상을 위해 사용됩니다.'],
+  q4_25: ['인덱스 전략은 자주 조회되는 컬럼에 B-Tree 인덱스를 생성하되 DML 빈도를 고려해야 합니다. 캐싱은 Redis 등을 활용하여 반복 쿼리 부하를 줄이고, Read Replica로 읽기/쓰기를 분리합니다. 파티셔닝은 데이터 크기에 따라 수평/수직으로 분할합니다.', '대규모 서비스에서는 인덱스 설계가 핵심입니다. 커버링 인덱스로 I/O를 줄이고, 캐시 무효화 전략을 세워야 합니다. Read Replica 사용 시 복제 지연(replication lag)을 고려해야 하며, 파티셔닝은 쿼리 패턴에 맞게 파티션 키를 선정해야 합니다.', 'DB 성능 향상 방법으로 인덱스, 캐싱, 읽기 분리, 파티셔닝이 있습니다. 트레이드오프로는 인덱스 유지 비용, 캐시 정합성, 복제 지연, 파티션 간 조인 비용 등이 있습니다.'],
+
+  // 퀴즈 5 답안 풀 (ER 다이어그램)
+  q5_1: ['직사각형', '마름모', '타원', '이중 직사각형'],
+  q5_2: ['마름모', '직사각형', '타원', '삼각형'],
+  q5_3: ['참', '거짓'],
+  q5_4: ['이중 타원', '점선 타원', '밑줄 있는 타원', '이중 직사각형'],
+  q5_5: ['M:N', '1:1', '1:N', 'N:1'],
+  q5_6: ['참', '거짓'],
+  q5_7: ['별도의 관계 테이블을 생성하여 양쪽 기본키를 외래키로 포함한다', '한쪽 테이블에 외래키를 추가한다', '두 테이블을 하나로 병합한다', '관계 속성만 별도 테이블로 분리한다'],
+  q5_8: ['이중선(Double Line)', '점선', '화살표', '굵은 단선'],
+  q5_9: ['기본키(Primary Key)', '기본키', 'Primary Key', 'PK'],
+  q5_10: ['개체(Entity), 속성(Attribute), 관계(Relationship)', '개체(Entity), 속성(Attribute)', '개체(Entity), 관계(Relationship), 인덱스(Index)', '속성(Attribute), 트리거(Trigger)'],
+
+  // 퀴즈 6 답안 풀 (관계 대수)
+  q6_1: ['셀렉션(Selection, σ)', '프로젝션(Projection, π)', '조인(Join, ⋈)', '디비전(Division, ÷)'],
+  q6_2: ['프로젝션(Projection, π)', '셀렉션(Selection, σ)', '카티션 곱(Cartesian Product, ×)', '합집합(Union, ∪)'],
+  q6_3: ['참', '거짓'],
+  q6_4: ['두 릴레이션에서 같은 이름의 속성 값이 같은 튜플을 결합하고, 중복 속성을 제거한다', '두 릴레이션의 모든 튜플을 조합하여 카티션 곱을 구한다', '한 릴레이션에만 존재하는 튜플을 반환한다', '두 릴레이션의 합집합을 구한 후 중복을 제거한다'],
+  q6_5: ['−', '-', '마이너스'],
+
+  // 퀴즈 7 답안 풀 (서술형 과제 - 정규화 단계 분석)
+  q7_1: ['1NF는 모든 속성이 원자값을 가져야 합니다. 예시로 한 셀에 여러 전화번호를 저장하면 1NF를 위반합니다. 2NF는 부분 함수 종속을 제거해야 하며, 복합키의 일부에만 종속되는 속성이 있으면 위반입니다. 3NF는 이행적 함수 종속을 제거해야 합니다.', '제1정규형은 원자값 조건, 제2정규형은 완전 함수 종속 조건, 제3정규형은 비이행 함수 종속 조건입니다. 각각 다중값 속성, 부분 종속, 이행 종속이 위반 예시입니다.', '1NF: 반복 그룹 제거, 2NF: 기본키의 부분 집합에 종속되는 속성 분리, 3NF: 기본키에 간접 종속되는 속성 분리. 예를 들어 학생(학번, 과목코드, 교수명) 테이블에서 교수명이 과목코드에만 종속되면 2NF 위반입니다.'],
+  q7_2: ['주문 릴레이션은 2NF를 위반합니다. 고객명은 고객번호에만 종속되고, 상품명과 단가는 상품코드에만 종속됩니다. 정규화 과정: 고객(고객번호, 고객명), 상품(상품코드, 상품명, 단가), 주문(주문번호, 고객번호, 상품코드, 수량)으로 분해합니다.', '해당 스키마는 부분 함수 종속이 존재하여 2NF를 위반합니다. (주문번호, 상품코드)가 복합키일 때, 고객명은 주문번호에만, 상품명/단가는 상품코드에만 종속됩니다. 세 릴레이션으로 분해하여 해결합니다.', '1NF는 만족하지만 복합키에 대한 부분 종속이 있어 2NF 위반입니다. 고객 테이블, 상품 테이블, 주문 테이블로 분해하면 3NF까지 만족합니다.'],
+  q7_3: ['정규화의 장점: 1) 데이터 중복 감소로 저장 공간 절약, 2) 갱신 이상 방지로 데이터 일관성 유지. 단점: 1) 테이블 수 증가로 JOIN 연산 비용 증가, 2) 쿼리 복잡도 증가. 역정규화는 대시보드 등 조회 빈도가 높은 테이블에서 JOIN을 줄이기 위해 적용합니다.', '장점: 데이터 무결성 보장, 이상 현상 제거. 단점: 조인 증가로 성능 저하 가능, 설계 복잡도 증가. 역정규화 예시: 게시판 목록에서 작성자 이름을 매번 JOIN하지 않고 게시글 테이블에 작성자명 컬럼을 추가하는 경우.', '장점: 중복 최소화, 데이터 정합성 향상. 단점: 읽기 성능 저하, 복잡한 쿼리. 역정규화가 필요한 상황: OLAP 환경에서 집계 테이블을 미리 만들어 실시간 리포트 성능을 높이는 경우.'],
+
+  // CS201 운영체제 — 중간고사 답안 풀
+  cs201_1_q1: ['스레드는 프로세스의 메모리 공간을 공유하지만 프로세스는 독립적인 메모리 공간을 가진다', '프로세스가 스레드보다 생성 비용이 낮다', '스레드는 독립적인 PCB를 가진다', '프로세스 간 통신은 스레드 간 통신보다 빠르다'],
+  cs201_1_q2: ['FCFS (First-Come, First-Served)', 'Round Robin', 'SRT (Shortest Remaining Time)', 'Priority Scheduling (Preemptive)'],
+  cs201_1_q3: ['참', '거짓'],
+  cs201_1_q4: ['대기(Waiting) 상태', '대기 상태', 'Waiting', 'Block 상태'],
+  cs201_1_q5: ['세마포어는 정수 카운터 기반으로 여러 스레드의 접근을 허용하고, 뮤텍스는 이진값으로 단 하나의 스레드만 접근을 허용합니다. 세마포어는 생산자-소비자 문제에, 뮤텍스는 임계 영역 보호에 적합합니다.', '뮤텍스는 소유권 개념이 있어 잠금을 획득한 스레드만 해제할 수 있지만, 세마포어는 다른 스레드가 시그널을 보낼 수 있습니다. 뮤텍스는 상호 배제에, 세마포어는 리소스 풀 관리에 사용됩니다.', '세마포어와 뮤텍스 모두 동기화 도구이지만, 뮤텍스는 단일 리소스 보호에 사용되고 세마포어는 N개 리소스에 대한 동시 접근 제어에 사용됩니다. 예를 들어 데이터베이스 커넥션 풀은 세마포어로 관리합니다.'],
+  cs201_1_q6: ['선점(Preemption)', '상호 배제(Mutual Exclusion)', '점유와 대기(Hold and Wait)', '순환 대기(Circular Wait)'],
+  cs201_1_q7: ['파이프(Pipe), 공유 메모리(Shared Memory), 메시지 큐(Message Queue)', '파이프(Pipe), 공유 메모리(Shared Memory)', '공유 메모리(Shared Memory), 메시지 큐(Message Queue)', '파이프(Pipe), 레지스터(Register)'],
+  cs201_1_q8: ['13.25', '13', '14', '12.5'],
+  cs201_1_q9: ['참', '거짓'],
+  cs201_1_q10: ['LRU는 가장 오래 사용되지 않은 페이지를 교체하여 참조 지역성을 활용합니다. FIFO는 가장 먼저 적재된 페이지를 교체합니다. 벨라디의 이상 현상은 FIFO에서 발생하며, 프레임 수가 증가해도 페이지 폴트가 늘어나는 현상입니다.', 'FIFO는 단순하지만 벨라디의 이상 현상이 발생할 수 있습니다. LRU는 시간적 지역성을 반영하여 더 나은 성능을 보이지만 구현 비용이 높습니다. 벨라디의 이상은 스택 알고리즘이 아닌 FIFO에서 발생합니다.', 'LRU와 FIFO 모두 페이지 교체 알고리즘입니다. LRU는 최근 미사용 페이지를 교체하고, FIFO는 선입선출 방식입니다. FIFO에서 프레임 증가 시 오히려 폴트가 증가하는 벨라디 이상이 발생합니다.'],
+
+  // CS201 운영체제 — 1차 형성평가 답안 풀
+  cs201_2_q1: ['FCFS', 'SJF', 'Priority Scheduling', 'Multilevel Queue'],
+  cs201_2_q2: ['참', '거짓'],
+  cs201_2_q3: ['에이징(Aging)', '라운드 로빈(Round Robin)', '멀티레벨 큐(Multilevel Queue)', 'FCFS'],
+  cs201_2_q4: ['프로세스가 I/O를 요청하여 대기 상태로 전환될 때', '실행 중인 프로세스가 종료될 때', '타임 슬라이스가 만료될 때', '인터럽트가 처리된 후 준비 큐에 프로세스가 추가될 때'],
+  cs201_2_q5: ['디스패치(Dispatch)', '디스패치', 'Dispatch', '문맥 교환'],
+  cs201_2_q6: ['Round Robin, SRT, Preemptive Priority', 'Round Robin, SRT (Shortest Remaining Time)', 'Round Robin, FCFS', 'SRT (Shortest Remaining Time), Preemptive Priority'],
+  cs201_2_q7: ['14', '16', '12', '18'],
+
+  // CS401 알고리즘 — 중간고사 답안 풀
+  cs401_1_q1: ['합병 정렬(Merge Sort)', '퀵 정렬(Quick Sort)', '버블 정렬(Bubble Sort)', '삽입 정렬(Insertion Sort)'],
+  cs401_1_q2: ['참', '거짓'],
+  cs401_1_q3: ['버블 정렬, 합병 정렬, 삽입 정렬', '퀵 정렬, 합병 정렬, 힙 정렬', '선택 정렬, 퀵 정렬, 합병 정렬', '힙 정렬, 삽입 정렬, 선택 정렬'],
+  cs401_1_q4: ['삽입 정렬(Insertion Sort)', '삽입 정렬', 'Insertion Sort', '버블 정렬'],
+  cs401_1_q5: ['힙 정렬은 최대 힙(또는 최소 힙)을 구성한 후 루트 노드를 반복적으로 추출하여 정렬합니다. 시간복잡도는 최선/평균/최악 모두 O(n log n)입니다. 실제 환경에서 퀵 정렬이 더 빠른 이유는 캐시 지역성이 뛰어나기 때문입니다.', '힙 정렬은 완전 이진 트리를 활용하여 정렬합니다. 힙 구성에 O(n), 추출에 O(n log n)이 소요됩니다. 퀵 정렬은 평균적으로 캐시 히트율이 높아 상수 계수가 작기 때문에 실제로 더 빠릅니다.', '힙 정렬의 동작: 배열을 힙으로 변환(heapify) 후 최대값을 추출하여 정렬합니다. 시간복잡도는 O(n log n)입니다. 퀵 정렬은 메모리 접근 패턴이 순차적이어서 CPU 캐시 활용도가 높습니다.'],
+  cs401_1_q6: ['O(n log n)', 'O(n)', 'O(n²)', 'O(log n)'],
+  cs401_1_q7: ['24', '20', '16', '28'],
+  cs401_1_q8: ['버블 정렬, 삽입 정렬, 선택 정렬, 퀵 정렬, 힙 정렬', '버블 정렬, 삽입 정렬, 선택 정렬, 퀵 정렬', '버블 정렬, 삽입 정렬, 합병 정렬', '퀵 정렬, 힙 정렬, 기수 정렬'],
+  cs401_1_q9: ['거짓', '참'],
+  cs401_1_q10: ['이미 정렬된 배열', '역순으로 정렬된 배열', '무작위 배열', '모든 원소가 동일한 배열'],
 }
 
 // 문항별 자동채점 정답 판별
@@ -1796,24 +1927,111 @@ export const mockStudents8 = Array.from({ length: 120 }, (_, i) => {
   }
 })
 
+// 결정론적 해시 — 학생 인덱스 + 문항 인덱스 기반으로 정답률 패턴 생성
+function _seedHash(i, j) { return ((i * 2654435761 + j * 2246822519) >>> 0) % 100 }
+
 // 퀴즈별 학생 팩토리 — metadata와 정합성 유지
-function generateStudents(total, submitted, graded, prefix, baseYear = '2022', startDate = '2026-03-20') {
+function generateStudents(total, submitted, graded, prefix, baseYear = '2022', startDate = '2026-03-20', questions = []) {
+  // 난이도별 정답률 테이블 (문항 순서 기반)
+  const difficultyRates = [90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 70, 65, 55, 75, 60, 50, 70, 65, 55, 80, 60, 50, 45, 40]
+
+  // 수동채점 문항별 점수 패턴 풀 (배점 비율)
+  const MANUAL_RATIOS = [0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.65, 0.7, 0.8, 0.9, 0.95, 0.55, 0.7, 0.8, 0.85]
+
   return Array.from({ length: total }, (_, i) => {
     const isSubmitted = i < submitted
     const isGraded = isSubmitted && i < graded
+
+    // 미제출 학생
+    if (!isSubmitted) {
+      return {
+        id: `${prefix}${i + 1}`,
+        studentId: `${baseYear}${String(i + 1001).slice(1)}`,
+        name: DEMO_NAMES[i % 12] + (i > 11 ? `-${Math.floor(i / 12) + 1}` : ''),
+        department: ['컴퓨터공학과', '소프트웨어학과', '정보통신공학과', '데이터사이언스학과'][i % 4],
+        score: null, startTime: null, endTime: null, submitted: false, submittedAt: null,
+        response: null, autoScores: {}, manualScores: null, selections: {},
+      }
+    }
+
+    // 제출 학생: 문항별 점수/선택지 생성
+    const autoScores = {}
+    const manualScores = {}
+    const selections = {}
+    let hasManual = false
+
+    questions.forEach((q, j) => {
+      const rate = difficultyRates[j % difficultyRates.length]
+      const hash = _seedHash(i, j)
+      const isCorrect = hash < rate
+
+      if (q.autoGrade === true || q.autoGrade === 'partial') {
+        // 자동채점 문항
+        autoScores[q.id] = isCorrect ? q.points : 0
+
+        // selections: 객관식/참거짓은 보기에서 선택, 단답/수치형은 ANSWER_POOL에서 가져옴
+        if (q.choices && q.choices.length > 0) {
+          if (isCorrect) {
+            selections[q.id] = q.correctAnswer
+          } else {
+            const wrongChoices = q.choices.filter(c => c !== q.correctAnswer)
+            selections[q.id] = wrongChoices[(i + j) % wrongChoices.length] || q.choices[0]
+          }
+        } else {
+          // 단답/수치형 — ANSWER_POOL 활용
+          const pool = ANSWER_POOL[q.id]
+          if (pool) {
+            selections[q.id] = isCorrect ? pool[0] : pool[(1 + (i + j) % (pool.length - 1)) % pool.length]
+          } else {
+            selections[q.id] = isCorrect ? (q.correctAnswer || '정답') : '오답'
+          }
+        }
+      } else {
+        // 수동채점 문항 (essay, short_answer with autoGrade: false)
+        hasManual = true
+        if (isGraded) {
+          const ratio = MANUAL_RATIOS[(i + j) % MANUAL_RATIOS.length]
+          manualScores[q.id] = Math.round(q.points * ratio)
+        }
+        // selections: ANSWER_POOL에서 서술형 답안 선택
+        const pool = ANSWER_POOL[q.id]
+        if (pool) {
+          selections[q.id] = pool[(i + j) % pool.length]
+        } else {
+          selections[q.id] = '답안 내용입니다.'
+        }
+      }
+    })
+
+    const autoTotal = Object.values(autoScores).reduce((a, b) => a + b, 0)
+    const manualTotal = isGraded ? Object.values(manualScores).reduce((a, b) => a + b, 0) : 0
+    const totalScore = isGraded ? autoTotal + manualTotal : null
+
+    // 첫 번째 수동채점 문항의 response 값 설정
+    const firstManualQ = questions.find(q => q.autoGrade === false)
+    let response = null
+    if (firstManualQ) {
+      response = selections[firstManualQ.id] || '답안 내용입니다.'
+    } else {
+      // 수동채점 문항이 없으면 마지막 문항의 selection 사용
+      const lastQ = questions[questions.length - 1]
+      response = lastQ ? (selections[lastQ.id] || '답안') : '답안'
+    }
+
     return {
       id: `${prefix}${i + 1}`,
       studentId: `${baseYear}${String(i + 1001).slice(1)}`,
       name: DEMO_NAMES[i % 12] + (i > 11 ? `-${Math.floor(i / 12) + 1}` : ''),
       department: ['컴퓨터공학과', '소프트웨어학과', '정보통신공학과', '데이터사이언스학과'][i % 4],
-      score: isGraded ? Math.round(30 + Math.random() * 60) : null,
-      startTime: isSubmitted ? `${startDate} 09:00` : null,
-      endTime: isSubmitted ? `${startDate} 10:${String(20 + (i % 40)).padStart(2, '0')}` : null,
-      submitted: isSubmitted,
-      submittedAt: isSubmitted ? `${startDate} 10:${String(20 + (i % 40)).padStart(2, '0')}:${String((i * 13) % 60).padStart(2, '0')}` : null,
-      response: isSubmitted ? '답안' : null,
-      autoScores: {},
-      manualScores: isGraded ? {} : null,
+      score: totalScore,
+      startTime: `${startDate} 09:00`,
+      endTime: `${startDate} 10:${String(20 + (i % 40)).padStart(2, '0')}`,
+      submitted: true,
+      submittedAt: `${startDate} 10:${String(20 + (i % 40)).padStart(2, '0')}:${String((i * 13) % 60).padStart(2, '0')}`,
+      response,
+      autoScores,
+      manualScores: (isGraded && hasManual) ? manualScores : (hasManual ? null : manualScores),
+      selections,
     }
   })
 }
@@ -1831,7 +2049,8 @@ export function getQuizStudents(quizId) {
   const dateStr = quiz.startDate?.split(' ')[0] || '2026-03-20'
   const yearPrefix = ['cs201_1', 'cs201_2', 'cs201_3'].includes(quizId) ? '2024'
     : ['cs401_1', 'cs401_2'].includes(quizId) ? '2023' : '2022'
-  const students = generateStudents(quiz.totalStudents, quiz.submitted, quiz.graded, `${quizId}_s`, yearPrefix, dateStr)
+  const questions = getQuizQuestions(quizId)
+  const students = generateStudents(quiz.totalStudents, quiz.submitted, quiz.graded, `${quizId}_s`, yearPrefix, dateStr, questions)
   studentCache[quizId] = students
   return students
 }

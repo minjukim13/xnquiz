@@ -135,7 +135,7 @@ export default function QuizEdit() {
         description,
         week: week ?? null,
         session: session ?? null,
-        status: quiz.status === 'draft' ? 'open' : quiz.status,
+        status: quiz.status,
         questions: questions.length,
         totalPoints,
         timeLimit: timeLimitType === -1 ? Number(timeLimitCustom) : timeLimitType,
@@ -164,7 +164,27 @@ export default function QuizEdit() {
       <div className="max-w-[1600px] mx-auto px-6 sm:px-10 xl:px-16 py-6">
         <div className="flex items-center justify-between mb-6 gap-3">
           <h1 className="text-lg font-bold" style={{ color: '#222222' }}>퀴즈 편집</h1>
-          <button onClick={handleSave} className="btn-primary text-sm">저장 및 발행</button>
+          <div className="flex items-center gap-3">
+            {quiz.status !== 'draft' && (
+              <button
+                onClick={() => {
+                  const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
+                  if (idx !== -1) {
+                    mockQuizzes[idx] = { ...mockQuizzes[idx], visible: !mockQuizzes[idx].visible }
+                  }
+                }}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md transition-colors"
+                style={quiz.visible !== false
+                  ? { background: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0' }
+                  : { background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' }
+                }
+              >
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: quiz.visible !== false ? '#16A34A' : '#DC2626', display: 'inline-block' }} />
+                {quiz.visible !== false ? '공개 중' : '비공개'}
+              </button>
+            )}
+            <button onClick={handleSave} className="btn-primary text-sm">저장</button>
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-5">

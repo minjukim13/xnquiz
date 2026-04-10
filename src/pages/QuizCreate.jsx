@@ -186,6 +186,7 @@ export default function QuizCreate() {
                       course: 'CS301 데이터베이스',
                       quizMode: form.quizMode,
                       status: 'open',
+                      visible: true,
                       startDate: form.startDate,
                       dueDate: form.dueDate,
                       week: form.week ?? null,
@@ -222,7 +223,7 @@ export default function QuizCreate() {
                   if (isMultiAttempt && noRevealPeriod) {
                     setConfirmDialog({
                       title: '점수 공개 기간 미설정',
-                      message: '재응시가 허용된 퀴즈에서 점수 공개 기간이 설정되지 않으면, 1차 응시 마감 직후 점수(및 정답)가 공개되어 학생이 2차 응시 전에 정답을 확인할 수 있습니다.\n\n점수 공개 기간을 설정하지 않고 발행하시겠습니까?',
+                      message: '재응시가 허용된 퀴즈에서 점수 공개 기간이 설정되지 않으면, 1차 응시 마감 직후 점수(및 정답)가 공개되어 학생이 2차 응시 전에 정답을 확인할 수 있습니다.\n\n점수 공개 기간을 설정하지 않고 저장하시겠습니까?',
                       onConfirm: doPublish,
                     })
                   } else {
@@ -231,7 +232,7 @@ export default function QuizCreate() {
                 }}
                 className="btn-primary text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                발행하기
+                저장하기
               </button>
             )}
           </div>
