@@ -47,6 +47,7 @@ function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, o
         options={weekOptions}
         size="md"
         filterMode
+        ghost
         style={{ width: 120 }}
       />
       <DropdownSelect
@@ -57,6 +58,7 @@ function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, o
         disabled={filterWeek === 'all'}
         size="md"
         filterMode
+        ghost
         style={{ width: 108 }}
       />
     </div>
