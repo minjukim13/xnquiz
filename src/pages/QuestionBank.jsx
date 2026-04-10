@@ -189,7 +189,7 @@ export default function QuestionBank() {
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="문항 내용 검색"
-              className="w-full text-sm pl-9 pr-3 py-2.5 bg-[#F2F4F6] border-transparent rounded-lg text-[#191F28] placeholder:text-[#8B95A1] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+              className="w-full text-sm pl-9 pr-3 py-2.5 bg-white border border-[#E5E8EB] rounded-lg shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[#191F28] placeholder:text-[#8B95A1] focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all"
             />
           </div>
         </div>
