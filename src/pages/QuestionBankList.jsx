@@ -621,6 +621,7 @@ function ExportToBankModal({ onClose, onExport }) {
   const [selectedSourceIds, setSelectedSourceIds] = useState([])
   const [courseSearch, setCourseSearch] = useState('')
   const [targetCourse, setTargetCourse] = useState(CURRENT_COURSE)
+  const [targetMode, setTargetMode] = useState('new')
   const [targetBankId, setTargetBankId] = useState(null)
   const [newBankName, setNewBankName] = useState('')
   const [newBankDifficulty, setNewBankDifficulty] = useState(null)
@@ -742,7 +743,7 @@ function ExportToBankModal({ onClose, onExport }) {
   }
 
   const canSubmit = selectedQuestions.length > 0 &&
-    (targetBankId === '__new__' ? newBankName.trim() !== '' : targetBankId !== null)
+    (targetMode === 'new' ? newBankName.trim() !== '' : targetBankId !== null)
 
   const availableCourses = useMemo(() =>
     MOCK_COURSES.filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase())),
@@ -796,39 +797,42 @@ function ExportToBankModal({ onClose, onExport }) {
 
             {/* 대상 */}
             <div className="flex flex-col overflow-hidden" style={{ flex: '0 0 50%' }}>
-              <p className="px-3 pt-2.5 pb-1 text-xs font-semibold shrink-0 text-slate-400">대상 문제은행</p>
-              <div className="px-2 pb-1 shrink-0">
+              <div className="px-2 pt-2 pb-1 shrink-0">
                 <DropdownSelect
                   value={targetCourse}
                   onChange={handleTargetCourseChange}
                   options={MOCK_COURSES.map(c => ({ value: c.name, label: c.name }))}
                 />
               </div>
-              <div className="px-2 pb-1 shrink-0 space-y-1">
-                <button
-                  type="button"
-                  onClick={() => setTargetBankId('__new__')}
-                  className={cn(
-                    'w-full text-left px-2 py-1.5 text-xs font-semibold rounded border flex items-center gap-1 transition-colors',
-                    targetBankId === '__new__'
-                      ? 'border-blue-300 bg-[#E8F3FF] text-[#1B64DA]'
-                      : 'border-slate-200 text-[#3182F6] hover:bg-slate-50'
-                  )}
-                >
-                  <Plus size={11} />새 문제은행
-                </button>
-                {targetBankId === '__new__' && (
-                  <>
+              <div className="shrink-0 border-t border-slate-100">
+                <div className="flex border-b border-slate-100">
+                  <button
+                    onClick={() => { setTargetMode('new'); setTargetBankId(null) }}
+                    className={cn(
+                      'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
+                      targetMode === 'new' ? 'border-[#3182F6] text-[#1B64DA]' : 'border-transparent text-slate-400'
+                    )}
+                  >
+                    새 은행
+                  </button>
+                  <button
+                    onClick={() => setTargetMode('existing')}
+                    className={cn(
+                      'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
+                      targetMode === 'existing' ? 'border-[#3182F6] text-[#1B64DA]' : 'border-transparent text-slate-400'
+                    )}
+                  >
+                    기존 은행
+                  </button>
+                </div>
+                {targetMode === 'new' ? (
+                  <div className="p-2 space-y-1.5">
                     <input
                       type="text"
                       value={newBankName}
                       onChange={e => setNewBankName(e.target.value)}
-                      placeholder="이름 입력"
-                      autoFocus
-                      className={cn(
-                        'w-full text-xs px-2 py-1.5 border rounded focus:outline-none text-slate-900',
-                        newBankName.trim() ? 'border-blue-300' : 'border-slate-200'
-                      )}
+                      placeholder="은행 이름"
+                      className="w-full text-xs px-2 py-1.5 border border-slate-200 rounded focus:outline-none text-slate-900"
                     />
                     {selectedQuestions.length > 0 && (
                       <DifficultySelector
@@ -837,18 +841,23 @@ function ExportToBankModal({ onClose, onExport }) {
                         onChange={setNewBankDifficulty}
                       />
                     )}
-                  </>
+                  </div>
+                ) : (
+                  <div className="overflow-y-auto p-2 space-y-1" style={{ maxHeight: 120 }}>
+                    {courseBanks.length === 0 ? (
+                      <p className="text-xs py-2 text-center text-slate-300">선택 가능한 은행이 없습니다</p>
+                    ) : (
+                      courseBanks.map(b => (
+                        <TargetBankBtn
+                          key={b.id}
+                          bank={b}
+                          isSelected={b.id === targetBankId}
+                          onClick={() => handleTargetBankChange(b.id)}
+                        />
+                      ))
+                    )}
+                  </div>
                 )}
-              </div>
-              <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1">
-                {courseBanks.map(b => (
-                  <TargetBankBtn
-                    key={b.id}
-                    bank={b}
-                    isSelected={b.id === targetBankId}
-                    onClick={() => handleTargetBankChange(b.id)}
-                  />
-                ))}
               </div>
             </div>
           </div>
@@ -935,7 +944,7 @@ function ExportToBankModal({ onClose, onExport }) {
           <Button
             size="sm"
             disabled={!canSubmit}
-            onClick={() => onExport(selectedQuestions, targetCourse, targetBankId, newBankName.trim(), effectiveNewDifficulty)}
+            onClick={() => onExport(selectedQuestions, targetCourse, targetMode === 'existing' ? targetBankId : null, targetMode === 'new' ? newBankName.trim() : null, effectiveNewDifficulty)}
             className="bg-[#3182F6] hover:bg-[#1B64DA] text-white"
           >
             {selectedQuestions.length}개 내보내기
