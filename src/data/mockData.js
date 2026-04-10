@@ -1430,7 +1430,9 @@ export function recalculateScorePolicy(quizId, newPolicy) {
 export function gradeQuiz3Answer(questionId, answer) {
   const correct = AUTO_CORRECT_Q3[questionId]
   if (!correct || !answer) return 0
-  return correct.some(c => answer.trim().toLowerCase() === c.toLowerCase().trim()) ? null : 0
+  const question = mockQuiz3Questions.find(q => q.id === questionId)
+  const points = question?.points ?? 2
+  return correct.some(c => answer.trim().toLowerCase() === c.toLowerCase().trim()) ? points : 0
 }
 
 export function autoGradeAnswer(question, answer) {
