@@ -361,10 +361,10 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
                 <XAxis dataKey="score" tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} />
                 <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val) => [`${val}명`, '인원']} />
-                <ReferenceLine x={`${Math.round(avg)}점`} stroke="#6366f1" strokeDasharray="3 3" label={{ value: '평균', position: 'top', fontSize: 10, fill: '#6366f1' }} />
+                <ReferenceLine x={`${Math.round(avg)}점`} stroke="#3182F6" strokeDasharray="3 3" label={{ value: '평균', position: 'top', fontSize: 10, fill: '#3182F6' }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {distData.map((d, i) => (
-                    <Cell key={i} fill={d.raw === Math.round(avg) ? '#6366f1' : d.raw > Math.round(avg) ? '#c7d2fe' : '#e0e7ff'} />
+                    <Cell key={i} fill={d.raw === Math.round(avg) ? '#3182F6' : '#E8F3FF'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -376,11 +376,11 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           <h3 className="text-sm font-semibold mb-3">응시 현황</h3>
           <div className="space-y-3">
             {[
-              { label: '수강 인원', value: quiz.totalStudents, barColor: '#BDBDBD' },
-              { label: '제출 완료', value: quiz.submitted, barColor: '#6366f1', rate: submitRate },
-              { label: '미제출', value: quiz.totalStudents - quiz.submitted, barColor: '#f59e0b', rate: (100 - parseFloat(submitRate)).toFixed(1) },
-              { label: '채점 완료', value: quiz.graded, barColor: '#01A900', rate: gradeRate },
-              { label: '채점 대기', value: quiz.pendingGrade, barColor: '#EF2B2A' },
+              { label: '수강 인원', value: quiz.totalStudents, barColor: '#B0B8C1' },
+              { label: '제출 완료', value: quiz.submitted, barColor: '#3182F6', rate: submitRate },
+              { label: '미제출', value: quiz.totalStudents - quiz.submitted, barColor: '#F69D37', rate: (100 - parseFloat(submitRate)).toFixed(1) },
+              { label: '채점 완료', value: quiz.graded, barColor: '#31B46E', rate: gradeRate },
+              { label: '채점 대기', value: quiz.pendingGrade, barColor: '#F04452' },
             ].map(item => (
               <div key={item.label}>
                 <div className="flex justify-between text-xs mb-1">
@@ -421,11 +421,11 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={v => `${v}%`} />
             <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} width={32} />
             <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val, _name, props) => [props.payload.hasData ? `${val}%` : '채점 데이터 없음', `${props.payload.label} 득점률`]} />
-            <ReferenceLine x={70} stroke="#34d399" strokeDasharray="3 3" label={{ value: '70%', position: 'right', fontSize: 10, fill: '#34d399' }} />
-            <ReferenceLine x={40} stroke="#f87171" strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 10, fill: '#f87171' }} />
+            <ReferenceLine x={70} stroke="#31B46E" strokeDasharray="3 3" label={{ value: '70%', position: 'right', fontSize: 10, fill: '#31B46E' }} />
+            <ReferenceLine x={40} stroke="#F04452" strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 10, fill: '#F04452' }} />
             <Bar dataKey="rate" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 11, fill: '#94a3b8', formatter: v => `${v}%` }}>
               {qRateData.map((q, i) => (
-                <Cell key={i} fill={!q.hasData ? '#e2e8f0' : q.rate >= 70 ? '#34d399' : q.rate >= 40 ? '#fbbf24' : '#f87171'} />
+                <Cell key={i} fill={!q.hasData ? '#E5E8EB' : q.rate >= 70 ? '#31B46E' : q.rate >= 40 ? '#F69D37' : '#F04452'} />
               ))}
             </Bar>
           </BarChart>
@@ -490,7 +490,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       <div className="w-16 h-1.5 rounded overflow-hidden bg-slate-200">
-                        <div className="h-full rounded" style={{ width: `${q.rate ?? 0}%`, background: !q.rate ? '#BDBDBD' : q.rate >= 70 ? '#01A900' : q.rate >= 40 ? '#f59e0b' : '#EF2B2A' }} />
+                        <div className="h-full rounded" style={{ width: `${q.rate ?? 0}%`, background: !q.rate ? '#E5E8EB' : q.rate >= 70 ? '#31B46E' : q.rate >= 40 ? '#F69D37' : '#F04452' }} />
                       </div>
                       <span className={cn('font-medium', q.avgScore != null ? 'text-slate-700' : 'text-muted-foreground/40')}>
                         {q.avgScore != null ? `${q.rate}%` : '-'}
@@ -522,7 +522,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
         </div>
         <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-1 border-t border-border bg-slate-50">
           <span className="text-xs text-muted-foreground">
-            난이도(득점률 기준): <span className="text-green-700">≥70%</span> 쉬움 / <span className="text-orange-700">40~69%</span> 보통 / <span className="text-red-600">&lt;40%</span> 어려움
+            난이도(득점률 기준): <span className="text-[#31B46E]">≥70%</span> 쉬움 / <span className="text-[#F69D37]">40~69%</span> 보통 / <span className="text-[#F04452]">&lt;40%</span> 어려움
           </span>
         </div>
       </Card>
