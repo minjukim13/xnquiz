@@ -206,15 +206,14 @@ export default function GradingDashboard() {
                         )
                       }
                       const isWithAnswer = QUIZ_INFO.scoreRevealScope === 'with_answer'
-                        || QUIZ_INFO.scoreReleasePolicy === 'with_answer'
-                        || QUIZ_INFO.scoreReleasePolicy === 'after_due'
-                        || QUIZ_INFO.scoreReleasePolicy === 'period'
                       const timing = QUIZ_INFO.scoreRevealTiming ?? QUIZ_INFO.scoreReleasePolicy
                       const timingLabel = timing === 'after_due' ? '마감 후 공개'
                         : timing === 'period' ? '공개 기간 지정'
                         : '즉시 공개'
+                      const periodStart = QUIZ_INFO.scoreRevealStart?.split(' ')[0]
+                      const periodEnd = QUIZ_INFO.scoreRevealEnd?.split(' ')[0]
                       return (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs font-medium" style={{ color: '#9CA3AF' }}>성적 공개</span>
                           <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ background: '#EEF2FF', color: '#4F46E5' }}>
                             {isWithAnswer ? '정답 포함' : '점수만'}
@@ -222,6 +221,11 @@ export default function GradingDashboard() {
                           <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ background: '#F0FDF4', color: '#16A34A' }}>
                             {timingLabel}
                           </span>
+                          {timing === 'period' && periodStart && (
+                            <span className="text-xs font-medium" style={{ color: '#6B7280' }}>
+                              {periodStart} ~ {periodEnd}
+                            </span>
+                          )}
                         </div>
                       )
                     })()}
@@ -670,7 +674,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const [saveStatus, setSaveStatus] = useState('idle')
   const [sortBy, setSortBy] = useState('name')
   const [sortDir, setSortDir] = useState('asc')
-  const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'graded' | 'ungraded'
+  const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'graded' | 'ungraded' | 'unsubmitted'
   const isFirstRender = useRef(true)
 
   useEffect(() => { setPage(1) }, [search, pageSize, sortBy, sortDir, filterStatus])
@@ -716,6 +720,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const filtered = useMemo(() => {
     if (filterStatus === 'graded') return sorted.filter(s => s.submitted && s.score !== null)
     if (filterStatus === 'ungraded') return sorted.filter(s => s.submitted && s.score === null)
+    if (filterStatus === 'unsubmitted') return sorted.filter(s => !s.submitted)
     return sorted
   }, [sorted, filterStatus])
 
@@ -757,6 +762,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
 
   const gradedCount = students.filter(s => s.submitted && s.score !== null).length
   const ungradedCount = students.filter(s => s.submitted && s.score === null).length
+  const unsubmittedCount = students.filter(s => !s.submitted).length
 
   const SortTh = ({ col, children, className = '', style = {} }) => {
     const isActive = sortBy === col
@@ -813,9 +819,10 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
       <div className="px-3 py-2" style={{ borderBottom: '1px solid #F3F4F6', background: '#fff' }}>
         <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: '#F3F4F6', display: 'inline-flex' }}>
           {[
-            { key: 'all',      label: '전체',    count: students.length, dotColor: null },
-            { key: 'graded',   label: '채점완료', count: gradedCount,     dotColor: '#10B981' },
-            { key: 'ungraded', label: '미채점',   count: ungradedCount,   dotColor: '#F59E0B' },
+            { key: 'all',          label: '전체',    count: students.length,  dotColor: null },
+            { key: 'graded',       label: '채점완료', count: gradedCount,      dotColor: '#10B981' },
+            { key: 'ungraded',     label: '미채점',   count: ungradedCount,    dotColor: '#F59E0B' },
+            { key: 'unsubmitted',  label: '미제출',   count: unsubmittedCount, dotColor: '#D1D5DB' },
           ].map(({ key, label, count, dotColor }) => {
             const isActive = filterStatus === key
             return (
