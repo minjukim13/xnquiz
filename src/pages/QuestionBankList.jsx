@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Trash2, FolderInput, FolderOutput, Search, X, GripVertical, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Search, X, GripVertical, AlertCircle, CheckCircle2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useQuestionBank } from '../context/QuestionBankContext'
 import { CopyFromBankModal } from './QuestionBank'
@@ -19,7 +19,7 @@ const DIFF_LABEL = { '': '미지정', high: '상', medium: '중', low: '하' }
 
 export default function QuestionBankList() {
   const navigate = useNavigate()
-  const { banks, addBank, deleteBank, getBankQuestions, addQuestions } = useQuestionBank()
+  const { banks, questions, addBank, deleteBank, getBankQuestions, addQuestions } = useQuestionBank()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -32,6 +32,27 @@ export default function QuestionBankList() {
   }
 
   const getQuestionCount = (bankId) => getBankQuestions(bankId).length
+
+  const handleCopyBank = (e, bank) => {
+    e.stopPropagation()
+    const newId = `bank_copy_${Date.now()}`
+    const newName = `${bank.name}-사본`
+    addBank({
+      id: newId,
+      name: newName,
+      difficulty: bank.difficulty,
+      course: bank.course,
+      updatedAt: new Date().toISOString().split('T')[0],
+      usedInQuizIds: [],
+    })
+    const bankQs = getBankQuestions(bank.id)
+    addQuestions(bankQs.map(q => ({
+      ...q,
+      id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      bankId: newId,
+    })))
+    showToast(`"${newName}" 문제은행이 생성되었습니다`, newId)
+  }
 
   return (
     <Layout>
@@ -101,6 +122,16 @@ export default function QuestionBankList() {
                     <BookOpen size={16} style={{ color: '#4338ca' }} />
                   </div>
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={e => handleCopyBank(e, bank)}
+                      className="p-1.5 transition-colors"
+                      style={{ borderRadius: 4, color: '#BDBDBD' }}
+                      title="복사본 만들기"
+                      onMouseEnter={e => { e.currentTarget.style.color = '#6366f1'; e.currentTarget.style.background = '#EEF2FF' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = '#BDBDBD'; e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <Copy size={14} />
+                    </button>
                     <button
                       onClick={e => { e.stopPropagation(); setDeleteTarget(bank) }}
                       className="p-1.5 transition-colors"
@@ -397,7 +428,14 @@ function ExportToBankModal({ onClose, onExport }) {
 
   const targetBank = targetBankId && targetBankId !== '__new__' ? banks.find(b => b.id === targetBankId) : null
   const targetDifficulty = targetBank?.difficulty || ''
-  const courseBanks = banks.filter(b => b.course === targetCourse)
+
+  // 소스로 선택된 은행들의 과목 집합 — 타겟 과목에서 제외
+  const sourceCourses = useMemo(() =>
+    new Set(selectedSourceIds.map(id => banks.find(b => b.id === id)?.course).filter(Boolean)),
+    [selectedSourceIds, banks]
+  )
+
+  const courseBanks = banks.filter(b => b.course === targetCourse && !selectedSourceIds.includes(b.id))
 
   // 소스 문제은행들의 문항 (sourceBankName 첨부)
   const sourceQuestions = useMemo(() => {
@@ -477,10 +515,15 @@ function ExportToBankModal({ onClose, onExport }) {
 
   const handleSourceToggle = (bankId) => {
     const isChecked = selectedSourceIds.includes(bankId)
+    const toggledBank = banks.find(b => b.id === bankId)
     setSelectedSourceIds(prev => isChecked ? prev.filter(id => id !== bankId) : [...prev, bankId])
     if (isChecked) {
       const bankQIds = getBankQuestions(bankId).map(q => q.id)
       setSelectedQuestionIds(prev => prev.filter(id => !bankQIds.includes(id)))
+    } else if (toggledBank && toggledBank.course === targetCourse) {
+      // 소스로 선택한 은행의 과목과 타겟 과목이 같으면 타겟 과목을 다른 과목으로 이동
+      const firstOther = MOCK_COURSES.find(c => c.name !== toggledBank.course)
+      if (firstOther) { setTargetCourse(firstOther.name); setTargetBankId(null) }
     }
   }
 
@@ -490,6 +533,12 @@ function ExportToBankModal({ onClose, onExport }) {
   const availableCourses = useMemo(() =>
     MOCK_COURSES.filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase())),
     [courseSearch]
+  )
+
+  // 타겟 과목 목록: 소스로 선택된 과목 제외
+  const targetCourses = useMemo(() =>
+    MOCK_COURSES.filter(c => !sourceCourses.has(c.name)),
+    [sourceCourses]
   )
 
   // 과목별 은행 그룹
@@ -577,18 +626,22 @@ function ExportToBankModal({ onClose, onExport }) {
             {/* 대상 */}
             <div className="flex flex-col" style={{ flex: '0 0 50%', overflow: 'hidden' }}>
               <p className="px-3 pt-2.5 pb-1 text-xs font-semibold shrink-0" style={{ color: '#9E9E9E' }}>대상 문제은행</p>
-              {/* 과목 선택 */}
+              {/* 과목 선택 — 소스 과목 제외 */}
               <div className="px-2 pb-1 shrink-0">
-                <select
-                  value={targetCourse}
-                  onChange={e => handleTargetCourseChange(e.target.value)}
-                  className="w-full text-xs px-2 py-1.5 focus:outline-none"
-                  style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#424242', background: '#fff' }}
-                >
-                  {MOCK_COURSES.map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
+                {targetCourses.length === 0 ? (
+                  <p className="text-xs py-1 px-1" style={{ color: '#BDBDBD' }}>소스 과목 외 과목이 없습니다</p>
+                ) : (
+                  <select
+                    value={targetCourses.some(c => c.name === targetCourse) ? targetCourse : (targetCourses[0]?.name || '')}
+                    onChange={e => handleTargetCourseChange(e.target.value)}
+                    className="w-full text-xs px-2 py-1.5 focus:outline-none"
+                    style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#424242', background: '#fff' }}
+                  >
+                    {targetCourses.map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
               {/* 새 문제은행 */}
               <div className="px-2 pb-1 shrink-0 space-y-1">
