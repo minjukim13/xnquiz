@@ -218,7 +218,7 @@ export const mockQuizzes = [
     submitted: 44,
     graded: 44,
     pendingGrade: 0,
-    questions: 15,
+    questions: 10,
     totalPoints: 100,
     avgScore: 72.3,
     timeLimit: 120,
@@ -236,13 +236,13 @@ export const mockQuizzes = [
     status: 'closed',
     startDate: '2026-03-10 09:00',
     dueDate: '2026-03-10 23:59',
-    week: 5,
+    week: 4,
     session: 1,
     totalStudents: 45,
     submitted: 43,
     graded: 43,
     pendingGrade: 0,
-    questions: 10,
+    questions: 7,
     totalPoints: 30,
     avgScore: 22.1,
     timeLimit: 30,
@@ -290,9 +290,9 @@ export const mockQuizzes = [
     submitted: 37,
     graded: 37,
     pendingGrade: 0,
-    questions: 20,
-    totalPoints: 100,
-    avgScore: 68.5,
+    questions: 10,
+    totalPoints: 60,
+    avgScore: 42.5,
     timeLimit: 120,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
@@ -893,6 +893,150 @@ const mockQuiz7Questions = [
   },
 ]
 
+// 퀴즈5 문항 (주차별 퀴즈 5-1 - ER 다이어그램, 총 20점 / 10문항)
+export const mockQuiz5Questions = [
+  {
+    id: 'q5_1', order: 1, type: 'multiple_choice',
+    text: 'ER 다이어그램에서 개체(Entity)를 나타내는 기호는?',
+    points: 2, autoGrade: true, gradedCount: 115, totalCount: 115, avgScore: 1.8,
+    correctAnswer: '직사각형',
+    choices: ['직사각형', '마름모', '타원', '이중 직사각형'],
+  },
+  {
+    id: 'q5_2', order: 2, type: 'multiple_choice',
+    text: 'ER 모델에서 관계(Relationship)를 표현하는 기호는?',
+    points: 2, autoGrade: true, gradedCount: 115, totalCount: 115, avgScore: 1.7,
+    correctAnswer: '마름모',
+    choices: ['직사각형', '마름모', '타원', '삼각형'],
+  },
+  {
+    id: 'q5_3', order: 3, type: 'true_false',
+    text: '약한 개체(Weak Entity)는 자체적으로 기본키를 가질 수 없으며, 소유 개체(Owner Entity)의 기본키에 의존한다.',
+    points: 2, autoGrade: true, gradedCount: 115, totalCount: 115, avgScore: 1.5,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'q5_4', order: 4, type: 'multiple_choice',
+    text: '다음 중 ER 다이어그램에서 다중값 속성(Multivalued Attribute)을 나타내는 표기법은?',
+    points: 2, autoGrade: true, gradedCount: 115, totalCount: 115, avgScore: 1.4,
+    correctAnswer: '이중 타원',
+    choices: ['점선 타원', '이중 타원', '밑줄 있는 타원', '이중 직사각형'],
+  },
+  {
+    id: 'q5_5', order: 5, type: 'multiple_choice',
+    text: '학생(Student)과 과목(Course) 간의 수강 관계에서, 한 학생이 여러 과목을 수강하고 한 과목에 여러 학생이 등록할 수 있다면 이 관계의 카디널리티는?',
+    points: 2, autoGrade: true, gradedCount: 115, totalCount: 115, avgScore: 1.6,
+    correctAnswer: 'M:N',
+    choices: ['1:1', '1:N', 'M:N', 'N:1'],
+  },
+  {
+    id: 'q5_6', order: 6, type: 'true_false',
+    text: 'ER 다이어그램에서 파생 속성(Derived Attribute)은 다른 속성의 값으로부터 계산될 수 있는 속성이다.',
+    points: 2, autoGrade: true, gradedCount: 115, totalCount: 115, avgScore: 1.7,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'q5_7', order: 7, type: 'multiple_choice',
+    text: 'ER 모델을 관계형 스키마로 변환할 때, M:N 관계는 어떻게 처리하는가?',
+    points: 2, autoGrade: true, gradedCount: 115, totalCount: 115, avgScore: 1.3,
+    correctAnswer: '별도의 관계 테이블을 생성하여 양쪽 기본키를 외래키로 포함한다',
+    choices: [
+      '한쪽 테이블에 외래키를 추가한다',
+      '별도의 관계 테이블을 생성하여 양쪽 기본키를 외래키로 포함한다',
+      '두 테이블을 하나로 병합한다',
+      '관계 속성만 별도 테이블로 분리한다',
+    ],
+  },
+  {
+    id: 'q5_8', order: 8, type: 'multiple_choice',
+    text: 'ER 다이어그램에서 전체 참여(Total Participation)를 나타내는 표기법은?',
+    points: 2, autoGrade: true, gradedCount: 115, totalCount: 115, avgScore: 1.5,
+    correctAnswer: '이중선(Double Line)',
+    choices: ['점선', '이중선(Double Line)', '화살표', '굵은 단선'],
+  },
+  {
+    id: 'q5_9', order: 9, type: 'short_answer',
+    text: 'ER 다이어그램에서 개체의 속성 중 해당 개체를 유일하게 식별할 수 있는 속성을 무엇이라 하는가?',
+    points: 2, autoGrade: true, gradedCount: 115, totalCount: 115, avgScore: 1.6,
+    correctAnswer: '기본키(Primary Key)',
+  },
+  {
+    id: 'q5_10', order: 10, type: 'multiple_answers',
+    text: '다음 중 ER 다이어그램의 구성 요소에 해당하는 것을 모두 고르시오.',
+    points: 2, autoGrade: true, gradedCount: 115, totalCount: 115, avgScore: 1.2,
+    correctAnswer: '개체(Entity), 속성(Attribute), 관계(Relationship)',
+    choices: ['개체(Entity)', '속성(Attribute)', '관계(Relationship)', '인덱스(Index)', '트리거(Trigger)'],
+  },
+]
+
+// quiz5 자동채점 정답 맵
+const AUTO_CORRECT_Q5 = {
+  q5_1: ['직사각형'],
+  q5_2: ['마름모'],
+  q5_3: ['참', 'true'],
+  q5_4: ['이중 타원'],
+  q5_5: ['M:N', 'm:n', 'M대N', '다대다'],
+  q5_6: ['참', 'true'],
+  q5_7: ['별도의 관계 테이블을 생성하여 양쪽 기본키를 외래키로 포함한다'],
+  q5_8: ['이중선(Double Line)', '이중선'],
+  q5_9: ['기본키', 'Primary Key', '기본키(Primary Key)', 'PK'],
+  q5_10: ['개체(Entity), 속성(Attribute), 관계(Relationship)'],
+}
+
+// 퀴즈6 문항 (5주차 형성평가 - 관계 대수, 총 10점 / 5문항)
+export const mockQuiz6Questions = [
+  {
+    id: 'q6_1', order: 1, type: 'multiple_choice',
+    text: '관계 대수에서 특정 조건을 만족하는 튜플(행)만 선택하는 연산은?',
+    points: 2, autoGrade: true, gradedCount: 109, totalCount: 109, avgScore: 1.7,
+    correctAnswer: '셀렉션(Selection, σ)',
+    choices: ['프로젝션(Projection, π)', '셀렉션(Selection, σ)', '조인(Join, ⋈)', '디비전(Division, ÷)'],
+  },
+  {
+    id: 'q6_2', order: 2, type: 'multiple_choice',
+    text: '관계 대수에서 특정 속성(열)만 추출하는 연산은?',
+    points: 2, autoGrade: true, gradedCount: 109, totalCount: 109, avgScore: 1.6,
+    correctAnswer: '프로젝션(Projection, π)',
+    choices: ['셀렉션(Selection, σ)', '프로젝션(Projection, π)', '카티션 곱(Cartesian Product, ×)', '합집합(Union, ∪)'],
+  },
+  {
+    id: 'q6_3', order: 3, type: 'true_false',
+    text: '관계 대수의 합집합(Union) 연산을 수행하려면 두 릴레이션의 차수(속성 수)와 도메인이 동일해야 한다.',
+    points: 2, autoGrade: true, gradedCount: 109, totalCount: 109, avgScore: 1.5,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  {
+    id: 'q6_4', order: 4, type: 'multiple_choice',
+    text: '자연 조인(Natural Join)에 대한 설명으로 올바른 것은?',
+    points: 2, autoGrade: true, gradedCount: 109, totalCount: 109, avgScore: 1.3,
+    correctAnswer: '두 릴레이션에서 같은 이름의 속성 값이 같은 튜플을 결합하고, 중복 속성을 제거한다',
+    choices: [
+      '두 릴레이션의 모든 튜플을 조합하여 카티션 곱을 구한다',
+      '두 릴레이션에서 같은 이름의 속성 값이 같은 튜플을 결합하고, 중복 속성을 제거한다',
+      '한 릴레이션에만 존재하는 튜플을 반환한다',
+      '두 릴레이션의 합집합을 구한 후 중복을 제거한다',
+    ],
+  },
+  {
+    id: 'q6_5', order: 5, type: 'short_answer',
+    text: '관계 대수에서 두 릴레이션의 차집합(Difference)을 나타내는 기호를 쓰시오.',
+    points: 2, autoGrade: true, gradedCount: 109, totalCount: 109, avgScore: 1.4,
+    correctAnswer: '−',
+  },
+]
+
+// quiz6 자동채점 정답 맵
+const AUTO_CORRECT_Q6 = {
+  q6_1: ['셀렉션(Selection, σ)', '셀렉션', 'Selection'],
+  q6_2: ['프로젝션(Projection, π)', '프로젝션', 'Projection'],
+  q6_3: ['참', 'true'],
+  q6_4: ['두 릴레이션에서 같은 이름의 속성 값이 같은 튜플을 결합하고, 중복 속성을 제거한다'],
+  q6_5: ['−', '-', '마이너스', 'minus'],
+}
+
 // 동적으로 추가되는 퀴즈 문항 저장소 (복사/가져오기 시 사용)
 const quizQuestionsMap = {}
 
@@ -903,6 +1047,8 @@ export function getQuizQuestions(quizId) {
   if (quizId === '2') return mockQuiz2Questions
   if (quizId === '3') return mockQuiz3Questions
   if (quizId === '4') return mockQuiz4Questions
+  if (quizId === '5') return mockQuiz5Questions
+  if (quizId === '6') return mockQuiz6Questions
   if (quizId === '7') return mockQuiz7Questions
   if (quizId === '8') return mockQuiz8Questions
   if (quizId === 'cs201_1') return mockCs201Quiz1Questions
@@ -1123,6 +1269,36 @@ const mockCs401Quiz1Questions = [
   },
 ]
 
+// CS201_1 자동채점 정답 맵
+const AUTO_CORRECT_CS201_1 = {
+  cs201_1_q1: ['스레드는 프로세스의 메모리 공간을 공유하지만 프로세스는 독립적인 메모리 공간을 가진다'],
+  cs201_1_q2: ['FCFS (First-Come, First-Served)', 'FCFS'],
+  cs201_1_q3: ['참', 'true'],
+  cs201_1_q6: ['선점(Preemption)', '선점'],
+  cs201_1_q8: ['13.25'],
+  cs201_1_q9: ['참', 'true'],
+}
+
+// CS201_2 자동채점 정답 맵
+const AUTO_CORRECT_CS201_2 = {
+  cs201_2_q1: ['FCFS'],
+  cs201_2_q2: ['참', 'true'],
+  cs201_2_q3: ['에이징(Aging)', '에이징', 'Aging'],
+  cs201_2_q4: ['프로세스가 I/O를 요청하여 대기 상태로 전환될 때'],
+  cs201_2_q7: ['14'],
+}
+
+// CS401_1 자동채점 정답 맵
+const AUTO_CORRECT_CS401_1 = {
+  cs401_1_q1: ['합병 정렬(Merge Sort)', '합병 정렬', 'Merge Sort'],
+  cs401_1_q2: ['참', 'true'],
+  cs401_1_q3: ['버블 정렬, 합병 정렬, 삽입 정렬'],
+  cs401_1_q6: ['O(n log n)'],
+  cs401_1_q7: ['24'],
+  cs401_1_q9: ['거짓', 'false'],
+  cs401_1_q10: ['이미 정렬된 배열'],
+}
+
 // 학생 응시 결과 저장/불러오기
 // 복수응시 정책에 따라 학생별 최종 유효 응시 반환
 export function getStudentAttempts(quizId) {
@@ -1296,7 +1472,12 @@ export function autoGradeAnswer(question, answer) {
   if (question.id.startsWith('q2_')) correctMap = AUTO_CORRECT_Q2
   else if (question.id.startsWith('q3_')) correctMap = AUTO_CORRECT_Q3
   else if (question.id.startsWith('q4_')) correctMap = AUTO_CORRECT_Q4
+  else if (question.id.startsWith('q5_')) correctMap = AUTO_CORRECT_Q5
+  else if (question.id.startsWith('q6_')) correctMap = AUTO_CORRECT_Q6
   else if (question.id.startsWith('q8_')) correctMap = AUTO_CORRECT_Q8_MAP
+  else if (question.id.startsWith('cs201_1_')) correctMap = AUTO_CORRECT_CS201_1
+  else if (question.id.startsWith('cs201_2_')) correctMap = AUTO_CORRECT_CS201_2
+  else if (question.id.startsWith('cs401_1_')) correctMap = AUTO_CORRECT_CS401_1
   else correctMap = AUTO_CORRECT_ANSWERS
   const correct = correctMap?.[question.id]
   if (!correct) return null // 수동채점 필요
@@ -1311,7 +1492,18 @@ export function getStudentAnswer(studentIdx, questionId) {
 }
 
 export function isAnswerCorrect(answer, questionId) {
-  const correct = AUTO_CORRECT_ANSWERS[questionId] ?? AUTO_CORRECT_Q8_MAP?.[questionId]
+  let correctMap
+  if (questionId.startsWith('q2_')) correctMap = AUTO_CORRECT_Q2
+  else if (questionId.startsWith('q3_')) correctMap = AUTO_CORRECT_Q3
+  else if (questionId.startsWith('q4_')) correctMap = AUTO_CORRECT_Q4
+  else if (questionId.startsWith('q5_')) correctMap = AUTO_CORRECT_Q5
+  else if (questionId.startsWith('q6_')) correctMap = AUTO_CORRECT_Q6
+  else if (questionId.startsWith('q8_')) correctMap = AUTO_CORRECT_Q8_MAP
+  else if (questionId.startsWith('cs201_1_')) correctMap = AUTO_CORRECT_CS201_1
+  else if (questionId.startsWith('cs201_2_')) correctMap = AUTO_CORRECT_CS201_2
+  else if (questionId.startsWith('cs401_1_')) correctMap = AUTO_CORRECT_CS401_1
+  else correctMap = AUTO_CORRECT_ANSWERS
+  const correct = correctMap?.[questionId]
   if (!correct) return null
   return correct.some(c => String(answer).toLowerCase().includes(c.toLowerCase()))
 }
@@ -1394,37 +1586,54 @@ const Q8_SCORES = [12, 13, 11, 14, 10, 12, 13, 11, 12, 14, 10, 13]
 const TOTAL_SCORES = [87,91,81,81,63,86,91,78,82,64,88,89,76,83,65,89,90,75,83,65,89,84,80,78,69,88,89,75,82,61,91,89,81,79,64,84,90,80,81,62,92,82,83,80,65]
 const DEMO_NAMES = ['학생 A', '학생 B', '학생 C', '학생 D', '학생 E', '학생 F', '학생 G', '학생 H', '학생 I', '학생 J', '학생 K', '학생 L']
 
-export const mockStudents = Array.from({ length: 82 }, (_, i) => ({
-  id: `s${i + 1}`,
-  studentId: `2022${String(i + 1001).slice(1)}`,
-  name: DEMO_NAMES[i % 12] + (i > 11 ? `-${Math.floor(i / 12) + 1}` : ''),
-  department: ['컴퓨터공학과', '소프트웨어학과', '정보통신공학과', '데이터사이언스학과'][i % 4],
-  score: i < 45 ? TOTAL_SCORES[i % TOTAL_SCORES.length] : null,
-  startTime: '2026-03-20 09:00',
-  endTime: '2026-03-20 10:' + String(20 + (i % 40)).padStart(2, '0'),
-  submitted: true,
-  submittedAt: `2026-03-20 10:${String(20 + (i % 40)).padStart(2, '0')}:${String((i * 13) % 60).padStart(2, '0')}`,
-  // q3 단답형 응답 (이전 호환성)
-  response: i < 45
-    ? ['외래키', 'Foreign Key', '참조키', '외부키', 'FK'][i % 5]
-    : ['외래키입니다', '두 테이블을 연결하는 키', 'Foreign Key라고도 합니다', '참조 무결성을 보장하는 키'][i % 4],
-  // 자동채점 문항별 점수 (q1:5점, q2:5점, q4:10점, q6:5점, q9:10점, q10:10점)
-  autoScores: {
-    q1:  [5,  5,  5,  5,  0 ][i % 5],
-    q2:  [5,  5,  0,  5,  5 ][i % 5],
-    q4:  [10, 10, 5,  10, 0 ][i % 5],
-    q6:  [5,  5,  5,  0,  5 ][i % 5],
-    q9:  [10, 10, 10, 10, 0 ][i % 5],
-    q10: [10, 8,  10, 6,  10][i % 5],
-  },
-  // 수동채점 문항 점수 (채점된 45명 전원 완료 — q3:10점, q5:20점, q7:10점, q8:15점)
-  manualScores: i < 45 ? {
-    q3: FIXED_SCORES[i % 45],
-    q5: Q5_SCORES[i % 12],
-    q7: Q7_SCORES[i % 12],
-    q8: Q8_SCORES[i % 12],
-  } : null,
-}))
+// Quiz 1 학생: 87명 (82명 제출, 5명 미제출)
+export const mockStudents = Array.from({ length: 87 }, (_, i) => {
+  // 마지막 5명은 미제출
+  if (i >= 82) {
+    return {
+      id: `s${i + 1}`,
+      studentId: `2022${String(i + 1001).slice(1)}`,
+      name: DEMO_NAMES[i % 12] + (i > 11 ? `-${Math.floor(i / 12) + 1}` : ''),
+      department: ['컴퓨터공학과', '소프트웨어학과', '정보통신공학과', '데이터사이언스학과'][i % 4],
+      score: null,
+      startTime: null,
+      endTime: null,
+      submitted: false,
+      submittedAt: null,
+      response: null,
+      autoScores: {},
+      manualScores: null,
+    }
+  }
+  return {
+    id: `s${i + 1}`,
+    studentId: `2022${String(i + 1001).slice(1)}`,
+    name: DEMO_NAMES[i % 12] + (i > 11 ? `-${Math.floor(i / 12) + 1}` : ''),
+    department: ['컴퓨터공학과', '소프트웨어학과', '정보통신공학과', '데이터사이언스학과'][i % 4],
+    score: i < 45 ? TOTAL_SCORES[i % TOTAL_SCORES.length] : null,
+    startTime: '2026-04-03 09:00',
+    endTime: '2026-04-03 10:' + String(20 + (i % 40)).padStart(2, '0'),
+    submitted: true,
+    submittedAt: `2026-04-03 10:${String(20 + (i % 40)).padStart(2, '0')}:${String((i * 13) % 60).padStart(2, '0')}`,
+    response: i < 45
+      ? ['외래키', 'Foreign Key', '참조키', '외부키', 'FK'][i % 5]
+      : ['외래키입니다', '두 테이블을 연결하는 키', 'Foreign Key라고도 합니다', '참조 무결성을 보장하는 키'][i % 4],
+    autoScores: {
+      q1:  [5,  5,  5,  5,  0 ][i % 5],
+      q2:  [5,  5,  0,  5,  5 ][i % 5],
+      q4:  [10, 10, 5,  10, 0 ][i % 5],
+      q6:  [5,  5,  5,  0,  5 ][i % 5],
+      q9:  [10, 10, 10, 10, 0 ][i % 5],
+      q10: [10, 8,  10, 6,  10][i % 5],
+    },
+    manualScores: i < 45 ? {
+      q3: FIXED_SCORES[i % 45],
+      q5: Q5_SCORES[i % 12],
+      q7: Q7_SCORES[i % 12],
+      q8: Q8_SCORES[i % 12],
+    } : null,
+  }
+})
 
 // ── 퀴즈 8: 2차 형성평가 - 데이터베이스 설계 & 정규화 (10문항, 50점) ──────────────────
 
@@ -1531,7 +1740,18 @@ const Q8_WRONG = {
   q8_8: ['분해된 릴레이션의 행 수가 동일해야 한다', '분해된 릴레이션의 속성 수가 동일해야 한다', '분해된 릴레이션이 같은 도메인을 가져야 한다'],
 }
 
-export const mockStudents8 = Array.from({ length: 116 }, (_, i) => {
+export const mockStudents8 = Array.from({ length: 120 }, (_, i) => {
+  // 마지막 4명은 미제출
+  if (i >= 116) {
+    return {
+      id: `s8_${i + 1}`,
+      studentId: `2023${String(i + 1001).slice(1)}`,
+      name: DEMO_NAMES[i % 12] + (i > 11 ? `-${Math.floor(i / 12) + 1}` : ''),
+      department: ['컴퓨터공학과', '소프트웨어학과', '정보통신공학과', '데이터사이언스학과'][i % 4],
+      score: null, startTime: null, endTime: null, submitted: false, submittedAt: null,
+      response: null, autoScores: {}, manualScores: null, selections: {},
+    }
+  }
   // 자동채점 점수 (난이도별 정답률 반영)
   const a1 = i % 10 !== 9  ? 3 : 0    // ~90% 정답 (쉬움)
   const a2 = i % 5  < 4    ? 3 : 0    // 80% 정답 (쉬움)
@@ -1574,8 +1794,42 @@ export const mockStudents8 = Array.from({ length: 116 }, (_, i) => {
   }
 })
 
+// 퀴즈별 학생 팩토리 — metadata와 정합성 유지
+function generateStudents(total, submitted, graded, prefix, baseYear = '2022', startDate = '2026-03-20') {
+  return Array.from({ length: total }, (_, i) => {
+    const isSubmitted = i < submitted
+    const isGraded = isSubmitted && i < graded
+    return {
+      id: `${prefix}${i + 1}`,
+      studentId: `${baseYear}${String(i + 1001).slice(1)}`,
+      name: DEMO_NAMES[i % 12] + (i > 11 ? `-${Math.floor(i / 12) + 1}` : ''),
+      department: ['컴퓨터공학과', '소프트웨어학과', '정보통신공학과', '데이터사이언스학과'][i % 4],
+      score: isGraded ? Math.round(30 + Math.random() * 60) : null,
+      startTime: isSubmitted ? `${startDate} 09:00` : null,
+      endTime: isSubmitted ? `${startDate} 10:${String(20 + (i % 40)).padStart(2, '0')}` : null,
+      submitted: isSubmitted,
+      submittedAt: isSubmitted ? `${startDate} 10:${String(20 + (i % 40)).padStart(2, '0')}:${String((i * 13) % 60).padStart(2, '0')}` : null,
+      response: isSubmitted ? '답안' : null,
+      autoScores: {},
+      manualScores: isGraded ? {} : null,
+    }
+  })
+}
+
 // 퀴즈 ID별 학생 데이터 반환
+const studentCache = {}
 export function getQuizStudents(quizId) {
+  if (quizId === '1') return mockStudents
   if (quizId === '8') return mockStudents8
-  return mockStudents
+  if (studentCache[quizId]) return studentCache[quizId]
+
+  const quiz = mockQuizzes.find(q => q.id === quizId)
+  if (!quiz) return mockStudents
+
+  const dateStr = quiz.startDate?.split(' ')[0] || '2026-03-20'
+  const yearPrefix = ['cs201_1', 'cs201_2', 'cs201_3'].includes(quizId) ? '2024'
+    : ['cs401_1', 'cs401_2'].includes(quizId) ? '2023' : '2022'
+  const students = generateStudents(quiz.totalStudents, quiz.submitted, quiz.graded, `${quizId}_s`, yearPrefix, dateStr)
+  studentCache[quizId] = students
+  return students
 }
