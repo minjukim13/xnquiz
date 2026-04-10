@@ -197,7 +197,7 @@ export default function QuestionBank() {
         <p className="text-xs mb-2 px-1 text-muted-foreground">총 {filtered.length}개 문항</p>
 
         {/* 문항 목록 */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden py-0 gap-0">
           {filtered.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-sm mb-1 text-muted-foreground">
@@ -291,133 +291,6 @@ export default function QuestionBank() {
   )
 }
 
-function QuestionDetail({ question }) {
-  const q = question
-  switch (q.type) {
-    case 'multiple_choice':
-      if (!q.options?.length) return null
-      return (
-        <div className="mt-2 space-y-1">
-          {q.options.map((opt, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className={cn('w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
-                q.correctAnswer === i ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'
-              )}>
-                {q.correctAnswer === i && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-              </div>
-              <span className={cn('text-sm', q.correctAnswer === i ? 'text-indigo-700 font-medium' : 'text-slate-600')}>{opt}</span>
-            </div>
-          ))}
-        </div>
-      )
-    case 'true_false':
-      return (
-        <div className="mt-2 flex gap-2">
-          {[true, false].map(val => (
-            <span key={String(val)} className={cn(
-              'text-xs px-3 py-1 rounded-full',
-              q.correctAnswer === val ? 'bg-indigo-50 text-indigo-700 font-medium ring-1 ring-indigo-200' : 'bg-slate-50 text-slate-400'
-            )}>
-              {val ? '참 (True)' : '거짓 (False)'}
-            </span>
-          ))}
-        </div>
-      )
-    case 'multiple_answers':
-      if (!q.options?.length) return null
-      return (
-        <div className="mt-2 space-y-1">
-          {q.options.map((opt, i) => {
-            const isCorrect = Array.isArray(q.correctAnswer) && q.correctAnswer.includes(i)
-            return (
-              <div key={i} className="flex items-center gap-2">
-                <div className={cn('w-3.5 h-3.5 rounded flex-shrink-0 flex items-center justify-center',
-                  isCorrect ? 'bg-indigo-500' : 'border border-slate-300'
-                )}>
-                  {isCorrect && <span className="text-white text-[9px]">&#10003;</span>}
-                </div>
-                <span className={cn('text-sm', isCorrect ? 'text-indigo-700 font-medium' : 'text-slate-600')}>{opt}</span>
-              </div>
-            )
-          })}
-        </div>
-      )
-    case 'short_answer':
-      if (!Array.isArray(q.correctAnswer) || !q.correctAnswer.length) return null
-      return (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <span className="text-xs text-slate-500">정답:</span>
-          {q.correctAnswer.map((a, i) => (
-            <span key={i} className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{a}</span>
-          ))}
-        </div>
-      )
-    case 'essay':
-      if (!q.rubric) return null
-      return <p className="mt-2 text-xs text-slate-500 bg-slate-50 rounded px-2.5 py-1.5 line-clamp-2">채점 기준: {q.rubric}</p>
-    case 'numerical':
-      return (
-        <div className="mt-2 text-xs text-slate-600">
-          정답: <span className="font-mono font-medium text-indigo-700">{q.correctAnswer}</span>
-          {q.tolerance > 0 && <span className="text-slate-400 ml-1">(&#177; {q.tolerance})</span>}
-        </div>
-      )
-    case 'matching':
-      if (!q.pairs?.length) return null
-      return (
-        <div className="mt-2 space-y-1">
-          {q.pairs.map((p, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
-              <span className="bg-slate-50 px-2 py-0.5 rounded text-xs">{p.left}</span>
-              <span className="text-slate-400">&#8596;</span>
-              <span className="bg-slate-50 px-2 py-0.5 rounded text-xs">{p.right}</span>
-            </div>
-          ))}
-        </div>
-      )
-    case 'fill_in_multiple_blanks':
-      if (!Array.isArray(q.correctAnswer) || !q.correctAnswer.length) return null
-      return (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {q.correctAnswer.map((b, i) => (
-            <span key={i} className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">빈칸 {i + 1}: {b}</span>
-          ))}
-        </div>
-      )
-    case 'formula':
-      return (
-        <div className="mt-2 text-xs text-slate-600 space-y-1">
-          {q.formula && <p>수식: <code className="bg-slate-50 px-1.5 py-0.5 rounded font-mono text-teal-700">{q.formula}</code></p>}
-          {q.variables?.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {q.variables.map((v, i) => (
-                <span key={i} className="bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full text-xs font-mono">{v.name}: {v.min}~{v.max}</span>
-              ))}
-            </div>
-          )}
-        </div>
-      )
-    case 'multiple_dropdowns':
-      if (!q.dropdowns?.length) return null
-      return (
-        <div className="mt-2 space-y-1.5">
-          {q.dropdowns.map((dd, i) => (
-            <div key={i} className="text-xs text-slate-600">
-              <span className="font-medium text-slate-700">{dd.label || `드롭다운 ${i + 1}`}:</span>{' '}
-              {dd.options.map((opt, j) => (
-                <span key={j} className={cn('inline-block mx-0.5 px-1.5 py-0.5 rounded',
-                  dd.answerIdx === j ? 'bg-indigo-50 text-indigo-700 font-medium' : 'bg-slate-50 text-slate-500'
-                )}>{opt}</span>
-              ))}
-            </div>
-          ))}
-        </div>
-      )
-    default:
-      return null
-  }
-}
-
 function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDragStart }) {
   const diff = question.difficulty && DIFFICULTY_META[question.difficulty]
   return (
@@ -455,7 +328,6 @@ function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDr
               )}
             </div>
             <p className="text-sm leading-relaxed">{question.text}</p>
-            <QuestionDetail question={question} />
           </div>
           <Button
             variant="ghost" size="icon-xs"
