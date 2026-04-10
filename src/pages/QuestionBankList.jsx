@@ -798,15 +798,11 @@ function ExportToBankModal({ onClose, onExport }) {
             <div className="flex flex-col overflow-hidden" style={{ flex: '0 0 50%' }}>
               <p className="px-3 pt-2.5 pb-1 text-xs font-semibold shrink-0 text-slate-400">대상 문제은행</p>
               <div className="px-2 pb-1 shrink-0">
-                <select
+                <DropdownSelect
                   value={targetCourse}
-                  onChange={e => handleTargetCourseChange(e.target.value)}
-                  className="w-full text-xs px-2 py-1.5 border border-slate-200 rounded focus:outline-none text-slate-700 bg-white"
-                >
-                  {MOCK_COURSES.map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
+                  onChange={handleTargetCourseChange}
+                  options={MOCK_COURSES.map(c => ({ value: c.name, label: c.name }))}
+                />
               </div>
               <div className="px-2 pb-1 shrink-0 space-y-1">
                 <button
