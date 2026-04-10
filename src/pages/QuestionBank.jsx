@@ -308,7 +308,7 @@ function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDr
       )}
       {/* 클릭 가능한 문항 영역 */}
       <div
-        className="flex-1 min-w-0 p-4 cursor-pointer"
+        className="flex-1 min-w-0 px-4 py-5 cursor-pointer"
         onClick={onEdit}
         role="button"
         tabIndex={0}
