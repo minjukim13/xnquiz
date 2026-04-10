@@ -525,11 +525,9 @@ function SourceBankList({ availableCourses, courseGroups, selectedSourceIds, onT
                     onChange={() => onToggle(b.id)}
                     className="accent-[#3182F6] shrink-0"
                   />
-                  {b.difficulty && (
-                    <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[b.difficulty]?.cls)}>
-                      {DIFF_LABEL[b.difficulty]}
-                    </span>
-                  )}
+                  <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[b.difficulty]?.cls || 'bg-[#F2F4F6] text-[#8B95A1]')}>
+                    {DIFF_LABEL[b.difficulty] || '미지정'}
+                  </span>
                   <span className="truncate flex-1">{b.name}</span>
                 </label>
               )
@@ -554,7 +552,7 @@ function TargetBankBtn({ bank, isSelected, onClick }) {
       )}
     >
       <div className="flex items-center gap-1.5">
-        {diffLabel && <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[bank.difficulty]?.cls)}>{diffLabel}</span>}
+        <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[bank.difficulty]?.cls || 'bg-[#F2F4F6] text-[#8B95A1]')}>{diffLabel || '미지정'}</span>
         <span className="truncate">{bank.name}</span>
       </div>
     </button>
