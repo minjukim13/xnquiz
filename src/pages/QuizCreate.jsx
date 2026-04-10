@@ -141,11 +141,11 @@ export default function QuizCreate() {
 
   return (
     <Layout breadcrumbs={[{ label: '퀴즈 관리', href: '/' }, { label: '새 퀴즈 만들기' }]}>
-      <div className="max-w-5xl mx-auto py-8">
-        <h1 className="text-xl font-bold mb-6">새 퀴즈 만들기</h1>
+      <div className="max-w-5xl mx-auto py-5">
+        <h1 className="text-xl font-bold mb-4">새 퀴즈 만들기</h1>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="mb-6">
+          <TabsList className="mb-4">
             <TabsTrigger value="info">기본 정보</TabsTrigger>
             <TabsTrigger value="questions">
               문항 구성{questions.length > 0 && ` (${questions.length})`}
@@ -184,7 +184,7 @@ export default function QuizCreate() {
 
 function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       <Section title="퀴즈 유형">
         <div className="grid grid-cols-2 gap-3">
           {[
@@ -502,8 +502,8 @@ function AssignToSelector({ selected, onChange }) {
 function Section({ title, children }) {
   return (
     <Card>
-      <CardContent className="p-5 space-y-4">
-        <h2 className="text-sm font-semibold pb-3 border-b border-border">{title}</h2>
+      <CardContent className="px-5 py-4 space-y-4">
+        <h2 className="text-sm font-semibold pb-2.5 border-b border-border">{title}</h2>
         {children}
       </CardContent>
     </Card>
