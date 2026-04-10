@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import { MOCK_BANKS, MOCK_BANK_QUESTIONS, QUIZ_TYPES } from '../data/mockData'
 
 const LS_BANKS_KEY = 'xnq_banks_v3'
-const LS_QUESTIONS_KEY = 'xnq_bank_questions_v3'
+const LS_QUESTIONS_KEY = 'xnq_bank_questions_v4'
 
 const QuestionBankContext = createContext(null)
 

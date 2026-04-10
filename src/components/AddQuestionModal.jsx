@@ -681,12 +681,53 @@ function TypeForm({ type, form, setForm }) {
   }
 }
 
+// ── 문항 객체 → 폼 상태 변환 ────────────────────────────────────────────────
+function questionToForm(q) {
+  const base = { text: q.text || '', points: q.points ?? 5, difficulty: q.difficulty || '', groupTag: q.groupTag || '' }
+  switch (q.type) {
+    case 'multiple_choice':
+      return { ...base, options: q.options?.length ? [...q.options] : ['', '', '', ''], correctIdx: q.correctAnswer ?? 0 }
+    case 'true_false':
+      return { ...base, correctBool: q.correctAnswer ?? true }
+    case 'multiple_answers':
+      return { ...base, options: q.options?.length ? [...q.options] : ['', '', '', ''], correctIdxs: Array.isArray(q.correctAnswer) ? [...q.correctAnswer] : [], scoringMode: q.scoringMode ?? 'all_correct' }
+    case 'short_answer':
+      return { ...base, acceptedAnswers: Array.isArray(q.correctAnswer) && q.correctAnswer.length ? [...q.correctAnswer] : [''] }
+    case 'essay':
+      return { ...base, rubric: q.rubric || '' }
+    case 'numerical':
+      return { ...base, correctNum: q.correctAnswer != null ? String(q.correctAnswer) : '', tolerance: q.tolerance != null ? String(q.tolerance) : '0' }
+    case 'formula':
+      return { ...base, variables: q.variables?.length ? q.variables.map(v => ({ ...v })) : [{ name: '', min: '1', max: '10', decimals: '0' }], formula: q.formula || '', tolerance: q.tolerance != null ? String(q.tolerance) : '0' }
+    case 'matching':
+      return { ...base, pairs: q.pairs?.length ? q.pairs.map(p => ({ ...p })) : [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }] }
+    case 'fill_in_multiple_blanks':
+      return { ...base, blanks: Array.isArray(q.correctAnswer) && q.correctAnswer.length ? [...q.correctAnswer] : ['', ''] }
+    case 'multiple_dropdowns':
+      return { ...base, dropdowns: q.dropdowns?.length ? q.dropdowns.map(d => ({ ...d, options: [...d.options] })) : [{ label: '', options: ['', ''], answerIdx: 0 }] }
+    case 'file_upload':
+      return base
+    case 'text':
+      return { text: q.text || '', points: 0, difficulty: '', groupTag: '' }
+    default:
+      return base
+  }
+}
+
 // ── 메인 모달 ──────────────────────────────────────────────────────────────
-export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '' }) {
-  const [step, setStep] = useState('type')
-  const [selectedType, setSelectedType] = useState(null)
+export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', initialQuestion = null }) {
+  const isEditMode = !!initialQuestion
+  const [step, setStep] = useState(isEditMode ? 'form' : 'type')
+  const [selectedType, setSelectedType] = useState(isEditMode ? initialQuestion.type : null)
   const [hoveredType, setHoveredType] = useState(null)
-  const [form, setForm] = useState({ text: '', points: 5 })
+  const [form, setForm] = useState(() => {
+    if (isEditMode) {
+      const f = questionToForm(initialQuestion)
+      if (bankDifficulty) f.difficulty = bankDifficulty
+      return f
+    }
+    return { text: '', points: 5 }
+  })
 
   const handleSelectType = (type) => {
     setSelectedType(type)
@@ -697,6 +738,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '' }
   }
 
   const handleBack = () => {
+    if (isEditMode) { onClose(); return }
     setStep('type')
     setSelectedType(null)
     setHoveredType(null)
@@ -721,7 +763,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '' }
         {/* 헤더 */}
         <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
           <div>
-            <h3 className="font-semibold" style={{ color: '#222222' }}>문항 직접 추가</h3>
+            <h3 className="font-semibold" style={{ color: '#222222' }}>{isEditMode ? '문항 편집' : '문항 직접 추가'}</h3>
             {step === 'form' && typeInfo && (
               <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: '#9E9E9E' }}>
                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: typeInfo.autoGrade === null ? '#9E9E9E' : typeInfo.autoGrade === false ? '#B43200' : typeInfo.autoGrade === 'partial' ? '#f59e0b' : '#01A900' }} />
@@ -847,13 +889,16 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '' }
 
             {/* 하단 버튼 */}
             <div className="flex items-center justify-between pt-1">
-              <button onClick={handleBack}
-                className="text-sm transition-colors"
-                style={{ color: '#9E9E9E' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#424242'}
-                onMouseLeave={e => e.currentTarget.style.color = '#9E9E9E'}>
-                ← 유형 변경
-              </button>
+              {!isEditMode && (
+                <button onClick={handleBack}
+                  className="text-sm transition-colors"
+                  style={{ color: '#9E9E9E' }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#424242'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#9E9E9E'}>
+                  ← 유형 변경
+                </button>
+              )}
+              {isEditMode && <div />}
               <div className="flex gap-2">
               <button onClick={onClose}
                 className="text-sm px-4 py-2 rounded transition-colors"
@@ -866,7 +911,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '' }
                 disabled={!isValid(selectedType, form)}
                 onClick={handleAdd}
                 className="text-sm text-white bg-[#3182F6] hover:bg-[#1B64DA] disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded transition-colors font-medium">
-                추가
+                {isEditMode ? '저장' : '추가'}
               </button>
               </div>
             </div>
