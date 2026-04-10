@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Search, X, Edit2, Trash2, Upload, Download, ChevronLeft, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Plus, Search, X, Trash2, Upload, Download, ChevronLeft, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
 import Layout from '../components/Layout'
 import { QUIZ_TYPES } from '../data/mockData'
 import { DropdownSelect } from '../components/DropdownSelect'
@@ -30,7 +30,7 @@ export default function QuestionBank() {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
-  const [editingId, setEditingId] = useState(null)
+  const [editingQuestion, setEditingQuestion] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [editingBankName, setEditingBankName] = useState(false)
@@ -64,10 +64,11 @@ export default function QuestionBank() {
     return matchSearch && matchType && matchDiff
   }), [questions, search, filterType, filterDifficulty])
 
-  const handleSaveEdit = (id, updated) => {
+  const handleSaveEdit = (updated) => {
+    if (!editingQuestion) return
     const enforced = bank.difficulty ? { ...updated, difficulty: bank.difficulty } : updated
-    updateQuestion(id, enforced)
-    setEditingId(null)
+    updateQuestion(editingQuestion.id, enforced)
+    setEditingQuestion(null)
   }
 
   const [deleteTargetId, setDeleteTargetId] = useState(null)
@@ -154,7 +155,7 @@ export default function QuestionBank() {
                 <Upload size={14} />
                 <span className="hidden sm:block">일괄 업로드</span>
               </Button>
-              <Button onClick={() => { setShowAddModal(true); setEditingId(null) }} className="bg-[#3182F6] hover:bg-[#1B64DA]">
+              <Button onClick={() => setShowAddModal(true)} className="bg-[#3182F6] hover:bg-[#1B64DA]">
                 <Plus size={15} />
                 문항 추가
               </Button>
@@ -163,39 +164,35 @@ export default function QuestionBank() {
         </div>
 
         {/* 필터 + 검색 툴바 */}
-        <Card className="mb-3">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              <DropdownSelect
-                value={filterType} onChange={setFilterType} filterMode
-                style={{ width: 130 }}
-                options={[
-                  { value: 'all', label: '모든 유형' },
-                  ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
-                ]}
-              />
-              <DropdownSelect
-                value={filterDifficulty} onChange={setFilterDifficulty} filterMode
-                style={{ width: 130 }}
-                options={[
-                  { value: 'all', label: '모든 난이도' },
-                  { value: '', label: '미지정' },
-                  { value: 'high', label: '상' },
-                  { value: 'medium', label: '중' },
-                  { value: 'low', label: '하' },
-                ]}
-              />
-              <div className="relative flex-1">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text" value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder="문항 내용 검색"
-                  className="w-full text-sm pl-9 pr-3 py-2 bg-slate-50 border border-border rounded-md focus:outline-none focus:border-[#3182F6] focus:ring-2 focus:ring-blue-100 transition-all"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center gap-3 mb-3">
+          <DropdownSelect
+            value={filterType} onChange={setFilterType} filterMode ghost
+            style={{ width: 130 }}
+            options={[
+              { value: 'all', label: '모든 유형' },
+              ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
+            ]}
+          />
+          <DropdownSelect
+            value={filterDifficulty} onChange={setFilterDifficulty} filterMode ghost
+            style={{ width: 130 }}
+            options={[
+              { value: 'all', label: '모든 난이도' },
+              { value: '', label: '미지정' },
+              { value: 'high', label: '상' },
+              { value: 'medium', label: '중' },
+              { value: 'low', label: '하' },
+            ]}
+          />
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B95A1]" />
+            <input
+              type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="문항 내용 검색"
+              className="w-full text-sm pl-9 pr-3 py-2.5 bg-[#F2F4F6] border-transparent rounded-lg text-[#191F28] placeholder:text-[#8B95A1] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+            />
+          </div>
+        </div>
 
         <p className="text-xs mb-2 px-1 text-muted-foreground">총 {filtered.length}개 문항</p>
 
@@ -218,25 +215,21 @@ export default function QuestionBank() {
               {filtered.map((q, idx) => (
                 <div
                   key={q.id}
-                  draggable={!isFiltered && !editingId}
-                  onDragStart={() => !isFiltered && handleDragStart(idx)}
                   onDragOver={e => !isFiltered && handleDragOver(e, idx)}
                   onDragLeave={() => !isFiltered && handleDragLeave()}
                   onDrop={() => !isFiltered && handleDrop(idx)}
                   className={cn(
                     'border-t-2',
                     !isFiltered && dragOverIndex === idx ? 'border-t-[#3182F6]' : 'border-t-transparent',
-                    !isFiltered && 'cursor-grab'
                   )}
                 >
                   <QuestionItem
                     question={q}
-                    isEditing={editingId === q.id}
-                    onEdit={() => setEditingId(editingId === q.id ? null : q.id)}
-                    onSave={(updated) => handleSaveEdit(q.id, updated)}
+                    onEdit={() => setEditingQuestion(q)}
                     onDelete={() => handleDelete(q.id)}
                     isLast={idx === filtered.length - 1}
-                    bankDifficulty={bank.difficulty || ''}
+                    showDragHandle={!isFiltered}
+                    onDragStart={() => handleDragStart(idx)}
                   />
                 </div>
               ))}
@@ -250,6 +243,15 @@ export default function QuestionBank() {
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddQuestion}
           bankDifficulty={bank.difficulty || ''}
+        />
+      )}
+
+      {editingQuestion && (
+        <AddQuestionModal
+          onClose={() => setEditingQuestion(null)}
+          onAdd={handleSaveEdit}
+          bankDifficulty={bank.difficulty || ''}
+          initialQuestion={editingQuestion}
         />
       )}
 
@@ -289,112 +291,275 @@ export default function QuestionBank() {
   )
 }
 
-function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast, bankDifficulty = '' }) {
+function QuestionDetail({ question }) {
+  const q = question
+  switch (q.type) {
+    case 'multiple_choice':
+      if (!q.options?.length) return null
+      return (
+        <div className="mt-2 space-y-1">
+          {q.options.map((opt, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className={cn('w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
+                q.correctAnswer === i ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'
+              )}>
+                {q.correctAnswer === i && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+              </div>
+              <span className={cn('text-sm', q.correctAnswer === i ? 'text-indigo-700 font-medium' : 'text-slate-600')}>{opt}</span>
+            </div>
+          ))}
+        </div>
+      )
+    case 'true_false':
+      return (
+        <div className="mt-2 flex gap-2">
+          {[true, false].map(val => (
+            <span key={String(val)} className={cn(
+              'text-xs px-3 py-1 rounded-full',
+              q.correctAnswer === val ? 'bg-indigo-50 text-indigo-700 font-medium ring-1 ring-indigo-200' : 'bg-slate-50 text-slate-400'
+            )}>
+              {val ? '참 (True)' : '거짓 (False)'}
+            </span>
+          ))}
+        </div>
+      )
+    case 'multiple_answers':
+      if (!q.options?.length) return null
+      return (
+        <div className="mt-2 space-y-1">
+          {q.options.map((opt, i) => {
+            const isCorrect = Array.isArray(q.correctAnswer) && q.correctAnswer.includes(i)
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <div className={cn('w-3.5 h-3.5 rounded flex-shrink-0 flex items-center justify-center',
+                  isCorrect ? 'bg-indigo-500' : 'border border-slate-300'
+                )}>
+                  {isCorrect && <span className="text-white text-[9px]">&#10003;</span>}
+                </div>
+                <span className={cn('text-sm', isCorrect ? 'text-indigo-700 font-medium' : 'text-slate-600')}>{opt}</span>
+              </div>
+            )
+          })}
+        </div>
+      )
+    case 'short_answer':
+      if (!Array.isArray(q.correctAnswer) || !q.correctAnswer.length) return null
+      return (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <span className="text-xs text-slate-500">정답:</span>
+          {q.correctAnswer.map((a, i) => (
+            <span key={i} className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{a}</span>
+          ))}
+        </div>
+      )
+    case 'essay':
+      if (!q.rubric) return null
+      return <p className="mt-2 text-xs text-slate-500 bg-slate-50 rounded px-2.5 py-1.5 line-clamp-2">채점 기준: {q.rubric}</p>
+    case 'numerical':
+      return (
+        <div className="mt-2 text-xs text-slate-600">
+          정답: <span className="font-mono font-medium text-indigo-700">{q.correctAnswer}</span>
+          {q.tolerance > 0 && <span className="text-slate-400 ml-1">(&#177; {q.tolerance})</span>}
+        </div>
+      )
+    case 'matching':
+      if (!q.pairs?.length) return null
+      return (
+        <div className="mt-2 space-y-1">
+          {q.pairs.map((p, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
+              <span className="bg-slate-50 px-2 py-0.5 rounded text-xs">{p.left}</span>
+              <span className="text-slate-400">&#8596;</span>
+              <span className="bg-slate-50 px-2 py-0.5 rounded text-xs">{p.right}</span>
+            </div>
+          ))}
+        </div>
+      )
+    case 'fill_in_multiple_blanks':
+      if (!Array.isArray(q.correctAnswer) || !q.correctAnswer.length) return null
+      return (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {q.correctAnswer.map((b, i) => (
+            <span key={i} className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">빈칸 {i + 1}: {b}</span>
+          ))}
+        </div>
+      )
+    case 'formula':
+      return (
+        <div className="mt-2 text-xs text-slate-600 space-y-1">
+          {q.formula && <p>수식: <code className="bg-slate-50 px-1.5 py-0.5 rounded font-mono text-teal-700">{q.formula}</code></p>}
+          {q.variables?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {q.variables.map((v, i) => (
+                <span key={i} className="bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full text-xs font-mono">{v.name}: {v.min}~{v.max}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    case 'multiple_dropdowns':
+      if (!q.dropdowns?.length) return null
+      return (
+        <div className="mt-2 space-y-1.5">
+          {q.dropdowns.map((dd, i) => (
+            <div key={i} className="text-xs text-slate-600">
+              <span className="font-medium text-slate-700">{dd.label || `드롭다운 ${i + 1}`}:</span>{' '}
+              {dd.options.map((opt, j) => (
+                <span key={j} className={cn('inline-block mx-0.5 px-1.5 py-0.5 rounded',
+                  dd.answerIdx === j ? 'bg-indigo-50 text-indigo-700 font-medium' : 'bg-slate-50 text-slate-500'
+                )}>{opt}</span>
+              ))}
+            </div>
+          ))}
+        </div>
+      )
+    default:
+      return null
+  }
+}
+
+function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDragStart }) {
   const diff = question.difficulty && DIFFICULTY_META[question.difficulty]
   return (
-    <div className={cn('p-4 transition-colors', !isLast && 'border-b border-slate-100')}>
-      <div className="flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-600">
-              {QUIZ_TYPES[question.type]?.label}
-            </Badge>
-            <span className="text-xs font-medium text-slate-700">{question.points}점</span>
-            {diff && (
-              <Badge variant="secondary" className={cn('text-xs', diff.className)}>
-                {diff.label}
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm leading-relaxed">{question.text}</p>
+    <div className={cn('flex transition-colors hover:bg-slate-50/50', !isLast && 'border-b border-slate-100')}>
+      {/* 드래그 핸들 */}
+      {showDragHandle && (
+        <div
+          draggable
+          onDragStart={onDragStart}
+          className="flex items-center px-1.5 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 transition-colors shrink-0 self-stretch"
+          title="드래그하여 순서 변경"
+        >
+          <GripVertical size={16} />
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="icon-xs" onClick={onEdit} className="text-muted-foreground hover:text-[#3182F6] hover:bg-[#E8F3FF]">
-            <Edit2 size={14} />
-          </Button>
-          <Button variant="ghost" size="icon-xs" onClick={onDelete} className="text-muted-foreground hover:text-red-600 hover:bg-red-50">
+      )}
+      {/* 클릭 가능한 문항 영역 */}
+      <div
+        className="flex-1 min-w-0 p-4 cursor-pointer"
+        onClick={onEdit}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit() } }}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-600">
+                {QUIZ_TYPES[question.type]?.label}
+              </Badge>
+              <span className="text-xs font-medium text-slate-700">{question.points}점</span>
+              {diff && (
+                <Badge variant="secondary" className={cn('text-xs', diff.className)}>
+                  {diff.label}
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm leading-relaxed">{question.text}</p>
+            <QuestionDetail question={question} />
+          </div>
+          <Button
+            variant="ghost" size="icon-xs"
+            onClick={e => { e.stopPropagation(); onDelete() }}
+            className="text-muted-foreground hover:text-red-600 hover:bg-red-50 shrink-0"
+          >
             <Trash2 size={14} />
           </Button>
         </div>
       </div>
-
-      {isEditing && (
-        <div className="mt-3 pt-3 border-t border-slate-100">
-          <QuestionForm
-            initial={question}
-            onSave={onSave}
-            onCancel={onEdit}
-            bankDifficulty={bankDifficulty}
-          />
-        </div>
-      )}
     </div>
   )
 }
 
-function QuestionForm({ initial, onSave, onCancel, bankDifficulty = '' }) {
-  const [text, setText] = useState(initial?.text ?? '')
-  const [type, setType] = useState(initial?.type ?? 'multiple_choice')
-  const [points, setPoints] = useState(initial?.points ?? 5)
-  const [difficulty, setDifficulty] = useState(bankDifficulty || (initial?.difficulty ?? ''))
+function ExcelUploadModal({ onClose, onImport }) {
+  const [file, setFile] = useState(null)
+  const [errors, setErrors] = useState([])
+  const [loading, setLoading] = useState(false)
+  const fileInputRef = useRef(null)
 
-  const handleSubmit = () => {
-    if (!text.trim()) return
-    onSave({ text: text.trim(), type, points: Number(points), difficulty })
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0] || null)
+    setErrors([])
+  }
+
+  const handleUpload = async () => {
+    if (!file) return
+    setLoading(true)
+    const result = await parseExcelOrCsv(file)
+    setLoading(false)
+    if (result.error) {
+      setErrors([result.error])
+    } else if (result.errors) {
+      setErrors(result.errors)
+    } else {
+      onImport(result.rows)
+    }
   }
 
   return (
-    <div className="p-4 space-y-3 bg-slate-50 border border-border rounded-md">
-      <div>
-        <label className="text-xs font-medium block mb-1 text-slate-600">문항 내용</label>
-        <textarea
-          value={text} onChange={e => setText(e.target.value)}
-          rows={2} autoFocus
-          className="w-full bg-white text-sm px-3 py-2 border border-border rounded-md focus:outline-none focus:border-[#3182F6] focus:ring-2 focus:ring-blue-100 resize-none transition-all"
-          placeholder="문항 내용을 입력하세요"
-        />
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className="text-xs font-medium block mb-1 text-slate-600">문항 유형</label>
-          <DropdownSelect
-            value={type} onChange={setType}
-            options={Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label }))}
-          />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-semibold">문항 일괄 업로드</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X size={16} />
+          </button>
         </div>
-        <div>
-          <label className="text-xs font-medium block mb-1 text-slate-600">배점</label>
-          <input
-            type="number" value={points} onChange={e => setPoints(e.target.value)} min={1}
-            className="w-full bg-white text-sm px-2 py-1.5 border border-border rounded-md focus:outline-none focus:border-[#3182F6] transition-all"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium block mb-1 text-slate-600">난이도</label>
-          {bankDifficulty ? (
-            <div className="text-xs px-2 py-1.5 flex items-center gap-1.5 bg-muted border border-border rounded-md text-slate-700">
-              <span className="font-medium">{bankDifficulty === 'high' ? '상' : bankDifficulty === 'medium' ? '중' : '하'}</span>
-              <span className="text-muted-foreground">고정</span>
-            </div>
-          ) : (
-            <DropdownSelect
-              value={difficulty} onChange={setDifficulty}
-              options={[
-                { value: '', label: '미지정' },
-                { value: 'high', label: '상' },
-                { value: 'medium', label: '중' },
-                { value: 'low', label: '하' },
-              ]}
+
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">엑셀(.xlsx, .xls) 또는 CSV 파일을 업로드하세요.</p>
+
+          <div
+            className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center cursor-pointer hover:border-[#3182F6] transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload size={24} className="mx-auto mb-2 text-slate-400" />
+            {file ? (
+              <p className="text-sm font-medium text-slate-700">{file.name}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">클릭하여 파일 선택</p>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={handleFileChange}
             />
+          </div>
+
+          {errors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3 space-y-1">
+              {errors.map((e, i) => (
+                <p key={i} className="text-xs text-red-600 flex items-start gap-1.5">
+                  <AlertCircle size={13} className="shrink-0 mt-0.5" />
+                  {e}
+                </p>
+              ))}
+            </div>
           )}
+
+          <div className="flex items-center justify-between pt-1">
+            <button
+              onClick={downloadQuestionTemplate}
+              className="text-xs text-[#3182F6] hover:underline flex items-center gap-1"
+            >
+              <Download size={13} />
+              템플릿 다운로드
+            </button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={onClose}>취소</Button>
+              <Button
+                onClick={handleUpload}
+                disabled={!file || loading}
+                className="bg-[#3182F6] hover:bg-[#1B64DA]"
+              >
+                {loading ? '처리 중...' : '업로드'}
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="flex justify-end gap-2 pt-1">
-        <Button variant="ghost" onClick={onCancel}>취소</Button>
-        <Button onClick={handleSubmit} disabled={!text.trim()} className="bg-[#3182F6] hover:bg-[#1B64DA]">
-          {initial ? '저장' : '추가'}
-        </Button>
       </div>
     </div>
   )
 }
+

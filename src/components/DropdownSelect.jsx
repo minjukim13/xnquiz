@@ -17,6 +17,7 @@ export function DropdownSelect({
   style = {},
   size = 'md',
   filterMode = false,
+  ghost = false,
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -37,13 +38,16 @@ export function DropdownSelect({
         type="button"
         onClick={() => !disabled && setOpen(o => !o)}
         className={cn(
-          'w-full flex items-center justify-between gap-2 px-2.5 rounded-md border transition-all focus:outline-none',
+          'w-full flex items-center justify-between gap-2 transition-all focus:outline-none',
           s.height, s.text,
+          ghost ? 'px-3 rounded-lg' : 'px-2.5 rounded-md border',
           disabled && 'bg-muted text-muted-foreground cursor-not-allowed',
           !disabled && isActive && 'border-[#3182F6] bg-[#E8F3FF] text-[#1B64DA] font-semibold',
-          !disabled && !isActive && 'border-border bg-white text-foreground hover:border-muted-foreground/40',
-          !disabled && !isActive && !selected && 'text-muted-foreground',
-          open && !isActive && 'border-[#3182F6] ring-2 ring-blue-100',
+          !disabled && !isActive && ghost && 'border-transparent bg-[#F2F4F6] text-[#4E5968]',
+          !disabled && !isActive && !ghost && 'border-border bg-white text-foreground hover:border-muted-foreground/40',
+          !disabled && !isActive && !selected && !ghost && 'text-muted-foreground',
+          !disabled && !isActive && !selected && ghost && 'text-[#8B95A1]',
+          open && !isActive && 'ring-2 ring-blue-100',
         )}
       >
         <span className={cn(!selected && !disabled && 'text-muted-foreground')}>
