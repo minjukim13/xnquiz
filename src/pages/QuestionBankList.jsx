@@ -117,8 +117,14 @@ export default function QuestionBankList() {
                 }}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-9 h-9 rounded flex items-center justify-center" style={{ background: '#EEF2FF' }}>
-                    <BookOpen size={16} style={{ color: '#4338ca' }} />
+                  <div
+                    className="w-9 h-9 rounded flex items-center justify-center text-xs font-bold"
+                    style={{
+                      background: bank.difficulty ? DIFFICULTY_META[bank.difficulty]?.bg : '#F5F5F5',
+                      color: bank.difficulty ? DIFFICULTY_META[bank.difficulty]?.color : '#9E9E9E',
+                    }}
+                  >
+                    {diffLabel || '미지정'}
                   </div>
                   <div className="flex items-center gap-1">
                     <button
@@ -143,19 +149,7 @@ export default function QuestionBankList() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className="text-xs px-1.5 py-0.5 font-medium shrink-0"
-                    style={{
-                      background: bank.difficulty ? DIFFICULTY_META[bank.difficulty]?.bg : '#F5F5F5',
-                      color: bank.difficulty ? DIFFICULTY_META[bank.difficulty]?.color : '#9E9E9E',
-                      borderRadius: 4,
-                    }}
-                  >
-                    {diffLabel || '미지정'}
-                  </span>
-                  <h3 className="font-semibold text-base" style={{ color: '#222222' }}>{bank.name}</h3>
-                </div>
+                <h3 className="font-semibold text-base mb-1" style={{ color: '#222222' }}>{bank.name}</h3>
                 <div className="flex items-center gap-2 text-xs" style={{ color: '#9E9E9E' }}>
                   <span>{qCount}개 문항</span>
                 </div>
@@ -922,6 +916,16 @@ function ExportToBankModal({ onClose, onExport }) {
                     }}
                   >
                     <GripVertical size={13} className="shrink-0 mt-0.5" style={{ color: '#BDBDBD' }} />
+                    <span
+                      className="text-xs px-1 py-0.5 font-medium shrink-0"
+                      style={{
+                        background: q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].bg : '#F5F5F5',
+                        color: q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].color : '#9E9E9E',
+                        borderRadius: 3, fontSize: 10,
+                      }}
+                    >
+                      {q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].label : '미지정'}
+                    </span>
                     <p className="flex-1 text-xs leading-relaxed line-clamp-2" style={{ color: '#424242' }}>{q.text}</p>
                     <button
                       onClick={() => setSelectedQuestionIds(prev => prev.filter(id => id !== q.id))}
@@ -969,6 +973,7 @@ function ImportModal({ onClose, onImport }) {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([])
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
+  const [inlineToast, setInlineToast] = useState(null)
   const dragIndexRef = useRef(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
 
@@ -1046,10 +1051,18 @@ function ImportModal({ onClose, onImport }) {
     setTargetBankId(id)
     const tb = banks.find(b => b.id === id)
     if (tb?.difficulty) {
-      setSelectedQuestionIds(prev => prev.filter(qId => {
-        const q = sourceQuestions.find(x => x.id === qId)
-        return q?.difficulty === tb.difficulty
-      }))
+      setSelectedQuestionIds(prev => {
+        const next = prev.filter(qId => {
+          const q = sourceQuestions.find(x => x.id === qId)
+          return q?.difficulty === tb.difficulty
+        })
+        const removed = prev.length - next.length
+        if (removed > 0) {
+          setInlineToast(`난이도 불일치로 ${removed}개 문항이 제외되었습니다`)
+          setTimeout(() => setInlineToast(null), 3000)
+        }
+        return next
+      })
     }
   }
 
@@ -1394,6 +1407,16 @@ function ImportModal({ onClose, onImport }) {
                     }}
                   >
                     <GripVertical size={13} className="shrink-0 mt-0.5" style={{ color: '#BDBDBD' }} />
+                    <span
+                      className="text-xs px-1 py-0.5 font-medium shrink-0"
+                      style={{
+                        background: q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].bg : '#F5F5F5',
+                        color: q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].color : '#9E9E9E',
+                        borderRadius: 3, fontSize: 10,
+                      }}
+                    >
+                      {q.difficulty && DIFFICULTY_META[q.difficulty] ? DIFFICULTY_META[q.difficulty].label : '미지정'}
+                    </span>
                     <p className="flex-1 text-xs leading-relaxed line-clamp-2" style={{ color: '#424242' }}>{q.text}</p>
                     <button
                       onClick={() => setSelectedQuestionIds(prev => prev.filter(id => id !== q.id))}
@@ -1410,6 +1433,14 @@ function ImportModal({ onClose, onImport }) {
             </div>
           </div>
         </div>
+
+        {/* 인라인 토스트 */}
+        {inlineToast && (
+          <div className="px-4 py-2 shrink-0 text-xs flex items-center gap-1.5" style={{ background: '#FFFBEB', color: '#B45309', borderTop: '1px solid #FDE68A' }}>
+            <AlertCircle size={12} className="shrink-0" />
+            {inlineToast}
+          </div>
+        )}
 
         {/* 푸터 */}
         <div className="px-4 py-3 shrink-0 flex items-center justify-end gap-2" style={{ borderTop: '1px solid #EEEEEE' }}>
