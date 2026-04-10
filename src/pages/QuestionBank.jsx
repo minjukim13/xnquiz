@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, Search, X, Trash2, Upload, Download, ChevronLeft, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
+import { Plus, Search, X, Edit2, Trash2, Upload, Download, ChevronLeft, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
 import Layout from '../components/Layout'
 import { QUIZ_TYPES } from '../data/mockData'
 import { DropdownSelect } from '../components/DropdownSelect'
