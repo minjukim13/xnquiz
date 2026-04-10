@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Search, X, GripVertical, AlertCircle, CheckCircle2, MoreHorizontal } from 'lucide-react'
+import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Search, X, GripVertical, AlertCircle, CheckCircle2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useQuestionBank } from '../context/QuestionBankContext'
 import { QUIZ_TYPES, MOCK_COURSES } from '../data/mockData'
@@ -8,7 +8,6 @@ import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
@@ -100,49 +99,48 @@ export default function QuestionBankList() {
               <div
                 key={bank.id}
                 onClick={() => navigate(`/question-banks/${bank.id}`)}
-                className="bg-white p-5 cursor-pointer transition-all border border-[#E5E8EB] rounded-xl hover:shadow-md group"
+                className="flex flex-col justify-between min-h-[148px] bg-white p-5 cursor-pointer transition-all border border-[#E5E8EB] rounded-xl hover:shadow-md"
               >
-                {/* 제목 + 케밥 메뉴 (같은 줄) */}
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[15px] leading-snug text-[#191F28]">{bank.name}</h3>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                {/* 상단 영역 */}
+                <div>
+                  {/* 1열: 제목 + 액션 아이콘 */}
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-semibold text-[15px] leading-snug text-[#191F28]">{bank.name}</h3>
+                    <div className="flex items-center gap-0.5 shrink-0 -mt-0.5 -mr-1">
                       <button
-                        onClick={e => e.stopPropagation()}
-                        className="shrink-0 p-1 rounded-md text-[#8B95A1] opacity-0 group-hover:opacity-100 hover:bg-[#F2F4F6] transition-all"
+                        onClick={e => { e.stopPropagation(); setCopyTarget(bank) }}
+                        className="p-1.5 rounded-md text-[#8B95A1] hover:text-[#4E5968] hover:bg-[#F2F4F6] transition-colors"
+                        title="복사"
                       >
-                        <MoreHorizontal size={16} />
+                        <Copy size={14} />
                       </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="min-w-[120px]">
-                      <DropdownMenuItem onClick={e => { e.stopPropagation(); setCopyTarget(bank) }}>
-                        <Copy size={14} className="mr-2 text-[#8B95A1]" />
-                        복사
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={e => { e.stopPropagation(); setDeleteTarget(bank) }} className="text-[#F04452] focus:text-[#F04452]">
-                        <Trash2 size={14} className="mr-2" />
-                        삭제
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      <button
+                        onClick={e => { e.stopPropagation(); setDeleteTarget(bank) }}
+                        className="p-1.5 rounded-md text-[#8B95A1] hover:text-[#F04452] hover:bg-[#FEECEE] transition-colors"
+                        title="삭제"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2열: 난이도 뱃지 · N개 문항 */}
+                  <div className="flex items-center gap-1.5 mt-2.5">
+                    <span className={cn(
+                      'text-xs px-1.5 py-0.5 rounded-md font-medium',
+                      bank.difficulty && DIFFICULTY_META[bank.difficulty]
+                        ? DIFFICULTY_META[bank.difficulty].cls
+                        : 'bg-[#F2F4F6] text-[#8B95A1]'
+                    )}>
+                      {diffLabel || '미지정'}
+                    </span>
+                    <span className="text-[#8B95A1] text-xs">·</span>
+                    <span className="text-xs text-[#4E5968]">{qCount}개 문항</span>
+                  </div>
                 </div>
 
-                {/* 메타: 난이도 뱃지 · N개 문항 */}
-                <div className="flex items-center gap-1.5 mt-2">
-                  <span className={cn(
-                    'text-xs px-1.5 py-0.5 rounded-md font-medium',
-                    bank.difficulty && DIFFICULTY_META[bank.difficulty]
-                      ? DIFFICULTY_META[bank.difficulty].cls
-                      : 'bg-[#F2F4F6] text-[#8B95A1]'
-                  )}>
-                    {diffLabel || '미지정'}
-                  </span>
-                  <span className="text-[#8B95A1] text-xs">·</span>
-                  <span className="text-xs text-[#4E5968]">{qCount}개 문항</span>
-                </div>
-
-                {/* 최종 수정일 */}
-                <p className="text-[13px] mt-1.5 text-[#8B95A1]">최종 수정 {bank.updatedAt}</p>
+                {/* 하단: 최종 수정일 */}
+                <p className="text-[13px] text-[#8B95A1]">최종 수정 {bank.updatedAt}</p>
               </div>
             )
           })}
@@ -150,7 +148,7 @@ export default function QuestionBankList() {
           {/* 추가 카드 */}
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-slate-200 rounded-lg text-slate-300 hover:border-blue-400 hover:text-[#3182F6]"
+            className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-[#E5E8EB] rounded-xl text-[#8B95A1] hover:border-[#3182F6] hover:text-[#3182F6]"
           >
             <Plus size={20} />
             <span className="text-sm font-medium">새 문제은행 추가</span>
