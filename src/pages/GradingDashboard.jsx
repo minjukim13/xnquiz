@@ -612,7 +612,7 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
       <div className="flex items-center justify-between mb-3 gap-2">
         <div className="flex" style={{ borderBottom: '2px solid #E5E7EB' }}>
           {[
-            { key: 'responses', icon: <Users size={12} />, label: `응시 현황`, count: question.totalCount },
+            { key: 'responses', icon: <Users size={12} />, label: `응시 현황`, count: students.length },
             { key: 'stats', icon: <BarChart3 size={12} />, label: '통계' },
           ].map(({ key, icon, label, count }) => (
             <button
@@ -898,8 +898,15 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
 
 // ─── 문항 중심: 학생 행 (문항 유형별 채점 UI) ─────────────────────────────
 function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) {
-  // 미제출 학생은 간략 행만 표시
+  // 미제출 학생
   if (!student.submitted) {
+    const unsubStorageKey = `${quizId}_${student.id}_${question.id}`
+    const unsubInitScore = (() => {
+      const grades = getLocalGrades()
+      if (unsubStorageKey in grades) return grades[unsubStorageKey]
+      return ''
+    })()
+    const unsubDisplayScore = pendingScore !== undefined ? pendingScore : unsubInitScore
     return (
       <div className="flex items-center gap-2 px-3 py-3" style={{ borderBottom: '1px solid #F3F4F6', background: '#FAFAFA' }}>
         <div className="w-28 shrink-0">
@@ -908,10 +915,24 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
         <div className="w-24 shrink-0">
           <p className="text-sm truncate" style={{ color: '#C4C4C4' }}>{student.studentId}</p>
         </div>
-        <p className="flex-1 text-sm" style={{ color: '#D1D5DB' }}>—</p>
+        <p className="flex-1 text-sm" style={{ color: '#D1D5DB' }}>미제출</p>
         {question.autoGrade && <div className="w-16 shrink-0" />}
-        <div className="w-40 shrink-0 flex justify-end">
-          <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ color: '#9CA3AF', background: '#F3F4F6' }}>미제출</span>
+        <div className="flex items-center gap-1.5 w-40 shrink-0 justify-end">
+          <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0" style={{ color: '#9CA3AF', background: '#F3F4F6' }}>
+            미제출
+          </span>
+          <input
+            type="number"
+            value={unsubDisplayScore}
+            onChange={e => onScoreChange(student.id, e.target.value)}
+            placeholder="—"
+            min={0}
+            max={question.points}
+            step={0.5}
+            className="w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-indigo-200 text-center"
+            style={{ border: pendingScore !== undefined ? '1px solid #6366f1' : '1px solid #E5E7EB', color: '#222222' }}
+          />
+          <span className="text-sm shrink-0" style={{ color: '#9CA3AF' }}>/ {question.points}</span>
         </div>
       </div>
     )
