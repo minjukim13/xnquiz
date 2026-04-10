@@ -1,703 +1,185 @@
 import { useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, GripVertical, Trash2, BookOpen, RefreshCw, CheckCircle2 } from 'lucide-react'
+import { Plus, GripVertical, Trash2, BookOpen, RefreshCw, CheckCircle2, Settings2, AlertCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import CustomSelect from '../components/CustomSelect'
 import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, mockStudents, regradeQuestion, recalculateScorePolicy } from '../data/mockData'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
-const WEEK_OPTIONS = [
-  { value: null, label: '선택 안함' },
-  ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` })),
-]
-const SESSION_OPTIONS = [
-  { value: null, label: '선택 안함' },
-  ...[1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` })),
-]
-
-const TIME_LIMIT_OPTIONS = [
-  { value: 0,   label: '제한 없음' },
-  { value: 30,  label: '30분' },
-  { value: 60,  label: '60분' },
-  { value: 90,  label: '90분' },
-  { value: 120, label: '120분' },
-  { value: -1,  label: '직접 입력' },
-]
-const ATTEMPT_OPTIONS = [
-  { value: 1,  label: '1회' },
-  { value: 2,  label: '2회' },
-  { value: 3,  label: '3회' },
-  { value: -1, label: '무제한' },
-]
+const WEEK_OPTIONS = [{ value: null, label: '선택 안함' }, ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` }))]
+const SESSION_OPTIONS = [{ value: null, label: '선택 안함' }, ...[1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` }))]
+const TIME_LIMIT_OPTIONS = [{ value: 0, label: '제한 없음' }, { value: 30, label: '30분' }, { value: 60, label: '60분' }, { value: 90, label: '90분' }, { value: 120, label: '120분' }, { value: -1, label: '직접 입력' }]
+const ATTEMPT_OPTIONS = [{ value: 1, label: '1회' }, { value: 2, label: '2회' }, { value: 3, label: '3회' }, { value: -1, label: '무제한' }]
 const SCORE_POLICIES = ['최고 점수 유지', '최신 점수 유지', '평균 점수'].map(v => ({ value: v, label: v }))
+
+const INPUT_CLS = "w-full text-sm px-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all"
 
 export default function QuizEdit() {
   const { id } = useParams()
   const navigate = useNavigate()
   const quiz = mockQuizzes.find(q => q.id === id) ?? mockQuizzes[0]
-
   const [showBankModal, setShowBankModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [questions, setQuestions] = useState(() => getQuizQuestions(quiz.id))
-
-  // 기본 정보
+  const [initialQuestionsSnapshot] = useState(() => JSON.stringify(getQuizQuestions(quiz.id)))
   const [title, setTitle] = useState(quiz.title ?? '')
   const [description, setDescription] = useState(quiz.description ?? '')
   const [week, setWeek] = useState(quiz.week ?? null)
   const [session, setSession] = useState(quiz.session ?? null)
-
-  // 지각 제출
   const [allowLateSubmit, setAllowLateSubmit] = useState(quiz.allowLateSubmit ?? false)
   const [lateSubmitHours, setLateSubmitHours] = useState(quiz.lateSubmitHours ? String(quiz.lateSubmitHours) : '')
-
-  // 응시 설정
   const [timeLimitType, setTimeLimitType] = useState(quiz.timeLimit ?? 60)
   const [timeLimitCustom, setTimeLimitCustom] = useState('')
   const [allowAttempts, setAllowAttempts] = useState(quiz.allowAttempts ?? 1)
   const [scorePolicy, setScorePolicy] = useState(quiz.scorePolicy ?? '최고 점수 유지')
-
-  // 표시 설정
   const [shuffleChoices, setShuffleChoices] = useState(false)
   const [shuffleQuestions, setShuffleQuestions] = useState(false)
   const [scoreRevealEnabled, setScoreRevealEnabled] = useState(quiz.scoreRevealEnabled ?? false)
-  const [scoreRevealScope,   setScoreRevealScope]   = useState(quiz.scoreRevealScope   ?? 'wrong_only')
-  const [scoreRevealTiming,  setScoreRevealTiming]  = useState(quiz.scoreRevealTiming  ?? 'immediately')
-  const [scoreRevealStart,   setScoreRevealStart]   = useState(quiz.scoreRevealStart   ?? '')
-  const [scoreRevealEnd,     setScoreRevealEnd]     = useState(quiz.scoreRevealEnd     ?? '')
-
-  // 퀴즈 접근 제한
+  const [scoreRevealScope, setScoreRevealScope] = useState(quiz.scoreRevealScope ?? 'wrong_only')
+  const [scoreRevealTiming, setScoreRevealTiming] = useState(quiz.scoreRevealTiming ?? 'immediately')
+  const [scoreRevealStart, setScoreRevealStart] = useState(quiz.scoreRevealStart ?? '')
+  const [scoreRevealEnd, setScoreRevealEnd] = useState(quiz.scoreRevealEnd ?? '')
   const [accessCode, setAccessCode] = useState('')
   const [ipRestriction, setIpRestriction] = useState('')
-
-  // 퀴즈 유형
   const [quizMode, setQuizMode] = useState('graded')
-
-  // 추가 기간 설정
+  const [penaltyEnabled, setPenaltyEnabled] = useState(quiz.penaltyEnabled ?? false)
   const [assignments, setAssignments] = useState([])
   const addAssignment = () => setAssignments(prev => [...prev, { id: `a${Date.now()}`, assignTo: [], dueDate: '', availableFrom: '', availableUntil: '' }])
-  const removeAssignment = (id) => setAssignments(prev => prev.filter(a => a.id !== id))
-  const updateAssignment = (id, field, val) => setAssignments(prev => prev.map(a => a.id === id ? { ...a, [field]: val } : a))
-
-  // 드래그 상태
+  const removeAssignment = (aId) => setAssignments(prev => prev.filter(a => a.id !== aId))
+  const updateAssignment = (aId, field, val) => setAssignments(prev => prev.map(a => a.id === aId ? { ...a, [field]: val } : a))
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
-
-  const addQuestion = (q) => {
-    if (!questions.find(existing => existing.id === q.id)) {
-      setQuestions(prev => [...prev, q])
-    }
-  }
+  const addQuestion = (q) => { if (!questions.find(e => e.id === q.id)) setQuestions(prev => [...prev, q]) }
   const addNewQuestion = (q) => setQuestions(prev => [...prev, { ...q, id: `new_q${Date.now()}` }])
   const removeQuestion = (qId) => setQuestions(prev => prev.filter(q => q.id !== qId))
-  const moveQuestion = useCallback((fromIdx, toIdx) => {
-    setQuestions(prev => {
-      const next = [...prev]
-      const [moved] = next.splice(fromIdx, 1)
-      next.splice(toIdx, 0, moved)
-      return next
-    })
-  }, [])
-
+  const moveQuestion = useCallback((fromIdx, toIdx) => { setQuestions(prev => { const next = [...prev]; const [moved] = next.splice(fromIdx, 1); next.splice(toIdx, 0, moved); return next }) }, [])
   const handleDragStart = (i) => setDragIdx(i)
   const handleDragOver = (e, i) => { e.preventDefault(); setOverIdx(i) }
-  const handleDrop = (i) => {
-    if (dragIdx !== null && dragIdx !== i) moveQuestion(dragIdx, i)
-    setDragIdx(null); setOverIdx(null)
-  }
+  const handleDrop = (i) => { if (dragIdx !== null && dragIdx !== i) moveQuestion(dragIdx, i); setDragIdx(null); setOverIdx(null) }
   const handleDragEnd = () => { setDragIdx(null); setOverIdx(null) }
-
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
   const isMultiAttempt = allowAttempts >= 2 || allowAttempts === -1
-
-  // 재채점
-  const [regradeTarget, setRegradeTarget] = useState(null) // { id, text }
-  const [regradeSuccess, setRegradeSuccess] = useState(null) // question id
-  const handleRegrade = (q) => setRegradeTarget(q)
-  const confirmRegrade = () => {
-    // 이미 제출 완료된 응시 기록에 소급 재채점 적용 (진행 중 세션 미반영, 수동 조정 문항 제외)
-    regradeQuestion(quiz.id, regradeTarget)
-    setRegradeSuccess(regradeTarget.id)
-    setRegradeTarget(null)
-    setTimeout(() => setRegradeSuccess(null), 2500)
-  }
-
+  const [regradeTarget, setRegradeTarget] = useState(null)
+  const [regradeSuccess, setRegradeSuccess] = useState(null)
+  const confirmRegrade = () => { regradeQuestion(quiz.id, regradeTarget); setRegradeSuccess(regradeTarget.id); setRegradeTarget(null); setTimeout(() => setRegradeSuccess(null), 2500) }
   const handleSave = () => {
     const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
     if (idx !== -1) {
-      // scorePolicy 변경 시 기존 응시 기록에 소급 적용
-      if (scorePolicy !== quiz.scorePolicy) {
-        recalculateScorePolicy(quiz.id, scorePolicy)
-      }
-      mockQuizzes[idx] = {
-        ...mockQuizzes[idx],
-        title,
-        description,
-        week: week ?? null,
-        session: session ?? null,
-        status: quiz.status,
-        questions: questions.length,
-        totalPoints,
-        timeLimit: timeLimitType === -1 ? Number(timeLimitCustom) : timeLimitType,
-        allowAttempts,
-        scorePolicy,
-        allowLateSubmit,
-        lateSubmitHours: allowLateSubmit && lateSubmitHours ? Number(lateSubmitHours) : null,
-        scoreRevealEnabled,
-        scoreRevealScope:  scoreRevealEnabled ? scoreRevealScope  : null,
-        scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null,
-        scoreRevealStart:  (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null,
-        scoreRevealEnd:    (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd   || null : null,
-      }
+      if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
+      mockQuizzes[idx] = { ...mockQuizzes[idx], title, description, week: week ?? null, session: session ?? null, status: quiz.status, questions: questions.length, totalPoints, timeLimit: timeLimitType === -1 ? Number(timeLimitCustom) : timeLimitType, allowAttempts, scorePolicy, allowLateSubmit, lateSubmitHours: allowLateSubmit && lateSubmitHours ? Number(lateSubmitHours) : null, scoreRevealEnabled, scoreRevealScope: scoreRevealEnabled ? scoreRevealScope : null, scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null, scoreRevealStart: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null, scoreRevealEnd: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd || null : null, penaltyEnabled }
     }
-    // 편집된 문항 배열을 quizQuestionsMap에 반영
     setQuizQuestions(quiz.id, questions)
+    // 문항이 변경되었으면 수정 타임스탬프 기록 (수정 전 제출 학생 필터용)
+    if (JSON.stringify(questions) !== initialQuestionsSnapshot) {
+      try {
+        const raw = localStorage.getItem('xnq_questions_modified') || '{}'
+        const map = JSON.parse(raw)
+        map[quiz.id] = new Date().toISOString()
+        localStorage.setItem('xnq_questions_modified', JSON.stringify(map))
+      } catch { /* ignore */ }
+    }
     navigate('/')
   }
 
   return (
-    <Layout breadcrumbs={[
-      { label: '퀴즈 관리', href: '/' },
-      { label: quiz.title },
-      { label: '편집' },
-    ]}>
-      <div className="max-w-[1600px] mx-auto px-6 sm:px-10 xl:px-16 py-6">
+    <Layout breadcrumbs={[{ label: '퀴즈 관리', href: '/' }, { label: quiz.title }, { label: '편집' }]}>
+      <div className="max-w-7xl mx-auto py-6">
         <div className="flex items-center justify-between mb-6 gap-3">
-          <h1 className="text-lg font-bold" style={{ color: '#222222' }}>퀴즈 편집</h1>
+          <h1 className="text-lg font-bold">퀴즈 편집</h1>
           <div className="flex items-center gap-3">
             {quiz.status !== 'draft' && (
-              <button
-                onClick={() => {
-                  const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
-                  if (idx !== -1) {
-                    mockQuizzes[idx] = { ...mockQuizzes[idx], visible: !mockQuizzes[idx].visible }
-                  }
-                }}
-                className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md transition-colors"
-                style={quiz.visible !== false
-                  ? { background: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0' }
-                  : { background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' }
-                }
-              >
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: quiz.visible !== false ? '#16A34A' : '#DC2626', display: 'inline-block' }} />
-                {quiz.visible !== false ? '공개 중' : '비공개'}
+              <button onClick={() => { const i2 = mockQuizzes.findIndex(q => q.id === quiz.id); if (i2 !== -1) mockQuizzes[i2] = { ...mockQuizzes[i2], visible: !mockQuizzes[i2].visible } }} className={cn('flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md border', quiz.visible !== false ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200')}>
+                <span className={cn('w-1.5 h-1.5 rounded-full inline-block', quiz.visible !== false ? 'bg-green-600' : 'bg-red-600')} />{quiz.visible !== false ? '공개 중' : '비공개'}
               </button>
             )}
-            <button onClick={handleSave} className="btn-primary text-sm">저장</button>
+            <Button onClick={handleSave} className="bg-indigo-600 hover:bg-indigo-700">저장</Button>
           </div>
         </div>
-
         <div className="grid lg:grid-cols-3 gap-5">
-          {/* 왼쪽: 문항 구성 */}
           <div className="lg:col-span-2 space-y-3">
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold" style={{ color: '#222222' }}>문항 구성</h2>
-                <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{questions.length}문항 · 총 {totalPoints}점</p>
-              </div>
+              <div><h2 className="text-sm font-semibold">문항 구성</h2><p className="text-xs mt-0.5 text-muted-foreground">{questions.length}문항 · 총 {totalPoints}점</p></div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowBankModal(true)}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors"
-                  style={{ color: '#424242', border: '1px solid #E0E0E0' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <BookOpen size={13} />
-                  문제은행에서 추가
-                </button>
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="flex items-center gap-1.5 text-xs text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded transition-colors"
-                >
-                  <Plus size={13} />
-                  직접 추가
-                </button>
+                <Button variant="outline" size="sm" onClick={() => setShowBankModal(true)}><BookOpen size={13} />문제은행에서 추가</Button>
+                <Button size="sm" onClick={() => setShowAddModal(true)} className="bg-indigo-600 hover:bg-indigo-700"><Plus size={13} />직접 추가</Button>
               </div>
             </div>
-
             {questions.length === 0 ? (
-              <div className="p-12 text-center rounded" style={{ border: '2px dashed #E0E0E0', background: '#FAFAFA' }}>
-                <p className="text-sm mb-3" style={{ color: '#BDBDBD' }}>아직 추가된 문항이 없습니다</p>
+              <div className="p-12 text-center rounded-md border-2 border-dashed border-border bg-slate-50">
+                <p className="text-sm mb-3 text-muted-foreground/60">아직 추가된 문항이 없습니다</p>
                 <div className="flex items-center justify-center gap-2">
-                  <button onClick={() => setShowBankModal(true)} className="text-xs text-indigo-600 px-3 py-1.5 rounded" style={{ border: '1px solid #c7d2fe' }}>
-                    문제은행에서 추가
-                  </button>
-                  <button onClick={() => setShowAddModal(true)} className="text-xs text-white bg-indigo-600 px-3 py-1.5 rounded">
-                    직접 추가
-                  </button>
+                  <Button variant="outline" size="sm" onClick={() => setShowBankModal(true)}>문제은행에서 추가</Button>
+                  <Button size="sm" onClick={() => setShowAddModal(true)} className="bg-indigo-600 hover:bg-indigo-700">직접 추가</Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-2">
                 {questions.map((q, i) => (
-                  <div
-                    key={q.id}
-                    draggable
-                    onDragStart={() => handleDragStart(i)}
-                    onDragOver={e => handleDragOver(e, i)}
-                    onDrop={() => handleDrop(i)}
-                    onDragEnd={handleDragEnd}
-                    className="flex items-start gap-2 bg-white p-3 group transition-all rounded"
-                    style={{
-                      border: overIdx === i && dragIdx !== i ? '1px solid #6366f1' : '1px solid #E0E0E0',
-                      opacity: dragIdx === i ? 0.4 : 1,
-                      background: overIdx === i && dragIdx !== i ? '#F5F3FF' : '#fff',
-                    }}
-                  >
-                    <div className="flex items-center gap-2 shrink-0 mt-0.5">
-                      <GripVertical size={14} className="cursor-grab active:cursor-grabbing" style={{ color: '#BDBDBD' }} />
-                      <span className="text-xs font-bold w-5 text-center" style={{ color: '#9E9E9E' }}>{i + 1}</span>
-                    </div>
+                  <div key={q.id} draggable onDragStart={() => handleDragStart(i)} onDragOver={e => handleDragOver(e, i)} onDrop={() => handleDrop(i)} onDragEnd={handleDragEnd} className={cn('flex items-start gap-2 bg-white p-3 group transition-all rounded-md border', overIdx === i && dragIdx !== i ? 'border-indigo-500 bg-indigo-50/50' : 'border-border', dragIdx === i && 'opacity-40')}>
+                    <div className="flex items-center gap-2 shrink-0 mt-0.5"><GripVertical size={14} className="cursor-grab active:cursor-grabbing text-muted-foreground/40" /><span className="text-xs font-bold w-5 text-center text-muted-foreground">{i + 1}</span></div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: '#F5F5F5', color: '#616161' }}>
-                          {QUIZ_TYPES[q.type]?.label}
-                        </span>
-                        <span className="text-xs" style={{ color: '#9E9E9E' }}>{q.points}점</span>
-                        {QUIZ_TYPES[q.type]?.autoGrade === false && (
-                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ color: '#B43200', background: '#FFF6F2' }}>수동채점</span>
-                        )}
-                        {q.bankName && (
-                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ color: '#0369a1', background: '#e0f2fe' }}>{q.bankName}</span>
-                        )}
+                        <Badge variant="secondary" className="bg-slate-100 text-slate-600">{QUIZ_TYPES[q.type]?.label}</Badge>
+                        <span className="text-xs text-muted-foreground">{q.points}점</span>
+                        {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-orange-50 text-orange-700">수동채점</Badge>}
+                        {q.bankName && <Badge variant="secondary" className="bg-sky-50 text-sky-700">{q.bankName}</Badge>}
                       </div>
-                      <p className="text-sm line-clamp-2" style={{ color: '#424242' }}>{q.text}</p>
-                      {regradeSuccess === q.id && (
-                        <p className="text-xs flex items-center gap-1 mt-1" style={{ color: '#018600' }}>
-                          <CheckCircle2 size={11} />재채점 완료
-                        </p>
-                      )}
+                      <p className="text-sm line-clamp-2 text-slate-700">{q.text}</p>
+                      {regradeSuccess === q.id && <p className="text-xs flex items-center gap-1 mt-1 text-green-700"><CheckCircle2 size={11} />재채점 완료</p>}
                     </div>
                     <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100">
-                      {QUIZ_TYPES[q.type]?.autoGrade !== false && QUIZ_TYPES[q.type]?.autoGrade !== null && (
-                        <button
-                          onClick={() => handleRegrade(q)}
-                          title="이 문항 재채점"
-                          className="p-1 transition-colors"
-                          style={{ color: '#BDBDBD' }}
-                          onMouseEnter={e => e.currentTarget.style.color = '#6366f1'}
-                          onMouseLeave={e => e.currentTarget.style.color = '#BDBDBD'}
-                        >
-                          <RefreshCw size={13} />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => removeQuestion(q.id)}
-                        className="p-1 transition-colors"
-                        style={{ color: '#BDBDBD' }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#EF2B2A'}
-                        onMouseLeave={e => e.currentTarget.style.color = '#BDBDBD'}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {QUIZ_TYPES[q.type]?.autoGrade !== false && QUIZ_TYPES[q.type]?.autoGrade !== null && <button onClick={() => setRegradeTarget(q)} title="이 문항 재채점" className="p-1 text-muted-foreground/40 hover:text-indigo-600 transition-colors"><RefreshCw size={13} /></button>}
+                      <button onClick={() => removeQuestion(q.id)} className="p-1 text-muted-foreground/40 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-
-          {/* 오른쪽: 설정 패널 */}
           <div className="space-y-4">
-
-            {/* 기본 정보 */}
-            <SettingCard title="기본 정보">
-              <SettingField label="퀴즈 제목">
-                <input
-                  type="text"
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  className="input text-sm w-full"
-                  placeholder="퀴즈 제목을 입력하세요"
-                />
-              </SettingField>
-              <SettingField label="퀴즈 설명">
-                <textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  className="input text-sm w-full resize-none"
-                  rows={3}
-                  placeholder="학생에게 표시될 퀴즈 설명 (선택)"
-                />
-              </SettingField>
-              <div className="grid grid-cols-2 gap-2">
-                <SettingField label="주차">
-                  <CustomSelect value={week} onChange={setWeek} options={WEEK_OPTIONS} placeholder="선택 안함" />
-                </SettingField>
-                <SettingField label="차시">
-                  <CustomSelect value={session} onChange={setSession} options={SESSION_OPTIONS} placeholder="선택 안함" />
-                </SettingField>
-              </div>
-            </SettingCard>
-
-            {/* 퀴즈 유형 */}
-            <SettingCard title="퀴즈 유형">
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: 'graded', label: '평가용', desc: '성적 반영' },
-                  { value: 'practice', label: '연습용', desc: '성적 미반영' },
-                ].map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setQuizMode(opt.value)}
-                    className="text-left p-2.5 rounded transition-all"
-                    style={{
-                      border: quizMode === opt.value ? '2px solid #6366f1' : '1px solid #E0E0E0',
-                      background: quizMode === opt.value ? '#EEF2FF' : '#fff',
-                    }}
-                  >
-                    <p className="text-xs font-semibold" style={{ color: quizMode === opt.value ? '#4338CA' : '#424242' }}>{opt.label}</p>
-                    <p className="text-xs mt-0.5" style={{ color: quizMode === opt.value ? '#6366f1' : '#9E9E9E' }}>{opt.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </SettingCard>
-
-            {/* 응시 설정 */}
-            <SettingCard title="응시 설정">
-              <SettingField label="응시 시간 제한">
-                <CustomSelect value={timeLimitType} onChange={setTimeLimitType} options={TIME_LIMIT_OPTIONS} />
-                {timeLimitType === -1 && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <input type="number" value={timeLimitCustom} onChange={e => setTimeLimitCustom(e.target.value)} placeholder="분 입력" min={1} className="input text-sm" />
-                    <span className="text-xs shrink-0" style={{ color: '#9E9E9E' }}>분</span>
-                  </div>
-                )}
-              </SettingField>
-              <SettingField label="최대 응시 횟수">
-                <CustomSelect value={allowAttempts} onChange={setAllowAttempts} options={ATTEMPT_OPTIONS} />
-              </SettingField>
-              {isMultiAttempt && (
-                <SettingField label="복수 응시 시 채점 방식">
-                  <CustomSelect value={scorePolicy} onChange={setScorePolicy} options={SCORE_POLICIES} />
-                </SettingField>
-              )}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={allowLateSubmit}
-                    onChange={e => setAllowLateSubmit(e.target.checked)}
-                    className="rounded"
-                    style={{ accentColor: '#6366f1' }}
-                  />
-                  <span className="text-xs" style={{ color: '#616161' }}>마감 후 지각 제출 허용</span>
-                </label>
-                {allowLateSubmit && (
-                  <div className="flex items-center gap-2 pl-5">
-                    <input
-                      type="number"
-                      value={lateSubmitHours}
-                      onChange={e => setLateSubmitHours(e.target.value)}
-                      placeholder="예: 24"
-                      min={1}
-                      className="input w-20 text-xs"
-                    />
-                    <span className="text-xs" style={{ color: '#616161' }}>시간</span>
-                    <span className="text-xs" style={{ color: '#9E9E9E' }}>(비우면 무제한)</span>
-                  </div>
-                )}
-              </div>
-            </SettingCard>
-
-            {/* 표시 설정 */}
-            <SettingCard title="표시 설정">
-              <div className="space-y-3">
-                <Toggle checked={shuffleChoices} onChange={setShuffleChoices} label="선택지 무작위 배열" />
-                <Toggle checked={shuffleQuestions} onChange={setShuffleQuestions} label="문항 순서 무작위" />
-
-                {/* 성적 공개 정책 */}
-                <div className="space-y-3">
-                  <Toggle checked={scoreRevealEnabled} onChange={setScoreRevealEnabled} label="성적 공개" description="제출 후 학생에게 성적 정보를 공개합니다" />
-                  {scoreRevealEnabled && (
-                    <div className="space-y-3">
-                      {/* 공개 범위 */}
-                      <div>
-                        <p className="text-xs font-semibold mb-2" style={{ color: '#616161' }}>공개 범위</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { value: 'wrong_only',  label: '오답 여부만', desc: '정오답(✓/✗) + 점수' },
-                            { value: 'with_answer', label: '정답까지',    desc: '정오답 + 점수 + 정답' },
-                          ].map(opt => {
-                            const active = scoreRevealScope === opt.value
-                            return (
-                              <button
-                                key={opt.value}
-                                type="button"
-                                onClick={() => setScoreRevealScope(opt.value)}
-                                className="flex flex-col items-start gap-0.5 p-2.5 rounded-lg text-left w-full transition-all"
-                                style={{
-                                  border: `2px solid ${active ? '#6366f1' : '#E0E0E0'}`,
-                                  background: active ? '#EEF2FF' : '#FFFFFF',
-                                }}
-                              >
-                                <span className="text-xs font-semibold" style={{ color: active ? '#4F46E5' : '#212121' }}>{opt.label}</span>
-                                <span className="text-xs" style={{ color: '#9E9E9E' }}>{opt.desc}</span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                      {/* 공개 시점 */}
-                      <div>
-                        <p className="text-xs font-semibold mb-2" style={{ color: '#616161' }}>공개 시점</p>
-                        <div className="space-y-1.5">
-                          {[
-                            { value: 'immediately', label: '제출 즉시' },
-                            { value: 'after_due',   label: '마감 후' },
-                            { value: 'period',      label: '기간 설정' },
-                          ].map(opt => (
-                            <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                              <input type="radio" name="scoreRevealTimingEdit" checked={scoreRevealTiming === opt.value} onChange={() => setScoreRevealTiming(opt.value)} style={{ accentColor: '#6366f1' }} />
-                              <span className="text-xs font-medium" style={{ color: '#212121' }}>{opt.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                        {scoreRevealTiming === 'period' && (
-                          <div className="mt-2 pt-2 space-y-1.5" style={{ borderTop: '1px solid #E8EBFF' }}>
-                            <div>
-                              <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 시작일</label>
-                              <input type="datetime-local" value={scoreRevealStart} onChange={e => setScoreRevealStart(e.target.value)} className="input text-xs" />
-                            </div>
-                            <div>
-                              <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>공개 종료일</label>
-                              <input type="datetime-local" value={scoreRevealEnd} onChange={e => setScoreRevealEnd(e.target.value)} className="input text-xs" />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </SettingCard>
-
-            {/* 추가 기간 설정 */}
-            <SettingCard title="추가 기간 설정">
-              <p className="text-xs -mt-1" style={{ color: '#9E9E9E' }}>특정 학생에게 기본 기간과 다른 마감일/열람 기간을 설정합니다. 추가된 학생은 이 설정이 우선 적용됩니다.</p>
-              <div className="space-y-2">
-                {assignments.map((a, idx) => (
-                  <div key={a.id} className="p-2.5 rounded space-y-2" style={{ border: '1px solid #E0E0E0', background: '#FAFAFA' }}>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold" style={{ color: '#424242' }}>추가 대상 {idx + 1}</p>
-                      <button
-                        onClick={() => removeAssignment(a.id)}
-                        className="text-xs px-1.5 py-0.5 rounded transition-colors"
-                        style={{ color: '#9E9E9E' }}
-                        onMouseEnter={e => { e.currentTarget.style.color = '#EF2B2A'; e.currentTarget.style.background = '#FFF0EF' }}
-                        onMouseLeave={e => { e.currentTarget.style.color = '#9E9E9E'; e.currentTarget.style.background = 'transparent' }}
-                      >
-                        삭제
-                      </button>
-                    </div>
-                    <div>
-                      <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>대상 학생</label>
-                      <AssignToSelector selected={a.assignTo} onChange={val => updateAssignment(a.id, 'assignTo', val)} />
-                    </div>
-                    <div className="grid grid-cols-1 gap-1.5">
-                      {[['마감 일시', 'dueDate'], ['열람 시작', 'availableFrom'], ['열람 마감', 'availableUntil']].map(([lbl, field]) => (
-                        <div key={field}>
-                          <label className="block text-xs mb-0.5" style={{ color: '#9E9E9E' }}>{lbl}</label>
-                          <input type="datetime-local" value={a[field]} onChange={e => updateAssignment(a.id, field, e.target.value)} className="input text-xs" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                <button
-                  onClick={addAssignment}
-                  className="w-full text-xs py-1.5 rounded transition-colors"
-                  style={{ border: '1px dashed #BDBDBD', color: '#9E9E9E' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.color = '#6366f1'; e.currentTarget.style.background = '#F5F3FF' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#BDBDBD'; e.currentTarget.style.color = '#9E9E9E'; e.currentTarget.style.background = 'transparent' }}
-                >
-                  + 학생 추가
-                </button>
-              </div>
-            </SettingCard>
-
-            {/* 접근 제한 */}
-            <SettingCard title="접근 제한">
-              <SettingField label="액세스 코드">
-                <input
-                  type="text"
-                  value={accessCode}
-                  onChange={e => setAccessCode(e.target.value)}
-                  placeholder="코드를 입력하면 응시 시 코드 입력 필요"
-                  className="input text-sm"
-                />
-              </SettingField>
-              <SettingField label="접근 가능한 IP 주소">
-                <textarea
-                  value={ipRestriction}
-                  onChange={e => setIpRestriction(e.target.value)}
-                  placeholder={'IP 주소를 한 줄에 하나씩\n예) 192.168.1.0/24'}
-                  rows={2}
-                  className="input resize-none text-sm"
-                />
-                <p className="text-xs mt-1" style={{ color: '#9E9E9E' }}>비워두면 모든 IP 허용. CIDR 지원.</p>
-              </SettingField>
-            </SettingCard>
-
+            <SC title="기본 정보"><SF label="퀴즈 제목"><input type="text" value={title} onChange={e => setTitle(e.target.value)} className={INPUT_CLS} placeholder="퀴즈 제목을 입력하세요" /></SF><SF label="퀴즈 설명"><textarea value={description} onChange={e => setDescription(e.target.value)} className={cn(INPUT_CLS, 'resize-none')} rows={3} placeholder="학생에게 표시될 퀴즈 설명 (선택)" /></SF><div className="grid grid-cols-2 gap-2"><SF label="주차"><CustomSelect value={week} onChange={setWeek} options={WEEK_OPTIONS} placeholder="선택 안함" /></SF><SF label="차시"><CustomSelect value={session} onChange={setSession} options={SESSION_OPTIONS} placeholder="선택 안함" /></SF></div></SC>
+            <SC title="퀴즈 유형"><div className="grid grid-cols-2 gap-2">{[{ value: 'graded', label: '평가용', desc: '성적 반영' }, { value: 'practice', label: '연습용', desc: '성적 미반영' }].map(opt => (<button key={opt.value} onClick={() => setQuizMode(opt.value)} className={cn('text-left p-2.5 rounded-md transition-all border-2', quizMode === opt.value ? 'border-indigo-500 bg-indigo-50' : 'border-border bg-white')}><p className={cn('text-xs font-semibold', quizMode === opt.value ? 'text-indigo-700' : 'text-slate-700')}>{opt.label}</p><p className={cn('text-xs mt-0.5', quizMode === opt.value ? 'text-indigo-600' : 'text-muted-foreground')}>{opt.desc}</p></button>))}</div></SC>
+            <SC title="응시 설정"><SF label="응시 시간 제한"><CustomSelect value={timeLimitType} onChange={setTimeLimitType} options={TIME_LIMIT_OPTIONS} />{timeLimitType === -1 && <div className="flex items-center gap-2 mt-2"><input type="number" value={timeLimitCustom} onChange={e => setTimeLimitCustom(e.target.value)} placeholder="분 입력" min={1} className={INPUT_CLS} /><span className="text-xs shrink-0 text-muted-foreground">분</span></div>}</SF><SF label="최대 응시 횟수"><CustomSelect value={allowAttempts} onChange={setAllowAttempts} options={ATTEMPT_OPTIONS} /></SF>{isMultiAttempt && <SF label="복수 응시 시 채점 방식"><CustomSelect value={scorePolicy} onChange={setScorePolicy} options={SCORE_POLICIES} /></SF>}<div className="space-y-2"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={allowLateSubmit} onChange={e => setAllowLateSubmit(e.target.checked)} className="rounded accent-indigo-600" /><span className="text-xs text-slate-600">마감 후 지각 제출 허용</span></label>{allowLateSubmit && <div className="flex items-center gap-2 pl-5"><input type="number" value={lateSubmitHours} onChange={e => setLateSubmitHours(e.target.value)} placeholder="예: 24" min={1} className="w-20 text-xs px-2 py-1.5 rounded-md border border-border bg-white focus:outline-none focus:border-indigo-500 transition-all" /><span className="text-xs text-slate-600">시간</span><span className="text-xs text-muted-foreground">(비우면 무제한)</span></div>}</div></SC>
+            <SC title="표시 설정"><div className="space-y-3"><Tgl checked={shuffleChoices} onChange={setShuffleChoices} label="선택지 무작위 배열" /><Tgl checked={shuffleQuestions} onChange={setShuffleQuestions} label="문항 순서 무작위" /><Tgl checked={scoreRevealEnabled} onChange={setScoreRevealEnabled} label="성적 공개" />{scoreRevealEnabled && <div className="space-y-3 pl-1"><div><p className="text-xs font-semibold mb-2 text-slate-600">공개 범위</p><div className="grid grid-cols-2 gap-2">{[{ value: 'wrong_only', label: '오답 여부만', desc: '정오답 + 점수' }, { value: 'with_answer', label: '정답까지', desc: '정오답 + 점수 + 정답' }].map(opt => (<button key={opt.value} type="button" onClick={() => setScoreRevealScope(opt.value)} className={cn('flex flex-col items-start gap-0.5 p-2.5 rounded-lg text-left w-full transition-all border-2', scoreRevealScope === opt.value ? 'border-indigo-500 bg-indigo-50' : 'border-border bg-white')}><span className={cn('text-xs font-semibold', scoreRevealScope === opt.value ? 'text-indigo-600' : '')}>{opt.label}</span><span className="text-xs text-muted-foreground">{opt.desc}</span></button>))}</div></div><div><p className="text-xs font-semibold mb-2 text-slate-600">공개 시점</p><div className="space-y-1.5">{[{ value: 'immediately', label: '제출 즉시' }, { value: 'after_due', label: '마감 후' }, { value: 'period', label: '기간 설정' }].map(opt => (<label key={opt.value} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="revealTimingEdit" checked={scoreRevealTiming === opt.value} onChange={() => setScoreRevealTiming(opt.value)} className="accent-indigo-600" /><span className="text-xs font-medium">{opt.label}</span></label>))}</div>{scoreRevealTiming === 'period' && <div className="mt-2 pt-2 space-y-1.5 border-t border-indigo-100"><div><label className="block text-xs mb-1 text-muted-foreground">공개 시작일</label><input type="datetime-local" value={scoreRevealStart} onChange={e => setScoreRevealStart(e.target.value)} className={cn(INPUT_CLS, 'text-xs')} /></div><div><label className="block text-xs mb-1 text-muted-foreground">공개 종료일</label><input type="datetime-local" value={scoreRevealEnd} onChange={e => setScoreRevealEnd(e.target.value)} className={cn(INPUT_CLS, 'text-xs')} /></div></div>}</div></div>}</div></SC>
+            <SC title="추가 기간 설정"><p className="text-xs -mt-1 text-muted-foreground">특정 학생에게 기본 기간과 다른 마감일/열람 기간을 설정합니다.</p><div className="space-y-2">{assignments.map((a, idx) => (<div key={a.id} className="p-2.5 rounded-md space-y-2 border border-border bg-slate-50"><div className="flex items-center justify-between"><p className="text-xs font-semibold text-slate-700">추가 대상 {idx + 1}</p><Button variant="ghost" size="xs" onClick={() => removeAssignment(a.id)} className="text-muted-foreground hover:text-red-600 hover:bg-red-50">삭제</Button></div><div><label className="block text-xs mb-1 text-muted-foreground">대상 학생</label><AssignToSelector selected={a.assignTo} onChange={val => updateAssignment(a.id, 'assignTo', val)} /></div><div className="grid grid-cols-1 gap-1.5">{[['마감 일시', 'dueDate'], ['열람 시작', 'availableFrom'], ['열람 마감', 'availableUntil']].map(([lbl, field]) => (<div key={field}><label className="block text-xs mb-0.5 text-muted-foreground">{lbl}</label><input type="datetime-local" value={a[field]} onChange={e => updateAssignment(a.id, field, e.target.value)} className={cn(INPUT_CLS, 'text-xs')} /></div>))}</div></div>))}<button onClick={addAssignment} className="w-full text-xs py-1.5 rounded-md border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors">+ 학생 추가</button></div></SC>
+            <SC title="채점 설정"><Tgl checked={penaltyEnabled} onChange={setPenaltyEnabled} label="복수선택 오답 감점" />{penaltyEnabled && <div className="flex items-start gap-2 p-2 rounded text-xs" style={{ background: '#EEF2FF', border: '1px solid #C7D2FE', color: '#3730A3' }}><AlertCircle size={13} className="shrink-0 mt-0.5" style={{ color: '#6366F1' }} /><span>부분 배점 복수선택 문항에서 오답 선택 시 감점 적용 (최소 0점)</span></div>}</SC>
+            <SC title="접근 제한"><SF label="액세스 코드"><input type="text" value={accessCode} onChange={e => setAccessCode(e.target.value)} placeholder="코드 입력 시 응시 시 코드 필요" className={INPUT_CLS} /></SF><SF label="접근 가능한 IP 주소"><textarea value={ipRestriction} onChange={e => setIpRestriction(e.target.value)} placeholder={'IP 주소를 한 줄에 하나씩\n예) 192.168.1.0/24'} rows={2} className={cn(INPUT_CLS, 'resize-none')} /><p className="text-xs mt-1 text-muted-foreground">비워두면 모든 IP 허용. CIDR 지원.</p></SF></SC>
           </div>
         </div>
       </div>
-
-      {showBankModal && (
-        <QuestionBankModal
-          onClose={() => setShowBankModal(false)}
-          onAdd={addQuestion}
-          added={questions.map(q => q.id)}
-          currentCourse={quiz?.course}
-        />
-      )}
-      {showAddModal && (
-        <AddQuestionModal
-          onClose={() => setShowAddModal(false)}
-          onAdd={addNewQuestion}
-        />
-      )}
-
-      {/* 재채점 확인 다이얼로그 */}
-      {regradeTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
-            <h3 className="text-sm font-bold mb-2" style={{ color: '#222222' }}>문항 재채점</h3>
-            <p className="text-sm mb-1" style={{ color: '#424242' }}>
-              다음 문항의 현재 정답 기준으로 모든 제출 기록을 재채점합니다.
-            </p>
-            <p className="text-xs px-3 py-2 rounded mb-4 line-clamp-2" style={{ background: '#F5F5F5', color: '#616161' }}>
-              {regradeTarget.text}
-            </p>
-            <p className="text-xs mb-4" style={{ color: '#9E9E9E' }}>
-              진행 중인 응시 세션은 제외되며, 이미 제출된 응답에만 소급 적용됩니다.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setRegradeTarget(null)}
-                className="text-sm px-4 py-2 rounded transition-colors"
-                style={{ color: '#9E9E9E', border: '1px solid #E0E0E0' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
-                취소
-              </button>
-              <button
-                onClick={confirmRegrade}
-                className="text-sm px-4 py-2 rounded text-white transition-colors"
-                style={{ background: '#6366f1' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#4F46E5'}
-                onMouseLeave={e => e.currentTarget.style.background = '#6366f1'}
-              >
-                재채점 실행
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showBankModal && <QuestionBankModal onClose={() => setShowBankModal(false)} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse={quiz?.course} />}
+      {showAddModal && <AddQuestionModal onClose={() => setShowAddModal(false)} onAdd={addNewQuestion} />}
+      {regradeTarget && <ConfirmDialog title="문항 재채점" message={`다음 문항의 현재 정답 기준으로 모든 제출 기록을 재채점합니다.\n\n"${regradeTarget.text}"\n\n진행 중인 응시 세션은 제외되며, 이미 제출된 응답에만 소급 적용됩니다.`} confirmLabel="재채점 실행" onConfirm={confirmRegrade} onCancel={() => setRegradeTarget(null)} />}
     </Layout>
   )
 }
 
-function SettingCard({ title, children }) {
-  return (
-    <div className="card-flat p-4 space-y-3">
-      <h3 className="text-xs font-semibold flex items-center gap-1.5 pb-2" style={{ color: '#222222', borderBottom: '1px solid #EEEEEE' }}>
-        <Settings2 size={12} style={{ color: '#9E9E9E' }} />
-        {title}
-      </h3>
-      {children}
-    </div>
-  )
-}
+function SC({ title, children }) { return <Card><CardContent className="p-4 space-y-3"><h3 className="text-xs font-semibold flex items-center gap-1.5 pb-2 border-b border-border"><Settings2 size={12} className="text-muted-foreground" />{title}</h3>{children}</CardContent></Card> }
+function SF({ label, children }) { return <div><label className="text-xs font-medium block mb-1.5 text-slate-700">{label}</label>{children}</div> }
+function Tgl({ checked, onChange, label }) { return <label className="flex items-center gap-2.5 cursor-pointer"><Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-indigo-600" /><span className="text-sm text-slate-700">{label}</span></label> }
 
-function SettingField({ label, children }) {
-  return (
-    <div>
-      <label className="text-xs font-medium block mb-1.5" style={{ color: '#424242' }}>{label}</label>
-      {children}
-    </div>
-  )
-}
-
-function Toggle({ checked, onChange, label }) {
-  return (
-    <label className="flex items-center gap-2.5 cursor-pointer">
-      <div className="relative shrink-0">
-        <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only" />
-        <div className="w-8 h-4 rounded-full transition-colors" style={{ background: checked ? '#6366f1' : '#BDBDBD' }}>
-          <div className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all" style={{ left: checked ? '1rem' : '0.125rem', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }} />
-        </div>
-      </div>
-      <span className="text-sm" style={{ color: '#424242' }}>{label}</span>
-    </label>
-  )
-}
-
-const EDIT_STUDENT_OPTIONS = mockStudents.slice(0, 30).map(s => ({
-  id: s.id,
-  label: s.name,
-  sub: s.studentId,
-}))
+const EDIT_STUDENT_OPTIONS = mockStudents.slice(0, 30).map(s => ({ id: s.id, label: s.name, sub: s.studentId }))
 
 function AssignToSelector({ selected, onChange }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
-
-  const filtered = EDIT_STUDENT_OPTIONS.filter(opt => {
-    if (selected.find(s => s.id === opt.id)) return false
-    if (!query) return true
-    return opt.label.includes(query) || opt.sub.includes(query)
-  })
-
+  const filtered = EDIT_STUDENT_OPTIONS.filter(opt => { if (selected.find(s => s.id === opt.id)) return false; if (!query) return true; return opt.label.includes(query) || opt.sub.includes(query) })
   const addItem = (opt) => { onChange([...selected, { id: opt.id, label: opt.label }]); setQuery('') }
-  const removeItem = (id) => onChange(selected.filter(s => s.id !== id))
-
+  const removeItem = (rmId) => onChange(selected.filter(s => s.id !== rmId))
   return (
     <div className="relative">
-      <div
-        className="min-h-9 flex flex-wrap gap-1 items-center px-2 py-1.5 cursor-text"
-        style={{ border: '1px solid #E0E0E0', borderRadius: 6, background: '#fff' }}
-        onClick={() => setOpen(true)}
-      >
-        {selected.map(s => (
-          <span key={s.id} className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full"
-            style={{ background: '#EEF2FF', color: '#4338CA', border: '1px solid #c7d2fe' }}>
-            {s.label}
-            <button onClick={e => { e.stopPropagation(); removeItem(s.id) }} style={{ color: 'inherit', opacity: 0.6 }}>×</button>
-          </span>
-        ))}
-        <input
-          type="text" value={query}
-          onChange={e => { setQuery(e.target.value); setOpen(true) }}
-          onFocus={() => setOpen(true)}
-          placeholder={selected.length === 0 ? '학생 이름 또는 학번 검색' : ''}
-          className="flex-1 min-w-16 text-xs bg-transparent focus:outline-none"
-          style={{ color: '#222222' }}
-        />
+      <div className="min-h-9 flex flex-wrap gap-1 items-center px-2 py-1.5 cursor-text border border-border rounded-md bg-white" onClick={() => setOpen(true)}>
+        {selected.map(s => (<span key={s.id} className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">{s.label}<button onClick={e => { e.stopPropagation(); removeItem(s.id) }} className="opacity-60">×</button></span>))}
+        <input type="text" value={query} onChange={e => { setQuery(e.target.value); setOpen(true) }} onFocus={() => setOpen(true)} placeholder={selected.length === 0 ? '학생 이름 또는 학번 검색' : ''} className="flex-1 min-w-16 text-xs bg-transparent focus:outline-none" />
       </div>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setQuery('') }} />
-          <div className="absolute z-20 w-full mt-1 bg-white rounded overflow-hidden"
-            style={{ border: '1px solid #E0E0E0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxHeight: 160, overflowY: 'auto' }}>
-            {filtered.length === 0
-              ? <div className="px-3 py-3 text-xs text-center" style={{ color: '#9E9E9E' }}>검색 결과가 없습니다</div>
-              : filtered.map(opt => (
-                <button key={opt.id} onMouseDown={e => { e.preventDefault(); addItem(opt) }}
-                  className="w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors"
-                  style={{ color: '#222222' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <span>{opt.label}</span>
-                  <span style={{ color: '#9E9E9E' }}>{opt.sub}</span>
-                </button>
-              ))
-            }
-          </div>
-        </>
-      )}
+      {open && (<><div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setQuery('') }} /><div className="absolute z-20 w-full mt-1 bg-white rounded-md overflow-hidden border border-border shadow-lg max-h-40 overflow-y-auto">{filtered.length === 0 ? <div className="px-3 py-3 text-xs text-center text-muted-foreground">검색 결과가 없습니다</div> : filtered.map(opt => <button key={opt.id} onMouseDown={e => { e.preventDefault(); addItem(opt) }} className="w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-muted transition-colors"><span>{opt.label}</span><span className="text-muted-foreground">{opt.sub}</span></button>)}</div></>)}
     </div>
   )
 }

@@ -7,20 +7,22 @@ import {
 } from 'recharts'
 import Layout from '../components/Layout'
 import { mockQuizzes, getQuizStudents, QUIZ_TYPES, getQuizQuestions } from '../data/mockData'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Checkbox } from '@/components/ui/checkbox'
 
 function TypeBadge({ type }) {
   const cfg = QUIZ_TYPES[type] || { label: type }
   return (
-    <span
-      className="inline-block font-medium px-1.5 py-0.5 rounded text-xs"
-      style={{ background: '#F5F5F5', color: '#616161' }}
-    >
+    <Badge variant="secondary" className="bg-slate-100 text-slate-600">
       {cfg.label}
-    </span>
+    </Badge>
   )
 }
 
-// ─── 헬퍼: 분산 계산 ─────────────────────────────────────────────
 function variance(arr) {
   if (arr.length < 2) return 0
   const mean = arr.reduce((a, b) => a + b, 0) / arr.length
@@ -32,7 +34,6 @@ export default function QuizStats() {
   const quiz = mockQuizzes.find(q => q.id === id) ?? mockQuizzes[0]
   const quizQuestions = getQuizQuestions(id)
   const quizStudents = getQuizStudents(id)
-  const [activeTab, setActiveTab] = useState('grades')
 
   return (
     <Layout breadcrumbs={[
@@ -40,71 +41,48 @@ export default function QuizStats() {
       { label: quiz.title },
       { label: '결과 보기' },
     ]}>
-      <div className="max-w-[1600px] mx-auto px-6 sm:px-10 xl:px-16 py-6 pb-10">
+      <div className="max-w-7xl mx-auto py-6 pb-10">
 
         {/* 퀴즈 정보 헤더 */}
-        <div className="card p-4 sm:p-5 mb-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <span className="inline-block mb-2 px-2 py-0.5 rounded text-xs font-medium" style={{ background: '#EEF2FF', color: '#4F46E5' }}>{quiz.week}주차 {quiz.session}차시</span>
-              <h2 className="text-base font-bold" style={{ color: '#222222' }}>{quiz.title}</h2>
-              {quiz.description && (
-                <p className="text-xs mt-1.5" style={{ color: '#6B7280' }}>{quiz.description}</p>
-              )}
-              <p className="text-xs mt-1" style={{ color: '#9E9E9E' }}>{quiz.startDate} ~ {quiz.dueDate}</p>
+        <Card className="mb-4">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <Badge className="mb-2 bg-indigo-50 text-indigo-600 border-0">{quiz.week}주차 {quiz.session}차시</Badge>
+                <h2 className="text-base font-bold">{quiz.title}</h2>
+                {quiz.description && <p className="text-xs mt-1.5 text-slate-500">{quiz.description}</p>}
+                <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button asChild className="bg-indigo-600 hover:bg-indigo-700" size="sm">
+                  <Link to={`/quiz/${quiz.id}/grade`}>채점 대시보드</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/">목록으로</Link>
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <Link
-                to={`/quiz/${quiz.id}/grade`}
-                className="text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-md transition-colors"
-              >
-                채점 대시보드
-              </Link>
-              <Link
-                to="/"
-                className="text-xs font-medium px-3.5 py-2 transition-colors"
-                style={{ color: '#616161', border: '1px solid #E0E0E0', borderRadius: 4 }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F5' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-              >
-                목록으로
-              </Link>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* 탭 네비게이션 */}
-        <div className="flex mb-5" style={{ borderBottom: '1px solid #E0E0E0' }}>
-          {[
-            { key: 'grades', label: '학생별 성적 조회' },
-            { key: 'stats',  label: '퀴즈 통계' },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className="px-5 py-2.5 text-sm font-medium border-b-2 transition-colors"
-              style={
-                activeTab === tab.key
-                  ? { borderBottomColor: '#6366f1', color: '#6366f1' }
-                  : { borderBottomColor: 'transparent', color: '#9E9E9E' }
-              }
-              onMouseEnter={e => { if (activeTab !== tab.key) e.currentTarget.style.color = '#424242' }}
-              onMouseLeave={e => { if (activeTab !== tab.key) e.currentTarget.style.color = '#9E9E9E' }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === 'grades' && <GradesTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />}
-        {activeTab === 'stats'  && <StatsTab  quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />}
-
+        {/* 탭 */}
+        <Tabs defaultValue="grades">
+          <TabsList className="mb-5">
+            <TabsTrigger value="grades">학생별 성적 조회</TabsTrigger>
+            <TabsTrigger value="stats">퀴즈 통계</TabsTrigger>
+          </TabsList>
+          <TabsContent value="grades">
+            <GradesTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
+          </TabsContent>
+          <TabsContent value="stats">
+            <StatsTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   )
 }
 
-/* ─── 소요 시간 계산 ───────────────────────────────────────────── */
 function calcElapsed(startTime, submittedAt) {
   if (!startTime || !submittedAt) return null
   const start = new Date(startTime.replace(' ', 'T'))
@@ -119,12 +97,11 @@ function calcElapsed(startTime, submittedAt) {
   return `${s}초`
 }
 
-/* ─── Tab 1: 학생별 성적 조회 ─────────────────────────────────── */
 function GradesTab({ quiz, students: allStudents }) {
   const [search, setSearch] = useState('')
   const [onlyUngraded, setOnlyUngraded] = useState(false)
-  const [sortKey, setSortKey] = useState(null)   // null | 'name' | 'studentId' | 'department' | 'elapsed' | 'submittedAt' | 'score'
-  const [sortDir, setSortDir] = useState('desc') // 'desc' | 'asc'
+  const [sortKey, setSortKey] = useState(null)
+  const [sortDir, setSortDir] = useState('desc')
 
   const students = allStudents.filter(s => s.submitted)
   const gradedCount = students.filter(s => s.score !== null).length
@@ -163,108 +140,81 @@ function GradesTab({ quiz, students: allStudents }) {
   }
 
   const downloadCSV = () => downloadGradesXlsx(quiz, students)
-
   const ungradedCount = students.length - gradedCount
 
   return (
     <div>
-      {/* 상단: 요약 카드 */}
-      <div className="inline-flex items-center gap-0 mb-5" style={{ border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', overflow: 'hidden' }}>
+      {/* 요약 카드 */}
+      <div className="inline-flex items-center gap-0 mb-5 border border-border rounded-lg bg-white overflow-hidden">
         {[
-          { label: '제출',    value: students.length, alert: false },
-          { label: '채점 완료', value: gradedCount,     alert: false },
-          { label: '미채점',  value: ungradedCount,   alert: ungradedCount > 0 },
+          { label: '제출', value: students.length, alert: false },
+          { label: '채점 완료', value: gradedCount, alert: false },
+          { label: '미채점', value: ungradedCount, alert: ungradedCount > 0 },
         ].map(({ label, value, alert }, idx) => (
           <div key={label} className="flex items-center">
-            {idx > 0 && <span style={{ width: 1, height: 28, background: '#E5E7EB', display: 'inline-block' }} />}
+            {idx > 0 && <span className="w-px h-7 bg-border" />}
             <div className="flex items-center gap-2 px-4 py-2.5">
-              <span className="text-sm" style={{ color: '#9CA3AF' }}>{label}</span>
-              <span className="text-sm font-bold" style={{ color: alert ? '#EF4444' : '#111827' }}>{value}명</span>
+              <span className="text-sm text-muted-foreground">{label}</span>
+              <span className={cn('text-sm font-bold', alert ? 'text-red-500' : '')}>{value}명</span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* 중단: 필터 + 다운로드 — 같은 행 */}
+      {/* 필터 + 다운로드 */}
       <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-3">
-        <div className="relative w-64">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9E9E9E' }} />
-          <input
-            type="text"
-            placeholder="학생 이름 또는 학번 검색"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="input pl-8 py-2 text-sm w-full"
-          />
-        </div>
-        <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-          <span
-            className="w-4 h-4 rounded flex items-center justify-center shrink-0"
-            style={onlyUngraded
-              ? { background: '#4F46E5' }
-              : { background: '#fff', border: '1.5px solid #D1D5DB' }
-            }
-            onClick={() => setOnlyUngraded(v => !v)}
-          >
-            {onlyUngraded && (
-              <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
-                <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+        <div className="flex items-center gap-3">
+          <div className="relative w-64">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text" placeholder="학생 이름 또는 학번 검색"
+              value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full text-sm pl-8 py-2 border border-border rounded-md bg-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+            />
+          </div>
+          <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+            <Checkbox checked={onlyUngraded} onCheckedChange={setOnlyUngraded} />
+            <span className="text-sm text-slate-500">미채점만 보기</span>
+            {ungradedCount > 0 && (
+              <Badge variant="secondary" className="bg-red-50 text-red-500 text-[11px]">{ungradedCount}</Badge>
             )}
-          </span>
-          <span className="text-sm" style={{ color: '#6B7280' }} onClick={() => setOnlyUngraded(v => !v)}>
-            미채점만 보기
-          </span>
-          {ungradedCount > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 11 }}>
-              {ungradedCount}
-            </span>
-          )}
-        </label>
-      </div>
-        <button onClick={downloadCSV} className="btn-secondary text-xs">
+          </label>
+        </div>
+        <Button variant="outline" size="sm" onClick={downloadCSV}>
           <Download size={13} />
           성적 다운로드
-        </button>
+        </Button>
       </div>
 
-      {/* 하단: 데이터 테이블 — 외부 테두리 제거 */}
-      <div className="bg-white overflow-hidden" style={{ borderRadius: 8, border: '1px solid #F3F4F6' }}>
+      {/* 테이블 */}
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+              <tr className="bg-slate-50 border-b border-border">
                 {[
-                  { key: 'name',        label: '이름',                         align: 'left'   },
-                  { key: 'studentId',   label: '학번',                         align: 'center' },
-                  { key: 'department',  label: '학과',                         align: 'left'   },
-                  { key: 'elapsed',     label: '소요 시간',                    align: 'center' },
-                  { key: 'submittedAt', label: '제출 일시',                    align: 'center' },
-                  { key: 'score',       label: `점수 / ${quiz.totalPoints}점`, align: 'center' },
-                  { key: null,          label: '상태',                         align: 'center' },
-                  { key: null,          label: '',                              align: 'center' },
+                  { key: 'name', label: '이름', align: 'left' },
+                  { key: 'studentId', label: '학번', align: 'center' },
+                  { key: 'department', label: '학과', align: 'left' },
+                  { key: 'elapsed', label: '소요 시간', align: 'center' },
+                  { key: 'submittedAt', label: '제출 일시', align: 'center' },
+                  { key: 'score', label: `점수 / ${quiz.totalPoints}점`, align: 'center' },
+                  { key: null, label: '상태', align: 'center' },
+                  { key: null, label: '', align: 'center' },
                 ].map(({ key, label, align }) => (
-                  <th
-                    key={label || '_action'}
-                    className={`px-4 py-3 font-medium whitespace-nowrap text-${align}`}
-                    style={{ fontSize: 12 }}
-                  >
+                  <th key={label || '_action'} className={cn('px-4 py-3 font-medium whitespace-nowrap text-xs', `text-${align}`)}>
                     {key ? (
                       <button
                         onClick={() => handleSort(key)}
-                        className={`group inline-flex items-center gap-1 transition-colors ${align === 'center' ? 'justify-center' : ''}`}
-                        style={{ color: sortKey === key ? '#4F46E5' : '#6B7280' }}
+                        className={cn('group inline-flex items-center gap-1 transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-indigo-600' : 'text-slate-500')}
                       >
                         {label}
-                        {sortKey !== key && (
-                          <ArrowUpDown size={11} className="opacity-0 group-hover:opacity-40 transition-opacity" />
-                        )}
+                        {sortKey !== key && <ArrowUpDown size={11} className="opacity-0 group-hover:opacity-40 transition-opacity" />}
                         {sortKey === key && sortDir === 'desc' && <ArrowDown size={11} />}
-                        {sortKey === key && sortDir === 'asc'  && <ArrowUp size={11} />}
+                        {sortKey === key && sortDir === 'asc' && <ArrowUp size={11} />}
                       </button>
                     ) : (
-                      <span style={{ color: '#6B7280' }}>{label}</span>
+                      <span className="text-slate-500">{label}</span>
                     )}
                   </th>
                 ))}
@@ -273,78 +223,50 @@ function GradesTab({ quiz, students: allStudents }) {
             <tbody>
               {filtered.map((s) => {
                 const scorePct = s.score !== null ? Math.round((s.score / quiz.totalPoints) * 100) : null
-                const scoreColor = scorePct === null ? '#9CA3AF'
-                  : scorePct >= 80 ? '#4F46E5'
-                  : scorePct >= 60 ? '#6B7280'
-                  : '#EF4444'
                 const elapsed = calcElapsed(s.startTime, s.submittedAt)
-
                 return (
-                  <tr
-                    key={s.id}
-                    className="transition-colors"
-                    style={{ borderBottom: '1px solid #F3F4F6', background: '#fff' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#F8F9FF'}
-                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-                  >
-                    <td className="px-4 py-3 text-sm" style={{ color: '#111827' }}>{s.name}</td>
-                    <td className="px-4 py-3 text-sm text-center" style={{ color: '#6B7280' }}>{s.studentId}</td>
-                    <td className="px-4 py-3 text-sm" style={{ color: '#6B7280' }}>{s.department}</td>
-                    <td className="px-3 py-3 text-sm text-center whitespace-nowrap" style={{ color: '#374151' }}>
-                      {elapsed ?? <span style={{ color: '#D1D5DB' }}>-</span>}
+                  <tr key={s.id} className="border-b border-slate-100 hover:bg-indigo-50/30 transition-colors">
+                    <td className="px-4 py-3 text-sm">{s.name}</td>
+                    <td className="px-4 py-3 text-sm text-center text-slate-500">{s.studentId}</td>
+                    <td className="px-4 py-3 text-sm text-slate-500">{s.department}</td>
+                    <td className="px-3 py-3 text-sm text-center whitespace-nowrap text-slate-700">
+                      {elapsed ?? <span className="text-slate-300">-</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-center whitespace-nowrap" style={{ color: '#374151' }}>
-                      {s.submittedAt ? s.submittedAt.split(' ')[1] : <span style={{ color: '#D1D5DB' }}>-</span>}
+                    <td className="px-4 py-3 text-sm text-center whitespace-nowrap text-slate-700">
+                      {s.submittedAt ? s.submittedAt.split(' ')[1] : <span className="text-slate-300">-</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-center">
                       {s.score !== null
-                        ? <span className="font-semibold" style={{ color: scoreColor }}>{s.score}점</span>
-                        : <span style={{ color: '#D1D5DB' }}>-</span>
+                        ? <span className={cn('font-semibold', scorePct >= 80 ? 'text-indigo-600' : scorePct >= 60 ? 'text-slate-600' : 'text-red-500')}>{s.score}점</span>
+                        : <span className="text-slate-300">-</span>
                       }
                     </td>
-                    {/* 상태 */}
                     <td className="px-4 py-3 text-center">
                       {s.score !== null ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: '#F0FDF4', color: '#16A34A' }}>
-                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#86EFAC' }} />
-                          채점 완료
-                        </span>
+                        <Badge variant="secondary" className="bg-green-50 text-green-600">채점 완료</Badge>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: '#FFF7ED', color: '#C2410C' }}>
-                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#FCA5A5' }} />
-                          미채점
-                        </span>
+                        <Badge variant="secondary" className="bg-orange-50 text-orange-600">미채점</Badge>
                       )}
                     </td>
-                    {/* 액션 버튼 */}
                     <td className="px-4 py-2.5 text-center">
-                      <Link
-                        to={`/quiz/${quiz.id}/grade`}
-                        className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold transition-colors"
-                        style={{ background: '#1D4ED8', color: '#fff' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = '#1E40AF' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = '#1D4ED8' }}
-                      >
-                        답안 확인
-                      </Link>
+                      <Button asChild size="xs" className="bg-indigo-700 hover:bg-indigo-800">
+                        <Link to={`/quiz/${quiz.id}/grade`}>답안 확인</Link>
+                      </Button>
                     </td>
                   </tr>
                 )
               })}
               {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center" style={{ color: '#D1D5DB' }}>검색 결과가 없습니다</td>
-                </tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-300">검색 결과가 없습니다</td></tr>
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }
 
-/* ─── Tab 2: 퀴즈 통계 ───────────────────────────────────────── */
 function StatsTab({ quiz, quizQuestions, students: allStudents }) {
   const submitted = allStudents.filter(s => s.submitted)
   const graded    = submitted.filter(s => s.score !== null)
@@ -368,10 +290,6 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
   const avgDuration = durations.length
     ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
     : null
-  const timeLimit = quiz.timeLimit ?? null
-  const timePressureCount = timeLimit ? durations.filter(d => d >= timeLimit * 0.95).length : 0
-  const timePressureRate  = durations.length ? Math.round((timePressureCount / durations.length) * 100) : 0
-
 
   const scoreFreq = {}
   scores.forEach(s => { scoreFreq[s] = (scoreFreq[s] || 0) + 1 })
@@ -397,7 +315,6 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
 
   const qTableData = quizQuestions.map(q => {
     const rate = q.avgScore != null ? Math.round((q.avgScore / q.points) * 100) : null
-    // 난이도: 득점률 기준 (≥70% 쉬움 / 40~69% 보통 / <40% 어려움)
     const difficulty = rate == null ? null
       : rate >= 70 ? { label: '쉬움' }
       : rate >= 40 ? { label: '보통' }
@@ -407,7 +324,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
 
   return (
     <div className="space-y-4">
-      {/* 요약 지표 카드 */}
+      {/* 요약 지표 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
           { label: '평균 점수', value: avg.toFixed(1), unit: `/ ${quiz.totalPoints}점`, accent: true },
@@ -417,127 +334,98 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           { label: '응시율', value: submitRate, unit: '%' },
           { label: '평균 응시시간', value: avgDuration ?? '-', unit: '분' },
         ].map(item => (
-          <div
-            key={item.label}
-            className="bg-white p-3 text-center"
-            style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}
-          >
+          <Card key={item.label} className="p-3 text-center">
             <div className="flex items-baseline justify-center gap-1 leading-none">
-              <span className="text-xl font-bold" style={{ color: item.accent ? '#6366f1' : '#222222' }}>{item.value}</span>
-              <span className="text-xs" style={{ color: '#9E9E9E' }}>{item.unit}</span>
+              <span className={cn('text-xl font-bold', item.accent ? 'text-indigo-600' : '')}>{item.value}</span>
+              <span className="text-xs text-muted-foreground">{item.unit}</span>
             </div>
-            <div className="text-xs mt-1.5" style={{ color: '#616161' }}>{item.label}</div>
-          </div>
+            <div className="text-xs mt-1.5 text-slate-600">{item.label}</div>
+          </Card>
         ))}
       </div>
 
       {/* 점수 분포 + 응시 현황 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-white p-4" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
+        <Card className="lg:col-span-2 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold" style={{ color: '#222222' }}>점수 분포</h3>
-            <span className="text-xs" style={{ color: '#9E9E9E' }}>
+            <h3 className="text-sm font-semibold">점수 분포</h3>
+            <span className="text-xs text-muted-foreground">
               제출 {quiz.submitted}명 중 채점 완료 {graded.length}명 기준 (미채점 {quiz.submitted - graded.length}명 제외)
             </span>
           </div>
           {graded.length === 0 ? (
-            <div className="flex items-center justify-center h-40 text-xs" style={{ color: '#BDBDBD' }}>채점 완료된 학생이 없습니다</div>
+            <div className="flex items-center justify-center h-40 text-xs text-muted-foreground/40">채점 완료된 학생이 없습니다</div>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={distData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                 <XAxis dataKey="score" tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{ background: '#fff', border: '1px solid #E0E0E0', borderRadius: 4, fontSize: 12 }}
-                  formatter={(val) => [`${val}명`, '인원']}
-                />
-                <ReferenceLine
-                  x={`${Math.round(avg)}점`}
-                  stroke="#6366f1"
-                  strokeDasharray="3 3"
-                  label={{ value: '평균', position: 'top', fontSize: 10, fill: '#6366f1' }}
-                />
+                <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val) => [`${val}명`, '인원']} />
+                <ReferenceLine x={`${Math.round(avg)}점`} stroke="#6366f1" strokeDasharray="3 3" label={{ value: '평균', position: 'top', fontSize: 10, fill: '#6366f1' }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {distData.map((d, i) => (
-                    <Cell
-                      key={i}
-                      fill={d.raw === Math.round(avg) ? '#6366f1' : d.raw > Math.round(avg) ? '#c7d2fe' : '#e0e7ff'}
-                    />
+                    <Cell key={i} fill={d.raw === Math.round(avg) ? '#6366f1' : d.raw > Math.round(avg) ? '#c7d2fe' : '#e0e7ff'} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </Card>
 
-        <div className="bg-white p-4" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
-          <h3 className="text-sm font-semibold mb-3" style={{ color: '#222222' }}>응시 현황</h3>
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold mb-3">응시 현황</h3>
           <div className="space-y-3">
             {[
-              { label: '수강 인원',  value: quiz.totalStudents,                   barColor: '#BDBDBD' },
-              { label: '제출 완료',  value: quiz.submitted,                       barColor: '#6366f1', rate: submitRate },
-              { label: '미제출',     value: quiz.totalStudents - quiz.submitted,  barColor: '#f59e0b', rate: (100 - parseFloat(submitRate)).toFixed(1) },
-              { label: '채점 완료',  value: quiz.graded,                          barColor: '#01A900', rate: gradeRate },
-              { label: '채점 대기',  value: quiz.pendingGrade,                    barColor: '#EF2B2A' },
+              { label: '수강 인원', value: quiz.totalStudents, barColor: '#BDBDBD' },
+              { label: '제출 완료', value: quiz.submitted, barColor: '#6366f1', rate: submitRate },
+              { label: '미제출', value: quiz.totalStudents - quiz.submitted, barColor: '#f59e0b', rate: (100 - parseFloat(submitRate)).toFixed(1) },
+              { label: '채점 완료', value: quiz.graded, barColor: '#01A900', rate: gradeRate },
+              { label: '채점 대기', value: quiz.pendingGrade, barColor: '#EF2B2A' },
             ].map(item => (
               <div key={item.label}>
                 <div className="flex justify-between text-xs mb-1">
-                  <span style={{ color: '#616161' }}>{item.label}</span>
-                  <span className="font-semibold" style={{ color: '#424242' }}>
-                    {item.value}명{item.rate ? ` (${item.rate}%)` : ''}
-                  </span>
+                  <span className="text-slate-600">{item.label}</span>
+                  <span className="font-semibold text-slate-700">{item.value}명{item.rate ? ` (${item.rate}%)` : ''}</span>
                 </div>
-                <div className="h-1.5 rounded overflow-hidden" style={{ background: '#EEEEEE' }}>
-                  <div
-                    className="h-full rounded"
-                    style={{ width: `${(item.value / quiz.totalStudents) * 100}%`, background: item.barColor }}
-                  />
+                <div className="h-1.5 rounded overflow-hidden bg-slate-200">
+                  <div className="h-full rounded" style={{ width: `${(item.value / quiz.totalStudents) * 100}%`, background: item.barColor }} />
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 pt-3 space-y-2" style={{ borderTop: '1px solid #EEEEEE' }}>
-            <p className="text-xs font-medium mb-2" style={{ color: '#616161' }}>점수 분포 구간 (채점 완료 기준)</p>
+          <div className="mt-4 pt-3 space-y-2 border-t border-border">
+            <p className="text-xs font-medium mb-2 text-slate-600">점수 분포 구간 (채점 완료 기준)</p>
             {[
-              { label: '상위 27%', value: `${p73}점 이상`,    styleColor: '#018600' },
-              { label: '중위 46%', value: `${p27}~${p73}점`, styleColor: '#424242' },
-              { label: '하위 27%', value: `${p27}점 미만`,    styleColor: '#EF2B2A' },
+              { label: '상위 27%', value: `${p73}점 이상`, cls: 'text-green-700' },
+              { label: '중위 46%', value: `${p27}~${p73}점`, cls: 'text-slate-700' },
+              { label: '하위 27%', value: `${p27}점 미만`, cls: 'text-red-600' },
             ].map(row => (
               <div key={row.label} className="flex justify-between text-xs">
-                <span style={{ color: '#9E9E9E' }}>{row.label}</span>
-                <span className="font-medium" style={{ color: row.styleColor }}>{row.value}</span>
+                <span className="text-muted-foreground">{row.label}</span>
+                <span className={cn('font-medium', row.cls)}>{row.value}</span>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* 문항별 득점률 */}
-      <div className="bg-white p-4" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
+      <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold" style={{ color: '#222222' }}>문항별 득점률</h3>
-          <span className="text-xs" style={{ color: '#9E9E9E' }}>채점된 학생 기준 실시간 집계</span>
+          <h3 className="text-sm font-semibold">문항별 득점률</h3>
+          <span className="text-xs text-muted-foreground">채점된 학생 기준 실시간 집계</span>
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={qRateData} layout="vertical" margin={{ top: 0, right: 44, left: 8, bottom: 0 }}>
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={v => `${v}%`} />
             <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} width={32} />
-            <Tooltip
-              contentStyle={{ background: '#fff', border: '1px solid #E0E0E0', borderRadius: 4, fontSize: 12 }}
-              formatter={(val, _name, props) => [
-                props.payload.hasData ? `${val}%` : '채점 데이터 없음',
-                `${props.payload.label} 득점률`,
-              ]}
-            />
+            <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val, _name, props) => [props.payload.hasData ? `${val}%` : '채점 데이터 없음', `${props.payload.label} 득점률`]} />
             <ReferenceLine x={70} stroke="#34d399" strokeDasharray="3 3" label={{ value: '70%', position: 'right', fontSize: 10, fill: '#34d399' }} />
             <ReferenceLine x={40} stroke="#f87171" strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 10, fill: '#f87171' }} />
             <Bar dataKey="rate" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 11, fill: '#94a3b8', formatter: v => `${v}%` }}>
               {qRateData.map((q, i) => (
-                <Cell
-                  key={i}
-                  fill={!q.hasData ? '#e2e8f0' : q.rate >= 70 ? '#34d399' : q.rate >= 40 ? '#fbbf24' : '#f87171'}
-                />
+                <Cell key={i} fill={!q.hasData ? '#e2e8f0' : q.rate >= 70 ? '#34d399' : q.rate >= 40 ? '#fbbf24' : '#f87171'} />
               ))}
             </Bar>
           </BarChart>
@@ -549,140 +437,95 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             { color: '#f87171', label: '40% 미만 (어려움)' },
             { color: '#BDBDBD', label: '채점 전' },
           ].map(item => (
-            <div key={item.label} className="flex items-center gap-1.5 text-xs" style={{ color: '#616161' }}>
+            <div key={item.label} className="flex items-center gap-1.5 text-xs text-slate-600">
               <span className="w-2.5 h-2.5 rounded-sm" style={{ background: item.color }} />
               {item.label}
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* 문항별 상세 통계 테이블 */}
-      <div className="bg-white overflow-hidden" style={{ border: '1px solid #E0E0E0', borderRadius: 8 }}>
-        <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #EEEEEE' }}>
-          <h3 className="text-sm font-semibold" style={{ color: '#222222' }}>문항별 상세 통계</h3>
+      <Card className="overflow-hidden">
+        <div className="px-4 py-3 flex items-center justify-between border-b border-border">
+          <h3 className="text-sm font-semibold">문항별 상세 통계</h3>
           <div className="flex items-center gap-3">
-            <span className="text-xs" style={{ color: '#9E9E9E' }}>총 {quizQuestions.length}문항 · {quiz.totalPoints}점 만점</span>
-            <button
-              onClick={() => downloadItemAnalysisXlsx(quiz, quizQuestions, allStudents)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors"
-              style={{ border: '1px solid #E0E0E0', color: '#616161', background: '#fff' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F5' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
-            >
+            <span className="text-xs text-muted-foreground">총 {quizQuestions.length}문항 · {quiz.totalPoints}점 만점</span>
+            <Button variant="outline" size="sm" onClick={() => downloadItemAnalysisXlsx(quiz, quizQuestions, allStudents)}>
               <Download size={12} />
               문항 분석 (.xlsx)
-            </button>
+            </Button>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr style={{ background: '#F5F5F5', borderBottom: '2px solid #E0E0E0' }}>
+              <tr className="bg-slate-50 border-b-2 border-border">
                 {[
-                  { label: '문항',      center: true  },
-                  { label: '유형',      center: false },
-                  { label: '배점',      center: true  },
-                  { label: '평균 점수', center: true  },
-                  { label: '득점률',    center: false },
-                  { label: '난이도',    center: true, tip: '득점률 기준: ≥70% 쉬움 / 40~69% 보통 / <40% 어려움' },
-                  { label: '채점 현황', center: true  },
+                  { label: '문항', center: true },
+                  { label: '유형', center: false },
+                  { label: '배점', center: true },
+                  { label: '평균 점수', center: true },
+                  { label: '득점률', center: false },
+                  { label: '난이도', center: true, tip: '득점률 기준: ≥70% 쉬움 / 40~69% 보통 / <40% 어려움' },
+                  { label: '채점 현황', center: true },
                 ].map(({ label, center, tip }) => (
-                  <th
-                    key={label}
-                    title={tip ?? ''}
-                    className={`px-4 py-2.5 font-semibold whitespace-nowrap ${center ? 'text-center' : 'text-left'}`}
-                    style={{ color: '#616161', fontSize: 11, cursor: tip ? 'help' : 'default' }}
-                  >
-                    {label}{tip && <span style={{ color: '#BDBDBD', marginLeft: 2 }}>ⓘ</span>}
+                  <th key={label} title={tip ?? ''} className={cn('px-4 py-2.5 font-semibold whitespace-nowrap text-[11px] text-slate-600', center ? 'text-center' : 'text-left', tip && 'cursor-help')}>
+                    {label}{tip && <span className="text-muted-foreground/40 ml-0.5">ⓘ</span>}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {qTableData.map((q, i) => (
-                  <tr
-                    key={q.id}
-                    className="transition-colors"
-                    style={{ borderBottom: '1px solid #EEEEEE', background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#F0F4FF'}
-                    onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#FAFAFA'}
-                  >
-                    {/* 문항 번호 */}
-                    <td className="px-4 py-2.5 text-center">
-                      <span className="font-bold text-xs px-1.5 py-0.5 rounded" style={{ background: '#EEF2FF', color: '#4338ca' }}>
-                        Q{q.order}
-                      </span>
-                    </td>
-
-                    {/* 유형 */}
-                    <td className="px-4 py-2.5"><TypeBadge type={q.type} /></td>
-
-                    {/* 배점 */}
-                    <td className="px-4 py-2.5 text-center font-medium" style={{ color: '#424242' }}>{q.points}점</td>
-
-                    {/* 평균 점수 */}
-                    <td className="px-4 py-2.5 text-center" style={{ color: '#424242' }}>
-                      {q.avgScore != null ? `${q.avgScore}점` : <span style={{ color: '#BDBDBD' }}>-</span>}
-                    </td>
-
-                    {/* 득점률 */}
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 rounded overflow-hidden" style={{ background: '#EEEEEE' }}>
-                          <div
-                            className="h-full rounded"
-                            style={{
-                              width: `${q.rate ?? 0}%`,
-                              background: !q.rate ? '#BDBDBD' : q.rate >= 70 ? '#01A900' : q.rate >= 40 ? '#f59e0b' : '#EF2B2A',
-                            }}
-                          />
-                        </div>
-                        <span className="font-medium" style={{ color: q.avgScore != null ? '#424242' : '#BDBDBD' }}>
-                          {q.avgScore != null ? `${q.rate}%` : '-'}
-                        </span>
+                <tr key={q.id} className={cn('border-b border-slate-100 hover:bg-indigo-50/30 transition-colors', i % 2 !== 0 && 'bg-slate-50/50')}>
+                  <td className="px-4 py-2.5 text-center">
+                    <Badge className="bg-indigo-50 text-indigo-700 border-0">Q{q.order}</Badge>
+                  </td>
+                  <td className="px-4 py-2.5"><TypeBadge type={q.type} /></td>
+                  <td className="px-4 py-2.5 text-center font-medium text-slate-700">{q.points}점</td>
+                  <td className="px-4 py-2.5 text-center text-slate-700">
+                    {q.avgScore != null ? `${q.avgScore}점` : <span className="text-muted-foreground/40">-</span>}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-1.5 rounded overflow-hidden bg-slate-200">
+                        <div className="h-full rounded" style={{ width: `${q.rate ?? 0}%`, background: !q.rate ? '#BDBDBD' : q.rate >= 70 ? '#01A900' : q.rate >= 40 ? '#f59e0b' : '#EF2B2A' }} />
                       </div>
-                    </td>
-
-                    {/* 난이도 */}
-                    <td className="px-4 py-2.5 text-center">
-                      {q.difficulty ? (
-                        <span
-                          className="px-1.5 py-0.5 rounded text-xs font-medium"
-                          style={
-                            q.difficulty.label === '쉬움'   ? { background: '#E5FCE3', color: '#018600' }
-                            : q.difficulty.label === '보통' ? { background: '#FFF6F2', color: '#B43200' }
-                            : { background: '#FFF5F5', color: '#BF0A03' }
-                          }
-                        >
-                          {q.difficulty.label}
-                        </span>
-                      ) : (
-                        <span style={{ color: '#BDBDBD' }}>-</span>
-                      )}
-                    </td>
-
-                    {/* 채점 현황 */}
-                    <td className="px-4 py-2.5 text-center">
-                      {q.gradedCount >= q.totalCount ? (
-                        <span className="font-medium" style={{ color: '#018600' }}>완료</span>
-                      ) : (
-                        <span style={{ color: '#B43200' }}>{q.gradedCount}/{q.totalCount}명</span>
-                      )}
-                    </td>
-                  </tr>
+                      <span className={cn('font-medium', q.avgScore != null ? 'text-slate-700' : 'text-muted-foreground/40')}>
+                        {q.avgScore != null ? `${q.rate}%` : '-'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-center">
+                    {q.difficulty ? (
+                      <Badge variant="secondary" className={cn('text-xs',
+                        q.difficulty.label === '쉬움' && 'bg-green-50 text-green-700',
+                        q.difficulty.label === '보통' && 'bg-orange-50 text-orange-700',
+                        q.difficulty.label === '어려움' && 'bg-red-50 text-red-600',
+                      )}>
+                        {q.difficulty.label}
+                      </Badge>
+                    ) : <span className="text-muted-foreground/40">-</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-center">
+                    {q.gradedCount >= q.totalCount ? (
+                      <span className="font-medium text-green-700">완료</span>
+                    ) : (
+                      <span className="text-orange-700">{q.gradedCount}/{q.totalCount}명</span>
+                    )}
+                  </td>
+                </tr>
               ))}
             </tbody>
           </table>
         </div>
-
-        {/* 난이도 기준 가이드 */}
-        <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-1" style={{ borderTop: '1px solid #EEEEEE', background: '#FAFAFA' }}>
-          <span className="text-xs" style={{ color: '#9E9E9E' }}>
-            난이도(득점률 기준): <span style={{ color: '#018600' }}>≥70%</span> 쉬움 / <span style={{ color: '#B43200' }}>40~69%</span> 보통 / <span style={{ color: '#BF0A03' }}>&lt;40%</span> 어려움
+        <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-1 border-t border-border bg-slate-50">
+          <span className="text-xs text-muted-foreground">
+            난이도(득점률 기준): <span className="text-green-700">≥70%</span> 쉬움 / <span className="text-orange-700">40~69%</span> 보통 / <span className="text-red-600">&lt;40%</span> 어려움
           </span>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

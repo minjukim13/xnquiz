@@ -7,14 +7,18 @@ import { DropdownSelect } from '../components/DropdownSelect'
 import { useQuestionBank } from '../context/QuestionBankContext'
 import AddQuestionModal from '../components/AddQuestionModal'
 import { downloadQuestionTemplate, parseExcelOrCsv } from '../utils/excelUtils'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 const DIFFICULTY_META = {
-  high:   { label: '상', color: '#DC2626', bg: '#FEF2F2' },
-  medium: { label: '중', color: '#D97706', bg: '#FFFBEB' },
-  low:    { label: '하', color: '#16A34A', bg: '#F0FDF4' },
+  high:   { label: '상', className: 'bg-red-50 text-red-600' },
+  medium: { label: '중', className: 'bg-amber-50 text-amber-600' },
+  low:    { label: '하', className: 'bg-green-50 text-green-600' },
 }
 
-// ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 export default function QuestionBank() {
   const { bankId } = useParams()
   const navigate = useNavigate()
@@ -67,11 +71,7 @@ export default function QuestionBank() {
   }
 
   const [deleteTargetId, setDeleteTargetId] = useState(null)
-
-  const handleDelete = (id) => {
-    setDeleteTargetId(id)
-  }
-
+  const handleDelete = (id) => setDeleteTargetId(id)
   const confirmDelete = () => {
     if (deleteTargetId) deleteQuestion(deleteTargetId)
     setDeleteTargetId(null)
@@ -86,11 +86,8 @@ export default function QuestionBank() {
   const handleCsvImport = (rows) => {
     const newQuestions = rows.map((row, i) => ({
       id: `q_csv_${Date.now()}_${i}`,
-      text: row.text,
-      type: row.type,
-      points: row.points,
-      bankId: bank.id,
-      usageCount: 0,
+      text: row.text, type: row.type, points: row.points,
+      bankId: bank.id, usageCount: 0,
       difficulty: row.difficulty || 'medium',
       groupTag: row.groupTag || '',
       correctAnswer: row.answer || '',
@@ -102,16 +99,13 @@ export default function QuestionBank() {
 
   return (
     <Layout breadcrumbs={[{ label: '문제은행', href: '/question-banks' }, { label: bank.name }]}>
-      <div className="max-w-[1200px] mx-auto px-6 sm:px-10 xl:px-16 py-8">
+      <div className="max-w-6xl mx-auto py-8">
 
         {/* 헤더 */}
         <div className="mb-6">
           <button
             onClick={() => navigate('/question-banks')}
-            className="flex items-center gap-1 text-xs mb-2 transition-colors"
-            style={{ color: '#9E9E9E' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#424242'}
-            onMouseLeave={e => e.currentTarget.style.color = '#9E9E9E'}
+            className="flex items-center gap-1 text-xs mb-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft size={13} />
             문제은행 목록
@@ -135,117 +129,88 @@ export default function QuestionBank() {
                       if (bankNameDraft.trim()) updateBank(bank.id, { name: bankNameDraft.trim() })
                       setEditingBankName(false)
                     }}
-                    className="text-2xl font-bold focus:outline-none"
-                    style={{ color: '#222222', border: 'none', borderBottom: '2px solid #6366F1', background: 'transparent', minWidth: 0, width: `${Math.max(bankNameDraft.length, 4)}ch` }}
+                    className="text-2xl font-bold focus:outline-none border-b-2 border-indigo-500 bg-transparent min-w-0"
+                    style={{ width: `${Math.max(bankNameDraft.length, 4)}ch` }}
                   />
                 </div>
               ) : (
                 <div className="flex items-center gap-2 group">
-                  <h1 className="text-2xl font-bold" style={{ color: '#222222' }}>{bank.name}</h1>
+                  <h1 className="text-2xl font-bold">{bank.name}</h1>
                   <button
                     type="button"
                     onClick={() => { setBankNameDraft(bank.name); setEditingBankName(true) }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: '#9E9E9E' }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#6366F1'}
-                    onMouseLeave={e => e.currentTarget.style.color = '#9E9E9E'}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-indigo-600"
                   >
                     <Edit2 size={15} />
                   </button>
                 </div>
               )}
-              <p className="text-xs mt-1" style={{ color: '#BDBDBD' }}>
+              <p className="text-xs mt-1 text-muted-foreground/60">
                 문항을 수정해도 이미 생성된 퀴즈에는 자동 반영되지 않습니다.
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="flex items-center gap-2 text-sm font-medium px-3 py-2 transition-colors"
-                style={{ color: '#424242', border: '1px solid #E0E0E0', borderRadius: 4 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#F5F5F5'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
+              <Button variant="outline" onClick={() => setShowUploadModal(true)}>
                 <Upload size={14} />
                 <span className="hidden sm:block">일괄 업로드</span>
-              </button>
-              <button
-                onClick={() => { setShowAddModal(true); setEditingId(null) }}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 transition-colors"
-                style={{ borderRadius: 4 }}
-              >
+              </Button>
+              <Button onClick={() => { setShowAddModal(true); setEditingId(null) }} className="bg-indigo-600 hover:bg-indigo-700">
                 <Plus size={15} />
                 문항 추가
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         {/* 필터 + 검색 툴바 */}
-        <div className="card-flat p-4 mb-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* 좌측: 필터 드롭다운 */}
-            <DropdownSelect
-              value={filterType}
-              onChange={setFilterType}
-              filterMode
-              style={{ width: 130 }}
-              options={[
-                { value: 'all', label: '모든 유형' },
-                ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
-              ]}
-            />
-            <DropdownSelect
-              value={filterDifficulty}
-              onChange={setFilterDifficulty}
-              filterMode
-              style={{ width: 130 }}
-              options={[
-                { value: 'all', label: '모든 난이도' },
-                { value: '', label: '미지정' },
-                { value: 'high', label: '상' },
-                { value: 'medium', label: '중' },
-                { value: 'low', label: '하' },
-              ]}
-            />
-            {/* 검색 입력 */}
-            <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9E9E9E' }} />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="문항 내용 검색"
-                className="w-full text-sm pl-9 pr-3 py-2 focus:outline-none"
-                style={{ background: '#FAFAFA', border: '1px solid #E0E0E0', borderRadius: 6, color: '#222222' }}
-                onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
-                onBlur={e => e.currentTarget.style.borderColor = '#E0E0E0'}
+        <Card className="mb-3">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <DropdownSelect
+                value={filterType} onChange={setFilterType} filterMode
+                style={{ width: 130 }}
+                options={[
+                  { value: 'all', label: '모든 유형' },
+                  ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
+                ]}
               />
+              <DropdownSelect
+                value={filterDifficulty} onChange={setFilterDifficulty} filterMode
+                style={{ width: 130 }}
+                options={[
+                  { value: 'all', label: '모든 난이도' },
+                  { value: '', label: '미지정' },
+                  { value: 'high', label: '상' },
+                  { value: 'medium', label: '중' },
+                  { value: 'low', label: '하' },
+                ]}
+              />
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text" value={search} onChange={e => setSearch(e.target.value)}
+                  placeholder="문항 내용 검색"
+                  className="w-full text-sm pl-9 pr-3 py-2 bg-slate-50 border border-border rounded-md focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                />
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* 문항 수 */}
-        <p className="text-xs mb-2 px-1" style={{ color: '#9E9E9E' }}>총 {filtered.length}개 문항</p>
+        <p className="text-xs mb-2 px-1 text-muted-foreground">총 {filtered.length}개 문항</p>
 
         {/* 문항 목록 */}
-        <div className="card-flat overflow-hidden">
+        <Card className="overflow-hidden">
           {filtered.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-sm mb-1" style={{ color: '#9E9E9E' }}>
+              <p className="text-sm mb-1 text-muted-foreground">
                 {questions.length === 0 ? '아직 추가된 문항이 없습니다' : '검색 결과가 없습니다'}
               </p>
               {questions.length === 0 && (
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="mt-3 flex items-center gap-1.5 text-sm font-medium px-4 py-2 mx-auto transition-colors"
-                  style={{ background: '#6366F1', color: '#fff', borderRadius: 6 }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#4F46E5'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#6366F1'}
-                >
+                <Button onClick={() => setShowAddModal(true)} className="mt-3 bg-indigo-600 hover:bg-indigo-700">
                   <Plus size={14} />
                   첫 문항 추가하기
-                </button>
+                </Button>
               )}
             </div>
           ) : (
@@ -258,10 +223,11 @@ export default function QuestionBank() {
                   onDragOver={e => !isFiltered && handleDragOver(e, idx)}
                   onDragLeave={() => !isFiltered && handleDragLeave()}
                   onDrop={() => !isFiltered && handleDrop(idx)}
-                  style={{
-                    borderTop: !isFiltered && dragOverIndex === idx ? '2px solid #6366F1' : '2px solid transparent',
-                    cursor: !isFiltered ? 'grab' : 'default',
-                  }}
+                  className={cn(
+                    'border-t-2',
+                    !isFiltered && dragOverIndex === idx ? 'border-t-indigo-500' : 'border-t-transparent',
+                    !isFiltered && 'cursor-grab'
+                  )}
                 >
                   <QuestionItem
                     question={q}
@@ -276,7 +242,7 @@ export default function QuestionBank() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {showAddModal && (
@@ -295,53 +261,24 @@ export default function QuestionBank() {
       )}
 
       {deleteTargetId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDeleteTargetId(null)}>
-          <div className="absolute inset-0 bg-black/30" />
-          <div
-            className="relative bg-white p-6 w-full max-w-sm"
-            style={{ borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <p className="text-sm font-semibold mb-1" style={{ color: '#222222' }}>문항을 삭제할까요?</p>
-            <p className="text-xs mb-5" style={{ color: '#9E9E9E' }}>삭제된 문항은 복구할 수 없습니다.</p>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setDeleteTargetId(null)}
-                className="text-sm px-3 py-1.5 transition-colors"
-                style={{ color: '#616161' }}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                className="text-sm font-medium px-3 py-1.5 text-white transition-colors"
-                style={{ background: '#EF4444', borderRadius: 4 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#DC2626'}
-                onMouseLeave={e => e.currentTarget.style.background = '#EF4444'}
-              >
-                삭제
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="문항을 삭제할까요?"
+          message="삭제된 문항은 복구할 수 없습니다."
+          confirmLabel="삭제"
+          confirmDanger
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTargetId(null)}
+        />
       )}
 
       {toast && (
-        <div
-          className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white"
-          style={{ background: '#1E1E1E', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}
-        >
-          <CheckCircle2 size={15} className="shrink-0" style={{ color: '#A5B4FC' }} />
+        <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white bg-slate-900 rounded-lg shadow-lg">
+          <CheckCircle2 size={15} className="shrink-0 text-indigo-300" />
           <span className="font-medium">{toast.msg}</span>
           {toast.bankId && (
             <button
               onClick={() => { navigate(`/question-banks/${toast.bankId}`); setToast(null) }}
-              className="shrink-0 text-xs font-medium transition-colors"
-              style={{ color: '#A5B4FC' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#C7D2FE'}
-              onMouseLeave={e => e.currentTarget.style.color = '#A5B4FC'}
+              className="shrink-0 text-xs font-medium text-indigo-300 hover:text-indigo-200 transition-colors"
             >
               바로가기 →
             </button>
@@ -352,60 +289,37 @@ export default function QuestionBank() {
   )
 }
 
-// ── 문항 아이템 ───────────────────────────────────────────────────────────────
 function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast, bankDifficulty = '' }) {
+  const diff = question.difficulty && DIFFICULTY_META[question.difficulty]
   return (
-    <div
-      className="p-4 transition-colors"
-      style={{ borderBottom: isLast ? 'none' : '1px solid #EEEEEE' }}
-    >
+    <div className={cn('p-4 transition-colors', !isLast && 'border-b border-slate-100')}>
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          {/* 1행: 유형 배지 + 점수 + 난이도 */}
           <div className="flex items-center gap-2 mb-1">
-            <span
-              className="text-xs px-1.5 py-0.5 font-semibold"
-              style={{ background: '#F5F5F5', color: '#616161', borderRadius: 4 }}
-            >
+            <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-600">
               {QUIZ_TYPES[question.type]?.label}
-            </span>
-            <span className="text-xs font-medium" style={{ color: '#424242' }}>{question.points}점</span>
-            {question.difficulty && DIFFICULTY_META[question.difficulty] && (
-              <span
-                className="text-xs font-medium px-1.5 py-0.5"
-                style={{ background: DIFFICULTY_META[question.difficulty].bg, color: DIFFICULTY_META[question.difficulty].color, borderRadius: 4 }}
-              >
-                {DIFFICULTY_META[question.difficulty].label}
-              </span>
+            </Badge>
+            <span className="text-xs font-medium text-slate-700">{question.points}점</span>
+            {diff && (
+              <Badge variant="secondary" className={cn('text-xs', diff.className)}>
+                {diff.label}
+              </Badge>
             )}
           </div>
-          {/* 문항 내용 */}
-          <p className="text-sm leading-relaxed" style={{ color: '#222222' }}>{question.text}</p>
+          <p className="text-sm leading-relaxed">{question.text}</p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={onEdit}
-            className="p-1.5 transition-colors"
-            style={{ borderRadius: 4, color: '#9E9E9E' }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#6366f1'; e.currentTarget.style.background = '#EEF2FF' }}
-            onMouseLeave={e => { e.currentTarget.style.color = '#9E9E9E'; e.currentTarget.style.background = 'transparent' }}
-          >
+          <Button variant="ghost" size="icon-xs" onClick={onEdit} className="text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50">
             <Edit2 size={14} />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-1.5 transition-colors"
-            style={{ borderRadius: 4, color: '#9E9E9E' }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#EF2B2A'; e.currentTarget.style.background = '#FFF5F5' }}
-            onMouseLeave={e => { e.currentTarget.style.color = '#9E9E9E'; e.currentTarget.style.background = 'transparent' }}
-          >
+          </Button>
+          <Button variant="ghost" size="icon-xs" onClick={onDelete} className="text-muted-foreground hover:text-red-600 hover:bg-red-50">
             <Trash2 size={14} />
-          </button>
+          </Button>
         </div>
       </div>
 
       {isEditing && (
-        <div className="mt-3 pt-3" style={{ borderTop: '1px solid #EEEEEE' }}>
+        <div className="mt-3 pt-3 border-t border-slate-100">
           <QuestionForm
             initial={question}
             onSave={onSave}
@@ -418,7 +332,6 @@ function QuestionItem({ question, isEditing, onEdit, onSave, onDelete, isLast, b
   )
 }
 
-// ── 문항 추가/편집 폼 ─────────────────────────────────────────────────────────
 function QuestionForm({ initial, onSave, onCancel, bankDifficulty = '' }) {
   const [text, setText] = useState(initial?.text ?? '')
   const [type, setType] = useState(initial?.type ?? 'multiple_choice')
@@ -431,50 +344,41 @@ function QuestionForm({ initial, onSave, onCancel, bankDifficulty = '' }) {
   }
 
   return (
-    <div className="p-4 space-y-3" style={{ background: '#FAFAFA', border: '1px solid #E0E0E0', borderRadius: 6 }}>
+    <div className="p-4 space-y-3 bg-slate-50 border border-border rounded-md">
       <div>
-        <label className="text-xs font-medium block mb-1" style={{ color: '#616161' }}>문항 내용</label>
+        <label className="text-xs font-medium block mb-1 text-slate-600">문항 내용</label>
         <textarea
-          value={text}
-          onChange={e => setText(e.target.value)}
-          rows={2}
-          className="w-full bg-white text-sm px-3 py-2 focus:outline-none focus:border-indigo-400 resize-none"
-          style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#222222' }}
+          value={text} onChange={e => setText(e.target.value)}
+          rows={2} autoFocus
+          className="w-full bg-white text-sm px-3 py-2 border border-border rounded-md focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-none transition-all"
           placeholder="문항 내용을 입력하세요"
-          autoFocus
         />
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className="text-xs font-medium block mb-1" style={{ color: '#616161' }}>문항 유형</label>
+          <label className="text-xs font-medium block mb-1 text-slate-600">문항 유형</label>
           <DropdownSelect
-            value={type}
-            onChange={setType}
+            value={type} onChange={setType}
             options={Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label }))}
           />
         </div>
         <div>
-          <label className="text-xs font-medium block mb-1" style={{ color: '#616161' }}>배점</label>
+          <label className="text-xs font-medium block mb-1 text-slate-600">배점</label>
           <input
-            type="number"
-            value={points}
-            onChange={e => setPoints(e.target.value)}
-            min={1}
-            className="w-full bg-white text-sm px-2 py-1.5 focus:outline-none focus:border-indigo-400"
-            style={{ border: '1px solid #E0E0E0', borderRadius: 4, color: '#424242' }}
+            type="number" value={points} onChange={e => setPoints(e.target.value)} min={1}
+            className="w-full bg-white text-sm px-2 py-1.5 border border-border rounded-md focus:outline-none focus:border-indigo-500 transition-all"
           />
         </div>
         <div>
-          <label className="text-xs font-medium block mb-1" style={{ color: '#616161' }}>난이도</label>
+          <label className="text-xs font-medium block mb-1 text-slate-600">난이도</label>
           {bankDifficulty ? (
-            <div className="text-xs px-2 py-1.5 flex items-center gap-1.5" style={{ background: '#F5F5F5', border: '1px solid #E0E0E0', borderRadius: 4, color: '#424242' }}>
+            <div className="text-xs px-2 py-1.5 flex items-center gap-1.5 bg-muted border border-border rounded-md text-slate-700">
               <span className="font-medium">{bankDifficulty === 'high' ? '상' : bankDifficulty === 'medium' ? '중' : '하'}</span>
-              <span style={{ color: '#9E9E9E' }}>고정</span>
+              <span className="text-muted-foreground">고정</span>
             </div>
           ) : (
             <DropdownSelect
-              value={difficulty}
-              onChange={setDifficulty}
+              value={difficulty} onChange={setDifficulty}
               options={[
                 { value: '', label: '미지정' },
                 { value: 'high', label: '상' },
@@ -486,23 +390,11 @@ function QuestionForm({ initial, onSave, onCancel, bankDifficulty = '' }) {
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-1">
-        <button
-          onClick={onCancel}
-          className="text-sm px-3 py-1.5 transition-colors"
-          style={{ color: '#616161' }}
-        >
-          취소
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={!text.trim()}
-          className="text-sm font-medium px-3 py-1.5 bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
-          style={{ borderRadius: 4 }}
-        >
+        <Button variant="ghost" onClick={onCancel}>취소</Button>
+        <Button onClick={handleSubmit} disabled={!text.trim()} className="bg-indigo-600 hover:bg-indigo-700">
           {initial ? '저장' : '추가'}
-        </button>
+        </Button>
       </div>
     </div>
   )
 }
-
