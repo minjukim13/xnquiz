@@ -7,11 +7,10 @@ import {
   FileText, Search, FileEdit, Circle
 } from 'lucide-react'
 import Layout from '../components/Layout'
-import { getQuizStudents, QUIZ_TYPES, mockQuizzes, getStudentAnswer, isAnswerCorrect, getQuizQuestions } from '../data/mockData'
+import { getQuizStudents, QUIZ_TYPES, mockQuizzes, getStudentAnswer, isAnswerCorrect, getQuizQuestions, regradeQuestion } from '../data/mockData'
 import { downloadAnswerSheetsXlsx, downloadGradingSheetXlsx, parseExcelOrCsv, parseGradingSheet } from '../utils/excelUtils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
@@ -158,6 +157,21 @@ export default function GradingDashboard() {
       return true
     })
   }, [studentSearch, quizStudents, submissionFilter, questionsModifiedAt])
+
+  // 수정 전/후 제출 학생 수 계산 (필터 배지용)
+  const submissionFilterCounts = useMemo(() => {
+    if (!questionsModifiedAt) return null
+    const submitted = quizStudents.filter(s => s.submitted)
+    let before = 0, after = 0
+    submitted.forEach(s => {
+      if (s.submittedAt) {
+        const t = new Date(s.submittedAt)
+        if (t < questionsModifiedAt) before++
+        else after++
+      }
+    })
+    return { all: submitted.length, before, after }
+  }, [quizStudents, questionsModifiedAt])
 
   const gradedStudentList = allStudents.filter(s => s.score !== null)
   const ungradedStudentList = allStudents.filter(s => s.score === null)
@@ -477,26 +491,54 @@ export default function GradingDashboard() {
                       className="w-full bg-white text-xs pl-8 pr-3 py-1.5 rounded border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100"
                     />
                   </div>
-                  {questionsModifiedAt && (
-                    <div className="flex items-center gap-1">
-                      {[
-                        { value: 'all', label: '전체' },
-                        { value: 'before_edit', label: '수정 전 제출' },
-                        { value: 'after_edit', label: '수정 후 제출' },
-                      ].map(opt => (
+                  {questionsModifiedAt && submissionFilterCounts && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1">
+                        {[
+                          { value: 'all', label: '전체', count: submissionFilterCounts.all },
+                          { value: 'before_edit', label: '수정 전 제출', count: submissionFilterCounts.before },
+                          { value: 'after_edit', label: '수정 후 제출', count: submissionFilterCounts.after },
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setSubmissionFilter(opt.value)}
+                            className={cn(
+                              'text-xs px-2 py-1 rounded transition-all flex items-center gap-1',
+                              submissionFilter === opt.value
+                                ? 'bg-[#E8F3FF] text-[#3182F6] font-semibold border border-blue-200'
+                                : 'bg-white text-slate-400 border border-slate-200'
+                            )}
+                          >
+                            {opt.label}
+                            <span className={cn(
+                              'text-[10px] min-w-[16px] h-4 inline-flex items-center justify-center rounded-full px-1',
+                              submissionFilter === opt.value
+                                ? 'bg-[#3182F6] text-white'
+                                : 'bg-slate-100 text-slate-400'
+                            )}>
+                              {opt.count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      {submissionFilter === 'before_edit' && submissionFilterCounts.before > 0 && (
                         <button
-                          key={opt.value}
-                          onClick={() => setSubmissionFilter(opt.value)}
-                          className={cn(
-                            'text-xs px-2 py-1 rounded transition-all',
-                            submissionFilter === opt.value
-                              ? 'bg-[#E8F3FF] text-[#3182F6] font-semibold border border-blue-200'
-                              : 'bg-white text-slate-400 border border-slate-200'
-                          )}
+                          onClick={() => {
+                            let total = 0
+                            quizQuestions.forEach(q => {
+                              if (QUIZ_TYPES[q.type]?.autoGrade && QUIZ_TYPES[q.type]?.autoGrade !== false) {
+                                total += regradeQuestion(id, q)
+                              }
+                            })
+                            onGradeSaved()
+                            showToast(`수정 전 제출 학생 ${submissionFilterCounts.before}명 대상 일괄 재채점 완료 (${total}건 처리)`)
+                          }}
+                          className="w-full flex items-center justify-center gap-1 text-xs px-2 py-1.5 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors"
                         >
-                          {opt.label}
+                          <RefreshCw size={11} />
+                          수정 전 제출 학생 일괄 재채점
                         </button>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
@@ -834,7 +876,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     return (
       <button
         onClick={() => handleSortClick(col)}
-        className={cn('flex items-center gap-0.5 transition-colors text-sm font-semibold', isActive ? 'text-[#3182F6]' : 'text-gray-500', className)}
+        className={cn('flex items-center gap-0.5 transition-colors text-[14px] font-semibold', isActive ? 'text-[#3182F6]' : 'text-gray-500', className)}
       >
         {children}
         <ArrowUpDown size={11} className={cn('flex-shrink-0', isActive ? 'text-[#3182F6]' : 'text-gray-300')} style={isActive && sortDir === 'desc' ? { transform: 'scaleY(-1)' } : undefined} />
@@ -914,8 +956,8 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
       <div className="flex items-center px-3 py-2 gap-2 border-b-2 border-slate-200 bg-slate-50">
         <div className="w-28 shrink-0"><SortTh col="name">이름</SortTh></div>
         <div className="w-24 shrink-0"><SortTh col="studentId">학번</SortTh></div>
-        <div className="flex-1 text-sm font-semibold text-gray-500">제출 답안</div>
-        {question.autoGrade && <div className="w-16 shrink-0 text-sm font-semibold text-gray-500">정답 여부</div>}
+        <div className="flex-1 text-[14px] font-semibold text-gray-500">제출 답안</div>
+        {question.autoGrade && <div className="w-16 shrink-0 text-[14px] font-semibold text-gray-500">정답 여부</div>}
         <div className="w-40 shrink-0 flex justify-end"><SortTh col="score">점수</SortTh></div>
       </div>
 
@@ -972,10 +1014,10 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
     return (
       <div className="flex items-center gap-2 px-3 py-3 border-b border-slate-100 bg-slate-50">
         <div className="w-28 shrink-0">
-          <p className="text-sm font-medium truncate text-gray-400">{student.name}</p>
+          <p className="text-[14px] font-medium truncate text-gray-400">{student.name}</p>
         </div>
         <div className="w-24 shrink-0">
-          <p className="text-sm truncate text-slate-300">{student.studentId}</p>
+          <p className="text-[14px] truncate text-slate-300">{student.studentId}</p>
         </div>
         <p className="flex-1 text-sm text-gray-300">미제출</p>
         {question.autoGrade && <div className="w-16 shrink-0" />}
@@ -1036,25 +1078,25 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
       <div className={cn('flex items-center gap-2 px-3 py-3', isUngraded ? 'bg-amber-50/30' : '')}>
         {/* 이름 */}
         <div className="w-28 shrink-0">
-          <p className="text-sm font-medium truncate text-gray-700">{student.name}</p>
+          <p className="text-[14px] font-medium truncate text-gray-700">{student.name}</p>
         </div>
 
         {/* 학번 */}
         <div className="w-24 shrink-0">
-          <p className="text-sm truncate text-gray-400">{student.studentId}</p>
+          <p className="text-[14px] truncate text-black">{student.studentId}</p>
         </div>
 
         {/* 답안 */}
         {['essay', 'short_answer', 'multiple_answers'].includes(question.type) ? (
           <button className="flex-1 min-w-0 text-left flex items-center gap-1" onClick={() => setExpanded(!expanded)}>
-            <p className="truncate flex-1 text-sm text-gray-700">{compactAnswer || '(답안 없음)'}</p>
+            <p className="truncate flex-1 text-[14px] text-black">{compactAnswer || '(답안 없음)'}</p>
             {expanded
               ? <ChevronUp size={13} className="text-gray-300 flex-shrink-0" />
               : <ChevronDown size={13} className="text-gray-300 flex-shrink-0" />
             }
           </button>
         ) : (
-          <p className="flex-1 min-w-0 truncate text-sm text-gray-700">{compactAnswer || '(답안 없음)'}</p>
+          <p className="flex-1 min-w-0 truncate text-[14px] text-black">{compactAnswer || '(답안 없음)'}</p>
         )}
 
         {/* 정답 여부 */}
@@ -1095,7 +1137,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
       {expanded && ['essay', 'short_answer', 'multiple_answers'].includes(question.type) && (
         <div className="px-3 pb-3">
           <div className="p-3 rounded bg-slate-50 border border-slate-200">
-            <p className="leading-relaxed text-sm text-gray-700">{rawAnswer}</p>
+            <p className="leading-relaxed text-[14px] text-black">{rawAnswer}</p>
             {autoCorrect !== null && !autoCorrect && question.correctAnswer && (
               <p className="mt-2 text-xs text-gray-400">정답: {question.correctAnswer}</p>
             )}

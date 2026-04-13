@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, CheckCircle2, AlertCircle, BarChart2, FolderInput, Copy, Search } from 'lucide-react'
+import { Plus, FileText, CheckCircle2, AlertCircle, BarChart2, FolderInput, Copy, Search, Settings2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import QuizSettingsDialog from '../components/QuizSettingsDialog'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
@@ -94,6 +95,7 @@ function InstructorQuizList() {
   const [filterSession, setFilterSession] = useState('all')
   const [copySourceQuiz, setCopySourceQuiz] = useState(null)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showGlobalSettings, setShowGlobalSettings] = useState(false)
   const [toast, setToast] = useState(null)
 
   const showToast = (msg) => {
@@ -192,7 +194,16 @@ function InstructorQuizList() {
     <Layout>
       <div className="max-w-5xl mx-auto py-6">
         <div className="flex items-end justify-between mb-5 gap-4">
-          <h1 className="text-xl font-bold text-slate-900 leading-tight">퀴즈 관리</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900 leading-tight">퀴즈 관리</h1>
+            <button
+              onClick={() => setShowGlobalSettings(true)}
+              className="p-1.5 rounded-md text-slate-400 hover:text-[#3182F6] hover:bg-[#E8F3FF] transition-colors"
+              title="퀴즈 전역 설정"
+            >
+              <Settings2 size={18} />
+            </button>
+          </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowImportModal(true)}
@@ -246,6 +257,8 @@ function InstructorQuizList() {
           onImport={handleImportQuizzes}
         />
       )}
+
+      <QuizSettingsDialog open={showGlobalSettings} onOpenChange={setShowGlobalSettings} />
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white bg-slate-900 rounded-lg shadow-xl">
@@ -317,21 +330,21 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
           <div className="flex items-center">
             <Link
               to={`/quiz/${quiz.id}/attempt?preview=true`}
-              className="text-xs font-medium px-2.5 py-2 rounded transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="text-sm font-medium px-3 py-2 rounded transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             >
               미리보기
             </Link>
             <Link
               to={`/quiz/${quiz.id}/edit`}
-              className="text-xs font-medium px-2.5 py-2 rounded transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="text-sm font-medium px-3 py-2 rounded transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             >
               편집
             </Link>
             <button
               onClick={() => onCopy(quiz)}
-              className="flex items-center gap-1 text-xs font-medium px-2.5 py-2 rounded transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             >
-              <Copy size={11} />
+              <Copy size={13} />
               복사
             </button>
           </div>
@@ -342,7 +355,7 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
             <button
               onClick={() => onToggleVisibility(quiz.id)}
               className={cn(
-                'flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-md border transition-colors',
+                'flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md border transition-colors',
                 isVisible
                   ? 'bg-green-50 text-green-700 border-green-200'
                   : 'bg-red-50 text-red-600 border-red-200'
@@ -355,17 +368,17 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
           {quiz.status === 'draft' ? (
             <Link
               to={`/quiz/${quiz.id}/edit`}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors bg-[#3182F6] hover:bg-[#1B64DA] text-white"
+              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-md transition-colors bg-[#3182F6] hover:bg-[#1B64DA] text-white"
             >
-              <FileText size={11} />
+              <FileText size={13} />
               편집
             </Link>
           ) : (
             <Link
               to={`/quiz/${quiz.id}/stats`}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-md transition-colors bg-[#3182F6] hover:bg-[#1B64DA] text-white ml-2"
+              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-md transition-colors bg-[#3182F6] hover:bg-[#1B64DA] text-white ml-2"
             >
-              <BarChart2 size={11} />
+              <BarChart2 size={13} />
               통계
             </Link>
           )}

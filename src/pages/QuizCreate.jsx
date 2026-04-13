@@ -55,7 +55,6 @@ export default function QuizCreate() {
     quizMode: 'graded', accessCode: '', ipRestriction: '',
     assignments: [], allowLateSubmit: false, lateSubmitHours: '',
     notice: DEFAULT_NOTICE,
-    penaltyEnabled: false,
   })
   const [questions, setQuestions] = useState([])
   const [showBankModal, setShowBankModal] = useState(false)
@@ -122,7 +121,6 @@ export default function QuizCreate() {
         allowLateSubmit: form.allowLateSubmit,
         lateSubmitHours: form.allowLateSubmit && form.lateSubmitHours ? Number(form.lateSubmitHours) : null,
         notice: form.notice,
-        penaltyEnabled: form.penaltyEnabled,
         totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
         questions: questions.length, totalPoints,
       })
@@ -162,13 +160,13 @@ export default function QuizCreate() {
 
         {/* 하단 버튼 */}
         <div className="flex items-center justify-between mt-5 pt-5 border-t border-border">
-          <Button variant="ghost" onClick={() => navigate('/')} className="text-muted-foreground hover:text-foreground">취소</Button>
+          <Button size="lg" variant="ghost" onClick={() => navigate('/')} className="text-muted-foreground hover:text-foreground px-4">취소</Button>
           <div className="flex items-center gap-2">
-            <Button variant="outline">임시저장</Button>
+            <Button size="lg" variant="outline" className="px-4">임시저장</Button>
             {tab === 'info' ? (
-              <Button onClick={() => setTab('questions')} className="bg-[#3182F6] hover:bg-[#1B64DA]">문항 구성 →</Button>
+              <Button size="lg" onClick={() => setTab('questions')} className="bg-[#3182F6] hover:bg-[#1B64DA] px-4">문항 구성 →</Button>
             ) : (
-              <Button disabled={!isFormValid} onClick={handlePublish} className="bg-[#3182F6] hover:bg-[#1B64DA]">저장하기</Button>
+              <Button size="lg" disabled={!isFormValid} onClick={handlePublish} className="bg-[#3182F6] hover:bg-[#1B64DA] px-4">저장하기</Button>
             )}
           </div>
         </div>
@@ -326,22 +324,6 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
         </div>
       </Section>
 
-      {/* 채점 설정 */}
-      <Section title="채점 설정">
-        <Toggle
-          checked={form.penaltyEnabled}
-          onChange={v => set('penaltyEnabled', v)}
-          label="복수선택 오답 감점"
-          description="복수선택(부분 배점) 문항에서 오답 선택 시 감점을 적용합니다"
-        />
-        {form.penaltyEnabled && (
-          <div className="flex items-start gap-2 p-2.5 rounded text-xs" style={{ background: '#EEF2FF', border: '1px solid #C7D2FE', color: '#3730A3' }}>
-            <AlertCircle size={14} className="shrink-0 mt-0.5" style={{ color: '#6366F1' }} />
-            <span>감점 공식: (정답 선택 수 - 오답 선택 수) / 전체 정답 수 x 배점 (최소 0점). 부분 배점(partial) 모드인 복수선택 문항에만 적용됩니다.</span>
-          </div>
-        )}
-      </Section>
-
       <Section title="추가 기간 설정">
         <p className="text-xs -mt-1 text-muted-foreground">특정 학생에게 기본 응시 기간과 다른 마감일 또는 열람 기간을 개별 설정합니다.</p>
         <div className="space-y-2">
@@ -374,7 +356,7 @@ function InfoTab({ form, set, addAssignment, removeAssignment, updateAssignment 
           <p className="text-xs mt-1.5 text-muted-foreground">비워두면 액세스 코드 없이 응시 가능합니다.</p>
         </Field>
         <Field label="접근 가능한 IP 주소">
-          <textarea value={form.ipRestriction} onChange={e => set('ipRestriction', e.target.value)} placeholder={'허용할 IP 주소를 한 줄에 하나씩 입력하세요\n예) 192.168.1.0/24\n    203.0.113.10'} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all resize-none font-mono" />
+          <textarea value={form.ipRestriction} onChange={e => set('ipRestriction', e.target.value)} placeholder={'허용할 IP 주소를 한 줄에 하나씩 입력하세요\n예) 192.168.1.0/24\n    203.0.113.10'} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all resize-none" />
           <p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP에서 접근 가능합니다. CIDR 표기법 지원.</p>
         </Field>
       </Section>
@@ -407,8 +389,8 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove,
           <p className="text-xs mt-0.5 text-muted-foreground">문항을 추가하고 순서를 조정하세요</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onShowBank}>문제은행에서 추가</Button>
-          <Button size="sm" onClick={onShowAdd} className="bg-[#3182F6] hover:bg-[#1B64DA]">직접 추가</Button>
+          <Button variant="outline" onClick={onShowBank}>문제은행에서 추가</Button>
+          <Button onClick={onShowAdd} className="bg-[#3182F6] hover:bg-[#1B64DA]">직접 추가</Button>
         </div>
       </div>
 
@@ -416,8 +398,8 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove,
         <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-slate-50">
           <p className="text-sm mb-3 text-muted-foreground/60">아직 추가된 문항이 없습니다</p>
           <div className="flex items-center justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={onShowBank}>문제은행에서 추가</Button>
-            <Button size="sm" onClick={onShowAdd} className="bg-[#3182F6] hover:bg-[#1B64DA]">직접 추가</Button>
+            <Button variant="outline" onClick={onShowBank}>문제은행에서 추가</Button>
+            <Button onClick={onShowAdd} className="bg-[#3182F6] hover:bg-[#1B64DA]">직접 추가</Button>
           </div>
         </div>
       ) : (
