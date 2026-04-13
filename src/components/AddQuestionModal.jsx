@@ -377,26 +377,6 @@ function TypeForm({ type, form, setForm }) {
           </div>
           {form.options.length < 8 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
           <p className="text-xs" style={{ color: '#9E9E9E' }}>체크박스를 클릭해 정답을 복수 지정하세요</p>
-          {/* 채점 방식 */}
-          <div className="pt-2" style={{ borderTop: '1px solid #F0F0F0' }}>
-            <Label>채점 방식</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { value: 'all_correct', label: '전체 정답 시 만점', desc: '하나라도 오답 포함 시 0점' },
-                { value: 'partial',     label: '비율 배점',         desc: '정답 개수/전체 정답 수 × 배점' },
-              ].map(opt => {
-                const active = (form.scoringMode ?? 'all_correct') === opt.value
-                return (
-                  <button key={opt.value} type="button" onClick={() => upd('scoringMode', opt.value)}
-                    className="text-left p-2.5 rounded transition-all"
-                    style={{ border: `1px solid ${active ? '#6366f1' : '#E0E0E0'}`, background: active ? '#EEF2FF' : '#fff' }}>
-                    <p className="text-xs font-semibold" style={{ color: active ? '#4338CA' : '#424242' }}>{opt.label}</p>
-                    <p className="text-xs mt-0.5" style={{ color: '#9E9E9E' }}>{opt.desc}</p>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
         </div>
       )
 

@@ -1,3 +1,11 @@
+// ── 전역 설정 읽기 (localStorage) ──
+function _getGlobalSettings() {
+  try {
+    const raw = localStorage.getItem('xnq_global_settings')
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
 // QUIZ_TYPES: Canvas LMS 전체 퀴즈 유형 (Classic + New Quizzes)
 export const QUIZ_TYPES = {
   multiple_choice:        { label: '객관식',          autoGrade: true },
@@ -1513,7 +1521,7 @@ export function regradeQuestion(quizId, updatedQuestion) {
       if (manualGrades[manualKey] !== undefined) return
 
       const quiz = mockQuizzes.find(q => q.id === quizId)
-      const newScore = autoGradeAnswer(updatedQuestion, answer, { penaltyEnabled: quiz?.penaltyEnabled })
+      const newScore = autoGradeAnswer(updatedQuestion, answer)
       if (newScore === null) return // 수동채점 필요 유형은 제외
 
       const oldScore = attempt.autoScores?.[updatedQuestion.id] ?? 0
@@ -1570,7 +1578,7 @@ export function gradeQuiz3Answer(questionId, answer) {
 export function autoGradeAnswer(question, answer, options = {}) {
   if (!answer && answer !== 0) return 0
 
-  // multiple_answers: scoringMode(all_correct | partial) 기반 별도 채점
+  // multiple_answers: 전역 설정(scoringMode + penaltyMethod) 기반 채점
   if (question.type === 'multiple_answers') {
     const opts = question.options || question.choices || []
     // correctAnswer: 인덱스 배열(신규) | 텍스트 배열 | 쉼표구분 문자열(기존 mock)
@@ -1588,14 +1596,24 @@ export function autoGradeAnswer(question, answer, options = {}) {
 
     const studentSelected = String(answer).split(',').map(s => s.trim()).filter(Boolean)
     const correctSet = new Set(correctTexts.map(s => s.toLowerCase()))
+    const gs = _getGlobalSettings()
+    const scoringMode = gs.multipleAnswersScoringMode || question.scoringMode || 'all_correct'
 
-    if ((question.scoringMode ?? 'all_correct') === 'partial') {
+    if (scoringMode === 'partial') {
       const correctCount = studentSelected.filter(s => correctSet.has(s.toLowerCase())).length
       const wrongCount = studentSelected.filter(s => !correctSet.has(s.toLowerCase())).length
+      const totalChoices = opts.length || 4 // 선택지 총 수 (formula_scoring용)
+      const penaltyMethod = gs.penaltyMethod || 'none'
 
-      if (options.penaltyEnabled) {
-        // 감점 공식: (정답 선택 수 - 오답 선택 수) / 전체 정답 수 × 배점 (최소 0점)
+      if (penaltyMethod === 'right_minus_wrong') {
+        // 오답 차감 (Canvas 방식): (정답 수 - 오답 수) / 전체 정답 수 × 배점 (최소 0점)
         const raw = ((correctCount - wrongCount) / correctTexts.length) * question.points
+        return Math.max(0, Math.round(raw * 2) / 2)
+      }
+      if (penaltyMethod === 'formula_scoring') {
+        // 추측 보정 감점: (정답 수 - 오답 수/(선택지 수-1)) / 전체 정답 수 × 배점 (최소 0점)
+        const divisor = Math.max(totalChoices - 1, 1)
+        const raw = ((correctCount - wrongCount / divisor) / correctTexts.length) * question.points
         return Math.max(0, Math.round(raw * 2) / 2)
       }
       // 감점 없음: 정답 개수 / 전체 정답 수 × 배점
@@ -1622,7 +1640,10 @@ export function autoGradeAnswer(question, answer, options = {}) {
   else correctMap = AUTO_CORRECT_ANSWERS
   const correct = correctMap?.[question.id]
   if (!correct) return null // 수동채점 필요
-  const isCorrect = correct.some(c => String(answer).trim().toLowerCase() === c.toLowerCase().trim())
+  const gs = _getGlobalSettings()
+  const isCorrect = gs.caseSensitive
+    ? correct.some(c => String(answer).trim() === c.trim())
+    : correct.some(c => String(answer).trim().toLowerCase() === c.toLowerCase().trim())
   return isCorrect ? question.points : 0
 }
 
@@ -1646,7 +1667,10 @@ export function isAnswerCorrect(answer, questionId) {
   else correctMap = AUTO_CORRECT_ANSWERS
   const correct = correctMap?.[questionId]
   if (!correct) return null
-  return correct.some(c => String(answer).toLowerCase().includes(c.toLowerCase()))
+  const gs = _getGlobalSettings()
+  return gs.caseSensitive
+    ? correct.some(c => String(answer).includes(c))
+    : correct.some(c => String(answer).toLowerCase().includes(c.toLowerCase()))
 }
 
 // ── 문제은행 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──

@@ -63,7 +63,7 @@ export default function QuizAttempt() {
 
     questions.forEach(q => {
       const ans = answers[q.id] ?? ''
-      const score = autoGradeAnswer(q, ans, { penaltyEnabled: quiz?.penaltyEnabled })
+      const score = autoGradeAnswer(q, ans)
       if (score !== null) {
         autoScores[q.id] = score
         totalAuto += score
