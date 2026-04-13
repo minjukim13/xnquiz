@@ -113,6 +113,13 @@ export default function Layout({ children, breadcrumbs = [] }) {
                     >
                       {b.label}
                     </Link>
+                  ) : b.onClick ? (
+                    <button
+                      onClick={b.onClick}
+                      className="text-sm truncate text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {b.label}
+                    </button>
                   ) : (
                     <span className="text-sm font-semibold truncate">{b.label}</span>
                   )}
@@ -214,7 +221,7 @@ export default function Layout({ children, breadcrumbs = [] }) {
         </aside>
 
         {/* 메인 콘텐츠 */}
-        <main className="flex-1 min-w-0 px-6 lg:px-10 py-6">{children}</main>
+        <main className="flex-1 min-w-0 px-6 lg:px-10 pb-6">{children}</main>
       </div>
     </div>
   )

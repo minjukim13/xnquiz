@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, FileText, CheckCircle2, AlertCircle, BarChart2, FolderInput, Copy, Search, Settings2 } from 'lucide-react'
 import Layout from '../components/Layout'
@@ -103,6 +103,12 @@ function InstructorQuizList() {
     setTimeout(() => setToast(null), 4000)
   }
 
+  // 다른 페이지에서 전달된 토스트 표시
+  useEffect(() => {
+    const msg = sessionStorage.getItem('xnq_toast')
+    if (msg) { showToast(msg); sessionStorage.removeItem('xnq_toast') }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleToggleVisibility = (quizId) => {
     const idx = quizzes.findIndex(q => q.id === quizId)
     if (idx === -1) return
@@ -192,7 +198,7 @@ function InstructorQuizList() {
 
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto py-6">
+      <div className="max-w-5xl mx-auto pb-6">
         <div className="flex items-end justify-between mb-5 gap-4">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-slate-900 leading-tight">퀴즈 관리</h1>
@@ -300,7 +306,7 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
       )}
       onClick={() => cardTarget && navigate(cardTarget)}
     >
-      <div className="flex items-start gap-4 px-6 pt-6 pb-5">
+      <div className="flex items-start gap-4 px-6 pt-3 pb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className={cn('inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded', cfg.badgeCls)}>

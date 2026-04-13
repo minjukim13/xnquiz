@@ -41,7 +41,7 @@ export default function QuizStats() {
       { label: quiz.title },
       { label: '결과 보기' },
     ]}>
-      <div className="max-w-7xl mx-auto py-4 pb-10">
+      <div className="max-w-7xl mx-auto pb-10">
 
         {/* 퀴즈 정보 헤더 */}
         <Card className="mb-4">

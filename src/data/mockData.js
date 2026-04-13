@@ -1182,6 +1182,14 @@ const quizQuestionsMap = {}
 // 퀴즈 ID별 문항 반환 — GradingDashboard, QuizEdit에서 사용
 export function getQuizQuestions(quizId) {
   if (quizId in quizQuestionsMap) return quizQuestionsMap[quizId]
+  // localStorage에서 편집된 문항 확인
+  try {
+    const raw = localStorage.getItem('xnq_quiz_questions')
+    if (raw) {
+      const map = JSON.parse(raw)
+      if (map[quizId]) { quizQuestionsMap[quizId] = map[quizId]; return map[quizId] }
+    }
+  } catch { /* ignore */ }
   if (quizId === '1') return mockQuestions
   if (quizId === '2') return mockQuiz2Questions
   if (quizId === '3') return mockQuiz3Questions
@@ -1199,6 +1207,13 @@ export function getQuizQuestions(quizId) {
 // 복사/가져오기 시 새 quizId에 문항 등록
 export function setQuizQuestions(quizId, questions) {
   quizQuestionsMap[quizId] = questions
+  // localStorage에 저장하여 다른 탭에서도 반영
+  try {
+    const raw = localStorage.getItem('xnq_quiz_questions') || '{}'
+    const map = JSON.parse(raw)
+    map[quizId] = questions
+    localStorage.setItem('xnq_quiz_questions', JSON.stringify(map))
+  } catch { /* ignore */ }
 }
 
 // CS201 운영체제 — 중간고사 문항
