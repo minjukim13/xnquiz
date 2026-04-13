@@ -1,17 +1,17 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, GripVertical, Trash2, BookOpen, RefreshCw, CheckCircle2, Settings2, AlertCircle } from 'lucide-react'
+import { Plus, GripVertical, Trash2, BookOpen, Settings2, AlertCircle, Pencil } from 'lucide-react'
 import Layout from '../components/Layout'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import CustomSelect from '../components/CustomSelect'
-import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, mockStudents, regradeQuestion, recalculateScorePolicy } from '../data/mockData'
+import QuestionAnswer from '../components/QuestionAnswer'
+import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, recalculateScorePolicy, mockStudents } from '../data/mockData'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { ConfirmDialog } from '../components/ConfirmDialog'
 
 const WEEK_OPTIONS = [{ value: null, label: '선택 안함' }, ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` }))]
 const SESSION_OPTIONS = [{ value: null, label: '선택 안함' }, ...[1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` }))]
@@ -57,6 +57,7 @@ export default function QuizEdit() {
   const [overIdx, setOverIdx] = useState(null)
   const addQuestion = (q) => { if (!questions.find(e => e.id === q.id)) setQuestions(prev => [...prev, q]) }
   const addNewQuestion = (q) => setQuestions(prev => [...prev, { ...q, id: `new_q${Date.now()}` }])
+  const updateQuestion = (updated) => setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? { ...q, ...updated, id: editingQuestion.id } : q))
   const removeQuestion = (qId) => setQuestions(prev => prev.filter(q => q.id !== qId))
   const moveQuestion = useCallback((fromIdx, toIdx) => { setQuestions(prev => { const next = [...prev]; const [moved] = next.splice(fromIdx, 1); next.splice(toIdx, 0, moved); return next }) }, [])
   const handleDragStart = (i) => setDragIdx(i)
@@ -65,9 +66,30 @@ export default function QuizEdit() {
   const handleDragEnd = () => { setDragIdx(null); setOverIdx(null) }
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
   const isMultiAttempt = allowAttempts >= 2 || allowAttempts === -1
-  const [regradeTarget, setRegradeTarget] = useState(null)
-  const [regradeSuccess, setRegradeSuccess] = useState(null)
-  const confirmRegrade = () => { regradeQuestion(quiz.id, regradeTarget); setRegradeSuccess(regradeTarget.id); setRegradeTarget(null); setTimeout(() => setRegradeSuccess(null), 2500) }
+  const [editingQuestion, setEditingQuestion] = useState(null)
+  const submittedCount = quiz.submitted || 0
+
+  // 변경사항 감지
+  const hasUnsavedChanges = useMemo(() => {
+    return JSON.stringify(questions) !== initialQuestionsSnapshot ||
+      title !== (quiz.title ?? '') ||
+      description !== (quiz.description ?? '')
+  }, [questions, initialQuestionsSnapshot, title, description, quiz.title, quiz.description])
+
+  // 브라우저 뒤로가기/새로고침 시 경고
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+    const handler = (e) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [hasUnsavedChanges])
+
+  // react-router 네비게이션 시 경고 (브레드크럼 등)
+  const safeNavigate = useCallback((path) => {
+    if (hasUnsavedChanges && !window.confirm('저장하지 않은 변경사항이 있습니다. 나가시겠습니까?')) return
+    navigate(path)
+  }, [hasUnsavedChanges, navigate])
+
   const handleSave = () => {
     const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
     if (idx !== -1) {
@@ -84,12 +106,13 @@ export default function QuizEdit() {
         localStorage.setItem('xnq_questions_modified', JSON.stringify(map))
       } catch { /* ignore */ }
     }
+    sessionStorage.setItem('xnq_toast', '저장되었습니다.')
     navigate('/')
   }
 
   return (
-    <Layout breadcrumbs={[{ label: '퀴즈 관리', href: '/' }, { label: quiz.title }, { label: '편집' }]}>
-      <div className="max-w-7xl mx-auto py-6">
+    <Layout breadcrumbs={[{ label: '퀴즈 관리', onClick: () => safeNavigate('/') }, { label: quiz.title }, { label: '편집' }]}>
+      <div className="max-w-7xl mx-auto pb-6">
         <div className="flex items-center justify-between mb-6 gap-3">
           <h1 className="text-lg font-bold">퀴즈 편집</h1>
           <div className="flex items-center gap-3">
@@ -122,7 +145,7 @@ export default function QuizEdit() {
               <div className="space-y-2">
                 {questions.map((q, i) => (
                   <div key={q.id} draggable onDragStart={() => handleDragStart(i)} onDragOver={e => handleDragOver(e, i)} onDrop={() => handleDrop(i)} onDragEnd={handleDragEnd} className={cn('flex items-start gap-2 bg-white p-3 group transition-all rounded-md border', overIdx === i && dragIdx !== i ? 'border-[#3182F6] bg-[#E8F3FF]/50' : 'border-border', dragIdx === i && 'opacity-40')}>
-                    <div className="flex items-center gap-2 shrink-0 mt-0.5"><GripVertical size={14} className="cursor-grab active:cursor-grabbing text-muted-foreground/40" /><span className="text-xs font-bold w-5 text-center text-muted-foreground">{i + 1}</span></div>
+                    <div className="flex items-center gap-2 shrink-0 h-5 mt-[3px]"><GripVertical size={14} className="cursor-grab active:cursor-grabbing text-muted-foreground/40" /><span className="text-xs font-bold w-5 text-center text-muted-foreground">{i + 1}</span></div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <Badge variant="secondary" className="bg-slate-100 text-slate-600">{QUIZ_TYPES[q.type]?.label}</Badge>
@@ -131,11 +154,11 @@ export default function QuizEdit() {
                         {q.bankName && <Badge variant="secondary" className="bg-sky-50 text-sky-700">{q.bankName}</Badge>}
                       </div>
                       <p className="text-sm line-clamp-2 text-slate-700">{q.text}</p>
-                      {regradeSuccess === q.id && <p className="text-xs flex items-center gap-1 mt-1 text-green-700"><CheckCircle2 size={11} />재채점 완료</p>}
+                      <QuestionAnswer q={q} />
                     </div>
-                    <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100">
-                      {QUIZ_TYPES[q.type]?.autoGrade !== false && QUIZ_TYPES[q.type]?.autoGrade !== null && <button onClick={() => setRegradeTarget(q)} title="이 문항 재채점" className="p-1 text-muted-foreground/40 hover:text-[#3182F6] transition-colors"><RefreshCw size={13} /></button>}
-                      <button onClick={() => removeQuestion(q.id)} className="p-1 text-muted-foreground/40 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
+                    <div className="shrink-0 flex items-center gap-1">
+                      <button onClick={() => setEditingQuestion(q)} title="문항 편집" className="p-1 text-muted-foreground/40 hover:text-[#3182F6] transition-colors"><Pencil size={13} /></button>
+                      <button onClick={() => removeQuestion(q.id)} className="p-1 text-muted-foreground/40 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
                     </div>
                   </div>
                 ))}
@@ -154,7 +177,7 @@ export default function QuizEdit() {
       </div>
       {showBankModal && <QuestionBankModal onClose={() => setShowBankModal(false)} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse={quiz?.course} />}
       {showAddModal && <AddQuestionModal onClose={() => setShowAddModal(false)} onAdd={addNewQuestion} />}
-      {regradeTarget && <ConfirmDialog title="문항 재채점" message={`다음 문항의 현재 정답 기준으로 모든 제출 기록을 재채점합니다.\n\n"${regradeTarget.text}"\n\n진행 중인 응시 세션은 제외되며, 이미 제출된 응답에만 소급 적용됩니다.`} confirmLabel="재채점 실행" onConfirm={confirmRegrade} onCancel={() => setRegradeTarget(null)} />}
+      {editingQuestion && <AddQuestionModal onClose={() => setEditingQuestion(null)} onAdd={updateQuestion} initialQuestion={editingQuestion} submittedCount={submittedCount} />}
     </Layout>
   )
 }

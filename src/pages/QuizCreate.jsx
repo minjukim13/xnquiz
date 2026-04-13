@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { GripVertical, Trash2, AlertCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
+import QuestionAnswer from '../components/QuestionAnswer'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import { QUIZ_TYPES, mockQuizzes, mockStudents } from '../data/mockData'
@@ -139,7 +140,7 @@ export default function QuizCreate() {
 
   return (
     <Layout breadcrumbs={[{ label: '퀴즈 관리', href: '/' }, { label: '새 퀴즈 만들기' }]}>
-      <div className="max-w-5xl mx-auto py-4">
+      <div className="max-w-5xl mx-auto pb-4">
         <h1 className="text-xl font-bold mb-3">새 퀴즈 만들기</h1>
 
         <Tabs value={tab} onValueChange={setTab}>
@@ -422,6 +423,7 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowAdd, onRemove,
                   {q.bankName && <Badge variant="secondary" className="bg-sky-50 text-sky-700">{q.bankName}</Badge>}
                 </div>
                 <p className="text-sm line-clamp-2 text-slate-700">{q.text}</p>
+                <QuestionAnswer q={q} />
               </div>
               <button onClick={() => onRemove(q.id)} className="shrink-0 p-1 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-red-600 transition-all">
                 <Trash2 size={14} />

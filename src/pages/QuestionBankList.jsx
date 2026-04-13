@@ -58,7 +58,7 @@ export default function QuestionBankList() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto py-8">
+      <div className="max-w-6xl mx-auto pb-8">
         {/* 헤더 */}
         <div className="flex items-start justify-between mb-4 gap-4">
           <h1 className="text-2xl font-bold text-slate-900">문제은행</h1>

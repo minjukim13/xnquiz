@@ -133,7 +133,7 @@ export default function QuizAttempt() {
 
   return (
     <Layout breadcrumbs={[{ label: isPreview ? '퀴즈 관리' : '퀴즈 참여', href: '/' }, { label: quiz.title }]}>
-      <div className="max-w-3xl mx-auto py-6">
+      <div className="max-w-3xl mx-auto pb-6">
 
         {/* 미리보기 배너 */}
         {isPreview && (
@@ -146,11 +146,10 @@ export default function QuizAttempt() {
               </div>
               <Button
                 variant="outline"
-                size="sm"
                 onClick={() => navigate(-1)}
                 className="shrink-0 border-amber-300 text-amber-800 hover:bg-amber-100"
               >
-                <X size={12} />
+                <X size={14} />
                 미리보기 종료
               </Button>
             </div>

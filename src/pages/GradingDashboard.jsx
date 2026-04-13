@@ -7,7 +7,7 @@ import {
   FileText, Search, FileEdit, Circle
 } from 'lucide-react'
 import Layout from '../components/Layout'
-import { getQuizStudents, QUIZ_TYPES, mockQuizzes, getStudentAnswer, isAnswerCorrect, getQuizQuestions, regradeQuestion } from '../data/mockData'
+import { getQuizStudents, QUIZ_TYPES, mockQuizzes, getStudentAnswer, isAnswerCorrect, getQuizQuestions } from '../data/mockData'
 import { downloadAnswerSheetsXlsx, downloadGradingSheetXlsx, parseExcelOrCsv, parseGradingSheet } from '../utils/excelUtils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { cn } from '@/lib/utils'
@@ -62,13 +62,11 @@ export default function GradingDashboard() {
   // 학생 중심 상태
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [studentSearch, setStudentSearch] = useState('')
-  const [submissionFilter, setSubmissionFilter] = useState('all') // 'all' | 'before_edit' | 'after_edit'
 
   // 공통
   const [searchStudent, setSearchStudent] = useState('')
   const [showExcelModal, setShowExcelModal] = useState(false)
   const [showPdfModal, setShowPdfModal] = useState(false)
-  const [showRegradeModal, setShowRegradeModal] = useState(false)
   const [mobileView, setMobileView] = useState('questions')
 
   // gradedCount 실시간 반영을 위한 버전 카운터
@@ -146,32 +144,10 @@ export default function GradingDashboard() {
   // 학생 중심 - 전체 학생 목록
   const allStudents = useMemo(() => {
     return quizStudents.filter(s => s.submitted).filter(s => {
-      // 이름/학번 검색 필터
       if (studentSearch !== '' && !s.name.includes(studentSearch) && !s.studentId.includes(studentSearch)) return false
-      // 수정 전/후 제출 필터
-      if (submissionFilter !== 'all' && questionsModifiedAt && s.submittedAt) {
-        const submittedTime = new Date(s.submittedAt)
-        if (submissionFilter === 'before_edit' && submittedTime >= questionsModifiedAt) return false
-        if (submissionFilter === 'after_edit' && submittedTime < questionsModifiedAt) return false
-      }
       return true
     })
-  }, [studentSearch, quizStudents, submissionFilter, questionsModifiedAt])
-
-  // 수정 전/후 제출 학생 수 계산 (필터 배지용)
-  const submissionFilterCounts = useMemo(() => {
-    if (!questionsModifiedAt) return null
-    const submitted = quizStudents.filter(s => s.submitted)
-    let before = 0, after = 0
-    submitted.forEach(s => {
-      if (s.submittedAt) {
-        const t = new Date(s.submittedAt)
-        if (t < questionsModifiedAt) before++
-        else after++
-      }
-    })
-    return { all: submitted.length, before, after }
-  }, [quizStudents, questionsModifiedAt])
+  }, [studentSearch, quizStudents])
 
   const gradedStudentList = allStudents.filter(s => s.score !== null)
   const ungradedStudentList = allStudents.filter(s => s.score === null)
@@ -347,13 +323,13 @@ export default function GradingDashboard() {
                 key={mode}
                 onClick={() => { setGradingMode(mode); setMobileView('questions') }}
                 className={cn(
-                  'flex items-center gap-1.5 text-xs px-3.5 py-2 rounded transition-all',
+                  'flex items-center gap-1.5 text-sm px-4 py-2 rounded transition-all',
                   gradingMode === mode
                     ? 'bg-white text-slate-900 font-semibold border border-slate-200'
                     : 'text-slate-400 border border-transparent'
                 )}
               >
-                <Icon size={12} />
+                <Icon size={14} />
                 {label}
               </button>
             ))}
@@ -362,20 +338,16 @@ export default function GradingDashboard() {
           <div className="flex items-center gap-2">
             <Link
               to={`/quiz/${QUIZ_INFO.id}/stats`}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 border border-slate-200 rounded text-slate-600 bg-white hover:bg-slate-100 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 border border-slate-200 rounded text-slate-600 bg-white hover:bg-slate-100 transition-colors"
             >
-              <BarChart3 size={12} />
+              <BarChart3 size={14} />
               <span className="hidden sm:block">퀴즈 통계</span>
             </Link>
-            <button onClick={() => setShowRegradeModal(true)} className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 border border-slate-200 rounded text-slate-600 bg-white hover:bg-slate-100 transition-colors">
-              <RefreshCw size={12} />
-              <span className="hidden sm:block">재채점</span>
-            </button>
             <button
               onClick={() => downloadAnswerSheetsXlsx(QUIZ_INFO, quizStudents.filter(s => s.submitted), quizQuestions, { getStudentAnswer })}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 border border-slate-200 rounded text-slate-600 bg-white hover:bg-slate-100 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 border border-slate-200 rounded text-slate-600 bg-white hover:bg-slate-100 transition-colors"
             >
-              <FileDown size={12} />
+              <FileDown size={14} />
               <span>답안지 다운로드</span>
             </button>
           </div>
@@ -469,6 +441,8 @@ export default function GradingDashboard() {
                     gradeVersion={gradeVersion}
                     excelRows={excelRows}
                     onExcelRowsConsumed={() => setExcelRows(null)}
+                    questionsModifiedAt={questionsModifiedAt}
+                    showToast={showToast}
                   />
                 )}
               </div>
@@ -491,56 +465,6 @@ export default function GradingDashboard() {
                       className="w-full bg-white text-xs pl-8 pr-3 py-1.5 rounded border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100"
                     />
                   </div>
-                  {questionsModifiedAt && submissionFilterCounts && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-1">
-                        {[
-                          { value: 'all', label: '전체', count: submissionFilterCounts.all },
-                          { value: 'before_edit', label: '수정 전 제출', count: submissionFilterCounts.before },
-                          { value: 'after_edit', label: '수정 후 제출', count: submissionFilterCounts.after },
-                        ].map(opt => (
-                          <button
-                            key={opt.value}
-                            onClick={() => setSubmissionFilter(opt.value)}
-                            className={cn(
-                              'text-xs px-2 py-1 rounded transition-all flex items-center gap-1',
-                              submissionFilter === opt.value
-                                ? 'bg-[#E8F3FF] text-[#3182F6] font-semibold border border-blue-200'
-                                : 'bg-white text-slate-400 border border-slate-200'
-                            )}
-                          >
-                            {opt.label}
-                            <span className={cn(
-                              'text-[10px] min-w-[16px] h-4 inline-flex items-center justify-center rounded-full px-1',
-                              submissionFilter === opt.value
-                                ? 'bg-[#3182F6] text-white'
-                                : 'bg-slate-100 text-slate-400'
-                            )}>
-                              {opt.count}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                      {submissionFilter === 'before_edit' && submissionFilterCounts.before > 0 && (
-                        <button
-                          onClick={() => {
-                            let total = 0
-                            quizQuestions.forEach(q => {
-                              if (QUIZ_TYPES[q.type]?.autoGrade && QUIZ_TYPES[q.type]?.autoGrade !== false) {
-                                total += regradeQuestion(id, q)
-                              }
-                            })
-                            onGradeSaved()
-                            showToast(`수정 전 제출 학생 ${submissionFilterCounts.before}명 대상 일괄 재채점 완료 (${total}건 처리)`)
-                          }}
-                          className="w-full flex items-center justify-center gap-1 text-xs px-2 py-1.5 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors"
-                        >
-                          <RefreshCw size={11} />
-                          수정 전 제출 학생 일괄 재채점
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-2 bg-white">
@@ -607,7 +531,6 @@ export default function GradingDashboard() {
         />
       )}
       {showPdfModal && <PdfModal onClose={() => setShowPdfModal(false)} />}
-      {showRegradeModal && <RegradeModal onClose={() => setShowRegradeModal(false)} />}
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white bg-slate-800 rounded-lg shadow-lg">
@@ -639,7 +562,7 @@ function QuestionItem({ question, selected, onClick, dimmed }) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className={cn('text-xs font-bold', selected ? 'text-[#3182F6]' : 'text-slate-400')}>
+            <span className={cn('text-[13px] font-bold', selected ? 'text-[#3182F6]' : 'text-[#4E5968]')}>
               Q{question.order}
             </span>
             <TypeBadge type={question.type} small />
@@ -647,16 +570,16 @@ function QuestionItem({ question, selected, onClick, dimmed }) {
               <span className="text-xs px-1.5 py-0.5 rounded text-green-700 bg-green-50">완료</span>
             )}
           </div>
-          <p className={cn('text-xs leading-relaxed line-clamp-2', dimmed ? 'text-slate-300' : 'text-slate-500')}>
+          <p className={cn('text-[13px] leading-relaxed line-clamp-2', dimmed ? 'text-slate-400' : 'text-[#333D4B]')}>
             {question.text}
           </p>
         </div>
-        <span className="text-xs shrink-0 text-slate-400">{question.points}점</span>
+        <span className="text-[13px] shrink-0 text-[#8B95A1]">{question.points}점</span>
       </div>
 
       {!isComplete && (
         <div className="mt-2">
-          <div className="flex justify-between text-xs mb-1 text-slate-400">
+          <div className="flex justify-between text-xs mb-1 text-[#8B95A1]">
             <span>{question.gradedCount}/{question.totalCount}명</span>
             <span>{progress}%</span>
           </div>
@@ -670,55 +593,64 @@ function QuestionItem({ question, selected, onClick, dimmed }) {
 }
 
 // ─── 문항 중심: 우측 상세 패널 ─────────────────────────────────────────────
-function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed }) {
+function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, questionsModifiedAt, showToast }) {
+  const canRegrade = questionsModifiedAt && question.autoGrade
+  const [showRegrade, setShowRegrade] = useState(false)
+  const [changedStudentIds, setChangedStudentIds] = useState(new Set())
+
+  // 문항 전환 시 초기화
+  useEffect(() => { setChangedStudentIds(new Set()) }, [question?.id])
+
   return (
     <div className="flex flex-col h-full">
       {/* 문항 정보 */}
-      <div className="bg-white mb-3 border border-slate-200 rounded-lg">
-        {/* 문항 메타 */}
-        <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-[#3182F6]">Q{question.order}</span>
-            <TypeBadge type={question.type} small />
-          </div>
-          <span className="text-sm font-semibold text-gray-700">{question.points}점</span>
+      <div className="bg-white mb-3 border border-[#E5E8EB] rounded-2xl p-6">
+        {/* 헤더: Q번호 · 유형 | 점수 */}
+        <div className="flex items-center justify-between">
+          <span className="text-[14px] text-[#8B95A1] leading-[1.5]">Q{question.order} · {QUIZ_TYPES[question.type]?.label ?? question.type}</span>
+          <span className="text-[14px] text-[#8B95A1] leading-[1.5]">{question.points}점</span>
         </div>
-        {/* 문항 본문 */}
-        <div className="px-4 pb-4 border-t border-slate-100">
-          <p className="text-sm leading-relaxed text-slate-900">{question.text}</p>
-          {question.choices && question.choices.length > 0 && (
-            <div className="mt-3 flex flex-col gap-1">
-              {question.choices.map((choice, i) => {
-                const isCorrect = choice === question.correctAnswer
-                return (
-                  <div key={i} className={cn('flex items-baseline gap-2 text-[13px]', isCorrect ? 'text-[#1B64DA] font-semibold' : 'text-gray-500 font-normal')}>
-                    <span className={cn('flex-shrink-0', isCorrect ? 'text-[#3182F6]' : 'text-gray-400')} style={{ minWidth: 16 }}>{i + 1}.</span>
-                    <span>{choice}</span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-          {question.correctAnswer && (
-            <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[#E8F3FF] text-[#3182F6]">정답</span>
-              {question.type === 'true_false' ? (
-                <div className="flex items-center gap-1.5">
-                  {['참', '거짓'].map(opt => {
-                    const isCorrect = opt === question.correctAnswer
-                    return (
-                      <span key={opt} className={cn('px-2.5 py-0.5 rounded-full text-xs font-medium', isCorrect ? 'bg-[#3182F6] text-white' : 'bg-slate-100 text-slate-400')}>
-                        {opt}
-                      </span>
-                    )
-                  })}
+        {/* 문제 본문 */}
+        <p className="text-[18px] font-bold text-[#191F28] leading-[1.5] mt-2">{question.text}</p>
+
+        {/* 선택지 리스트 */}
+        {question.choices && question.choices.length > 0 && (
+          <div className="mt-4 flex flex-col gap-2">
+            {question.choices.map((choice, i) => {
+              const isCorrect = choice === question.correctAnswer
+              return (
+                <div key={i} className={cn(
+                  'flex items-baseline gap-2.5 text-[14px] leading-[1.5] px-3 py-2 rounded-lg transition-colors',
+                  isCorrect ? 'bg-[#F2F8FF] text-[#3182F6] font-semibold' : 'text-[#4E5968]'
+                )}>
+                  <span className="flex-shrink-0 w-4 text-right">{i + 1}.</span>
+                  <span>{choice}</span>
                 </div>
-              ) : (
-                <span className="text-xs text-slate-800">{question.correctAnswer}</span>
-              )}
-            </div>
-          )}
-        </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* 정답 안내 박스 */}
+        {question.correctAnswer && (
+          <div className="mt-4 flex items-center gap-2.5 bg-[#F9FAFB] rounded-lg px-4 py-3">
+            <span className="text-[13px] font-medium px-2 py-0.5 rounded bg-[#EAF8F1] text-[#31B46E] shrink-0">정답</span>
+            {question.type === 'true_false' ? (
+              <div className="flex items-center gap-1.5">
+                {['참', '거짓'].map(opt => {
+                  const isCorrect = opt === question.correctAnswer
+                  return (
+                    <span key={opt} className={cn('px-2.5 py-0.5 rounded-full text-[13px] font-medium', isCorrect ? 'bg-[#3182F6] text-white' : 'bg-slate-100 text-slate-400')}>
+                      {opt}
+                    </span>
+                  )
+                })}
+              </div>
+            ) : (
+              <span className="text-[14px] font-medium text-[#333D4B]">{question.correctAnswer}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 탭 + 엑셀 */}
@@ -747,20 +679,41 @@ function QuestionDetailPanel({ question, students, search, onSearch, activeTab, 
           ))}
         </div>
         {activeTab === 'responses' && (
-          <button
-            onClick={onExcel}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors shrink-0 border border-blue-200 text-[#3182F6] bg-[#E8F3FF] hover:bg-blue-100"
-          >
-            <Download size={12} />
-            엑셀 일괄 채점
-          </button>
+          <div className="flex items-center gap-2">
+            {canRegrade && (
+              <button
+                onClick={() => setShowRegrade(true)}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors shrink-0 border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100"
+              >
+                <RefreshCw size={12} />
+                재채점
+              </button>
+            )}
+            <button
+              onClick={onExcel}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors shrink-0 border border-blue-200 text-[#3182F6] bg-[#E8F3FF] hover:bg-blue-100"
+            >
+              <Download size={12} />
+              엑셀 일괄 채점
+            </button>
+          </div>
         )}
       </div>
 
       {activeTab === 'responses' ? (
-        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} />
+        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} changedStudentIds={changedStudentIds} onStudentChanged={id => setChangedStudentIds(prev => new Set(prev).add(id))} />
       ) : (
         <StatsTab question={question} students={students} />
+      )}
+
+      {showRegrade && (
+        <RegradeQuestionModal
+          question={question}
+          students={students}
+          questionsModifiedAt={questionsModifiedAt}
+          onClose={() => setShowRegrade(false)}
+          onDone={(count, ids) => { setShowRegrade(false); setChangedStudentIds(ids); onGradeSaved(); showToast(count > 0 ? `재채점 완료: ${count}명의 점수가 변경되었습니다.` : '재채점 완료: 점수 변경 없음') }}
+        />
       )}
     </div>
   )
@@ -774,7 +727,7 @@ const PAGE_SIZE_OPTIONS = [
   { value: 'all', label: '전체' },
 ]
 
-function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed }) {
+function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, changedStudentIds, onStudentChanged }) {
   const [pageSize, setPageSize] = useState(20)
   const [page, setPage] = useState(1)
   const [pendingScores, setPendingScores] = useState({})
@@ -848,6 +801,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
 
   const handleBulkSave = () => {
     const grades = getLocalGrades()
+    const savedIds = []
     for (const [studentId, score] of Object.entries(pendingScores)) {
       if (score === '' || isNaN(Number(score)) || Number(score) < 0) continue
       const student = students.find(s => s.id === studentId)
@@ -859,12 +813,14 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
       const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
       const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
       student.score = autoTotal + manualTotal
+      savedIds.push(studentId)
     }
     setLocalGrades(grades)
     setPendingScores({})
     setSaveStatus('saved')
     setTimeout(() => setSaveStatus('idle'), 3000)
     onGradeSaved?.()
+    savedIds.forEach(id => onStudentChanged?.(id))
   }
 
   const gradedCount = students.filter(s => s.submitted && s.score !== null).length
@@ -876,7 +832,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     return (
       <button
         onClick={() => handleSortClick(col)}
-        className={cn('flex items-center gap-0.5 transition-colors text-[14px] font-semibold', isActive ? 'text-[#3182F6]' : 'text-gray-500', className)}
+        className={cn('flex items-center justify-center gap-0.5 w-full transition-colors text-[14px] font-semibold', isActive ? 'text-[#3182F6]' : 'text-gray-500', className)}
       >
         {children}
         <ArrowUpDown size={11} className={cn('flex-shrink-0', isActive ? 'text-[#3182F6]' : 'text-gray-300')} style={isActive && sortDir === 'desc' ? { transform: 'scaleY(-1)' } : undefined} />
@@ -954,11 +910,11 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
 
       {/* 테이블 헤더 */}
       <div className="flex items-center px-3 py-2 gap-2 border-b-2 border-slate-200 bg-slate-50">
-        <div className="w-28 shrink-0"><SortTh col="name">이름</SortTh></div>
-        <div className="w-24 shrink-0"><SortTh col="studentId">학번</SortTh></div>
+        <div className="w-28 shrink-0 text-center"><SortTh col="name">이름</SortTh></div>
+        <div className="w-24 shrink-0 text-center"><SortTh col="studentId">학번</SortTh></div>
         <div className="flex-1 text-[14px] font-semibold text-gray-500">제출 답안</div>
-        {question.autoGrade && <div className="w-16 shrink-0 text-[14px] font-semibold text-gray-500">정답 여부</div>}
-        <div className="w-40 shrink-0 flex justify-end"><SortTh col="score">점수</SortTh></div>
+        {question.autoGrade && <div className="w-16 shrink-0 text-center text-[14px] font-semibold text-gray-500">정답 여부</div>}
+        <div className="w-40 shrink-0 text-center"><SortTh col="score">점수</SortTh></div>
       </div>
 
       {/* 행 목록 */}
@@ -967,7 +923,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
           <div className="flex items-center justify-center h-24 text-xs text-gray-400">검색 결과가 없습니다</div>
         ) : (
           visible.map(s => (
-            <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} />
+            <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} isChanged={changedStudentIds?.has(s.id)} />
           ))
         )}
       </div>
@@ -1001,7 +957,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
 }
 
 // ─── 문항 중심: 학생 행 (문항 유형별 채점 UI) ─────────────────────────────
-function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) {
+function StudentRow({ student, question, quizId, onScoreChange, pendingScore, isChanged }) {
   // 미제출 학생
   if (!student.submitted) {
     const unsubStorageKey = `${quizId}_${student.id}_${question.id}`
@@ -1075,14 +1031,17 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
 
   return (
     <div className="border-b border-slate-100">
-      <div className={cn('flex items-center gap-2 px-3 py-3', isUngraded ? 'bg-amber-50/30' : '')}>
+      <div className={cn('flex items-center gap-2 px-3 py-3', isChanged ? 'bg-blue-50/60' : isUngraded ? 'bg-amber-50/30' : '')}>
         {/* 이름 */}
-        <div className="w-28 shrink-0">
-          <p className="text-[14px] font-medium truncate text-gray-700">{student.name}</p>
+        <div className="w-28 shrink-0 text-center">
+          <p className="text-[14px] font-medium truncate text-gray-700 inline-flex items-center gap-1 justify-center">
+            {student.name}
+            {isChanged && <span className="w-1.5 h-1.5 rounded-full bg-[#3182F6] shrink-0" title="점수 변경됨" />}
+          </p>
         </div>
 
         {/* 학번 */}
-        <div className="w-24 shrink-0">
+        <div className="w-24 shrink-0 text-center">
           <p className="text-[14px] truncate text-black">{student.studentId}</p>
         </div>
 
@@ -1101,7 +1060,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
 
         {/* 정답 여부 */}
         {question.autoGrade && (
-          <div className="w-16 shrink-0">
+          <div className="w-16 shrink-0 text-center">
             {autoCorrect !== null && (
               <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', autoCorrect ? 'text-[#31B46E] bg-[#EAF8F1]' : 'text-[#F04452] bg-[#FEECEE]')}>
                 {autoCorrect ? '정답' : '오답'}
@@ -1111,7 +1070,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore }) 
         )}
 
         {/* 채점여부 + 점수 */}
-        <div className="flex items-center gap-1.5 w-40 shrink-0 justify-end">
+        <div className="flex items-center gap-1.5 w-40 shrink-0 justify-center">
           {isUngraded && (
             <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0 text-amber-600 bg-amber-50">
               미채점
@@ -1752,41 +1711,72 @@ function PdfModal({ onClose }) {
   )
 }
 
-function RegradeModal({ onClose }) {
-  const [confirmed, setConfirmed] = useState(false)
+
+
+function RegradeQuestionModal({ question, students, questionsModifiedAt, onClose, onDone }) {
+  const submitted = students.filter(s => s.submitted)
+
+  const handleRegrade = () => {
+    let count = 0
+    const changedIds = new Set()
+    const correctAnswer = question.correctAnswer
+    submitted.forEach(s => {
+      const studentIdx = parseInt(s.id.replace(/\D/g, ''))
+      const answer = s.selections?.[question.id] ?? getStudentAnswer(studentIdx, question.id)
+      if (!answer && answer !== 0) return
+      let isCorrect = false
+      if (question.type === 'multiple_choice' || question.type === 'true_false') {
+        isCorrect = String(answer).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase()
+      } else if (question.type === 'short_answer') {
+        const accepted = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer]
+        isCorrect = accepted.some(a => String(answer).trim().toLowerCase() === String(a).trim().toLowerCase())
+      } else if (question.type === 'numerical') {
+        const num = parseFloat(answer)
+        const correct = parseFloat(correctAnswer)
+        const tol = question.tolerance ?? 0
+        isCorrect = !isNaN(num) && Math.abs(num - correct) <= tol
+      } else { return }
+      const newScore = isCorrect ? question.points : 0
+      if (!s.autoScores) s.autoScores = {}
+      const oldScore = s.autoScores[question.id] ?? 0
+      s.autoScores[question.id] = newScore
+      const autoTotal = Object.values(s.autoScores).reduce((a, b) => a + b, 0)
+      const manualTotal = s.manualScores ? Object.values(s.manualScores).reduce((a, b) => a + (b || 0), 0) : 0
+      s.score = autoTotal + manualTotal
+      if (newScore !== oldScore) { count++; changedIds.add(s.id) }
+    })
+    onDone(count, changedIds)
+  }
 
   return (
-    <Modal onClose={onClose} title="재채점">
-      <div className="space-y-4">
-        <div className="p-3 text-sm rounded bg-red-50 border border-red-200 text-red-700">
-          <p className="font-medium mb-1">재채점 시 주의사항</p>
-          <p className="text-xs">정답 기준을 수정하면 해당 문항에 응시한 <span className="font-bold">82명 전원</span>의 점수가 즉시 재계산됩니다.</p>
-          <p className="text-xs mt-1.5">자동채점 문항만 재산출되며, 수동채점(주관식·서술형) 점수는 변경되지 않습니다.</p>
-          <p className="text-xs mt-1">점수 변경 시 해당 학생에게 LMS 메시지 알림이 발송됩니다.</p>
+    <Modal onClose={onClose} title={`Q${question.order} 재채점`}>
+      <div className="space-y-5">
+        <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
+          <p className="text-[13px] text-slate-500 mb-1">{QUIZ_TYPES[question.type]?.label} / {question.points}점</p>
+          <p className="text-sm font-medium text-slate-800 line-clamp-2">{question.text}</p>
+          <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-slate-200">
+            <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">정답</span>
+            <span className="text-[13px] font-medium text-slate-700">{String(question.correctAnswer)}</span>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1.5 text-slate-700">변경할 정답 기준</label>
-          <input
-            type="text"
-            defaultValue="외래키(Foreign Key)"
-            className="w-full bg-white text-sm px-3 py-2 rounded border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100"
-          />
-          <p className="text-xs mt-1 text-slate-400">쉼표로 구분하면 복수 정답 처리됩니다</p>
+        <p className="text-[12px] text-slate-400 leading-relaxed">
+          제출한 {submitted.length}명을 대상으로, 변경된 정답 기준으로 자동채점 문항만 재채점됩니다.<br />수동 조정 점수는 유지됩니다.
+        </p>
+
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 text-[13px] font-medium py-2.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+            취소
+          </button>
+          <button
+            onClick={handleRegrade}
+            disabled={submitted.length === 0}
+            className="flex-1 flex items-center justify-center gap-1.5 text-[13px] font-semibold py-2.5 rounded-lg bg-[#3182F6] text-white hover:bg-[#1B64DA] disabled:opacity-40 transition-colors"
+          >
+            <RefreshCw size={13} />
+            {submitted.length}명 재채점 실행
+          </button>
         </div>
-
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}
-            className="mt-0.5 rounded text-[#3182F6] border-slate-200" />
-          <span className="text-sm text-slate-700">위 내용을 확인했으며, 전체 재채점을 진행합니다.</span>
-        </label>
-
-        <button
-          disabled={!confirmed}
-          className="w-full flex items-center justify-center gap-2 bg-[#3182F6] hover:bg-[#1B64DA] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium py-3 rounded transition-colors"
-        >
-          <RefreshCw size={14} />재채점 실행
-        </button>
       </div>
     </Modal>
   )

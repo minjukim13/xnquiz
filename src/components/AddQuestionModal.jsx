@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type } from 'lucide-react'
+import { X, Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type, AlertTriangle } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
 import { DropdownSelect } from './DropdownSelect'
 
@@ -214,9 +214,15 @@ function initForm(type) {
 function buildQuestion(type, form) {
   const base = { type, text: form.text.trim(), points: Number(form.points) || 5, difficulty: form.difficulty || '', groupTag: (form.groupTag || '').trim() }
   switch (type) {
-    case 'multiple_choice':         return { ...base, options: form.options.filter(o => o.trim()), correctAnswer: form.correctIdx }
-    case 'true_false':              return { ...base, correctAnswer: form.correctBool }
-    case 'multiple_answers':        return { ...base, options: form.options.filter(o => o.trim()), correctAnswer: form.correctIdxs, scoringMode: form.scoringMode ?? 'all_correct' }
+    case 'multiple_choice': {
+      const filtered = form.options.filter(o => o.trim())
+      return { ...base, options: filtered, choices: filtered, correctAnswer: filtered[form.correctIdx] ?? filtered[0] }
+    }
+    case 'true_false':              return { ...base, correctAnswer: form.correctBool ? '참' : '거짓', choices: ['참', '거짓'] }
+    case 'multiple_answers': {
+      const filtered = form.options.filter(o => o.trim())
+      return { ...base, options: filtered, choices: filtered, correctAnswer: form.correctIdxs.map(i => filtered[i]).filter(Boolean), scoringMode: form.scoringMode ?? 'all_correct' }
+    }
     case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
     case 'essay':                   return { ...base, rubric: form.rubric }
     case 'numerical':               return { ...base, correctAnswer: Number(form.correctNum), tolerance: Number(form.tolerance) || 0 }
@@ -664,15 +670,32 @@ function TypeForm({ type, form, setForm }) {
 // ── 문항 객체 → 폼 상태 변환 ────────────────────────────────────────────────
 function questionToForm(q) {
   const base = { text: q.text || '', points: q.points ?? 5, difficulty: q.difficulty || '', groupTag: q.groupTag || '' }
+  // mock 데이터는 choices 필드를 사용하고, AddQuestionModal은 options를 사용
+  const opts = q.options?.length ? [...q.options] : q.choices?.length ? [...q.choices] : ['', '', '', '']
   switch (q.type) {
-    case 'multiple_choice':
-      return { ...base, options: q.options?.length ? [...q.options] : ['', '', '', ''], correctIdx: q.correctAnswer ?? 0 }
-    case 'true_false':
-      return { ...base, correctBool: q.correctAnswer ?? true }
-    case 'multiple_answers':
-      return { ...base, options: q.options?.length ? [...q.options] : ['', '', '', ''], correctIdxs: Array.isArray(q.correctAnswer) ? [...q.correctAnswer] : [], scoringMode: q.scoringMode ?? 'all_correct' }
+    case 'multiple_choice': {
+      let idx = q.correctAnswer ?? 0
+      // correctAnswer가 문자열이면 choices/options에서 인덱스 찾기
+      if (typeof idx === 'string') idx = opts.findIndex(o => o === idx)
+      if (idx < 0) idx = 0
+      return { ...base, options: opts, correctIdx: idx }
+    }
+    case 'true_false': {
+      let val = q.correctAnswer ?? true
+      if (val === '참' || val === 'true' || val === 'True') val = true
+      else if (val === '거짓' || val === 'false' || val === 'False') val = false
+      return { ...base, correctBool: val }
+    }
+    case 'multiple_answers': {
+      let idxs = Array.isArray(q.correctAnswer) ? [...q.correctAnswer] : []
+      // correctAnswer가 문자열 배열이면 인덱스로 변환
+      if (idxs.length > 0 && typeof idxs[0] === 'string') {
+        idxs = idxs.map(a => opts.findIndex(o => o === a)).filter(i => i >= 0)
+      }
+      return { ...base, options: opts, correctIdxs: idxs, scoringMode: q.scoringMode ?? 'all_correct' }
+    }
     case 'short_answer':
-      return { ...base, acceptedAnswers: Array.isArray(q.correctAnswer) && q.correctAnswer.length ? [...q.correctAnswer] : [''] }
+      return { ...base, acceptedAnswers: Array.isArray(q.correctAnswer) && q.correctAnswer.length ? [...q.correctAnswer] : typeof q.correctAnswer === 'string' ? [q.correctAnswer] : [''] }
     case 'essay':
       return { ...base, rubric: q.rubric || '' }
     case 'numerical':
@@ -695,7 +718,7 @@ function questionToForm(q) {
 }
 
 // ── 메인 모달 ──────────────────────────────────────────────────────────────
-export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', initialQuestion = null }) {
+export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', initialQuestion = null, submittedCount = 0 }) {
   const isEditMode = !!initialQuestion
   const [step, setStep] = useState(isEditMode ? 'form' : 'type')
   const [selectedType, setSelectedType] = useState(isEditMode ? initialQuestion.type : null)
@@ -803,6 +826,14 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
         ) : (
           /* 문항 폼 */
           <div className="p-4 space-y-4 overflow-y-auto" style={{ maxHeight: '70vh' }}>
+            {isEditMode && submittedCount > 0 && (
+              <div className="flex items-start gap-2 p-3 rounded-md" style={{ background: '#FFF7ED', border: '1px solid #FED7AA' }}>
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" style={{ color: '#EA580C' }} />
+                <p className="text-xs leading-relaxed" style={{ color: '#9A3412' }}>
+                  이 문항은 이미 <span className="font-bold">{submittedCount}명</span>이 응시했습니다. 수정 시 기존 제출 답안과 채점 결과에 영향을 줄 수 있습니다.
+                </p>
+              </div>
+            )}
             {/* 문제 내용 */}
             <div>
               <label className="text-sm font-medium block mb-1.5" style={{ color: '#424242' }}>
@@ -891,7 +922,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                 disabled={!isValid(selectedType, form)}
                 onClick={handleAdd}
                 className="text-sm text-white bg-[#3182F6] hover:bg-[#1B64DA] disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded transition-colors font-medium">
-                {isEditMode ? '저장' : '추가'}
+                {isEditMode ? '변경' : '추가'}
               </button>
               </div>
             </div>
