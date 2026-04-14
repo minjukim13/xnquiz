@@ -278,19 +278,20 @@ export function parseGradingSheet(file) {
 // ── 문항 업로드 템플릿 다운로드 (QuestionBank) ───────────────────────────
 
 // 엑셀 업로드로 지원하는 유형 (단순 행 구조로 표현 가능한 유형만)
-const EXCEL_SUPPORTED_TYPES = ['multiple_choice', 'true_false', 'short_answer', 'essay']
+const EXCEL_SUPPORTED_TYPES = ['multiple_choice', 'true_false', 'multiple_answers', 'short_answer', 'essay']
 
 export function downloadQuestionTemplate() {
-  const headers = ['유형', '문항 내용', '배점', '난이도(선택)', '그룹(선택)', '정답(선택)', '보기1', '보기2', '보기3', '보기4', '보기5']
+  const headers = ['유형', '문항 내용', '배점', '난이도(선택)', '정답(선택)', '보기1', '보기2', '보기3', '보기4', '보기5']
   const exampleRows = [
-    ['multiple_choice', 'SQL에서 테이블을 생성하는 명령어는?', 5, 'medium', '1단원', 'CREATE TABLE', 'SELECT', 'INSERT', 'CREATE TABLE', 'DROP', ''],
-    ['true_false', 'PRIMARY KEY는 NULL 값을 허용한다.', 5, 'low', '1단원', '거짓', '', '', '', '', ''],
-    ['short_answer', 'DDL의 약자를 쓰시오.', 5, 'medium', '2단원', 'Data Definition Language', '', '', '', '', ''],
-    ['essay', '트랜잭션의 ACID 속성에 대해 서술하시오.', 15, 'high', '3단원', '', '', '', '', '', ''],
+    ['multiple_choice', 'SQL에서 테이블을 생성하는 명령어는?', 5, 'medium', 'CREATE TABLE', 'SELECT', 'INSERT', 'CREATE TABLE', 'DROP', ''],
+    ['true_false', 'PRIMARY KEY는 NULL 값을 허용한다.', 5, 'low', '거짓', '', '', '', '', ''],
+    ['multiple_answers', '다음 중 DDL에 해당하는 명령어를 모두 고르시오.', 10, 'medium', 'CREATE, ALTER, DROP', 'CREATE', 'ALTER', 'DROP', 'SELECT', 'INSERT'],
+    ['short_answer', 'DDL의 약자를 쓰시오.', 5, 'medium', 'Data Definition Language', '', '', '', '', ''],
+    ['essay', '트랜잭션의 ACID 속성에 대해 서술하시오.', 15, 'high', '', '', '', '', '', ''],
   ]
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleRows])
-  ws['!cols'] = [{ wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 25 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
+  ws['!cols'] = [{ wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 14 }, { wch: 25 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
   headers.forEach((_, i) => {
     const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })]
     if (cell) cell.s = { font: { bold: true } }
@@ -365,7 +366,7 @@ export function parseExcelOrCsv(file) {
         const errors = []
 
         for (let i = 1; i < raw.length; i++) {
-          const [typeRaw, textRaw, pointsRaw, difficultyRaw = '', groupTagRaw = '', answer = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = ''] = raw[i].map(v => String(v ?? '').trim())
+          const [typeRaw, textRaw, pointsRaw, difficultyRaw = '', answer = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = ''] = raw[i].map(v => String(v ?? '').trim())
           const rowNum = i + 1
 
           if (!typeRaw && !textRaw && !pointsRaw) continue // 빈 행 건너뜀
@@ -388,11 +389,27 @@ export function parseExcelOrCsv(file) {
             rowHasError = true
           }
 
-          if (!rowHasError && typeRaw === 'multiple_choice') {
+          if (!rowHasError && (typeRaw === 'multiple_choice' || typeRaw === 'multiple_answers')) {
             const choices = [c1, c2, c3, c4, c5].filter(Boolean)
             if (choices.length < 2) {
-              errors.push(`${rowNum}행: 객관식 문항은 보기를 2개 이상 입력해야 합니다`)
+              errors.push(`${rowNum}행: ${typeRaw === 'multiple_choice' ? '객관식' : '복수 선택'} 문항은 보기를 2개 이상 입력해야 합니다`)
               rowHasError = true
+            }
+          }
+
+          if (!rowHasError && typeRaw === 'multiple_answers') {
+            if (!answer) {
+              errors.push(`${rowNum}행: 복수 선택 문항은 정답을 입력해야 합니다 (쉼표로 구분)`)
+              rowHasError = true
+            } else {
+              const choiceList = [c1, c2, c3, c4, c5].filter(Boolean)
+              const choiceListLower = choiceList.map(c => c.toLowerCase())
+              const answerList = answer.split(',').map(s => s.trim()).filter(Boolean)
+              const invalid = answerList.filter(a => !choiceListLower.includes(a.toLowerCase()))
+              if (invalid.length > 0) {
+                errors.push(`${rowNum}행: 정답 "${invalid.join(', ')}"이(가) 보기에 없습니다`)
+                rowHasError = true
+              }
             }
           }
 
@@ -407,7 +424,7 @@ export function parseExcelOrCsv(file) {
           const difficulty = validDifficulties.includes(difficultyRaw) ? difficultyRaw : 'medium'
 
           const choices = [c1, c2, c3, c4, c5].filter(Boolean)
-          rows.push({ type: typeRaw, text: textRaw, points, difficulty, groupTag: groupTagRaw, answer, choices })
+          rows.push({ type: typeRaw, text: textRaw, points, difficulty, answer, choices })
         }
 
         if (errors.length > 0) {

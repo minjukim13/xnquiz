@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings2, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -81,10 +81,7 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings2 size={16} className="text-[#3182F6]" />
-            퀴즈 전역 설정
-          </DialogTitle>
+          <DialogTitle>퀴즈 전역 설정</DialogTitle>
           <p className="text-xs text-muted-foreground">이 설정은 모든 퀴즈에 공통으로 적용됩니다.</p>
         </DialogHeader>
 
@@ -143,8 +140,8 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
               </p>
             )}
             {local.caseSensitive && (
-              <div className="flex items-start gap-2 p-2.5 rounded text-xs" style={{ background: '#FEF3C7', border: '1px solid #FCD34D', color: '#92400E' }}>
-                <AlertCircle size={14} className="shrink-0 mt-0.5" style={{ color: '#D97706' }} />
+              <div className="flex items-start gap-2 p-2.5 rounded text-xs bg-amber-50 border border-amber-300 text-amber-800">
+                <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-600" />
                 <span>"Answer"와 "answer"를 다른 답으로 처리합니다. 학생 혼란 방지를 위해 퀴즈 안내사항에 명시를 권장합니다.</span>
               </div>
             )}
@@ -152,8 +149,8 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>취소</Button>
-          <Button onClick={handleSave} className="bg-[#3182F6] hover:bg-[#1B64DA]">저장</Button>
+          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>취소</Button>
+          <Button size="sm" onClick={handleSave}>저장</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -167,18 +164,18 @@ function RadioOption({ active, onClick, label, desc, formula }) {
       onClick={onClick}
       className={cn(
         'w-full text-left p-3 rounded-lg transition-all border',
-        active ? 'border-[#3182F6] bg-[#E8F3FF]' : 'border-border bg-white hover:border-slate-300'
+        active ? 'border-primary bg-accent' : 'border-border bg-white hover:border-slate-300'
       )}
     >
       <div className="flex items-start gap-2.5">
         <span className={cn(
           'mt-0.5 w-4 h-4 rounded-full border-[1.5px] shrink-0 flex items-center justify-center transition-colors',
-          active ? 'border-[#3182F6]' : 'border-slate-300'
+          active ? 'border-primary' : 'border-slate-300'
         )}>
-          {active && <span className="w-2 h-2 rounded-full bg-[#3182F6]" />}
+          {active && <span className="w-2 h-2 rounded-full bg-primary" />}
         </span>
         <div className="flex-1 min-w-0">
-          <p className={cn('text-sm font-semibold flex items-center gap-1', active ? 'text-[#1B64DA]' : 'text-slate-700')}>
+          <p className={cn('text-sm font-semibold flex items-center gap-1', active ? 'text-primary' : 'text-slate-700')}>
             {label}
             {formula && <FormulaTooltip formula={formula} />}
           </p>
@@ -223,7 +220,7 @@ function SettingsSection({ title, children }) {
 function SettingsToggle({ checked, onChange, label, description }) {
   return (
     <label className="flex items-start gap-3 cursor-pointer">
-      <Switch checked={checked} onCheckedChange={onChange} className="mt-0.5 data-[state=checked]:bg-[#3182F6]" />
+      <Switch checked={checked} onCheckedChange={onChange} className="mt-0.5 data-[state=checked]:bg-primary" />
       <div>
         <p className="text-sm font-medium text-slate-700">{label}</p>
         {description && <p className="text-xs mt-0.5 text-muted-foreground">{description}</p>}
@@ -232,7 +229,7 @@ function SettingsToggle({ checked, onChange, label, description }) {
   )
 }
 
-const SIM_INPUT = "w-14 text-center text-xs px-1.5 py-1 rounded border border-slate-200 bg-white focus:outline-none focus:border-[#3182F6] transition-colors"
+const SIM_INPUT = "w-14 text-center text-xs px-1.5 py-1 rounded border border-slate-200 bg-white focus:outline-none focus:border-primary transition-colors"
 const CHOICE_LABELS = 'ABCDEFGHIJ'.split('')
 
 function ScoringSimulation({ penaltyMethod }) {
@@ -358,11 +355,11 @@ function ScoringSimulation({ penaltyMethod }) {
             const isActive = m.key === penaltyMethod
             return (
               <div key={m.key} className={cn('py-2 px-2 text-center', isActive && 'bg-blue-50/60')}>
-                <p className={cn('text-[10px] mb-0.5', isActive ? 'text-[#3182F6] font-semibold' : 'text-slate-400')}>{m.label}</p>
+                <p className={cn('text-[10px] mb-0.5', isActive ? 'text-primary font-semibold' : 'text-slate-400')}>{m.label}</p>
                 <p className={cn(
                   'text-sm tabular-nums font-bold',
                   isActive
-                    ? score === points ? 'text-[#3182F6]' : score === 0 && selected.size > 0 ? 'text-red-500' : 'text-slate-800'
+                    ? score === points ? 'text-primary' : score === 0 && selected.size > 0 ? 'text-red-500' : 'text-slate-800'
                     : 'text-slate-400'
                 )}>
                   {score}점

@@ -8,18 +8,18 @@ function _getGlobalSettings() {
 
 // QUIZ_TYPES: Canvas LMS 전체 퀴즈 유형 (Classic + New Quizzes)
 export const QUIZ_TYPES = {
-  multiple_choice:        { label: '객관식',          autoGrade: true },
-  true_false:             { label: '참/거짓',          autoGrade: true },
-  multiple_answers:       { label: '복수 선택',        autoGrade: true },
+  multiple_choice:        { label: '객관식',          autoGrade: true      },
+  true_false:             { label: '참/거짓',          autoGrade: true      },
+  multiple_answers:       { label: '복수 선택',        autoGrade: true      },
   short_answer:           { label: '단답형',           autoGrade: 'partial' },
-  essay:                  { label: '서술형',           autoGrade: false },
-  numerical:              { label: '수치형',           autoGrade: true },
-  formula:                { label: '수식형',           autoGrade: true },
-  matching:               { label: '연결형',           autoGrade: true },
-  fill_in_multiple_blanks:{ label: '다중 빈칸 채우기', autoGrade: true },
-  multiple_dropdowns:     { label: '드롭다운 선택',    autoGrade: true },
-  file_upload:            { label: '파일 첨부',        autoGrade: false },
-  text:                   { label: '텍스트',           autoGrade: null },
+  essay:                  { label: '서술형',           autoGrade: false     },
+  numerical:              { label: '수치형',           autoGrade: true      },
+  formula:                { label: '수식형',           autoGrade: true      },
+  matching:               { label: '연결형',           autoGrade: true      },
+  fill_in_multiple_blanks:{ label: '다중 빈칸 채우기', autoGrade: true      },
+  multiple_dropdowns:     { label: '드롭다운 선택',    autoGrade: true      },
+  file_upload:            { label: '파일 첨부',        autoGrade: false     },
+  text:                   { label: '텍스트',           autoGrade: null      },
 }
 
 export const mockQuizzes = [
@@ -31,6 +31,7 @@ export const mockQuizzes = [
     course: 'CS301 데이터베이스',
     status: 'grading',
     visible: true,
+    hasFileUpload: true,
     startDate: '2026-04-03 09:00',
     dueDate: '2026-04-03 18:00',
     week: 8,
@@ -39,8 +40,8 @@ export const mockQuizzes = [
     submitted: 82,
     graded: 45,
     pendingGrade: 37,
-    questions: 10,
-    totalPoints: 100,
+    questions: 11,
+    totalPoints: 115,
     timeLimit: 120,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 1,
@@ -346,7 +347,7 @@ export const mockQuizzes = [
   },
 ]
 
-// 배점 합계: 5+5+10+10+20+5+10+15+10+10 = 100점
+// 배점 합계: 5+5+10+10+20+5+10+15+10+10+15 = 115점
 export const mockQuestions = [
   {
     id: 'q1', order: 1, type: 'multiple_choice',
@@ -409,6 +410,14 @@ export const mockQuestions = [
     text: '다음 SQL 명령어와 그 기능을 올바르게 연결하시오.',
     points: 10, autoGrade: true, gradedCount: 82, totalCount: 82, avgScore: 8.8,
     correctAnswer: null,
+  },
+  {
+    id: 'q11', order: 11, type: 'file_upload',
+    text: 'ERD 설계 결과물을 PDF 또는 이미지 파일로 제출하시오. 최소 3개 이상의 엔티티와 관계를 포함해야 합니다.',
+    points: 15, autoGrade: false, gradedCount: 32, totalCount: 82, avgScore: 11.4,
+    correctAnswer: null,
+    allowedFileTypes: ['pdf', 'png', 'jpg', 'hwp'],
+    maxFileSize: '10MB',
   },
 ]
 
@@ -1587,7 +1596,11 @@ export function gradeQuiz3Answer(questionId, answer) {
   if (!correct || !answer) return 0
   const question = mockQuiz3Questions.find(q => q.id === questionId)
   const points = question?.points ?? 2
-  return correct.some(c => answer.trim().toLowerCase() === c.toLowerCase().trim()) ? points : 0
+  const gs = _getGlobalSettings()
+  const isCorrect = gs.caseSensitive
+    ? correct.some(c => answer.trim() === c.trim())
+    : correct.some(c => answer.trim().toLowerCase() === c.toLowerCase().trim())
+  return isCorrect ? points : 0
 }
 
 export function autoGradeAnswer(question, answer, options = {}) {
@@ -1666,6 +1679,27 @@ export function getStudentAnswer(studentIdx, questionId) {
   const pool = ANSWER_POOL[questionId] || ['답안 없음']
   const idNum = questionId.split('_').reduce((acc, p) => acc + parseInt(p.replace(/\D/g, '') || '0'), 0)
   return pool[(studentIdx * 3 + idNum) % pool.length]
+}
+
+// ── 파일 업로드 제출물 mock 데이터 ──────────────────────────────────────────
+const FILE_NAMES = [
+  'ERD_설계_최종.pdf', 'DB_ERD_v2.pdf', 'ERD설계결과물.pdf', '데이터베이스_ERD.pdf',
+  'ERD_diagram.png', 'erd_final.png', 'DB설계_ERD.jpg', 'ERD_설계.hwp',
+  '최종_ERD설계.pdf', 'ERD_3차수정.pdf', 'DB_모델링결과.pdf', '설계결과물_제출.pdf',
+]
+const FILE_SIZES = ['1.2 MB', '2.4 MB', '856 KB', '3.1 MB', '1.7 MB', '512 KB', '4.2 MB', '2.8 MB', '1.5 MB', '980 KB']
+const FILE_HOURS = ['09:42', '10:15', '11:03', '12:30', '13:22', '14:08', '15:45', '16:11', '17:02', '17:48']
+
+export function getStudentFileSubmission(studentIdx, questionId) {
+  const seed = studentIdx * 7 + questionId.charCodeAt(questionId.length - 1)
+  const fileName = FILE_NAMES[seed % FILE_NAMES.length]
+  const ext = fileName.split('.').pop()
+  return {
+    fileName,
+    fileSize: FILE_SIZES[seed % FILE_SIZES.length],
+    fileType: ext,
+    uploadedAt: `2026-04-03 ${FILE_HOURS[studentIdx % FILE_HOURS.length]}`,
+  }
 }
 
 export function isAnswerCorrect(answer, questionId) {

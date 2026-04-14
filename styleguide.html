@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XN Quizzes — Design System</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif; background: #F9FAFB; color: #191F28; line-height: 1.6; }
+  .container { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
+  h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  h1 span { color: #3182F6; }
+  .subtitle { font-size: 14px; color: #8B95A1; margin-bottom: 48px; }
+  h2 { font-size: 18px; font-weight: 700; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 1px solid #E5E8EB; }
+  h3 { font-size: 14px; font-weight: 600; color: #4E5968; margin: 24px 0 12px; }
+
+  /* Color Grid */
+  .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .color-card { background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #E5E8EB; }
+  .color-swatch { height: 56px; }
+  .color-info { padding: 10px 12px; }
+  .color-info .name { font-size: 13px; font-weight: 600; }
+  .color-info .hex { font-size: 12px; color: #8B95A1; }
+  .color-info .token { font-size: 11px; color: #3182F6; font-family: monospace; margin-top: 2px; }
+
+  /* Button Row */
+  .btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: 1px solid transparent; cursor: pointer; transition: all 0.15s; }
+  .btn-default { background: #3182F6; color: #fff; }
+  .btn-default:hover { background: #1B64DA; }
+  .btn-outline { background: #fff; color: #191F28; border-color: #E5E8EB; }
+  .btn-outline:hover { background: #F2F4F6; }
+  .btn-soft { background: #E8F3FF; color: #3182F6; }
+  .btn-soft:hover { background: #D4EAFF; }
+  .btn-ghost { background: transparent; color: #4E5968; }
+  .btn-ghost:hover { background: #F2F4F6; }
+  .btn-destructive { background: #FEF2F2; color: #F04452; }
+  .btn-destructive:hover { background: #FDDEDE; }
+
+  /* Badge Row */
+  .badge-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-weight: 600; color: #4E5968; padding: 8px 12px; border-bottom: 1px solid #E5E8EB; background: #F9FAFB; }
+  td { padding: 8px 12px; border-bottom: 1px solid #F2F4F6; }
+  td code { font-family: monospace; font-size: 12px; background: #F2F4F6; padding: 2px 6px; border-radius: 4px; color: #3182F6; }
+
+  /* Modal Preview */
+  .modal-preview { background: #fff; border-radius: 12px; border: 1px solid #E5E8EB; padding: 20px; max-width: 480px; }
+  .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .modal-desc { font-size: 14px; color: #8B95A1; margin-bottom: 16px; }
+  .modal-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid #F2F4F6; }
+
+  /* Typography */
+  .type-row { display: flex; align-items: baseline; gap: 16px; margin-bottom: 12px; }
+  .type-label { font-size: 12px; color: #8B95A1; min-width: 80px; flex-shrink: 0; }
+
+  .note { font-size: 12px; color: #8B95A1; margin-top: 4px; }
+  .divider { border: none; border-top: 1px solid #E5E8EB; margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>XN Quizzes <span>Design System</span></h1>
+  <p class="subtitle">Toss Style 기반 디자인 토큰, 컴포넌트 가이드 (2026-04-14 기준)</p>
+
+  <!-- ─── Colors ─── -->
+  <h2>Colors</h2>
+  <div class="color-grid">
+    <div class="color-card">
+      <div class="color-swatch" style="background:#3182F6"></div>
+      <div class="color-info"><div class="name">Primary</div><div class="hex">#3182F6</div><div class="token">bg-primary / text-primary</div></div>
+    </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background:#1B64DA"></div>
+      <div class="color-info"><div class="name">Primary Hover</div><div class="hex">#1B64DA</div><div class="token">hover:bg-primary-hover</div></div>
+    </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background:#E8F3FF"></div>
+      <div class="color-info"><div class="name">Accent</div><div class="hex">#E8F3FF</div><div class="token">bg-accent</div></div>
+    </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background:#191F28"></div>
+      <div class="color-info"><div class="name">Foreground</div><div class="hex">#191F28</div><div class="token">text-foreground</div></div>
+    </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background:#4E5968"></div>
+      <div class="color-info"><div class="name">Secondary Text</div><div class="hex">#4E5968</div><div class="token">text-secondary-foreground</div></div>
+    </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background:#8B95A1"></div>
+      <div class="color-info"><div class="name">Muted Text</div><div class="hex">#8B95A1</div><div class="token">text-muted-foreground</div></div>
+    </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background:#F2F4F6"></div>
+      <div class="color-info"><div class="name">Secondary Surface</div><div class="hex">#F2F4F6</div><div class="token">bg-secondary</div></div>
+    </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background:#E5E8EB"></div>
+      <div class="color-info"><div class="name">Border</div><div class="hex">#E5E8EB</div><div class="token">border-border</div></div>
+    </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background:#F9FAFB"></div>
+      <div class="color-info"><div class="name">Background</div><div class="hex">#F9FAFB</div><div class="token">bg-background</div></div>
+    </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background:#F04452"></div>
+      <div class="color-info"><div class="name">Destructive</div><div class="hex">#F04452</div><div class="token">text-destructive</div></div>
+    </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background:#FFFFFF; border-bottom: 1px solid #E5E8EB"></div>
+      <div class="color-info"><div class="name">Card / White</div><div class="hex">#FFFFFF</div><div class="token">bg-card / bg-white</div></div>
+    </div>
+  </div>
+
+  <!-- ─── Typography ─── -->
+  <h2>Typography</h2>
+  <p class="note" style="margin-bottom:16px">Font: Pretendard Variable</p>
+  <div class="type-row"><span class="type-label">Page Title</span><span style="font-size:24px;font-weight:700">퀴즈 관리</span></div>
+  <div class="type-row"><span class="type-label">Section Title</span><span style="font-size:18px;font-weight:600">문항 구성</span></div>
+  <div class="type-row"><span class="type-label">Card Title</span><span style="font-size:16px;font-weight:700">2차 형성평가</span></div>
+  <div class="type-row"><span class="type-label">Body</span><span style="font-size:14px;font-weight:400">기본 텍스트입니다</span></div>
+  <div class="type-row"><span class="type-label">Caption</span><span style="font-size:12px;font-weight:400;color:#8B95A1">보조 텍스트</span></div>
+
+  <!-- ─── Buttons ─── -->
+  <h2>Buttons</h2>
+
+  <h3>Variants</h3>
+  <div class="btn-row">
+    <button class="btn btn-default">Default (Primary)</button>
+    <button class="btn btn-outline">Outline</button>
+    <button class="btn btn-soft">Soft</button>
+    <button class="btn btn-ghost">Ghost</button>
+    <button class="btn btn-destructive">Destructive</button>
+  </div>
+  <p class="note">코드: <code>&lt;Button&gt;</code>, <code>&lt;Button variant="outline"&gt;</code>, <code>&lt;Button variant="soft"&gt;</code>, etc.</p>
+  <p class="note" style="color:#F04452; font-weight:600; margin-top:8px">raw &lt;button&gt;에 bg-[#3182F6] 하드코딩 금지. 반드시 &lt;Button&gt; 컴포넌트 사용.</p>
+
+  <!-- ─── Type Badges ─── -->
+  <h2>Question Type Badges</h2>
+  <p class="note" style="margin-bottom:12px">컴포넌트: <code>&lt;TypeBadge type="..." /&gt;</code> — QUIZ_TYPES에서 color/bg 통합 관리</p>
+  <div class="badge-row">
+    <span class="badge" style="background:#EEF2FF;color:#6366f1">객관식</span>
+    <span class="badge" style="background:#ECFDF5;color:#059669">참/거짓</span>
+    <span class="badge" style="background:#EFF6FF;color:#3B82F6">복수 선택</span>
+    <span class="badge" style="background:#FFFBEB;color:#F59E0B">단답형</span>
+    <span class="badge" style="background:#FEF2F2;color:#EF4444">서술형</span>
+    <span class="badge" style="background:#F5F3FF;color:#8B5CF6">수치형</span>
+    <span class="badge" style="background:#F0FDFA;color:#0D9488">수식형</span>
+    <span class="badge" style="background:#ECFEFF;color:#0891B2">연결형</span>
+    <span class="badge" style="background:#FFF7ED;color:#EA580C">다중 빈칸</span>
+    <span class="badge" style="background:#EEF2FF;color:#4F46E5">드롭다운</span>
+    <span class="badge" style="background:#F8FAFC;color:#64748B">파일 첨부</span>
+    <span class="badge" style="background:#F5F5F5;color:#9E9E9E">텍스트</span>
+  </div>
+
+  <!-- ─── Modal Standard ─── -->
+  <h2>Modal Standard</h2>
+  <div class="modal-preview">
+    <div class="modal-title">모달 타이틀</div>
+    <div class="modal-desc">모달 설명 텍스트입니다.</div>
+    <div style="background:#F2F4F6; border-radius:8px; padding:16px; font-size:13px; color:#4E5968; margin-bottom:16px;">
+      콘텐츠 영역
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" style="padding:6px 12px; font-size:13px;">이전</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-outline" style="padding:6px 12px; font-size:13px;">취소</button>
+        <button class="btn btn-default" style="padding:6px 12px; font-size:13px;">다음</button>
+      </div>
+    </div>
+  </div>
+  <p class="note" style="margin-top:12px">스텝 모달 푸터: 이전(좌측) | 취소+다음(우측) justify-between 레이아웃</p>
+
+  <h3>Modal Rules</h3>
+  <table>
+    <tr><th>항목</th><th>규칙</th></tr>
+    <tr><td>타이틀</td><td><code>&lt;DialogTitle&gt;</code> 컴포넌트 필수 (인라인 fontSize 금지)</td></tr>
+    <tr><td>설명</td><td><code>&lt;DialogDescription&gt;</code> 컴포넌트 사용</td></tr>
+    <tr><td>패딩</td><td>DialogContent 기본 패딩 사용 (<code>p-0</code> + 커스텀 패딩 금지)</td></tr>
+    <tr><td>border-radius</td><td>DialogContent 기본값 (인라인 borderRadius 금지)</td></tr>
+    <tr><td>닫기 버튼</td><td>DialogContent 기본 닫기 버튼 사용</td></tr>
+  </table>
+
+  <!-- ─── Token Reference ─── -->
+  <h2>CSS Variable Reference</h2>
+  <table>
+    <tr><th>Hex</th><th>CSS Variable</th><th>Tailwind Class</th><th>용도</th></tr>
+    <tr><td>#3182F6</td><td><code>--primary</code></td><td><code>bg-primary</code></td><td>기본 파란색</td></tr>
+    <tr><td>#1B64DA</td><td><code>--primary-hover</code></td><td><code>bg-primary-hover</code></td><td>호버 상태</td></tr>
+    <tr><td>#E8F3FF</td><td><code>--accent</code></td><td><code>bg-accent</code></td><td>연한 파란 배경</td></tr>
+    <tr><td>#191F28</td><td><code>--foreground</code></td><td><code>text-foreground</code></td><td>제목/본문</td></tr>
+    <tr><td>#4E5968</td><td><code>--secondary-foreground</code></td><td><code>text-secondary-foreground</code></td><td>보조 텍스트</td></tr>
+    <tr><td>#8B95A1</td><td><code>--muted-foreground</code></td><td><code>text-muted-foreground</code></td><td>캡션</td></tr>
+    <tr><td>#F2F4F6</td><td><code>--secondary</code></td><td><code>bg-secondary</code></td><td>회색 배경</td></tr>
+    <tr><td>#E5E8EB</td><td><code>--border</code></td><td><code>border-border</code></td><td>테두리</td></tr>
+    <tr><td>#F9FAFB</td><td><code>--background</code></td><td><code>bg-background</code></td><td>페이지 배경</td></tr>
+    <tr><td>#F04452</td><td><code>--destructive</code></td><td><code>text-destructive</code></td><td>오류/위험</td></tr>
+  </table>
+
+  <hr class="divider">
+  <p class="note">Generated from XN Quizzes codebase — src/index.css + src/components/ui/button.jsx + src/data/mockData.js (QUIZ_TYPES)</p>
+
+</div>
+</body>
+</html>

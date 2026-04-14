@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import QuizSettingsDialog from '../components/QuizSettingsDialog'
+import StatusBadge from '../components/StatusBadge'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
@@ -75,13 +76,7 @@ function applyWeekSessionFilter(quizzes, filterWeek, filterSession) {
   })
 }
 
-const STATUS_CONFIG = {
-  open:      { label: '진행중',   badgeCls: 'text-green-700 bg-green-50' },
-  grading:   { label: '진행중',   badgeCls: 'text-green-700 bg-green-50' },
-  closed:    { label: '마감',     badgeCls: 'text-slate-500 bg-slate-100' },
-  draft:     { label: '임시저장', badgeCls: 'text-[#3182F6] bg-[#E8F3FF]' },
-  scheduled: { label: '예정',     badgeCls: 'text-amber-600 bg-amber-50' },
-}
+// STATUS_CONFIG 제거 → StatusBadge 컴포넌트로 통합
 
 export default function QuizList() {
   const { role } = useRole()
@@ -199,29 +194,29 @@ function InstructorQuizList() {
   return (
     <Layout>
       <div className="max-w-5xl mx-auto pb-6">
-        <div className="flex items-end justify-between mb-5 gap-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 leading-tight">퀴즈 관리</h1>
-            <button
+        <div className="flex items-end justify-between gap-4 pt-8 pb-5">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-[24px] font-bold text-foreground leading-tight">퀴즈 관리</h1>
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={() => setShowGlobalSettings(true)}
-              className="p-1.5 rounded-md text-slate-400 hover:text-[#3182F6] hover:bg-[#E8F3FF] transition-colors"
               title="퀴즈 전역 설정"
             >
               <Settings2 size={18} />
-            </button>
+            </Button>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 border border-slate-200 rounded text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors"
-            >
+          <div className="flex items-center gap-2.5 shrink-0">
+            <Button variant="outline" onClick={() => setShowImportModal(true)}>
               <FolderInput size={14} />
               가져오기
-            </button>
-            <Link to="/quiz/new" className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded bg-[#3182F6] hover:bg-[#1B64DA] text-white transition-colors">
-              <Plus size={15} />
-              새 퀴즈
-            </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/quiz/new">
+                <Plus size={15} />
+                새 퀴즈
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -288,7 +283,6 @@ function getDdayBadge(quiz) {
 }
 
 function QuizCard({ quiz, onToggleVisibility, onCopy }) {
-  const cfg = STATUS_CONFIG[quiz.status]
   const ddayBadge = getDdayBadge(quiz)
   const isVisible = quiz.visible !== false && quiz.status !== 'draft'
   const navigate = useNavigate()
@@ -309,9 +303,7 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
       <div className="flex items-start gap-4 px-6 pt-3 pb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className={cn('inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded', cfg.badgeCls)}>
-              {cfg.label}
-            </span>
+            <StatusBadge status={quiz.status} />
             {(quiz.week > 0 || quiz.session > 0) && (
               <span className="text-xs text-slate-400">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
@@ -372,21 +364,19 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
             </button>
           )}
           {quiz.status === 'draft' ? (
-            <Link
-              to={`/quiz/${quiz.id}/edit`}
-              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-md transition-colors bg-[#3182F6] hover:bg-[#1B64DA] text-white"
-            >
-              <FileText size={13} />
-              편집
-            </Link>
+            <Button asChild size="sm">
+              <Link to={`/quiz/${quiz.id}/edit`}>
+                <FileText size={13} />
+                편집
+              </Link>
+            </Button>
           ) : (
-            <Link
-              to={`/quiz/${quiz.id}/stats`}
-              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-md transition-colors bg-[#3182F6] hover:bg-[#1B64DA] text-white ml-2"
-            >
-              <BarChart2 size={13} />
-              통계
-            </Link>
+            <Button asChild size="sm" className="ml-2">
+              <Link to={`/quiz/${quiz.id}/stats`}>
+                <BarChart2 size={13} />
+                통계
+              </Link>
+            </Button>
           )}
         </div>
       </div>
@@ -416,7 +406,7 @@ function ActiveStats({ quiz }) {
     { label: '응시율',   value: `${submitRate}%`,   cls: 'text-slate-900' },
     { label: '응시인원', value: `${submitted}명`,   cls: 'text-slate-900' },
     { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-red-500' : 'text-slate-400' },
-    ...(isClosed ? [{ label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-[#3182F6]' }] : []),
+    ...(isClosed ? [{ label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-primary' }] : []),
   ]
 
   return (
@@ -500,7 +490,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
                 className={cn(
                   'w-full flex items-center gap-3 px-4 py-3 text-sm text-left rounded-md border transition-colors',
                   isSelected
-                    ? 'border-blue-400 bg-[#E8F3FF] text-[#1B64DA] font-semibold'
+                    ? 'border-blue-400 bg-accent text-primary font-semibold'
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 )}
               >
@@ -521,7 +511,6 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
             size="sm"
             disabled={!selected}
             onClick={() => onCopy(quiz, selected)}
-            className="bg-[#3182F6] hover:bg-[#1B64DA] text-white"
           >
             복사하기
           </Button>
@@ -598,7 +587,7 @@ function QuizImportModal({ onClose, onImport }) {
                   className={cn(
                     'w-full text-left text-xs px-3 py-2.5 rounded transition-colors',
                     selectedCourse === course.name
-                      ? 'bg-[#E8F3FF] text-[#1B64DA] font-semibold'
+                      ? 'bg-accent text-primary font-semibold'
                       : 'text-slate-700 hover:bg-slate-100'
                   )}
                 >
@@ -622,26 +611,23 @@ function QuizImportModal({ onClose, onImport }) {
               <div className="space-y-2">
                 {courseQuizzes.map(quiz => {
                   const checked = checkedIds.has(quiz.id)
-                  const statusCfg = STATUS_CONFIG[quiz.status] ?? STATUS_CONFIG.draft
                   return (
                     <label
                       key={quiz.id}
                       className={cn(
                         'flex items-start gap-3 p-3 cursor-pointer rounded-md border transition-colors',
-                        checked ? 'border-blue-400 bg-[#E8F3FF]' : 'border-slate-200 bg-white hover:bg-slate-50'
+                        checked ? 'border-primary/40 bg-accent' : 'border-border bg-white hover:bg-muted'
                       )}
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleCheck(quiz.id)}
-                        className="mt-0.5 shrink-0 accent-[#3182F6]"
+                        className="mt-0.5 shrink-0 accent-primary"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className={cn('text-xs font-semibold px-1.5 py-0.5 rounded', statusCfg.badgeCls)}>
-                            {statusCfg.label}
-                          </span>
+                          <StatusBadge status={quiz.status} />
                         </div>
                         <p className="text-sm font-medium truncate text-slate-900">{quiz.title}</p>
                         <p className="text-xs mt-0.5 text-slate-300">
@@ -673,8 +659,7 @@ function QuizImportModal({ onClose, onImport }) {
               size="sm"
               disabled={checkedIds.size === 0}
               onClick={handleImport}
-              className="bg-[#3182F6] hover:bg-[#1B64DA] text-white"
-            >
+              >
               가져오기
             </Button>
           </div>
@@ -775,7 +760,7 @@ function StudentQuizCard({ quiz, studentId }) {
       return { label: '미제출', cls: 'text-slate-400 bg-slate-100', icon: false }
     }
     if (myAttempt.manualPending > 0) return { label: '채점 대기', cls: 'text-amber-700 bg-amber-50', icon: false }
-    return { label: '채점 완료', cls: 'text-[#3182F6] bg-[#E8F3FF]', icon: true }
+    return { label: '채점 완료', cls: 'text-primary bg-accent', icon: true }
   })()
 
   return (
@@ -821,12 +806,11 @@ function StudentQuizCard({ quiz, studentId }) {
 
           <div className="shrink-0 mt-0.5">
             {isOpen && !isAttemptExceeded && (
-              <Link
-                to={`/quiz/${quiz.id}/attempt`}
-                className="text-xs font-semibold text-white px-4 py-2 rounded transition-colors bg-[#3182F6] hover:bg-[#1B64DA]"
-              >
-                {attemptCount > 0 ? '재응시' : '응시하기'}
-              </Link>
+              <Button asChild size="xs">
+                <Link to={`/quiz/${quiz.id}/attempt`}>
+                  {attemptCount > 0 ? '재응시' : '응시하기'}
+                </Link>
+              </Button>
             )}
             {isOpen && isAttemptExceeded && (
               <div className="relative group">
@@ -874,10 +858,10 @@ function StudentQuizCard({ quiz, studentId }) {
 
         return (
           <div className="border-t border-blue-100">
-            <div className="px-5 py-3 bg-[#E8F3FF]/30">
+            <div className="px-5 py-3 bg-accent/30">
               <div className="flex items-center gap-4 text-xs flex-wrap">
                 {released ? (
-                  <span className="text-[#3182F6] font-semibold">
+                  <span className="text-primary font-semibold">
                     {totalScore}점 / {totalPossible}점
                     {myAttempt.manualPending > 0 && <span className="text-slate-400 font-normal"> (수동채점 대기 0점 반영)</span>}
                   </span>
@@ -897,7 +881,7 @@ function StudentQuizCard({ quiz, studentId }) {
                 {myAttempts.length > 1 && (
                   <button
                     onClick={() => setShowHistory(h => !h)}
-                    className={cn('text-xs ml-auto transition-colors', showHistory ? 'text-[#3182F6]' : 'text-slate-400')}
+                    className={cn('text-xs ml-auto transition-colors', showHistory ? 'text-primary' : 'text-slate-400')}
                   >
                     응시 기록 {myAttempts.length}회 {showHistory ? '▲' : '▼'}
                   </button>
@@ -906,7 +890,7 @@ function StudentQuizCard({ quiz, studentId }) {
             </div>
 
             {showHistory && myAttempts.length > 1 && (
-              <div className="px-5 pb-3 space-y-1.5 bg-[#E8F3FF]/30">
+              <div className="px-5 pb-3 space-y-1.5 bg-accent/30">
                 <div className="border-t border-blue-200 pt-2">
                   {myAttempts.map((att, idx) => {
                     const attAuto = att.totalAutoScore ?? 0
@@ -915,12 +899,12 @@ function StudentQuizCard({ quiz, studentId }) {
                     const isLast = idx === myAttempts.length - 1
                     return (
                       <div key={idx} className="flex items-center justify-between text-xs py-1">
-                        <span className={cn(isLast ? 'text-[#3182F6] font-semibold' : 'text-slate-400')}>
+                        <span className={cn(isLast ? 'text-primary font-semibold' : 'text-slate-400')}>
                           {idx + 1}회차 {isLast ? '(최근)' : ''}
                         </span>
                         <span className="text-slate-400">{att.submittedAt}</span>
                         {released ? (
-                          <span className={cn(isLast ? 'text-[#3182F6] font-semibold' : 'text-slate-500')}>
+                          <span className={cn(isLast ? 'text-primary font-semibold' : 'text-slate-500')}>
                             {attTotal}점 / {totalPossible}점
                             {att.manualPending > 0 && <span className="text-slate-300"> *</span>}
                           </span>

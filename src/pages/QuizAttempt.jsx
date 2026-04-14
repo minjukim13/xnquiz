@@ -229,7 +229,7 @@ export default function QuizAttempt() {
                 ? `${questions.length - answeredCount}개 문항이 미답변 상태입니다.`
                 : '모든 문항에 답변했습니다.'}
             </p>
-            <Button onClick={() => handleSubmit(false)} className="bg-[#3182F6] hover:bg-[#1B64DA]">
+            <Button onClick={() => handleSubmit(false)}>
               <Send size={14} />
               제출하기
             </Button>
@@ -273,7 +273,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-muted-foreground">Q{index + 1}</span>
-            <Badge variant="secondary" className="bg-[#E8F3FF] text-[#3182F6] border-0">
+            <Badge variant="secondary" className="bg-accent text-primary border-0">
               {typeLabels[question.type] ?? question.type}
             </Badge>
           </div>
@@ -289,7 +289,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
                 key={i}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-md border transition-colors',
-                  value === choice ? 'bg-[#E8F3FF] border-blue-200' : 'bg-slate-50 border-slate-100',
+                  value === choice ? 'bg-accent border-blue-200' : 'bg-slate-50 border-slate-100',
                   !disabled && 'cursor-pointer hover:border-blue-200',
                   disabled && 'cursor-default'
                 )}
@@ -298,7 +298,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
                   type="radio" name={question.id} value={choice}
                   checked={value === choice}
                   onChange={() => !disabled && onChange(choice)}
-                  className="accent-[#3182F6]" disabled={disabled}
+                  className="accent-primary" disabled={disabled}
                 />
                 <span className="text-sm text-slate-700">{choice}</span>
               </label>
@@ -340,7 +340,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
             type="text" value={value}
             onChange={e => onChange(e.target.value)}
             placeholder="답안을 입력하세요" disabled={disabled}
-            className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all disabled:bg-muted"
+            className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all disabled:bg-muted"
           />
         )}
 
@@ -348,7 +348,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           <textarea
             value={value} onChange={e => onChange(e.target.value)}
             placeholder="답안을 입력하세요" rows={5} disabled={disabled}
-            className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all resize-none disabled:bg-muted"
+            className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-none disabled:bg-muted"
           />
         )}
 
@@ -357,15 +357,15 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
             type="number" value={value}
             onChange={e => onChange(e.target.value)}
             placeholder="숫자를 입력하세요" disabled={disabled}
-            className="w-full max-w-[200px] text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#3182F6] transition-all disabled:bg-muted"
+            className="w-full max-w-[200px] text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all disabled:bg-muted"
           />
         )}
       </CardContent>
 
       {/* 답변 완료 표시 */}
       {isAnswered && !showAnswer && (
-        <div className="px-5 py-2 bg-[#E8F3FF]/60 border-t border-blue-100">
-          <p className="text-xs flex items-center gap-1.5 text-[#3182F6]">
+        <div className="px-5 py-2 bg-accent/60 border-t border-blue-100">
+          <p className="text-xs flex items-center gap-1.5 text-primary">
             <CheckCircle2 size={11} />
             답변 완료
           </p>
@@ -462,14 +462,14 @@ function ResultModal({ result, quiz, questions, onClose }) {
     <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent className="max-w-md p-0 overflow-hidden">
         {/* 헤더 */}
-        <div className="px-6 py-5 text-center bg-[#E8F3FF] border-b border-blue-200">
-          <CheckCircle2 size={32} className="mx-auto mb-2 text-[#3182F6]" />
+        <div className="px-6 py-5 text-center bg-accent border-b border-blue-200">
+          <CheckCircle2 size={32} className="mx-auto mb-2 text-primary" />
           <DialogHeader>
             <DialogTitle className="text-lg text-center">
               {result.autoSubmitted ? '시간 종료 — 자동 제출되었습니다' : '제출 완료!'}
             </DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-[#3182F6]">{result.submittedAt}</p>
+          <p className="text-xs text-primary">{result.submittedAt}</p>
         </div>
 
         {/* 결과 */}
@@ -480,7 +480,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
               {!hasAutoGrade ? (
                 <p className="text-sm font-medium text-muted-foreground">점수 없음</p>
               ) : showScoreNow ? (
-                <p className="text-xl font-bold text-[#3182F6]">
+                <p className="text-xl font-bold text-primary">
                   {autoTotal}<span className="text-sm font-normal ml-1 text-muted-foreground">/ {autoMax}점</span>
                 </p>
               ) : (
@@ -575,7 +575,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
 
         {/* 버튼 */}
         <div className="px-6 pb-5">
-          <Button onClick={onClose} className="w-full bg-[#3182F6] hover:bg-[#1B64DA]">
+          <Button onClick={onClose} className="w-full">
             퀴즈 목록으로
             <ChevronRight size={14} />
           </Button>

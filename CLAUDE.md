@@ -15,6 +15,42 @@
 - 페이지 단위 lazy loading + Suspense 유지
 - Tailwind v4: `@apply`는 `@layer utilities` 안에서만 사용
 
+## Design System (Toss Style)
+
+### 색상: 반드시 시맨틱 Tailwind 클래스 사용, hex 하드코딩 금지
+
+| Hex | Tailwind 클래스 | 용도 |
+|-----|----------------|------|
+| #3182F6 | `bg-primary` / `text-primary` | 기본 파란색 |
+| #1B64DA | `hover:bg-primary-hover` | 호버 상태 |
+| #E8F3FF | `bg-accent` / `text-accent-foreground` | 연한 파란 배경 |
+| #191F28 | `text-foreground` | 제목/본문 텍스트 |
+| #4E5968 | `text-secondary-foreground` | 보조 텍스트 |
+| #8B95A1 | `text-muted-foreground` | 캡션/약한 텍스트 |
+| #F2F4F6 | `bg-secondary` | 회색 배경 |
+| #E5E8EB | `border-border` | 테두리 |
+| #F9FAFB | `bg-background` | 페이지 배경 |
+| #F04452 | `text-destructive` | 오류/위험 |
+| #FFFFFF | `bg-card` / `bg-white` | 카드/팝오버 배경 |
+
+### Button 사용 규칙
+
+- 기본 액션: `<Button>` (className 오버라이드 금지, default variant가 Toss Blue)
+- 보조 액션: `<Button variant="outline">`
+- 연한 파란: `<Button variant="soft">`
+- 최소: `<Button variant="ghost">`
+- 위험: `<Button variant="destructive">`
+- **raw `<button>`에 `bg-[#3182F6]` 하드코딩 금지** - 반드시 `<Button>` 컴포넌트 사용
+
+### 모달 규칙
+
+- 타이틀: `<DialogTitle>` 컴포넌트 사용 필수 (인라인 fontSize/fontWeight 금지)
+- 설명: `<DialogDescription>` 컴포넌트 사용
+- 패딩: DialogContent 기본 패딩 사용 (`p-0` + 커스텀 패딩 금지)
+- border-radius: DialogContent 기본값 사용 (인라인 borderRadius 금지)
+- 닫기 버튼: DialogContent 기본 닫기 버튼 사용
+- 스텝 모달 푸터: 이전(좌측) | 취소+다음(우측) justify-between 레이아웃
+
 ## Commit Convention
 
 형식: `<타입>[#이슈번호]: <제목>` (제목 50자 이내, 명령문, 과거형 금지)

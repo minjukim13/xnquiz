@@ -12,9 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
 const DIFFICULTY_META = {
-  high:   { label: '상', cls: 'text-[#F04452] bg-[#FEECEE]', textCls: 'text-[#F04452]' },
-  medium: { label: '중', cls: 'text-[#F69D37] bg-[#FEF5EC]', textCls: 'text-[#F69D37]' },
-  low:    { label: '하', cls: 'text-[#31B46E] bg-[#EAF8F1]', textCls: 'text-[#31B46E]' },
+  high:   { label: '상', cls: 'text-destructive bg-incorrect-bg', textCls: 'text-destructive' },
+  medium: { label: '중', cls: 'text-amber-500 bg-amber-50', textCls: 'text-amber-500' },
+  low:    { label: '하', cls: 'text-correct bg-correct-bg', textCls: 'text-correct' },
 }
 
 const DIFF_LABEL = { '': '미지정', high: '상', medium: '중', low: '하' }
@@ -60,30 +60,21 @@ export default function QuestionBankList() {
     <Layout>
       <div className="max-w-6xl mx-auto pb-8">
         {/* 헤더 */}
-        <div className="flex items-start justify-between mb-4 gap-4">
-          <h1 className="text-2xl font-bold text-slate-900">문제은행</h1>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setShowCopyModal(true)}
-              className="flex items-center gap-2 text-sm font-medium px-4 py-2 border border-slate-200 rounded text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors"
-            >
+        <div className="flex items-end justify-between gap-4" style={{ paddingTop: 32, paddingBottom: 20 }}>
+          <h1 className="text-[24px] font-bold text-foreground leading-tight">문제은행</h1>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <Button variant="outline" onClick={() => setShowCopyModal(true)}>
               <FolderInput size={14} />
               가져오기
-            </button>
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 text-sm font-medium px-4 py-2 border border-slate-200 rounded text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors"
-            >
+            </Button>
+            <Button variant="outline" onClick={() => setShowExportModal(true)}>
               <FolderOutput size={14} />
               내보내기
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 bg-[#3182F6] hover:bg-[#1B64DA] text-white text-sm font-medium px-4 py-2 rounded transition-colors"
-            >
+            </Button>
+            <Button onClick={() => setShowAddModal(true)}>
               <Plus size={15} />
               새 문제은행
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -99,24 +90,24 @@ export default function QuestionBankList() {
               <div
                 key={bank.id}
                 onClick={() => navigate(`/question-banks/${bank.id}`)}
-                className="flex flex-col justify-between min-h-[148px] bg-white p-5 cursor-pointer transition-all border border-[#E5E8EB] rounded-xl hover:shadow-md"
+                className="flex flex-col justify-between min-h-[148px] bg-white p-5 cursor-pointer transition-all border border-border rounded-xl hover:shadow-md"
               >
                 {/* 상단 영역 */}
                 <div>
                   {/* 1열: 제목 + 액션 아이콘 */}
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-semibold text-[15px] leading-snug text-[#191F28]">{bank.name}</h3>
+                    <h3 className="font-semibold text-[15px] leading-snug text-foreground">{bank.name}</h3>
                     <div className="flex items-center gap-0.5 shrink-0 -mt-0.5 -mr-1">
                       <button
                         onClick={e => { e.stopPropagation(); setCopyTarget(bank) }}
-                        className="p-1.5 rounded-md text-[#8B95A1] hover:text-[#4E5968] hover:bg-[#F2F4F6] transition-colors"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-secondary-foreground hover:bg-secondary transition-colors"
                         title="복사"
                       >
                         <Copy size={14} />
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); setDeleteTarget(bank) }}
-                        className="p-1.5 rounded-md text-[#8B95A1] hover:text-[#F04452] hover:bg-[#FEECEE] transition-colors"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-incorrect-bg transition-colors"
                         title="삭제"
                       >
                         <Trash2 size={14} />
@@ -130,17 +121,17 @@ export default function QuestionBankList() {
                       'text-xs px-1.5 py-0.5 rounded-md font-medium',
                       bank.difficulty && DIFFICULTY_META[bank.difficulty]
                         ? DIFFICULTY_META[bank.difficulty].cls
-                        : 'bg-[#F2F4F6] text-[#8B95A1]'
+                        : 'bg-secondary text-muted-foreground'
                     )}>
                       {diffLabel || '미지정'}
                     </span>
-                    <span className="text-[#8B95A1] text-xs">·</span>
-                    <span className="text-xs text-[#4E5968]">{qCount}개 문항</span>
+                    <span className="text-muted-foreground text-xs">·</span>
+                    <span className="text-xs text-secondary-foreground">{qCount}개 문항</span>
                   </div>
                 </div>
 
                 {/* 하단: 최종 수정일 */}
-                <p className="text-[13px] text-[#8B95A1]">최종 수정 {bank.updatedAt}</p>
+                <p className="text-[13px] text-muted-foreground">최종 수정 {bank.updatedAt}</p>
               </div>
             )
           })}
@@ -148,7 +139,7 @@ export default function QuestionBankList() {
           {/* 추가 카드 */}
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-[#E5E8EB] rounded-xl text-[#8B95A1] hover:border-[#3182F6] hover:text-[#3182F6]"
+            className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary"
           >
             <Plus size={20} />
             <span className="text-sm font-medium">새 문제은행 추가</span>
@@ -163,7 +154,7 @@ export default function QuestionBankList() {
             <p className="text-xs mb-4 text-slate-300">새 문제은행을 만들어 문항을 관리하세요</p>
             <button
               onClick={() => setShowAddModal(true)}
-              className="text-sm font-medium px-4 py-2 bg-[#3182F6] text-white rounded transition-colors hover:bg-[#1B64DA]"
+              className="text-sm font-medium px-4 py-2 bg-primary text-primary-foreground rounded transition-colors hover:bg-primary-hover"
             >
               첫 문제은행 만들기
             </button>
@@ -230,7 +221,6 @@ export default function QuestionBankList() {
               <Button variant="ghost" size="sm" onClick={() => setCopyTarget(null)}>취소</Button>
               <Button
                 size="sm"
-                className="bg-[#3182F6] hover:bg-[#1B64DA] text-white"
                 onClick={() => { executeCopyBank(copyTarget); setCopyTarget(null) }}
               >
                 복사
@@ -362,7 +352,7 @@ function AddBankModal({ onClose, onAdd }) {
                 className={cn(
                   'flex-1 text-xs py-1.5 font-medium rounded transition-all border',
                   difficulty === opt.value
-                    ? 'border-blue-400 bg-[#E8F3FF] text-[#1B64DA]'
+                    ? 'border-blue-400 bg-accent text-primary'
                     : cn(
                         'border-slate-200',
                         opt.value === 'high' ? 'text-red-600'
@@ -388,7 +378,6 @@ function AddBankModal({ onClose, onAdd }) {
             size="sm"
             disabled={!name.trim()}
             onClick={() => name.trim() && onAdd(name.trim(), difficulty)}
-            className="bg-[#3182F6] hover:bg-[#1B64DA] text-white"
           >
             만들기
           </Button>
@@ -402,7 +391,7 @@ function AddBankModal({ onClose, onAdd }) {
 function DiffBadge({ difficulty, className }) {
   const meta = difficulty && DIFFICULTY_META[difficulty]
   return (
-    <span className={cn('text-xs px-1.5 py-0.5 font-medium rounded-md', meta ? meta.cls : 'text-[#8B95A1] bg-[#F2F4F6]', className)}>
+    <span className={cn('text-xs px-1.5 py-0.5 font-medium rounded-md', meta ? meta.cls : 'text-muted-foreground bg-secondary', className)}>
       {meta ? meta.label : '미지정'}
     </span>
   )
@@ -415,11 +404,11 @@ function QuestionRow({ q, selected, selectable, onToggle }) {
       onClick={() => selectable && onToggle(q)}
       className={cn(
         'flex items-start gap-2.5 p-2.5 rounded-md border transition-all',
-        selected ? 'border-blue-300 bg-[#E8F3FF]' : selectable ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50',
+        selected ? 'border-blue-300 bg-accent' : selectable ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50',
         selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-45'
       )}
     >
-      <input type="checkbox" checked={selected} readOnly disabled={!selectable} className="mt-0.5 shrink-0 accent-[#3182F6]" />
+      <input type="checkbox" checked={selected} readOnly disabled={!selectable} className="mt-0.5 shrink-0 accent-primary" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
           <DiffBadge difficulty={q.difficulty} />
@@ -448,7 +437,7 @@ function DragRow({ q, index, dragOverIndex, onDragStart, onDragOver, onDragLeave
       onDrop={() => onDrop(index)}
       className={cn(
         'flex items-start gap-1.5 p-2 bg-slate-50 rounded-md cursor-grab border-t-2 border-transparent',
-        dragOverIndex === index && 'border-[#3182F6]'
+        dragOverIndex === index && 'border-primary'
       )}
     >
       <GripVertical size={13} className="shrink-0 mt-0.5 text-slate-300" />
@@ -481,7 +470,7 @@ function DifficultySelector({ value, allowedDifficulties, onChange }) {
             className={cn(
               'flex-1 text-xs py-1 whitespace-nowrap rounded border transition-all disabled:opacity-30 disabled:cursor-not-allowed',
               isActive
-                ? 'border-blue-400 bg-[#E8F3FF] text-[#1B64DA] font-semibold'
+                ? 'border-blue-400 bg-accent text-primary font-semibold'
                 : cn(
                     'border-slate-200',
                     d === 'high' ? 'text-red-600'
@@ -516,16 +505,16 @@ function SourceBankList({ availableCourses, courseGroups, selectedSourceIds, onT
                   key={b.id}
                   className={cn(
                     'flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer transition-colors',
-                    isChecked ? 'bg-[#E8F3FF] text-[#1B64DA]' : 'text-slate-700 hover:bg-slate-50'
+                    isChecked ? 'bg-accent text-primary' : 'text-slate-700 hover:bg-slate-50'
                   )}
                 >
                   <input
                     type="checkbox"
                     checked={isChecked}
                     onChange={() => onToggle(b.id)}
-                    className="accent-[#3182F6] shrink-0"
+                    className="accent-primary shrink-0"
                   />
-                  <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[b.difficulty]?.cls || 'bg-[#F2F4F6] text-[#8B95A1]')}>
+                  <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[b.difficulty]?.cls || 'bg-secondary text-muted-foreground')}>
                     {DIFF_LABEL[b.difficulty] || '미지정'}
                   </span>
                   <span className="truncate flex-1">{b.name}</span>
@@ -548,11 +537,11 @@ function TargetBankBtn({ bank, isSelected, onClick }) {
       onClick={onClick}
       className={cn(
         'w-full text-left px-2 py-1.5 text-xs rounded border transition-colors',
-        isSelected ? 'border-blue-300 bg-[#E8F3FF] text-[#1B64DA] font-semibold' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+        isSelected ? 'border-blue-300 bg-accent text-primary font-semibold' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
       )}
     >
       <div className="flex items-center gap-1.5">
-        <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[bank.difficulty]?.cls || 'bg-[#F2F4F6] text-[#8B95A1]')}>{diffLabel || '미지정'}</span>
+        <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[bank.difficulty]?.cls || 'bg-secondary text-muted-foreground')}>{diffLabel || '미지정'}</span>
         <span className="truncate">{bank.name}</span>
       </div>
     </button>
@@ -584,13 +573,13 @@ function QuestionChecklist({ selectedSourceIds, filtered, selectedQuestionIds, a
               checked={allFilteredSelected}
               ref={el => { if (el) el.indeterminate = someFilteredSelected }}
               onChange={toggleAll}
-              className="accent-[#3182F6]"
+              className="accent-primary"
             />
             <span className="text-xs font-medium text-slate-500">
               {allFilteredSelected ? '전체 해제' : '전체선택'}
             </span>
           </label>
-          <span className={cn('text-xs', selectedQuestionIds.length > 0 ? 'text-[#3182F6]' : 'text-slate-400')}>
+          <span className={cn('text-xs', selectedQuestionIds.length > 0 ? 'text-primary' : 'text-slate-400')}>
             {selectedQuestionIds.length > 0 ? `${selectedQuestionIds.length}개 선택` : `총 ${filtered.length}개`}
           </span>
         </div>
@@ -810,7 +799,7 @@ function ExportToBankModal({ onClose, onExport }) {
                     onClick={() => { setTargetMode('new'); setTargetBankId(null) }}
                     className={cn(
                       'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                      targetMode === 'new' ? 'border-[#3182F6] text-[#1B64DA]' : 'border-transparent text-slate-400'
+                      targetMode === 'new' ? 'border-primary text-primary' : 'border-transparent text-slate-400'
                     )}
                   >
                     새 은행
@@ -819,7 +808,7 @@ function ExportToBankModal({ onClose, onExport }) {
                     onClick={() => setTargetMode('existing')}
                     className={cn(
                       'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                      targetMode === 'existing' ? 'border-[#3182F6] text-[#1B64DA]' : 'border-transparent text-slate-400'
+                      targetMode === 'existing' ? 'border-primary text-primary' : 'border-transparent text-slate-400'
                     )}
                   >
                     기존 은행
@@ -945,7 +934,6 @@ function ExportToBankModal({ onClose, onExport }) {
             size="sm"
             disabled={!canSubmit}
             onClick={() => onExport(selectedQuestions, targetCourse, targetMode === 'existing' ? targetBankId : null, targetMode === 'new' ? newBankName.trim() : null, effectiveNewDifficulty)}
-            className="bg-[#3182F6] hover:bg-[#1B64DA] text-white"
           >
             {selectedQuestions.length}개 내보내기
           </Button>
@@ -1136,7 +1124,7 @@ function ImportModal({ onClose, onImport }) {
                   onClick={() => setTargetMode('new')}
                   className={cn(
                     'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                    targetMode === 'new' ? 'border-[#3182F6] text-[#1B64DA]' : 'border-transparent text-slate-400'
+                    targetMode === 'new' ? 'border-primary text-primary' : 'border-transparent text-slate-400'
                   )}
                 >
                   새 은행
@@ -1145,7 +1133,7 @@ function ImportModal({ onClose, onImport }) {
                   onClick={() => setTargetMode('existing')}
                   className={cn(
                     'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                    targetMode === 'existing' ? 'border-[#3182F6] text-[#1B64DA]' : 'border-transparent text-slate-400'
+                    targetMode === 'existing' ? 'border-primary text-primary' : 'border-transparent text-slate-400'
                   )}
                 >
                   기존 은행
@@ -1270,7 +1258,6 @@ function ImportModal({ onClose, onImport }) {
             size="sm"
             disabled={!canSubmit}
             onClick={() => onImport(selectedQuestions, targetMode === 'new' ? newBankName.trim() : null, effectiveDifficulty, targetMode === 'existing' ? targetBankId : null)}
-            className="bg-[#3182F6] hover:bg-[#1B64DA] text-white"
           >
             {selectedQuestions.length}개 가져오기
           </Button>

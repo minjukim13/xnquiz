@@ -1,10 +1,10 @@
 import { ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const BADGE = "text-[12px] font-medium px-1.5 py-0.5 rounded bg-[#EAF8F1] text-[#31B46E] shrink-0"
-const PILL_ACTIVE = "bg-[#3182F6] text-white"
+const BADGE = "text-[12px] font-medium px-1.5 py-0.5 rounded bg-correct-bg text-correct shrink-0"
+const PILL_ACTIVE = "bg-primary text-primary-foreground"
 const PILL_INACTIVE = "bg-slate-100 text-slate-400"
-const ITEM_BADGE = "text-[12px] font-medium px-2 py-0.5 rounded-full bg-[#F2F8FF] text-[#3182F6]"
+const ITEM_BADGE = "text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary"
 
 export default function QuestionAnswer({ q }) {
   const t = q.type
@@ -59,8 +59,8 @@ export default function QuestionAnswer({ q }) {
         <span className={cn(BADGE, 'self-start')}>정답</span>
         <div className="flex flex-wrap gap-1.5">
           {q.pairs.map((p, i) => (
-            <span key={i} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-[#F2F8FF] text-[#3182F6]">
-              {p.left} <ArrowRight size={10} className="text-[#8B95A1]" /> {p.right}
+            <span key={i} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary">
+              {p.left} <ArrowRight size={10} className="text-muted-foreground" /> {p.right}
             </span>
           ))}
         </div>
@@ -95,7 +95,7 @@ export default function QuestionAnswer({ q }) {
   return (
     <div className="flex items-center gap-2 mt-1.5">
       <span className={BADGE}>정답</span>
-      <span className="text-[13px] font-medium text-[#333D4B] truncate">{display}</span>
+      <span className="text-[13px] font-medium text-foreground truncate">{display}</span>
     </div>
   )
 }

@@ -40,13 +40,13 @@ export function DropdownSelect({
         className={cn(
           'w-full flex items-center justify-between gap-2 transition-all focus:outline-none',
           s.height, s.text,
-          ghost ? 'px-3 rounded-lg border border-[#E5E8EB]' : 'px-2.5 rounded-md border',
+          ghost ? 'px-3 rounded-lg border border-border' : 'px-2.5 rounded-md border',
           disabled && 'bg-muted text-muted-foreground cursor-not-allowed',
-          !disabled && isActive && 'border-[#3182F6] bg-[#E8F3FF] text-[#1B64DA] font-semibold',
-          !disabled && !isActive && ghost && 'bg-white text-[#4E5968] shadow-[0_1px_2px_rgba(0,0,0,0.05)]',
+          !disabled && isActive && 'border-primary bg-accent text-primary font-semibold',
+          !disabled && !isActive && ghost && 'bg-white text-secondary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.05)]',
           !disabled && !isActive && !ghost && 'border-border bg-white text-foreground hover:border-muted-foreground/40',
           !disabled && !isActive && !selected && !ghost && 'text-muted-foreground',
-          !disabled && !isActive && !selected && ghost && 'text-[#8B95A1]',
+          !disabled && !isActive && !selected && ghost && 'text-muted-foreground',
           open && !isActive && 'ring-2 ring-blue-100',
         )}
       >
@@ -60,7 +60,12 @@ export function DropdownSelect({
       </button>
 
       {open && !disabled && options.length > 0 && (
-        <div className="absolute left-0 top-full mt-1 bg-white z-40 py-1 border border-border rounded-md shadow-lg min-w-full w-max max-h-80 overflow-y-auto">
+        <div className={cn(
+          'absolute left-0 top-full mt-1.5 z-40 py-1.5 min-w-full w-max max-h-80 overflow-y-auto',
+          'bg-white rounded-xl ring-1 ring-black/[0.06]',
+          'shadow-[0_4px_16px_rgba(0,0,0,0.08),0_0px_0px_1px_rgba(0,0,0,0.04)]',
+          'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-100',
+        )}>
           {options.map(o => {
             const isSel = String(o.value) === String(value)
             return (
@@ -69,14 +74,16 @@ export function DropdownSelect({
                 type="button"
                 onClick={() => { onChange(o.value); setOpen(false) }}
                 className={cn(
-                  'w-full flex items-center justify-between px-2.5 whitespace-nowrap transition-colors focus:outline-none',
+                  'w-full flex items-center justify-between gap-3 px-3 mx-0 whitespace-nowrap transition-colors focus:outline-none rounded-lg',
                   s.text, s.optionPy,
-                  isSel ? 'bg-[#E8F3FF] text-[#1B64DA] font-semibold' : 'text-foreground hover:bg-muted',
+                  isSel
+                    ? 'bg-accent text-primary font-semibold'
+                    : 'text-foreground hover:bg-secondary active:bg-secondary/80',
                 )}
               >
                 <span>{o.label}</span>
                 <span className="w-4 shrink-0 flex items-center justify-center">
-                  {isSel && <Check size={12} className="text-[#3182F6]" />}
+                  {isSel && <Check size={12} className="text-primary" />}
                 </span>
               </button>
             )
