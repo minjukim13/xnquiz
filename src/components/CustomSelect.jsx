@@ -23,7 +23,7 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
         onClick={() => setOpen(o => !o)}
         className={cn(
           'w-full flex items-center justify-between gap-2 bg-white px-3.5 py-2.5 text-sm rounded-md border transition-all focus:outline-none',
-          open ? 'border-[#3182F6] ring-2 ring-blue-100' : 'border-border',
+          open ? 'border-primary ring-2 ring-blue-100' : 'border-border',
         )}
       >
         <span className={cn(selected ? 'text-foreground font-medium' : 'text-muted-foreground')}>
@@ -46,11 +46,11 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
                 onClick={() => { onChange(o.value); setOpen(false) }}
                 className={cn(
                   'w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition-colors',
-                  isSelected ? 'bg-[#E8F3FF] text-[#1B64DA] font-medium' : 'text-foreground hover:bg-muted',
+                  isSelected ? 'bg-accent text-primary font-medium' : 'text-foreground hover:bg-muted',
                 )}
               >
                 <span>{o.label}</span>
-                {isSelected && <Check size={14} className="shrink-0 text-[#3182F6]" />}
+                {isSelected && <Check size={14} className="shrink-0 text-primary" />}
               </button>
             )
           })}

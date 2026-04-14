@@ -29,13 +29,13 @@ export function ConfirmDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <Button variant="outline" onClick={onCancel}>
+          <Button size="sm" variant="outline" onClick={onCancel}>
             {cancelLabel}
           </Button>
           <Button
+            size="sm"
             variant={confirmDanger ? 'destructive' : 'default'}
             onClick={onConfirm}
-            className={cn(!confirmDanger && 'bg-[#3182F6] hover:bg-[#1B64DA]')}
           >
             {confirmLabel}
           </Button>
@@ -51,31 +51,19 @@ export function AlertDialog({
   message,
   onClose,
   closeLabel = '확인',
-  variant = 'info',
 }) {
-  const icons = {
-    info: { icon: 'ℹ', className: 'bg-[#E8F3FF] text-[#1B64DA] border-blue-200' },
-    warning: { icon: '⚠', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-    error: { icon: '✕', className: 'bg-red-50 text-red-700 border-red-200' },
-  }
-  const c = icons[variant] ?? icons.info
 
   return (
     <ShadcnAlertDialog open onOpenChange={(open) => { if (!open) onClose?.() }}>
       <AlertDialogContent className="max-w-sm">
         <AlertDialogHeader>
-          <div className="flex items-start gap-3">
-            <span className={cn('shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border', c.className)}>
-              {c.icon}
-            </span>
-            <AlertDialogTitle className="pt-1">{title}</AlertDialogTitle>
-          </div>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription className="whitespace-pre-line">
             {message}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <Button onClick={onClose} className="bg-[#3182F6] hover:bg-[#1B64DA]">
+          <Button size="sm" onClick={onClose}>
             {closeLabel}
           </Button>
         </AlertDialogFooter>

@@ -42,11 +42,11 @@ export default function Layout({ children, breadcrumbs = [] }) {
             className={cn(
               'flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors',
               active
-                ? 'bg-[#E8F3FF] text-[#1B64DA]'
+                ? 'bg-accent text-primary'
                 : 'text-muted-foreground hover:bg-muted'
             )}
           >
-            <Icon size={15} className={active ? 'text-[#1B64DA]' : 'text-muted-foreground/60'} />
+            <Icon size={15} className={active ? 'text-primary' : 'text-muted-foreground/60'} />
             {item.label}
           </Link>
         )
@@ -54,23 +54,90 @@ export default function Layout({ children, breadcrumbs = [] }) {
     </nav>
   )
 
-  return (
-    <div className="min-h-screen bg-muted/40 text-foreground">
-      {/* 헤더 */}
-      <header className="bg-white sticky top-0 z-40 border-b border-border">
-        <div className="px-4 sm:px-6 h-14 flex items-center gap-2.5">
+  /* ── 역할 토글 (사이드바/모바일 공용) ── */
+  const RoleToggle = () => (
+    <div className="flex items-center p-0.5 rounded-lg w-full bg-secondary">
+      <button
+        onClick={() => setRole('instructor')}
+        className={cn(
+          'flex-1 flex items-center justify-center px-2 py-2 rounded-md text-xs transition-all',
+          role === 'instructor'
+            ? 'bg-white text-foreground font-semibold shadow-sm'
+            : 'text-caption hover:text-muted-foreground'
+        )}
+      >
+        교수자
+      </button>
+      <button
+        onClick={() => setRole('student')}
+        className={cn(
+          'flex-1 flex items-center justify-center px-2 py-2 rounded-md text-xs transition-all',
+          role === 'student'
+            ? 'bg-white text-foreground font-semibold shadow-sm'
+            : 'text-caption hover:text-muted-foreground'
+        )}
+      >
+        학생
+      </button>
+    </div>
+  )
 
-          {/* 모바일 메뉴 */}
+  /* ── 학생 선택기 ── */
+  const StudentPicker = ({ align = 'start' }) => (
+    <Popover open={studentPickerOpen} onOpenChange={setStudentPickerOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            'w-full flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors',
+            studentPickerOpen ? 'bg-accent text-primary' : 'bg-white text-primary'
+          )}
+        >
+          <span className="flex-1 text-left truncate">{currentStudent.name}</span>
+          <ChevronDown size={11} className={cn('shrink-0 transition-transform', studentPickerOpen && 'rotate-180')} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align={align} side="top" className="w-[200px] p-0">
+        <div className="px-3 py-2 border-b border-border">
+          <p className="text-xs font-semibold text-muted-foreground">학생 계정 선택 (데모)</p>
+        </div>
+        <div className="py-1">
+          {DEMO_STUDENTS.map(s => (
+            <button
+              key={s.id}
+              onClick={() => { setCurrentStudent(s); setStudentPickerOpen(false) }}
+              className={cn(
+                'w-full text-left px-3 py-2.5 text-xs transition-colors',
+                currentStudent.id === s.id
+                  ? 'bg-accent text-primary'
+                  : 'hover:bg-muted text-foreground'
+              )}
+            >
+              <span className="font-medium">{s.name}</span>
+              <span className="ml-1.5 text-muted-foreground">{s.studentId}</span>
+              <p className="mt-0.5 text-muted-foreground/60">{s.department}</p>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+
+      {/* ── 모바일 전용 헤더 ── */}
+      <header className="sm:hidden bg-background sticky top-0 z-40">
+        <div className="px-4 h-12 flex items-center gap-2.5">
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="sm:hidden">
+              <Button variant="ghost" size="icon-sm">
                 <Menu size={18} />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[220px] p-0">
+            <SheetContent side="left" className="w-[240px] p-0 flex flex-col">
               <div className="p-4">
                 <Link to="/" className="flex items-center gap-2" onClick={() => setMobileNavOpen(false)}>
-                  <div className="w-7 h-7 bg-[#3182F6] rounded flex items-center justify-center">
+                  <div className="w-7 h-7 bg-primary rounded flex items-center justify-center">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                       <rect x="1" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
                       <rect x="8" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.5"/>
@@ -83,23 +150,25 @@ export default function Layout({ children, breadcrumbs = [] }) {
               </div>
               <Separator />
               <NavLinks onNavigate={() => setMobileNavOpen(false)} />
+              <div className="mt-auto p-3 space-y-2">
+                <RoleToggle />
+                {role === 'student' && <StudentPicker align="start" />}
+              </div>
             </SheetContent>
           </Sheet>
 
-          {/* 로고 */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 bg-[#3182F6] rounded flex items-center justify-center">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
                 <rect x="1" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
                 <rect x="8" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.5"/>
                 <rect x="1" y="8" width="5" height="5" rx="1" fill="white" fillOpacity="0.5"/>
                 <rect x="8" y="8" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
               </svg>
             </div>
-            <span className="text-sm font-bold hidden sm:block">XN Quizzes</span>
+            <span className="text-sm font-bold">XN Quizzes</span>
           </Link>
 
-          {/* 브레드크럼 */}
           {breadcrumbs.length > 0 && (
             <nav className="flex items-center gap-1 overflow-hidden min-w-0">
               <span className="text-sm font-light select-none mx-0.5 text-muted-foreground/40">/</span>
@@ -107,121 +176,87 @@ export default function Layout({ children, breadcrumbs = [] }) {
                 <span key={i} className="flex items-center gap-1 min-w-0">
                   {i > 0 && <ChevronRight size={12} className="shrink-0 text-muted-foreground/40" />}
                   {b.href ? (
-                    <Link
-                      to={b.href}
-                      className="text-sm truncate text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {b.label}
-                    </Link>
+                    <Link to={b.href} className="text-xs truncate text-muted-foreground hover:text-foreground transition-colors">{b.label}</Link>
                   ) : b.onClick ? (
-                    <button
-                      onClick={b.onClick}
-                      className="text-sm truncate text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {b.label}
-                    </button>
+                    <button onClick={b.onClick} className="text-xs truncate text-muted-foreground hover:text-foreground transition-colors">{b.label}</button>
                   ) : (
-                    <span className="text-sm font-semibold truncate">{b.label}</span>
+                    <span className="text-xs font-semibold truncate">{b.label}</span>
+                  )}
+                </span>
+              ))}
+            </nav>
+          )}
+        </div>
+
+        {role === 'student' && (
+          <div className="px-4 py-1.5 flex items-center gap-2 text-xs bg-accent">
+            <GraduationCap size={11} className="text-primary" />
+            <span className="text-primary truncate">{currentStudent.name} ({currentStudent.studentId})</span>
+          </div>
+        )}
+      </header>
+
+      {/* ── 본문 레이아웃 ── */}
+      <div className="flex min-h-screen">
+
+        {/* 좌측 사이드바 — 데스크톱 전용 */}
+        <aside className="hidden sm:flex flex-col shrink-0 w-[200px] bg-background sticky top-0 h-screen overflow-y-auto z-30">
+          {/* 로고 */}
+          <div className="px-4 pt-5 pb-1">
+            <Link to="/" className="flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-primary rounded flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <rect x="1" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
+                  <rect x="8" y="1" width="5" height="5" rx="1" fill="white" fillOpacity="0.5"/>
+                  <rect x="1" y="8" width="5" height="5" rx="1" fill="white" fillOpacity="0.5"/>
+                  <rect x="8" y="8" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
+                </svg>
+              </div>
+              <span className="text-sm font-bold text-foreground">XN Quizzes</span>
+            </Link>
+          </div>
+
+          {/* 네비게이션 */}
+          <NavLinks />
+
+          {/* 하단 고정: 역할 토글 */}
+          <div className="mt-auto p-3 space-y-2">
+            <RoleToggle />
+            {role === 'student' && <StudentPicker align="start" />}
+          </div>
+        </aside>
+
+        {/* 메인 콘텐츠 */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* 브레드크럼 — 데스크톱 전용 */}
+          {breadcrumbs.length > 0 && (
+            <nav className="hidden sm:flex items-center gap-1 px-6 lg:px-10 pt-5 overflow-hidden min-w-0">
+              {breadcrumbs.map((b, i) => (
+                <span key={i} className="flex items-center gap-1 min-w-0">
+                  {i > 0 && <ChevronRight size={12} className="shrink-0 text-muted-foreground/40" />}
+                  {b.href ? (
+                    <Link to={b.href} className="text-sm truncate text-muted-foreground hover:text-secondary-foreground transition-colors">{b.label}</Link>
+                  ) : b.onClick ? (
+                    <button onClick={b.onClick} className="text-sm truncate text-muted-foreground hover:text-secondary-foreground transition-colors">{b.label}</button>
+                  ) : (
+                    <span className="text-sm font-semibold truncate text-foreground">{b.label}</span>
                   )}
                 </span>
               ))}
             </nav>
           )}
 
-          {/* 역할 토글 (우측 끝) */}
-          <div className="ml-auto flex items-center gap-2 shrink-0">
-
-            {/* 역할 전환 토글 */}
-            <div className="flex items-center p-0.5 rounded-md text-xs bg-muted border border-border">
-              <button
-                onClick={() => setRole('instructor')}
-                className={cn(
-                  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all',
-                  role === 'instructor'
-                    ? 'bg-white text-foreground font-semibold shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <BookOpen size={12} />
-                <span className="hidden sm:block">교수자</span>
-              </button>
-              <button
-                onClick={() => setRole('student')}
-                className={cn(
-                  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all',
-                  role === 'student'
-                    ? 'bg-white text-foreground font-semibold shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <GraduationCap size={12} />
-                <span className="hidden sm:block">학생</span>
-              </button>
+          {/* 학생 모드 안내 배너 — 데스크톱 */}
+          {role === 'student' && (
+            <div className="hidden sm:flex items-center gap-2 mx-6 lg:mx-10 mt-4 px-4 py-2.5 rounded-lg text-xs bg-accent">
+              <GraduationCap size={12} className="text-primary" />
+              <span className="text-primary font-medium">학생 모드</span>
+              <span className="text-primary">— {currentStudent.name} ({currentStudent.studentId}) 로 응시 중 · 데모 전용</span>
             </div>
+          )}
 
-            {/* 학생 선택기 (학생 모드일 때만) */}
-            {role === 'student' && (
-              <Popover open={studentPickerOpen} onOpenChange={setStudentPickerOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    className={cn(
-                      'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors border border-blue-300',
-                      studentPickerOpen ? 'bg-[#E8F3FF] text-[#1B64DA]' : 'bg-white text-[#1B64DA]'
-                    )}
-                  >
-                    <GraduationCap size={12} />
-                    <span>{currentStudent.name}</span>
-                    <ChevronDown size={11} className={cn('transition-transform', studentPickerOpen && 'rotate-180')} />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-[200px] p-0">
-                  <div className="px-3 py-2 border-b border-border">
-                    <p className="text-xs font-semibold text-muted-foreground">학생 계정 선택 (데모)</p>
-                  </div>
-                  <div className="py-1">
-                    {DEMO_STUDENTS.map(s => (
-                      <button
-                        key={s.id}
-                        onClick={() => { setCurrentStudent(s); setStudentPickerOpen(false) }}
-                        className={cn(
-                          'w-full text-left px-3 py-2.5 text-xs transition-colors',
-                          currentStudent.id === s.id
-                            ? 'bg-[#E8F3FF] text-[#1B64DA]'
-                            : 'hover:bg-muted text-foreground'
-                        )}
-                      >
-                        <span className="font-medium">{s.name}</span>
-                        <span className="ml-1.5 text-muted-foreground">{s.studentId}</span>
-                        <p className="mt-0.5 text-muted-foreground/60">{s.department}</p>
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
+          <main className="flex-1 min-w-0 px-6 lg:px-10 pb-6">{children}</main>
         </div>
-
-        {/* 학생 모드 안내 배너 */}
-        {role === 'student' && (
-          <div className="px-4 sm:px-6 py-2 flex items-center gap-2 text-xs bg-[#E8F3FF] border-t border-blue-200">
-            <GraduationCap size={12} className="text-[#1B64DA]" />
-            <span className="text-[#1B64DA] font-medium">학생 모드</span>
-            <span className="text-[#3182F6]">— {currentStudent.name} ({currentStudent.studentId}) 로 응시 중 · 데모 전용</span>
-          </div>
-        )}
-      </header>
-
-      {/* 본문 레이아웃: 사이드바 + 콘텐츠 */}
-      <div className="flex min-h-[calc(100vh-56px)]">
-
-        {/* 좌측 네비게이션 */}
-        <aside className="hidden sm:flex flex-col shrink-0 w-[180px] bg-white border-r border-border sticky top-14 h-[calc(100vh-56px)] overflow-y-auto">
-          <NavLinks />
-        </aside>
-
-        {/* 메인 콘텐츠 */}
-        <main className="flex-1 min-w-0 px-6 lg:px-10 pb-6">{children}</main>
       </div>
     </div>
   )
