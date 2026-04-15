@@ -174,11 +174,7 @@ export default function GradingDashboard() {
   // ── draft 퀴즈 ──
   if (QUIZ_INFO.status === 'draft') {
     return (
-      <Layout breadcrumbs={[
-        { label: '퀴즈 관리', href: '/' },
-        { label: QUIZ_INFO.title },
-        { label: '채점 대시보드' },
-      ]}>
+      <Layout>
         <div className="max-w-md mx-auto px-6 py-20 text-center">
           <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-accent">
             <FileEdit size={24} className="text-primary" />
@@ -203,11 +199,7 @@ export default function GradingDashboard() {
     ? Math.round((QUIZ_INFO.graded / QUIZ_INFO.submitted) * 100) : 0
 
   return (
-    <Layout breadcrumbs={[
-      { label: '퀴즈 관리', href: '/' },
-      { label: QUIZ_INFO.title },
-      { label: '채점 대시보드' },
-    ]}>
+    <Layout>
       <div className="pt-4 pb-6">
 
         {/* ── 퀴즈 정보 카드 ── */}

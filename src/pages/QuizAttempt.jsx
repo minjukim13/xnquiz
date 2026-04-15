@@ -149,7 +149,7 @@ export default function QuizAttempt() {
   }
 
   return (
-    <Layout breadcrumbs={[{ label: isPreview ? '퀴즈 관리' : '퀴즈 참여', href: '/' }, { label: quiz.title }]}>
+    <Layout>
       <div className="max-w-3xl mx-auto pb-6">
 
         {/* 미리보기 배너 */}

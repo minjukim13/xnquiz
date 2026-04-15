@@ -102,7 +102,7 @@ export default function QuestionBank() {
   }
 
   return (
-    <Layout breadcrumbs={[{ label: '문제은행', href: '/question-banks' }, { label: bank.name }]}>
+    <Layout>
       <div className="max-w-6xl mx-auto pb-8">
 
         {/* 헤더 */}
