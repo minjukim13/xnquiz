@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, Search, X, Edit2, Trash2, Upload, Download, ChevronLeft, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react'
+import { Plus, Search, X, Edit2, Trash2, Upload, Download, ChevronLeft, AlertCircle, GripVertical } from 'lucide-react'
+import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { QUIZ_TYPES } from '../data/mockData'
 import { DropdownSelect } from '../components/DropdownSelect'
@@ -276,18 +277,10 @@ export default function QuestionBank() {
       )}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white bg-slate-900 rounded-lg shadow-lg">
-          <CheckCircle2 size={15} className="shrink-0 text-blue-300" />
-          <span className="font-medium">{toast.msg}</span>
-          {toast.bankId && (
-            <button
-              onClick={() => { navigate(`/question-banks/${toast.bankId}`); setToast(null) }}
-              className="shrink-0 text-xs font-medium text-blue-300 hover:text-blue-200 transition-colors"
-            >
-              바로가기 →
-            </button>
-          )}
-        </div>
+        <Toast
+          message={toast.msg}
+          action={toast.bankId ? { label: '바로가기', onClick: () => { navigate(`/question-banks/${toast.bankId}`); setToast(null) } } : undefined}
+        />
       )}
     </Layout>
   )

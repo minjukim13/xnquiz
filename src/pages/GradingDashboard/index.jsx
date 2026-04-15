@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
-  CheckCircle2, AlertCircle, Download, FileDown,
+  AlertCircle, Download, FileDown,
   ChevronDown, ChevronUp, BarChart3, Users,
   FileText, Search, FileEdit, UserCheck, Printer
 } from 'lucide-react'
+import { Toast } from '@/components/ui/toast'
 import Layout from '../../components/Layout'
 import { getQuizStudents, mockQuizzes, getQuizQuestions, getStudentAnswer } from '../../data/mockData'
 import { downloadAnswerSheetsXlsx } from '../../utils/excelUtils'
@@ -592,12 +593,7 @@ export default function GradingDashboard() {
         </div>
       )}
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 text-sm rounded-xl shadow-lg bg-foreground text-white">
-          <CheckCircle2 size={15} className="shrink-0 text-blue-300" />
-          <span className="font-medium">{toast}</span>
-        </div>
-      )}
+      {toast && <Toast message={toast} />}
     </Layout>
   )
 }
