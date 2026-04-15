@@ -1579,6 +1579,138 @@ export function regradeQuestion(quizId, updatedQuestion) {
 }
 
 /**
+ * 문항의 correctAnswer 기준으로 학생 답안을 채점하여 점수(숫자)를 반환
+ * autoGradeAnswer와 달리 하드코딩 정답맵 없이 문항 객체만 사용
+ * 복수 선택 부분점수 등 글로벌 설정도 반영
+ */
+function gradeByQuestion(question, answer) {
+  if (!answer && answer !== 0) return 0
+  const ca = question.correctAnswer
+  const pts = question.points ?? 0
+
+  switch (question.type) {
+    case 'multiple_choice':
+    case 'true_false':
+      return String(answer).trim().toLowerCase() === String(ca).trim().toLowerCase() ? pts : 0
+    case 'short_answer': {
+      const accepted = Array.isArray(ca) ? ca : [ca]
+      return accepted.some(a => String(answer).trim().toLowerCase() === String(a).trim().toLowerCase()) ? pts : 0
+    }
+    case 'numerical': {
+      const num = parseFloat(answer)
+      const correct = parseFloat(ca)
+      const tol = question.tolerance ?? 0
+      return (!isNaN(num) && Math.abs(num - correct) <= tol) ? pts : 0
+    }
+    case 'multiple_answers': {
+      const opts = question.options || question.choices || []
+      let correctTexts
+      if (Array.isArray(ca)) {
+        correctTexts = typeof ca[0] === 'number' ? ca.map(i => opts[i]).filter(Boolean) : ca.map(s => String(s).trim())
+      } else if (typeof ca === 'string') {
+        correctTexts = ca.split(',').map(s => s.trim()).filter(Boolean)
+      } else { return 0 }
+      if (correctTexts.length === 0) return 0
+
+      const studentSelected = String(answer).split(',').map(s => s.trim()).filter(Boolean)
+      const correctSet = new Set(correctTexts.map(s => s.toLowerCase()))
+      const gs = _getGlobalSettings()
+      const scoringMode = gs.multipleAnswersScoringMode || question.scoringMode || 'all_correct'
+
+      if (scoringMode === 'partial') {
+        const correctCount = studentSelected.filter(s => correctSet.has(s.toLowerCase())).length
+        const wrongCount = studentSelected.filter(s => !correctSet.has(s.toLowerCase())).length
+        const penaltyMethod = gs.penaltyMethod || 'none'
+        if (penaltyMethod === 'right_minus_wrong') {
+          return Math.max(0, Math.round(((correctCount - wrongCount) / correctTexts.length) * pts * 2) / 2)
+        }
+        if (penaltyMethod === 'formula_scoring') {
+          const divisor = Math.max((opts.length || 4) - 1, 1)
+          return Math.max(0, Math.round(((correctCount - wrongCount / divisor) / correctTexts.length) * pts * 2) / 2)
+        }
+        return Math.round((correctCount / correctTexts.length) * pts * 2) / 2
+      }
+      // all_correct
+      const studentSet = new Set(studentSelected.map(s => s.toLowerCase()))
+      const allCorrect = correctTexts.every(c => studentSet.has(c.toLowerCase()))
+      const noWrong = studentSelected.every(s => correctSet.has(s.toLowerCase()))
+      return (allCorrect && noWrong) ? pts : 0
+    }
+    case 'fill_in_multiple_blanks': {
+      const blanks = Array.isArray(ca) ? ca : []
+      const answers = Array.isArray(answer) ? answer : String(answer).split(',').map(s => s.trim())
+      const correct = blanks.length > 0 && blanks.every((b, i) => answers[i] && String(answers[i]).trim().toLowerCase() === String(b).trim().toLowerCase())
+      return correct ? pts : 0
+    }
+    default:
+      return 0
+  }
+}
+
+/**
+ * 옵션별 재채점
+ * @param {string} quizId
+ * @param {object} updatedQuestion - 수정된 문항
+ * @param {'award_both'|'new_answer_only'|'full_points'|'no_regrade'} option
+ * @param {object} [oldQuestion] - award_both일 때 이전 문항 (이전 정답 비교용)
+ * @returns {number} 점수가 변경된 학생 수
+ */
+export function regradeQuestionWithOption(quizId, updatedQuestion, option, oldQuestion) {
+  if (option === 'no_regrade') return 0
+
+  try {
+    const raw = localStorage.getItem('xnq_student_attempts')
+    if (!raw) return 0
+    const all = JSON.parse(raw)
+    const attempts = all[quizId]
+    if (!attempts || attempts.length === 0) return 0
+
+    const manualGradesRaw = localStorage.getItem('xnq_manual_grades')
+    const manualGrades = manualGradesRaw ? JSON.parse(manualGradesRaw) : {}
+
+    let changedCount = 0
+    attempts.forEach(attempt => {
+      const answer = attempt.answers?.[updatedQuestion.id]
+      if (answer === undefined) return
+
+      const manualKey = `${attempt.studentId}_${quizId}_${updatedQuestion.id}`
+      if (manualGrades[manualKey] !== undefined) return
+
+      if (!attempt.autoScores) attempt.autoScores = {}
+      const currentScore = attempt.autoScores[updatedQuestion.id] ?? 0
+      let newScore
+
+      if (option === 'full_points') {
+        newScore = updatedQuestion.points
+      } else if (option === 'award_both' && oldQuestion) {
+        // 이전 정답 기준 점수 vs 새 정답 기준 점수 중 높은 쪽 (부분점수 유형 대응)
+        const scoreOld = gradeByQuestion(oldQuestion, answer)
+        const scoreNew = gradeByQuestion(updatedQuestion, answer)
+        newScore = Math.max(scoreOld, scoreNew)
+      } else {
+        // new_answer_only: 새 정답 기준으로만 채점
+        const graded = autoGradeAnswer(updatedQuestion, answer)
+        if (graded === null) return
+        newScore = graded
+      }
+
+      if (newScore !== currentScore) {
+        const diff = newScore - currentScore
+        attempt.autoScores[updatedQuestion.id] = newScore
+        attempt.totalAutoScore = (attempt.totalAutoScore ?? 0) + diff
+        changedCount++
+      }
+    })
+
+    localStorage.setItem('xnq_student_attempts', JSON.stringify(all))
+    return changedCount
+  } catch (err) {
+    console.error('[xnquiz] 옵션별 재채점 실패:', err)
+    return 0
+  }
+}
+
+/**
  * scorePolicy 변경 시 기존 응시 기록에 소급 적용
  * - 모든 응시 attempt의 scorePolicy 필드를 새 값으로 업데이트
  * - getStudentAttempts 호출 시 새 정책이 반영되어 최종 점수 재계산됨

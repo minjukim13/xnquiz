@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, GripVertical, Trash2, Settings2, Pencil, Printer, ChevronDown, AlertCircle } from 'lucide-react'
+import { Plus, GripVertical, Trash2, Settings2, Pencil, Printer, ChevronDown, AlertCircle, RefreshCw } from 'lucide-react'
 import Layout from '../components/Layout'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
@@ -8,7 +8,7 @@ import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { printQuizQuestions } from '../utils/pdfUtils'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
-import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, recalculateScorePolicy } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, recalculateScorePolicy, regradeQuestionWithOption } from '../data/mockData'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -57,9 +57,16 @@ export default function QuizEdit() {
   const [quizMode, setQuizMode] = useState('graded')
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
+  const [regradeMap, setRegradeMap] = useState({})
   const addQuestion = (q) => { if (!questions.find(e => e.id === q.id)) setQuestions(prev => [...prev, q]) }
   const addNewQuestion = (q) => setQuestions(prev => [...prev, { ...q, id: `new_q${Date.now()}` }])
-  const updateQuestion = (updated) => setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? { ...q, ...updated, id: editingQuestion.id } : q))
+  const updateQuestion = (updated, regradeOption) => {
+    const oldQ = regradeOption ? { ...editingQuestion } : null
+    setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? { ...q, ...updated, id: editingQuestion.id } : q))
+    if (regradeOption && regradeOption !== 'no_regrade') {
+      setRegradeMap(prev => ({ ...prev, [editingQuestion.id]: { option: regradeOption, oldQuestion: oldQ } }))
+    }
+  }
   const removeQuestion = (qId) => setQuestions(prev => prev.filter(q => q.id !== qId))
   const moveQuestion = useCallback((fromIdx, toIdx) => { setQuestions(prev => { const next = [...prev]; const [moved] = next.splice(fromIdx, 1); next.splice(toIdx, 0, moved); return next }) }, [])
   const handleDragStart = (i) => setDragIdx(i)
@@ -133,7 +140,29 @@ export default function QuizEdit() {
         localStorage.setItem('xnq_questions_modified', JSON.stringify(map))
       } catch { /* ignore */ }
     }
-    sessionStorage.setItem('xnq_toast', '저장되었습니다.')
+    // 재채점 옵션이 있는 문항 일괄 재채점
+    let totalRegraded = 0
+    const regradeLog = {}
+    Object.entries(regradeMap).forEach(([qId, { option, oldQuestion }]) => {
+      const q = questions.find(x => x.id === qId)
+      if (q) {
+        const count = regradeQuestionWithOption(quiz.id, q, option, oldQuestion)
+        totalRegraded += count
+        regradeLog[qId] = { option, count, timestamp: new Date().toISOString() }
+      }
+    })
+    // 재채점 로그 저장 (채점 대시보드에서 안내 표시용)
+    if (Object.keys(regradeLog).length > 0) {
+      try {
+        const existing = JSON.parse(localStorage.getItem('xnq_regrade_log') || '{}')
+        existing[quiz.id] = { ...(existing[quiz.id] || {}), ...regradeLog }
+        localStorage.setItem('xnq_regrade_log', JSON.stringify(existing))
+      } catch { /* ignore */ }
+    }
+    const toastMsg = totalRegraded > 0
+      ? `저장되었습니다. ${totalRegraded}명의 점수가 재채점되었습니다.`
+      : '저장되었습니다.'
+    sessionStorage.setItem('xnq_toast', toastMsg)
     navigate('/')
   }
 
@@ -215,6 +244,7 @@ export default function QuizEdit() {
                         <span className="text-xs text-muted-foreground">{q.points}점</span>
                         {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-orange-50 text-orange-700">수동채점</Badge>}
                         {q.bankName && <Badge variant="secondary" className="bg-sky-50 text-sky-700">{q.bankName}</Badge>}
+                        {regradeMap[q.id]?.option && <Badge variant="secondary" className="bg-amber-50 text-amber-700 gap-1"><RefreshCw size={10} />재채점 예정</Badge>}
                       </div>
                       <p className="text-sm line-clamp-2 text-slate-700">{q.text}</p>
                       <QuestionAnswer q={q} />
