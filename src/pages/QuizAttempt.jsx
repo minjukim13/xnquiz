@@ -515,7 +515,6 @@ function ResultModal({ result, quiz, questions, onClose }) {
 
           {result.manualPending > 0 && (
             <div className="flex items-start gap-2.5 p-3 rounded-lg border border-amber-200 bg-amber-50/50">
-              <AlertCircle size={15} className="shrink-0 mt-0.5 text-amber-500" />
               <div>
                 <p className="text-xs font-medium mb-0.5 text-gray-900">수동채점 대기 중</p>
                 <p className="text-xs text-gray-500">

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, BarChart2, FolderInput, Copy, Search, Settings2, Lock } from 'lucide-react'
+import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
@@ -13,6 +13,15 @@ import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import QuizSettingsDialog from '../components/QuizSettingsDialog'
 import StatusBadge from '../components/StatusBadge'
+import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Switch } from '@/components/ui/switch'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
@@ -93,6 +102,7 @@ function InstructorQuizList() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [showGlobalSettings, setShowGlobalSettings] = useState(false)
   const [toast, setToast] = useState(null)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
 
   const showToast = (msg) => {
     setToast(msg)
@@ -182,6 +192,19 @@ function InstructorQuizList() {
     showToast(msg)
   }
 
+  const handleDeleteQuiz = (quiz) => {
+    setDeleteConfirm(quiz)
+  }
+
+  const confirmDeleteQuiz = () => {
+    if (!deleteConfirm) return
+    const globalIdx = mockQuizzes.findIndex(q => q.id === deleteConfirm.id)
+    if (globalIdx !== -1) mockQuizzes.splice(globalIdx, 1)
+    setQuizzes(prev => prev.filter(q => q.id !== deleteConfirm.id))
+    showToast(`"${deleteConfirm.title}" 퀴즈가 삭제되었습니다`)
+    setDeleteConfirm(null)
+  }
+
   const sortedQuizzes = useMemo(
     () => applyWeekSessionFilter(quizzes, filterWeek, filterSession)
       .slice()
@@ -236,7 +259,7 @@ function InstructorQuizList() {
         {sortedQuizzes.length > 0 ? (
           <div className="grid gap-3">
             {sortedQuizzes.map(quiz => (
-              <QuizCard key={quiz.id} quiz={quiz} onToggleVisibility={handleToggleVisibility} onCopy={setCopySourceQuiz} />
+              <QuizCard key={quiz.id} quiz={quiz} onToggleVisibility={handleToggleVisibility} onCopy={setCopySourceQuiz} onDelete={handleDeleteQuiz} />
             ))}
           </div>
         ) : (
@@ -264,6 +287,17 @@ function InstructorQuizList() {
 
       <QuizSettingsDialog open={showGlobalSettings} onOpenChange={setShowGlobalSettings} />
 
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="퀴즈 삭제"
+          message={`"${deleteConfirm.title}" 퀴즈를 삭제하시겠습니까?\n삭제된 퀴즈는 복구할 수 없습니다.`}
+          confirmLabel="삭제"
+          confirmDanger
+          onConfirm={confirmDeleteQuiz}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
+
       {toast && <Toast message={toast} />}
     </Layout>
   )
@@ -280,7 +314,7 @@ function getDdayBadge(quiz) {
   return { label: diff === 0 ? 'D-0' : `D-${diff}`, urgent: diff === 0 }
 }
 
-function QuizCard({ quiz, onToggleVisibility, onCopy }) {
+function QuizCard({ quiz, onToggleVisibility, onCopy, onDelete }) {
   const ddayBadge = getDdayBadge(quiz)
   const isVisible = quiz.visible !== false && quiz.status !== 'draft'
   const navigate = useNavigate()
@@ -336,45 +370,60 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-          <Button asChild variant="ghost" size="sm">
-            <Link to={`/quiz/${quiz.id}/attempt?preview=true`}>미리보기</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
+        <div className="flex items-center gap-2 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
+          {quiz.status !== 'draft' && (
+            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <span className={cn('text-xs', isVisible ? 'text-gray-900 font-medium' : 'text-gray-400')}>
+                {isVisible ? '공개' : '비공개'}
+              </span>
+              <Switch
+                size="sm"
+                checked={isVisible}
+                onCheckedChange={() => onToggleVisibility(quiz.id)}
+              />
+            </label>
+          )}
+
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="border-gray-200 text-gray-900 bg-white hover:bg-gray-50"
+          >
             <Link to={`/quiz/${quiz.id}/edit`}>편집</Link>
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => onCopy(quiz)}>
-            <Copy size={13} />
-            복사
-          </Button>
-
-          <span className="w-px h-4 bg-border" />
 
           {quiz.status !== 'draft' && (
             <Button
-              variant="outline"
+              asChild
               size="sm"
-              onClick={() => onToggleVisibility(quiz.id)}
             >
-              <span className={cn('w-1.5 h-1.5 rounded-full', isVisible ? 'bg-green-600' : 'bg-red-500')} />
-              {isVisible ? '공개' : '비공개'}
+              <Link to={`/quiz/${quiz.id}/stats`}>통계</Link>
             </Button>
           )}
-          {quiz.status === 'draft' ? (
-            <Button asChild size="sm">
-              <Link to={`/quiz/${quiz.id}/edit`}>
-                <FileText size={13} />
-                편집
-              </Link>
-            </Button>
-          ) : (
-            <Button asChild size="sm">
-              <Link to={`/quiz/${quiz.id}/stats`}>
-                <BarChart2 size={13} />
-                통계
-              </Link>
-            </Button>
-          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" className="text-gray-400 hover:text-gray-900">
+                <MoreVertical size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/attempt?preview=true`)}>
+                <Eye size={14} />
+                미리보기
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onCopy(quiz)}>
+                <Copy size={14} />
+                복사
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => onDelete(quiz)}>
+                <Trash2 size={14} />
+                삭제
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
