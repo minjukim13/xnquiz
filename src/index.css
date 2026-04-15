@@ -111,7 +111,7 @@
 
 :root {
   /* ── Background ── */
-  --background: oklch(0.988 0.003 247);        /* #F9FAFB */
+  --background: oklch(1 0 0);                  /* #FFFFFF */
   --foreground: oklch(0.175 0.014 254);        /* #191F28 */
 
   /* ── Card / Popover ── */
@@ -131,7 +131,7 @@
 
   /* ── Muted ── */
   --muted: oklch(0.963 0.006 248);
-  --muted-foreground: oklch(0.635 0.018 248);  /* #8B95A1 */
+  --muted-foreground: oklch(0.550 0.016 248);  /* #6B7585 — Vercel secondary text */
 
   /* ── Accent = Light Blue #E8F3FF ── */
   --accent: oklch(0.963 0.025 250);
@@ -147,7 +147,7 @@
   --incorrect-bg: oklch(0.970 0.025 20);       /* #FEECEE */
 
   /* ── Subdued foreground ── */
-  --caption: oklch(0.750 0.012 250);           /* #B0B8C1 */
+  --caption: oklch(0.635 0.015 248);           /* #8B95A1 — was #B0B8C1, darkened for legibility */
 
   /* ── Border / Input ── */
   --border: oklch(0.916 0.007 248);            /* #E5E8EB */

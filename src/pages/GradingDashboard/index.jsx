@@ -310,7 +310,7 @@ export default function GradingDashboard() {
 
         {/* ── 액션 바 ── */}
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-          <div className="flex items-center p-0.5 gap-0.5 rounded-lg bg-border">
+          <div className="flex items-center gap-1 border-b border-border">
             {[
               { mode: 'question', icon: FileText, label: '문항 중심' },
               { mode: 'student',  icon: Users,    label: '학생 중심' },
@@ -319,10 +319,10 @@ export default function GradingDashboard() {
                 key={mode}
                 onClick={() => { setGradingMode(mode); setMobileView('questions') }}
                 className={cn(
-                  'flex items-center gap-1.5 text-sm px-4 py-2 rounded-md transition-all',
+                  'flex items-center gap-1.5 text-sm px-3 pb-2.5 -mb-px border-b-2 transition-colors',
                   gradingMode === mode
-                    ? 'bg-white text-foreground font-semibold shadow-sm'
-                    : 'text-muted-foreground hover:text-secondary-foreground'
+                    ? 'border-foreground text-foreground font-medium'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 )}
               >
                 <Icon size={14} />
@@ -401,7 +401,7 @@ export default function GradingDashboard() {
                 'flex-1 text-xs py-2 rounded transition-all',
                 mobileView === view
                   ? 'bg-white text-slate-900 font-semibold border border-slate-200'
-                  : 'text-slate-400 border border-transparent'
+                  : 'text-muted-foreground border border-transparent'
               )}
             >
               {label}
@@ -492,7 +492,7 @@ export default function GradingDashboard() {
               )}>
                 <div className="px-3 py-2.5 space-y-2 border-b border-slate-100">
                   <div className="relative w-full">
-                    <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <input
                       type="text"
                       value={studentSearch}

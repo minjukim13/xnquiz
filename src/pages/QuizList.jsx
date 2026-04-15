@@ -238,7 +238,7 @@ function InstructorQuizList() {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-300">
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <FileText size={32} className="mb-3 opacity-40" />
             <p className="text-sm">해당 조건에 맞는 퀴즈가 없습니다.</p>
           </div>
@@ -301,14 +301,14 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <StatusBadge status={quiz.status} />
             {(quiz.week > 0 || quiz.session > 0) && (
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-muted-foreground">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
               </span>
             )}
           </div>
           <h3 className="text-base font-semibold leading-snug mb-1 truncate text-slate-900">{quiz.title}</h3>
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs text-slate-300">{quiz.startDate} ~ {quiz.dueDate}</p>
+            <p className="text-xs text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
             {ddayBadge && (
               <span className={cn(
                 'text-xs font-semibold px-1.5 py-0.5 rounded',
@@ -320,44 +320,29 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
           </div>
         </div>
 
-        <div className="flex items-center shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center">
-            <Link
-              to={`/quiz/${quiz.id}/attempt?preview=true`}
-              className="text-sm font-medium px-3 py-2 rounded transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            >
-              미리보기
-            </Link>
-            <Link
-              to={`/quiz/${quiz.id}/edit`}
-              className="text-sm font-medium px-3 py-2 rounded transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            >
-              편집
-            </Link>
-            <button
-              onClick={() => onCopy(quiz)}
-              className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            >
-              <Copy size={13} />
-              복사
-            </button>
-          </div>
+        <div className="flex items-center gap-1.5 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
+          <Button asChild variant="ghost" size="sm">
+            <Link to={`/quiz/${quiz.id}/attempt?preview=true`}>미리보기</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
+            <Link to={`/quiz/${quiz.id}/edit`}>편집</Link>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => onCopy(quiz)}>
+            <Copy size={13} />
+            복사
+          </Button>
 
-          <span className="w-px h-4 mx-2 bg-slate-200" />
+          <span className="w-px h-4 bg-border" />
 
           {quiz.status !== 'draft' && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => onToggleVisibility(quiz.id)}
-              className={cn(
-                'flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md border transition-colors',
-                isVisible
-                  ? 'bg-green-50 text-green-700 border-green-200'
-                  : 'bg-red-50 text-red-600 border-red-200'
-              )}
             >
-              <span className={cn('w-1.5 h-1.5 rounded-full inline-block', isVisible ? 'bg-green-600' : 'bg-red-500')} />
+              <span className={cn('w-1.5 h-1.5 rounded-full', isVisible ? 'bg-green-600' : 'bg-red-500')} />
               {isVisible ? '공개' : '비공개'}
-            </button>
+            </Button>
           )}
           {quiz.status === 'draft' ? (
             <Button asChild size="sm">
@@ -367,7 +352,7 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
               </Link>
             </Button>
           ) : (
-            <Button asChild size="sm" className="ml-2">
+            <Button asChild size="sm">
               <Link to={`/quiz/${quiz.id}/stats`}>
                 <BarChart2 size={13} />
                 통계
@@ -401,7 +386,7 @@ function ActiveStats({ quiz }) {
   const cols = [
     { label: '응시율',   value: `${submitRate}%`,   cls: 'text-slate-900' },
     { label: '응시인원', value: `${submitted}명`,   cls: 'text-slate-900' },
-    { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-red-500' : 'text-slate-400' },
+    { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-red-500' : 'text-muted-foreground' },
     ...(isClosed ? [{ label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-primary' }] : []),
   ]
 
@@ -410,7 +395,7 @@ function ActiveStats({ quiz }) {
       {cols.map((item, idx) => (
         <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < cols.length - 1 && 'border-r border-slate-100')}>
           <p className={cn('text-lg font-bold leading-none', item.cls)}>{item.value}</p>
-          <p className="text-xs mt-1 text-slate-400">{item.label}</p>
+          <p className="text-xs mt-1 text-muted-foreground">{item.label}</p>
         </div>
       ))}
     </div>
@@ -438,7 +423,7 @@ function ResetNotice({ mode = 'import' }) {
         {items.map(([label, value]) => (
           <div key={label} className="flex items-center justify-between gap-2">
             <span className="text-xs text-slate-700">{label}</span>
-            <span className="text-[11px] text-slate-400 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 whitespace-nowrap">{value}</span>
+            <span className="text-[11px] text-muted-foreground bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 whitespace-nowrap">{value}</span>
           </div>
         ))}
       </div>
@@ -459,12 +444,12 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-sm font-semibold">퀴즈 복사</DialogTitle>
-          <p className="text-xs text-slate-400 truncate">{quiz.title}</p>
+          <p className="text-xs text-muted-foreground truncate">{quiz.title}</p>
         </DialogHeader>
 
         <div className="space-y-2">
           <div className="relative mb-3">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               placeholder="과목 검색"
@@ -474,7 +459,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
             />
           </div>
           {filteredCourses.length === 0 && (
-            <p className="text-xs text-center py-4 text-slate-300">검색 결과가 없습니다</p>
+            <p className="text-xs text-center py-4 text-muted-foreground">검색 결과가 없습니다</p>
           )}
           {filteredCourses.map(course => {
             const isCurrent = course.name === CURRENT_COURSE
@@ -492,7 +477,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
               >
                 <span className="flex-1">{course.name}</span>
                 {isCurrent && (
-                  <span className="text-xs font-normal text-slate-400 shrink-0">현재 과목</span>
+                  <span className="text-xs font-normal text-muted-foreground shrink-0">현재 과목</span>
                 )}
               </button>
             )
@@ -555,7 +540,7 @@ function QuizImportModal({ onClose, onImport }) {
       <DialogContent className="max-w-[660px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-5 py-4 border-b border-slate-100 shrink-0">
           <DialogTitle className="text-sm font-semibold">타 과목 퀴즈 가져오기</DialogTitle>
-          <p className="text-xs text-slate-400">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>
+          <p className="text-xs text-muted-foreground">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden min-h-0">
@@ -563,7 +548,7 @@ function QuizImportModal({ onClose, onImport }) {
           <div className="w-44 shrink-0 flex flex-col border-r border-slate-100">
             <div className="p-3 pb-2 border-b border-slate-50">
               <div className="relative">
-                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
                   type="text"
                   placeholder="과목 검색"
@@ -575,7 +560,7 @@ function QuizImportModal({ onClose, onImport }) {
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {filteredCourses.length === 0 ? (
-                <p className="text-xs text-center py-3 text-slate-300">없음</p>
+                <p className="text-xs text-center py-3 text-muted-foreground">없음</p>
               ) : filteredCourses.map(course => (
                 <button
                   key={course.id}
@@ -596,11 +581,11 @@ function QuizImportModal({ onClose, onImport }) {
           {/* 오른쪽: 퀴즈 목록 */}
           <div className="flex-1 overflow-y-auto p-4">
             {!selectedCourse ? (
-              <div className="flex items-center justify-center h-full text-slate-300">
+              <div className="flex items-center justify-center h-full text-muted-foreground">
                 <p className="text-sm">좌측에서 과목을 선택하세요</p>
               </div>
             ) : courseQuizzes.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-slate-300">
+              <div className="flex items-center justify-center h-full text-muted-foreground">
                 <p className="text-sm">공개된 퀴즈가 없습니다</p>
               </div>
             ) : (
@@ -626,7 +611,7 @@ function QuizImportModal({ onClose, onImport }) {
                           <StatusBadge status={quiz.status} />
                         </div>
                         <p className="text-sm font-medium truncate text-slate-900">{quiz.title}</p>
-                        <p className="text-xs mt-0.5 text-slate-300">
+                        <p className="text-xs mt-0.5 text-muted-foreground">
                           {quiz.questions}문항 · {quiz.totalPoints}점
                           {quiz.dueDate ? ` · ${quiz.dueDate.split(' ')[0]}` : ''}
                         </p>
@@ -646,7 +631,7 @@ function QuizImportModal({ onClose, onImport }) {
         )}
 
         <div className={cn('flex items-center justify-between px-5 py-3', checkedIds.size === 0 && 'border-t border-slate-100')}>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             {checkedIds.size > 0 ? `${checkedIds.size}개 선택됨` : '가져올 퀴즈를 선택하세요'}
           </p>
           <div className="flex gap-2">
@@ -710,7 +695,7 @@ function StudentQuizList() {
 
         {closedQuizzes.length > 0 && (
           <section>
-            <p className="text-xs font-semibold mb-3 text-slate-400">종료 ({closedQuizzes.length})</p>
+            <p className="text-xs font-semibold mb-3 text-muted-foreground">종료 ({closedQuizzes.length})</p>
             <div className="space-y-3">
               {closedQuizzes.map(quiz => (
                 <StudentQuizCard key={quiz.id} quiz={quiz} studentId={currentStudent.id} />
@@ -720,7 +705,7 @@ function StudentQuizList() {
         )}
 
         {!hasAny && (
-          <div className="text-center py-16 text-slate-400">
+          <div className="text-center py-16 text-muted-foreground">
             <FileText size={32} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">
               {filterWeek !== 'all' || filterSession !== 'all'
@@ -748,12 +733,12 @@ function StudentQuizCard({ quiz, studentId }) {
 
   const statusBadge = isOpen
     ? { label: '응시중', cls: 'text-green-700 bg-green-50' }
-    : { label: '종료', cls: 'text-slate-400 bg-slate-100' }
+    : { label: '종료', cls: 'text-muted-foreground bg-slate-100' }
 
   const myBadge = (() => {
     if (!myAttempt) {
       if (isOpen) return null
-      return { label: '미제출', cls: 'text-slate-400 bg-slate-100', icon: false }
+      return { label: '미제출', cls: 'text-muted-foreground bg-slate-100', icon: false }
     }
     if (myAttempt.manualPending > 0) return { label: '채점 대기', cls: 'text-amber-700 bg-amber-50', icon: false }
     return { label: '채점 완료', cls: 'text-primary bg-accent', icon: true }
@@ -775,7 +760,7 @@ function StudentQuizCard({ quiz, studentId }) {
                 </span>
               )}
               {(quiz.week > 0 || quiz.session > 0) && (
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
                 </span>
               )}
@@ -784,7 +769,7 @@ function StudentQuizCard({ quiz, studentId }) {
             <h3 className="text-base font-semibold mb-1.5 truncate text-slate-900">{quiz.title}</h3>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-xs text-slate-300">{quiz.startDate} ~ {quiz.dueDate}</p>
+              <p className="text-xs text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
               {ddayBadge && (
                 <span className={cn(
                   'text-xs font-semibold px-1.5 py-0.5 rounded',
@@ -795,7 +780,7 @@ function StudentQuizCard({ quiz, studentId }) {
               )}
             </div>
 
-            <p className="mt-1.5 text-[11px] text-slate-300">
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
               {quiz.questions}문항 | {quiz.totalPoints}점 | {quiz.timeLimit === 0 ? '시간 제한 없음' : `${quiz.timeLimit ?? 30}분`}
             </p>
           </div>
@@ -810,7 +795,7 @@ function StudentQuizCard({ quiz, studentId }) {
             )}
             {isOpen && isAttemptExceeded && (
               <div className="relative group">
-                <button disabled className="text-xs font-semibold px-4 py-2 rounded cursor-not-allowed bg-slate-200 text-slate-400">
+                <button disabled className="text-xs font-semibold px-4 py-2 rounded cursor-not-allowed bg-slate-200 text-muted-foreground">
                   응시하기
                 </button>
                 <div className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10 bg-slate-700 text-white">
@@ -859,10 +844,10 @@ function StudentQuizCard({ quiz, studentId }) {
                 {released ? (
                   <span className="text-primary font-semibold">
                     {totalScore}점 / {totalPossible}점
-                    {myAttempt.manualPending > 0 && <span className="text-slate-400 font-normal"> (수동채점 대기 0점 반영)</span>}
+                    {myAttempt.manualPending > 0 && <span className="text-muted-foreground font-normal"> (수동채점 대기 0점 반영)</span>}
                   </span>
                 ) : (
-                  <span className="text-slate-400">
+                  <span className="text-muted-foreground">
                     {quiz.scoreRevealEnabled === false || quiz.scoreReleasePolicy === null ? '성적 비공개' : '공개 예정'}
                   </span>
                 )}
@@ -872,12 +857,12 @@ function StudentQuizCard({ quiz, studentId }) {
                     수동채점 {myAttempt.manualPending}문항 대기 중
                   </span>
                 )}
-                <span className="text-slate-400">제출 {myAttempt.submittedAt}</span>
+                <span className="text-muted-foreground">제출 {myAttempt.submittedAt}</span>
 
                 {myAttempts.length > 1 && (
                   <button
                     onClick={() => setShowHistory(h => !h)}
-                    className={cn('text-xs ml-auto transition-colors', showHistory ? 'text-primary' : 'text-slate-400')}
+                    className={cn('text-xs ml-auto transition-colors', showHistory ? 'text-primary' : 'text-muted-foreground')}
                   >
                     응시 기록 {myAttempts.length}회 {showHistory ? '▲' : '▼'}
                   </button>
@@ -895,23 +880,23 @@ function StudentQuizCard({ quiz, studentId }) {
                     const isLast = idx === myAttempts.length - 1
                     return (
                       <div key={idx} className="flex items-center justify-between text-xs py-1">
-                        <span className={cn(isLast ? 'text-primary font-semibold' : 'text-slate-400')}>
+                        <span className={cn(isLast ? 'text-primary font-semibold' : 'text-muted-foreground')}>
                           {idx + 1}회차 {isLast ? '(최근)' : ''}
                         </span>
-                        <span className="text-slate-400">{att.submittedAt}</span>
+                        <span className="text-muted-foreground">{att.submittedAt}</span>
                         {released ? (
                           <span className={cn(isLast ? 'text-primary font-semibold' : 'text-slate-500')}>
                             {attTotal}점 / {totalPossible}점
-                            {att.manualPending > 0 && <span className="text-slate-300"> *</span>}
+                            {att.manualPending > 0 && <span className="text-muted-foreground"> *</span>}
                           </span>
                         ) : (
-                          <span className="text-slate-300">비공개</span>
+                          <span className="text-muted-foreground">비공개</span>
                         )}
                       </div>
                     )
                   })}
                   {released && myAttempts.some(a => a.manualPending > 0) && (
-                    <p className="text-xs mt-1 text-slate-300">* 수동채점 대기 0점 반영</p>
+                    <p className="text-xs mt-1 text-muted-foreground">* 수동채점 대기 0점 반영</p>
                   )}
                 </div>
               </div>
