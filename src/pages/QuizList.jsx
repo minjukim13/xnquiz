@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye } from 'lucide-react'
+import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
@@ -14,7 +14,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import QuizSettingsDialog from '../components/QuizSettingsDialog'
 import StatusBadge from '../components/StatusBadge'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { Switch } from '@/components/ui/switch'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -86,6 +85,63 @@ function applyWeekSessionFilter(quizzes, filterWeek, filterSession) {
   })
 }
 
+// ─────────────────────────────── 정렬 옵션 ───────────────────────────────
+const SORT_OPTIONS = [
+  { value: 'recent', label: '최근생성순' },
+  { value: 'week-asc', label: '주차 오름차순' },
+  { value: 'week-desc', label: '주차 내림차순' },
+  { value: 'deadline', label: '마감임박순' },
+]
+
+function sortQuizzes(quizzes, sortKey) {
+  const sorted = quizzes.slice()
+  switch (sortKey) {
+    case 'week-asc':
+      return sorted.sort((a, b) => {
+        const aw = a.week || 999
+        const bw = b.week || 999
+        if (aw !== bw) return aw - bw
+        const as = a.session || 0
+        const bs = b.session || 0
+        return as - bs
+      })
+    case 'week-desc':
+      return sorted.sort((a, b) => {
+        const aw = a.week || 0
+        const bw = b.week || 0
+        if (bw !== aw) return bw - aw
+        const as = a.session || 0
+        const bs = b.session || 0
+        return bs - as
+      })
+    case 'deadline': {
+      const now = new Date()
+      return sorted.sort((a, b) => {
+        const ad = a.dueDate ? new Date(a.dueDate) : null
+        const bd = b.dueDate ? new Date(b.dueDate) : null
+        // 마감일 없는 항목은 뒤로
+        if (!ad && !bd) return 0
+        if (!ad) return 1
+        if (!bd) return -1
+        // 이미 지난 마감은 뒤로
+        const aPast = ad < now
+        const bPast = bd < now
+        if (aPast && !bPast) return 1
+        if (!aPast && bPast) return -1
+        return ad - bd
+      })
+    }
+    case 'recent':
+    default:
+      return sorted.sort((a, b) => {
+        const aNum = Number(a.id)
+        const bNum = Number(b.id)
+        if (!isNaN(aNum) && !isNaN(bNum)) return bNum - aNum
+        return String(b.id).localeCompare(String(a.id))
+      })
+  }
+}
+
 // STATUS_CONFIG 제거 → StatusBadge 컴포넌트로 통합
 
 export default function QuizList() {
@@ -98,6 +154,7 @@ function InstructorQuizList() {
   const [quizzes, setQuizzes] = useState(() => mockQuizzes.filter(q => q.course === CURRENT_COURSE))
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
+  const [sortKey, setSortKey] = useState('recent')
   const [copySourceQuiz, setCopySourceQuiz] = useState(null)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showGlobalSettings, setShowGlobalSettings] = useState(false)
@@ -114,20 +171,6 @@ function InstructorQuizList() {
     const msg = sessionStorage.getItem('xnq_toast')
     if (msg) { showToast(msg); sessionStorage.removeItem('xnq_toast') }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleToggleVisibility = (quizId) => {
-    const idx = quizzes.findIndex(q => q.id === quizId)
-    if (idx === -1) return
-    const quiz = quizzes[idx]
-    if (quiz.status === 'draft') return
-    const updated = [...quizzes]
-    const nextVisible = !quiz.visible
-    updated[idx] = { ...updated[idx], visible: nextVisible }
-    const globalIdx = mockQuizzes.findIndex(q => q.id === quizId)
-    if (globalIdx !== -1) mockQuizzes[globalIdx] = updated[idx]
-    setQuizzes(updated)
-    showToast(`"${quiz.title}" 퀴즈가 ${nextVisible ? '공개' : '비공개'} 처리되었습니다`)
-  }
 
   const cloneQuestions = (srcId, newId) => {
     const srcQs = getQuizQuestions(srcId)
@@ -206,15 +249,8 @@ function InstructorQuizList() {
   }
 
   const sortedQuizzes = useMemo(
-    () => applyWeekSessionFilter(quizzes, filterWeek, filterSession)
-      .slice()
-      .sort((a, b) => {
-        const aNum = Number(a.id)
-        const bNum = Number(b.id)
-        if (!isNaN(aNum) && !isNaN(bNum)) return bNum - aNum
-        return String(b.id).localeCompare(String(a.id))
-      }),
-    [quizzes, filterWeek, filterSession]
+    () => sortQuizzes(applyWeekSessionFilter(quizzes, filterWeek, filterSession), sortKey),
+    [quizzes, filterWeek, filterSession, sortKey]
   )
 
   return (
@@ -246,7 +282,7 @@ function InstructorQuizList() {
           </div>
         </div>
 
-        <div className="flex items-center mb-3 gap-2">
+        <div className="flex items-center justify-between mt-1 mb-3">
           <WeekSessionFilter
             quizzes={quizzes}
             filterWeek={filterWeek}
@@ -254,12 +290,20 @@ function InstructorQuizList() {
             onWeekChange={setFilterWeek}
             onSessionChange={setFilterSession}
           />
+          <DropdownSelect
+            value={sortKey}
+            onChange={setSortKey}
+            options={SORT_OPTIONS}
+            size="md"
+            ghost
+            style={{ width: 140 }}
+          />
         </div>
 
         {sortedQuizzes.length > 0 ? (
           <div className="grid gap-3">
             {sortedQuizzes.map(quiz => (
-              <QuizCard key={quiz.id} quiz={quiz} onToggleVisibility={handleToggleVisibility} onCopy={setCopySourceQuiz} onDelete={handleDeleteQuiz} />
+              <QuizCard key={quiz.id} quiz={quiz} onCopy={setCopySourceQuiz} onDelete={handleDeleteQuiz} />
             ))}
           </div>
         ) : (
@@ -314,9 +358,8 @@ function getDdayBadge(quiz) {
   return { label: diff === 0 ? 'D-0' : `D-${diff}`, urgent: diff === 0 }
 }
 
-function QuizCard({ quiz, onToggleVisibility, onCopy, onDelete }) {
+function QuizCard({ quiz, onCopy, onDelete }) {
   const ddayBadge = getDdayBadge(quiz)
-  const isVisible = quiz.visible !== false && quiz.status !== 'draft'
   const navigate = useNavigate()
 
   const cardTarget = (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
@@ -371,19 +414,6 @@ function QuizCard({ quiz, onToggleVisibility, onCopy, onDelete }) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-          {quiz.status !== 'draft' && (
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
-              <span className={cn('text-xs', isVisible ? 'text-gray-900 font-medium' : 'text-gray-400')}>
-                {isVisible ? '공개' : '비공개'}
-              </span>
-              <Switch
-                size="sm"
-                checked={isVisible}
-                onCheckedChange={() => onToggleVisibility(quiz.id)}
-              />
-            </label>
-          )}
-
           <Button
             asChild
             variant="outline"

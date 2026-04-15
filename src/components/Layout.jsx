@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ChevronRight, ChevronDown, GraduationCap, BookOpen, LayoutList, Menu } from 'lucide-react'
+import { ChevronDown, GraduationCap, BookOpen, LayoutList, Menu } from 'lucide-react'
 import { useRole, DEMO_STUDENTS } from '../context/RoleContext'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
 
-export default function Layout({ children, breadcrumbs = [] }) {
+export default function Layout({ children }) {
   const { role, setRole, currentStudent, setCurrentStudent } = useRole()
   const [studentPickerOpen, setStudentPickerOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -169,23 +169,6 @@ export default function Layout({ children, breadcrumbs = [] }) {
             <span className="text-sm font-bold">XN Quizzes</span>
           </Link>
 
-          {breadcrumbs.length > 0 && (
-            <nav className="flex items-center gap-1 overflow-hidden min-w-0">
-              <span className="text-sm font-light select-none mx-0.5 text-muted-foreground/40">/</span>
-              {breadcrumbs.map((b, i) => (
-                <span key={i} className="flex items-center gap-1 min-w-0">
-                  {i > 0 && <ChevronRight size={12} className="shrink-0 text-muted-foreground/40" />}
-                  {b.href ? (
-                    <Link to={b.href} className="text-xs truncate text-muted-foreground hover:text-foreground transition-colors">{b.label}</Link>
-                  ) : b.onClick ? (
-                    <button onClick={b.onClick} className="text-xs truncate text-muted-foreground hover:text-foreground transition-colors">{b.label}</button>
-                  ) : (
-                    <span className="text-xs font-semibold truncate">{b.label}</span>
-                  )}
-                </span>
-              ))}
-            </nav>
-          )}
         </div>
 
         {role === 'student' && (
@@ -228,23 +211,6 @@ export default function Layout({ children, breadcrumbs = [] }) {
 
         {/* 메인 콘텐츠 */}
         <div className="flex-1 min-w-0 flex flex-col">
-          {/* 브레드크럼 — 데스크톱 전용 */}
-          {breadcrumbs.length > 0 && (
-            <nav className="hidden sm:flex items-center gap-1 px-6 lg:px-10 pt-5 overflow-hidden min-w-0">
-              {breadcrumbs.map((b, i) => (
-                <span key={i} className="flex items-center gap-1 min-w-0">
-                  {i > 0 && <ChevronRight size={12} className="shrink-0 text-muted-foreground/40" />}
-                  {b.href ? (
-                    <Link to={b.href} className="text-sm truncate text-muted-foreground hover:text-secondary-foreground transition-colors">{b.label}</Link>
-                  ) : b.onClick ? (
-                    <button onClick={b.onClick} className="text-sm truncate text-muted-foreground hover:text-secondary-foreground transition-colors">{b.label}</button>
-                  ) : (
-                    <span className="text-sm font-semibold truncate text-foreground">{b.label}</span>
-                  )}
-                </span>
-              ))}
-            </nav>
-          )}
 
           {/* 학생 모드 안내 배너 — 데스크톱 */}
           {role === 'student' && (

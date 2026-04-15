@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GripVertical, Trash2, ChevronDown } from 'lucide-react'
+import { GripVertical, Pencil, Trash2 } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
@@ -15,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 
 const WEEK_OPTIONS = [
   { value: null, label: '선택 안함' },
@@ -45,7 +45,7 @@ export default function QuizCreate() {
     scoreRevealTiming: 'immediately', scoreRevealStart: '', scoreRevealEnd: '',
     quizMode: 'graded', accessCode: '', ipRestriction: '',
     allowLateSubmit: false, lateSubmitDeadline: '',
-    notice: DEFAULT_NOTICE,
+    notice: DEFAULT_NOTICE, visible: true,
   })
   const [questions, setQuestions] = useState([])
   const [showBankModal, setShowBankModal] = useState(false)
@@ -80,7 +80,7 @@ export default function QuizCreate() {
     }
     mockQuizzes.push({
       id: String(Date.now()), title: form.title, description: form.description,
-      course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'draft', visible: false,
+      course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'draft', visible: form.visible,
       startDate: form.startDate || null, dueDate: form.dueDate || null,
       lockDate: form.lockDate || null,
       week: form.week ?? null, session: form.session ?? null,
@@ -100,7 +100,13 @@ export default function QuizCreate() {
       totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
       questions: questions.length, totalPoints,
     })
-    setAlertDialog({ title: '임시저장 완료', message: '퀴즈가 임시저장되었습니다. 퀴즈 목록에서 이어서 편집할 수 있습니다.' })
+    setConfirmDialog({
+      title: '임시저장 완료',
+      message: '퀴즈가 임시저장되었습니다. 퀴즈 목록으로 이동하시겠습니까?',
+      confirmLabel: '목록으로 이동',
+      cancelLabel: '계속 편집',
+      onConfirm: () => navigate('/'),
+    })
   }
 
   const addQuestion = useCallback((q) => {
@@ -126,7 +132,7 @@ export default function QuizCreate() {
     const doPublish = () => {
       mockQuizzes.push({
         id: String(Date.now()), title: form.title, description: form.description,
-        course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'open', visible: true,
+        course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'open', visible: form.visible,
         startDate: form.startDate, dueDate: form.dueDate,
         lockDate: form.lockDate || null,
         week: form.week ?? null, session: form.session ?? null,
@@ -160,7 +166,7 @@ export default function QuizCreate() {
   }
 
   return (
-    <Layout breadcrumbs={[{ label: '퀴즈 관리', href: '/' }, { label: '새 퀴즈 만들기' }]}>
+    <Layout>
       <div className="max-w-5xl mx-auto pb-4">
         <h1 className="text-[22px] font-bold text-foreground pt-3 pb-5">새 퀴즈 만들기</h1>
 
@@ -168,7 +174,7 @@ export default function QuizCreate() {
           <TabsList variant="line" className="gap-4 border-b border-border pb-0">
             <TabsTrigger value="info" className="text-[14px] px-1 pb-2.5">기본 정보</TabsTrigger>
             <TabsTrigger value="questions" className="text-[14px] px-1 pb-2.5">
-              문항 구성{questions.length > 0 && ` (${questions.length})`}
+              문항 구성
             </TabsTrigger>
           </TabsList>
 
@@ -181,7 +187,7 @@ export default function QuizCreate() {
         </Tabs>
 
         {/* 하단 버튼 */}
-        <div className="flex items-center justify-between mt-5 pt-5 border-t border-border">
+        <div className="flex items-center justify-between mt-8 pt-5 border-t border-border">
           <Button size="lg" variant="ghost" onClick={handleCancel} className="text-muted-foreground hover:text-foreground px-4">취소</Button>
           <div className="flex items-center gap-2">
             <Button size="lg" variant="outline" onClick={handleSaveDraft} className="px-4">임시저장</Button>
@@ -197,7 +203,7 @@ export default function QuizCreate() {
       <QuestionBankModal open={showBankModal} onOpenChange={setShowBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse="CS301 데이터베이스" />
       <RandomQuestionBankModal open={showRandomBankModal} onOpenChange={setShowRandomBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse="CS301 데이터베이스" />
       {showAddModal && <AddQuestionModal onClose={() => setShowAddModal(false)} onAdd={addNewQuestion} />}
-      {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
+      {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
       {alertDialog && <AlertDialog title={alertDialog.title} message={alertDialog.message} variant={alertDialog.variant} onClose={() => setAlertDialog(null)} />}
     </Layout>
   )
@@ -379,6 +385,16 @@ function InfoTab({ form, set }) {
         <p className="text-xs mb-2 text-muted-foreground">응시 전 학생에게 표시될 안내 문구입니다.</p>
         <textarea value={form.notice} onChange={e => set('notice', e.target.value)} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-y leading-relaxed" placeholder="학생에게 안내할 퀴즈 정책을 입력하세요." />
       </Section>
+
+      <Section title="퀴즈 공개 여부">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-700">학생에게 퀴즈 공개</p>
+            <p className="text-xs text-muted-foreground mt-0.5">비공개 시 학생 화면에 퀴즈가 표시되지 않습니다</p>
+          </div>
+          <Switch checked={form.visible} onCheckedChange={v => set('visible', v)} className="data-[state=checked]:bg-primary" />
+        </div>
+      </Section>
     </div>
   )
 }
@@ -397,88 +413,81 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <p className="text-[14px] text-secondary-foreground">
+      {/* 헤더: 문항 수/점수 + 액션 버튼 */}
+      <div className="flex items-center justify-between mb-4 px-1 py-0.5">
+        <p className="text-[13px] text-secondary-foreground leading-none">
           <span className="font-semibold text-foreground">{questions.length}</span>문항
-          {' '}
-          <span className="text-muted-foreground mx-1">|</span>
-          {' '}
+          <span className="text-muted-foreground mx-1.5">|</span>
           총 <span className="font-semibold text-foreground">{totalPoints}</span>점
         </p>
-        <div className="flex items-center gap-2.5">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="lg" variant="outline" className="gap-1.5">
-                문제은행에서 추가 <ChevronDown size={15} />
+        <div className="flex items-center gap-2">
+          <Button size="lg" variant="outline" onClick={onShowAdd}>문항 만들기</Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg">
+                문제은행에서 추가
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className=""
-            >
-              <DropdownMenuItem onClick={onShowBank} className="cursor-pointer py-2 text-sm">
-                직접 선택
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onShowRandomBank} className="cursor-pointer py-2 text-sm">
-                랜덤 출제
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button size="lg" onClick={onShowAdd} >직접 추가</Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72 p-1.5">
+              <button onClick={onShowBank} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors">
+                <p className="text-sm font-medium text-foreground">직접 선택</p>
+                <p className="text-xs text-muted-foreground mt-0.5">문제은행에서 원하는 문항을 골라 추가합니다</p>
+              </button>
+              <button onClick={onShowRandomBank} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors">
+                <p className="text-sm font-medium text-foreground">랜덤 출제</p>
+                <p className="text-xs text-muted-foreground mt-0.5">조건에 맞는 문항을 자동으로 선택합니다</p>
+              </button>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
+      {/* 문항 리스트 */}
       {questions.length === 0 ? (
         <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-slate-50">
-          <p className="text-sm mb-4 text-muted-foreground/60">아직 추가된 문항이 없습니다</p>
-          <div className="flex items-center justify-center gap-2.5">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="lg" variant="outline" className="gap-1.5">
-                  문제은행에서 추가 <ChevronDown size={15} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="center"
-                className="w-auto p-2 border-0"
-                style={{ borderRadius: 12, boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)' }}
-              >
-                <DropdownMenuItem onClick={onShowBank} className="cursor-pointer py-2 text-sm">
-                  직접 선택
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onShowRandomBank} className="cursor-pointer py-2 text-sm">
-                  랜덤 출제
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button size="lg" onClick={onShowAdd} >직접 추가</Button>
-          </div>
+          <p className="text-sm text-muted-foreground/60">아직 추가된 문항이 없습니다</p>
         </div>
       ) : (
         <div className="space-y-2">
           {questions.map((q, i) => (
             <div key={q.id} draggable onDragStart={() => handleDragStart(i)} onDragOver={e => handleDragOver(e, i)} onDrop={() => handleDrop(i)} onDragEnd={handleDragEnd}
-              className={cn('flex items-start gap-2 bg-white p-3 group transition-all rounded-md border',
-                overIdx === i && dragIdx !== i ? 'border-primary bg-accent/50' : 'border-border',
+              className={cn('bg-white rounded-lg border group transition-all',
+                overIdx === i && dragIdx !== i ? 'border-primary bg-accent/30 shadow-sm' : 'border-border hover:border-slate-300',
                 dragIdx === i && 'opacity-40'
               )}>
-              <div className="flex items-center gap-2 shrink-0 mt-0.5">
-                <GripVertical size={14} className="cursor-grab active:cursor-grabbing text-muted-foreground/40" />
-                <span className="text-xs font-bold w-5 text-center text-muted-foreground">{i + 1}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <Badge variant="secondary" className="bg-slate-100 text-slate-600">{QUIZ_TYPES[q.type]?.label}</Badge>
-                  <span className="text-xs text-muted-foreground">{q.points}점</span>
-                  {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-orange-50 text-orange-700">수동채점</Badge>}
-                  {q.bankName && <Badge variant="secondary" className="bg-sky-50 text-sky-700">{q.bankName}</Badge>}
+              <div className="px-3.5 py-3">
+                {/* 상단 행: 드래그 핸들 + 번호 + 배지들 + 액션 버튼 */}
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <GripVertical size={14} className="cursor-grab active:cursor-grabbing text-muted-foreground/40" />
+                    <span className="text-xs font-bold w-5 text-center text-muted-foreground">{i + 1}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                    <Badge variant="secondary" className="bg-slate-100 text-slate-600">{QUIZ_TYPES[q.type]?.label}</Badge>
+                    <span className="text-xs text-muted-foreground">{q.points}점</span>
+                    {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-orange-50 text-orange-700">수동채점</Badge>}
+                    {q.bankName && <Badge variant="secondary" className="bg-sky-50 text-sky-700">{q.bankName}</Badge>}
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                      <Pencil size={13} />
+                    </button>
+                    <button onClick={() => onRemove(q.id)} className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
-                <p className="text-sm line-clamp-2 text-slate-700">{q.text}</p>
-                <QuestionAnswer q={q} />
+
+                {/* 중단 행: 문제 본문 */}
+                <p className="text-sm font-medium text-slate-700 line-clamp-2 mt-2 ml-8">{q.text}</p>
+
+                {/* 하단 행: 정답 영역 */}
+                {q.type !== 'essay' && q.type !== 'file_upload' && q.type !== 'text' && (
+                  <div className="mt-1.5 ml-8 bg-slate-50/80 rounded px-2.5 py-1.5">
+                    <QuestionAnswer q={q} />
+                  </div>
+                )}
               </div>
-              <button onClick={() => onRemove(q.id)} className="shrink-0 p-1 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-red-600 transition-all">
-                <Trash2 size={14} />
-              </button>
             </div>
           ))}
         </div>

@@ -36,11 +36,7 @@ export default function QuizStats() {
   const quizStudents = getQuizStudents(id)
 
   return (
-    <Layout breadcrumbs={[
-      { label: '퀴즈 관리', href: '/' },
-      { label: quiz.title },
-      { label: '결과 보기' },
-    ]}>
+    <Layout>
       <div className="max-w-7xl mx-auto pb-10">
 
         {/* 퀴즈 정보 헤더 */}
