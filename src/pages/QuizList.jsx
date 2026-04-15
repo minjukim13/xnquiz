@@ -417,7 +417,6 @@ function QuizCard({ quiz, onCopy, onDelete }) {
           <Button
             asChild
             variant="outline"
-            size="sm"
             className="border-gray-200 text-gray-900 bg-white hover:bg-gray-50"
           >
             <Link to={`/quiz/${quiz.id}/edit`}>편집</Link>
@@ -426,7 +425,6 @@ function QuizCard({ quiz, onCopy, onDelete }) {
           {quiz.status !== 'draft' && (
             <Button
               asChild
-              size="sm"
             >
               <Link to={`/quiz/${quiz.id}/stats`}>통계</Link>
             </Button>
