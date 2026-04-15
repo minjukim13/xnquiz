@@ -38,14 +38,9 @@ export default function QuizStats() {
       <div className="max-w-7xl mx-auto pb-10 pt-6">
 
         {/* 퀴즈 정보 헤더 */}
-        <div className="pb-4 mb-4 border-b border-gray-200">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <Badge className="mb-2 bg-accent text-primary border-0">{quiz.week}주차 {quiz.session}차시</Badge>
-              <h2 className="text-base font-bold">{quiz.title}</h2>
-              {quiz.description && <p className="text-xs mt-1.5 text-slate-500">{quiz.description}</p>}
-              <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
-            </div>
+        <div className="px-4 pt-2.5 pb-3.5 mb-4 border border-border rounded-xl">
+          <div className="flex items-end justify-between gap-4 flex-wrap mb-2">
+            <Badge className="bg-accent text-primary border-0">{quiz.week}주차 {quiz.session}차시</Badge>
             <div className="flex gap-2 shrink-0">
               <Button asChild className="font-semibold">
                 <Link to={`/quiz/${quiz.id}/grade`}>채점 대시보드</Link>
@@ -55,6 +50,9 @@ export default function QuizStats() {
               </Button>
             </div>
           </div>
+          <h2 className="text-base font-bold">{quiz.title}</h2>
+          {quiz.description && <p className="text-xs mt-1.5 text-slate-500">{quiz.description}</p>}
+          <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
         </div>
 
         {/* 탭 */}
@@ -82,7 +80,7 @@ function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
   const [activeTab, setActiveTab] = useState('grades')
   return (
     <>
-      <div className="flex items-center border-b border-gray-200 mb-5 h-11">
+      <div className="flex items-center border-b border-gray-200 mb-5 h-11 px-2">
         <div className="flex items-center gap-6 h-full">
           {[
             { key: 'grades', label: '학생별 성적 조회' },
@@ -103,10 +101,12 @@ function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
           ))}
         </div>
       </div>
-      {activeTab === 'grades'
-        ? <GradesTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
-        : <StatsTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
-      }
+      <div className="px-2">
+        {activeTab === 'grades'
+          ? <GradesTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
+          : <StatsTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
+        }
+      </div>
     </>
   )
 }
@@ -224,7 +224,7 @@ function GradesTab({ quiz, students: allStudents }) {
                     {key ? (
                       <button
                         onClick={() => handleSort(key)}
-                        className={cn('group inline-flex items-center gap-1 text-[13px] font-normal transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-primary' : 'text-gray-400')}
+                        className={cn('group inline-flex items-center gap-1 text-[13px] font-medium transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-primary' : 'text-slate-600')}
                       >
                         {label}
                         {sortKey !== key && <ArrowUpDown size={12} className="opacity-0 group-hover:opacity-40 transition-opacity" />}
@@ -232,7 +232,7 @@ function GradesTab({ quiz, students: allStudents }) {
                         {sortKey === key && sortDir === 'asc' && <ArrowUp size={12} />}
                       </button>
                     ) : (
-                      <span className="text-[13px] font-normal text-gray-400">{label}</span>
+                      <span className="text-[13px] font-medium text-slate-600">{label}</span>
                     )}
                   </th>
                 ))}
@@ -396,9 +396,9 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             {[
               { label: '수강 인원', value: quiz.totalStudents, barColor: '#B0B8C1' },
               { label: '제출 완료', value: quiz.submitted, barColor: 'var(--primary)', rate: submitRate },
-              { label: '미제출', value: quiz.totalStudents - quiz.submitted, barColor: '#F69D37', rate: (100 - parseFloat(submitRate)).toFixed(1) },
-              { label: '채점 완료', value: quiz.graded, barColor: '#31B46E', rate: gradeRate },
-              { label: '채점 대기', value: quiz.pendingGrade, barColor: '#F04452' },
+              { label: '미제출', value: quiz.totalStudents - quiz.submitted, barColor: '#FDA4AF', rate: (100 - parseFloat(submitRate)).toFixed(1) },
+              { label: '채점 완료', value: quiz.graded, barColor: '#93C5FD', rate: gradeRate },
+              { label: '채점 대기', value: quiz.pendingGrade, barColor: '#FDA4AF' },
             ].map(item => (
               <div key={item.label}>
                 <div className="flex justify-between text-xs mb-1">
@@ -439,21 +439,21 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickFormatter={v => `${v}%`} />
             <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} width={32} />
             <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val, _name, props) => [props.payload.hasData ? `${val}%` : '채점 데이터 없음', `${props.payload.label} 득점률`]} />
-            <ReferenceLine x={70} stroke="#31B46E" strokeDasharray="3 3" label={{ value: '70%', position: 'right', fontSize: 10, fill: '#31B46E' }} />
-            <ReferenceLine x={40} stroke="#F04452" strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 10, fill: '#F04452' }} />
+            <ReferenceLine x={70} stroke="#86EFAC" strokeDasharray="3 3" label={{ value: '70%', position: 'right', fontSize: 10, fill: '#6BD895' }} />
+            <ReferenceLine x={40} stroke="#FDA4AF" strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 10, fill: '#F08D99' }} />
             <Bar dataKey="rate" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 11, fill: 'var(--muted-foreground)', formatter: v => `${v}%` }}>
               {qRateData.map((q, i) => (
-                <Cell key={i} fill={!q.hasData ? '#E5E8EB' : q.rate >= 70 ? '#31B46E' : q.rate >= 40 ? '#F69D37' : '#F04452'} />
+                <Cell key={i} fill={!q.hasData ? '#D1D5DB' : q.rate >= 70 ? '#86EFAC' : q.rate >= 40 ? '#FDBA74' : '#FDA4AF'} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
         <div className="flex items-center gap-4 mt-2 justify-center">
           {[
-            { color: '#34d399', label: '70% 이상 (쉬움)' },
-            { color: '#fbbf24', label: '40~69% (보통)' },
-            { color: '#f87171', label: '40% 미만 (어려움)' },
-            { color: '#BDBDBD', label: '채점 전' },
+            { color: '#86EFAC', label: '70% 이상 (쉬움)' },
+            { color: '#FDBA74', label: '40~69% (보통)' },
+            { color: '#FDA4AF', label: '40% 미만 (어려움)' },
+            { color: '#D1D5DB', label: '채점 전' },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-1.5 text-xs text-slate-600">
               <span className="w-2.5 h-2.5 rounded-sm" style={{ background: item.color }} />

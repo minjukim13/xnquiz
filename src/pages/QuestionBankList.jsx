@@ -82,10 +82,7 @@ export default function QuestionBankList() {
         </div>
 
         {/* 은행 카드 그리드 */}
-        <p className="text-sm mb-3 text-muted-foreground">
-          은행 <span className="font-semibold text-slate-700">{banks.length}</span>개
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {banks.map(bank => {
             const qCount = getQuestionCount(bank.id)
             const diffLabel = bank.difficulty ? DIFF_LABEL[bank.difficulty] : ''
