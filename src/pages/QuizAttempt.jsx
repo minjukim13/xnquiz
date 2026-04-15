@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom'
-import { Clock, ChevronRight, CheckCircle2, AlertCircle, Send, Eye, X } from 'lucide-react'
+import { Clock, ChevronRight, CheckCircle2, AlertCircle, Send, Eye, X, Lock } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, getQuizQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -102,6 +102,21 @@ export default function QuizAttempt() {
   }, [answers, questions, id, currentStudent, timeRemaining, submitted, isPreview])
 
   if (!isPreview && role !== 'student') return <Navigate to="/" replace />
+
+  if (!isPreview && quiz && quiz.lockDate && new Date() > new Date(quiz.lockDate)) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto py-16 text-center">
+          <Lock size={36} className="mx-auto mb-3 text-muted-foreground/40" />
+          <p className="text-base font-semibold mb-1 text-slate-700">이용이 종료되었습니다</p>
+          <p className="text-sm mb-5 text-muted-foreground">이용 종료 일시가 지나 퀴즈에 접근할 수 없습니다</p>
+          <Button variant="outline" onClick={() => navigate('/')}>
+            퀴즈 목록으로
+          </Button>
+        </div>
+      </Layout>
+    )
+  }
 
   if (!isPreview && quiz && quiz.status !== 'open') {
     const statusMsg = {
