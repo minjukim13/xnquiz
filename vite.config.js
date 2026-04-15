@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   optimizeDeps: {
-    include: ['html2pdf.js'],
+    include: ['jspdf', 'html2canvas'],
   },
   resolve: {
     alias: {
