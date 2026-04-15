@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, BarChart2, FolderInput, Copy, Search, Settings2 } from 'lucide-react'
+import { Plus, FileText, AlertCircle, BarChart2, FolderInput, Copy, Search, Settings2, Lock } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
@@ -148,7 +148,7 @@ function InstructorQuizList() {
     accessCode: '',
     ipRestriction: '',
     allowLateSubmit: false,
-    lateSubmitHours: null,
+    lateSubmitDeadline: null,
     submitted: 0,
     graded: 0,
     pendingGrade: 0,
@@ -320,6 +320,17 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
               </span>
             )}
           </div>
+          {quiz.allowLateSubmit && quiz.lateSubmitDeadline && (
+            <p className="text-xs text-amber-600 mt-0.5">지각 제출: {quiz.lateSubmitDeadline.replace('T', ' ')}까지</p>
+          )}
+          {quiz.allowLateSubmit && !quiz.lateSubmitDeadline && (
+            <p className="text-xs text-amber-600 mt-0.5">지각 제출: 무제한 허용</p>
+          )}
+          {quiz.lockDate && (
+            <p className={cn('text-xs mt-0.5', new Date() > new Date(quiz.lockDate) ? 'text-red-500' : 'text-muted-foreground')}>
+              이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
@@ -654,6 +665,11 @@ function QuizImportModal({ onClose, onImport }) {
 
 
 // ─────────────────────────────── 학생 뷰 ───────────────────────────────
+function isLockDatePassed(quiz) {
+  if (!quiz.lockDate) return false
+  return new Date() > new Date(quiz.lockDate)
+}
+
 function StudentQuizList() {
   const { currentStudent } = useRole()
   const [filterWeek, setFilterWeek] = useState('all')
@@ -666,8 +682,9 @@ function StudentQuizList() {
     [filterWeek, filterSession]
   )
 
-  const openQuizzes   = filteredAll.filter(q => q.status === 'open')
-  const closedQuizzes = filteredAll.filter(q => q.status === 'closed' || q.status === 'grading')
+  const openQuizzes   = filteredAll.filter(q => q.status === 'open' && !isLockDatePassed(q))
+  const closedQuizzes = filteredAll.filter(q => (q.status === 'closed' || q.status === 'grading') && !isLockDatePassed(q))
+  const lockedQuizzes = filteredAll.filter(q => isLockDatePassed(q))
   const hasAny = filteredAll.length > 0
 
   return (
@@ -696,11 +713,30 @@ function StudentQuizList() {
         )}
 
         {closedQuizzes.length > 0 && (
-          <section>
+          <section className="mb-8">
             <p className="text-xs font-semibold mb-3 text-muted-foreground">종료 ({closedQuizzes.length})</p>
             <div className="space-y-3">
               {closedQuizzes.map(quiz => (
                 <StudentQuizCard key={quiz.id} quiz={quiz} studentId={currentStudent.id} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {lockedQuizzes.length > 0 && (
+          <section>
+            <p className="text-xs font-semibold mb-3 text-muted-foreground/60">이용 종료 ({lockedQuizzes.length})</p>
+            <div className="space-y-3">
+              {lockedQuizzes.map(quiz => (
+                <Card key={quiz.id} className="opacity-60">
+                  <div className="px-5 py-4 flex items-center gap-3">
+                    <Lock size={16} className="text-muted-foreground/50 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-medium text-muted-foreground truncate">{quiz.title}</h3>
+                      <p className="text-xs text-muted-foreground/60 mt-0.5">이용이 종료되어 퀴즈 정보를 확인할 수 없습니다</p>
+                    </div>
+                  </div>
+                </Card>
               ))}
             </div>
           </section>
@@ -771,7 +807,10 @@ function StudentQuizCard({ quiz, studentId }) {
             <h3 className="text-base font-semibold mb-1.5 truncate text-slate-900">{quiz.title}</h3>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-xs text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
+              <p className="text-xs text-muted-foreground">
+                {quiz.startDate} ~ {quiz.dueDate}
+                {quiz.lockDate && <span className="text-muted-foreground/60"> (이용 종료: {quiz.lockDate})</span>}
+              </p>
               {ddayBadge && (
                 <span className={cn(
                   'text-xs font-semibold px-1.5 py-0.5 rounded',

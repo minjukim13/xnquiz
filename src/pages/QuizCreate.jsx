@@ -25,20 +25,8 @@ const SESSION_OPTIONS = [
   { value: null, label: '선택 안함' },
   ...[1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` })),
 ]
-const TIME_LIMIT_OPTIONS = [
-  { value: 0, label: '제한 없음' },
-  { value: 30, label: '30분' },
-  { value: 60, label: '60분' },
-  { value: 90, label: '90분' },
-  { value: 120, label: '120분' },
-  { value: -1, label: '직접 입력' },
-]
-const ATTEMPT_OPTIONS = [
-  { value: 1, label: '1회' },
-  { value: 2, label: '2회' },
-  { value: 3, label: '3회' },
-  { value: -1, label: '무제한' },
-]
+const ATTEMPT_MIN = 1
+const ATTEMPT_MAX = 99
 const SCORE_POLICIES = ['최고 점수 유지', '최신 점수 유지', '평균 점수'].map(v => ({ value: v, label: v }))
 
 const DEFAULT_NOTICE = `- 제출 후에는 답안을 수정할 수 없습니다.
@@ -50,13 +38,13 @@ export default function QuizCreate() {
   const [tab, setTab] = useState('info')
   const [form, setForm] = useState({
     title: '', description: '', week: null, session: null,
-    startDate: '', dueDate: '', timeLimitType: 60, timeLimitCustom: '',
-    allowAttempts: 1, scorePolicy: '최고 점수 유지',
+    startDate: '', dueDate: '', lockDate: '', timeLimit: '60',
+    allowAttempts: 1, unlimitedAttempts: false, scorePolicy: '최고 점수 유지',
     shuffleChoices: false, shuffleQuestions: false,
     scoreRevealEnabled: false, scoreRevealScope: 'wrong_only',
     scoreRevealTiming: 'immediately', scoreRevealStart: '', scoreRevealEnd: '',
     quizMode: 'graded', accessCode: '', ipRestriction: '',
-    allowLateSubmit: false, lateSubmitHours: '',
+    allowLateSubmit: false, lateSubmitDeadline: '',
     notice: DEFAULT_NOTICE,
   })
   const [questions, setQuestions] = useState([])
@@ -94,10 +82,11 @@ export default function QuizCreate() {
       id: String(Date.now()), title: form.title, description: form.description,
       course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'draft', visible: false,
       startDate: form.startDate || null, dueDate: form.dueDate || null,
+      lockDate: form.lockDate || null,
       week: form.week ?? null, session: form.session ?? null,
-      timeLimit: form.timeLimitType === -1 ? Number(form.timeLimitCustom) || 0 : form.timeLimitType,
-      allowAttempts: form.allowAttempts,
-      scorePolicy: form.allowAttempts >= 2 || form.allowAttempts === -1 ? form.scorePolicy : null,
+      timeLimit: form.timeLimit === '' ? 0 : Number(form.timeLimit),
+      allowAttempts: form.unlimitedAttempts ? -1 : form.allowAttempts,
+      scorePolicy: form.allowAttempts >= 2 || form.unlimitedAttempts ? form.scorePolicy : null,
       shuffleChoices: form.shuffleChoices, shuffleQuestions: form.shuffleQuestions,
       scoreRevealEnabled: form.scoreRevealEnabled,
       scoreRevealScope: form.scoreRevealEnabled ? form.scoreRevealScope : null,
@@ -106,7 +95,7 @@ export default function QuizCreate() {
       scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
       accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
       allowLateSubmit: form.allowLateSubmit,
-      lateSubmitHours: form.allowLateSubmit && form.lateSubmitHours ? Number(form.lateSubmitHours) : null,
+      lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
       notice: form.notice,
       totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
       questions: questions.length, totalPoints,
@@ -132,17 +121,18 @@ export default function QuizCreate() {
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
 
   const handlePublish = () => {
-    const isMultiAttempt = form.allowAttempts >= 2 || form.allowAttempts === -1
+    const isMultiAttempt = form.allowAttempts >= 2 || form.unlimitedAttempts
     const noRevealPeriod = form.scoreRevealEnabled && form.scoreRevealTiming !== 'period' && form.scoreRevealTiming !== 'after_due'
     const doPublish = () => {
       mockQuizzes.push({
         id: String(Date.now()), title: form.title, description: form.description,
         course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'open', visible: true,
         startDate: form.startDate, dueDate: form.dueDate,
+        lockDate: form.lockDate || null,
         week: form.week ?? null, session: form.session ?? null,
-        timeLimit: form.timeLimitType === -1 ? Number(form.timeLimitCustom) || 0 : form.timeLimitType,
-        allowAttempts: form.allowAttempts,
-        scorePolicy: form.allowAttempts >= 2 || form.allowAttempts === -1 ? form.scorePolicy : null,
+        timeLimit: form.timeLimit === '' ? 0 : Number(form.timeLimit),
+        allowAttempts: form.unlimitedAttempts ? -1 : form.allowAttempts,
+        scorePolicy: form.allowAttempts >= 2 || form.unlimitedAttempts ? form.scorePolicy : null,
         shuffleChoices: form.shuffleChoices, shuffleQuestions: form.shuffleQuestions,
         scoreRevealEnabled: form.scoreRevealEnabled,
         scoreRevealScope: form.scoreRevealEnabled ? form.scoreRevealScope : null,
@@ -151,7 +141,7 @@ export default function QuizCreate() {
         scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
         accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
         allowLateSubmit: form.allowLateSubmit,
-        lateSubmitHours: form.allowLateSubmit && form.lateSubmitHours ? Number(form.lateSubmitHours) : null,
+        lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
         notice: form.notice,
         totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
         questions: questions.length, totalPoints,
@@ -257,16 +247,21 @@ function InfoTab({ form, set }) {
           <Field label="시작 일시" required><input type="datetime-local" value={form.startDate} onChange={e => set('startDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
           <Field label="마감 일시" required><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
         </div>
+        <Field label="이용 종료 일시">
+          <input type="datetime-local" value={form.lockDate} onChange={e => set('lockDate', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
+          <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
+        </Field>
         <div className="mt-1 space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.allowLateSubmit} onChange={e => set('allowLateSubmit', e.target.checked)} className="rounded accent-primary" />
             <span className="text-sm text-slate-600">마감 후 지각 제출 허용</span>
           </label>
           {form.allowLateSubmit && (
-            <div className="flex items-center gap-2 pl-6">
-              <input type="number" value={form.lateSubmitHours} onChange={e => set('lateSubmitHours', e.target.value)} placeholder="예: 24" min={1} className="w-24 text-sm px-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" />
-              <span className="text-sm text-slate-600">시간까지 허용</span>
-              <span className="text-xs text-muted-foreground">(비우면 무제한)</span>
+            <div className="pl-6">
+              <Field label="지각 제출 마감 일시">
+                <input type="datetime-local" value={form.lateSubmitDeadline} onChange={e => set('lateSubmitDeadline', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
+              </Field>
+              {!form.lateSubmitDeadline && <p className="text-xs mt-1 text-muted-foreground">미설정 시 무제한 허용</p>}
             </div>
           )}
         </div>
@@ -275,17 +270,29 @@ function InfoTab({ form, set }) {
       <Section title="응시 설정">
         <div className="grid grid-cols-2 gap-4">
           <Field label="응시 시간 제한">
-            <CustomSelect value={form.timeLimitType} onChange={v => set('timeLimitType', v)} options={TIME_LIMIT_OPTIONS} placeholder="제한 선택" />
-            {form.timeLimitType === -1 && (
-              <div className="flex items-center gap-2 mt-2">
-                <input type="number" value={form.timeLimitCustom} onChange={e => set('timeLimitCustom', e.target.value)} placeholder="분 입력" min={1} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" />
-                <span className="text-sm shrink-0 text-muted-foreground">분</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <input type="number" value={form.timeLimit} onChange={e => set('timeLimit', e.target.value)} placeholder="제한 없음" min={0} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" />
+              <span className="text-sm shrink-0 text-muted-foreground">분</span>
+            </div>
+            <p className="text-xs mt-1.5 text-muted-foreground">비워두거나 0 입력 시 시간 제한 없음</p>
           </Field>
-          <Field label="최대 응시 횟수"><CustomSelect value={form.allowAttempts} onChange={v => set('allowAttempts', v)} options={ATTEMPT_OPTIONS} /></Field>
+          <Field label="최대 응시 횟수">
+            <div className="flex items-center gap-3">
+              {!form.unlimitedAttempts && (
+                <div className="flex items-center border border-border rounded-md overflow-hidden">
+                  <button type="button" onClick={() => set('allowAttempts', Math.max(ATTEMPT_MIN, form.allowAttempts - 1))} disabled={form.allowAttempts <= ATTEMPT_MIN} className="px-3 py-2.5 text-sm font-medium text-secondary-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors">-</button>
+                  <span className="px-4 py-2.5 text-sm font-medium text-foreground min-w-[48px] text-center border-x border-border bg-white">{form.allowAttempts}회</span>
+                  <button type="button" onClick={() => set('allowAttempts', Math.min(ATTEMPT_MAX, form.allowAttempts + 1))} disabled={form.allowAttempts >= ATTEMPT_MAX} className="px-3 py-2.5 text-sm font-medium text-secondary-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors">+</button>
+                </div>
+              )}
+              <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                <input type="checkbox" checked={form.unlimitedAttempts} onChange={e => set('unlimitedAttempts', e.target.checked)} className="rounded accent-primary" />
+                <span className="text-sm text-secondary-foreground">무제한</span>
+              </label>
+            </div>
+          </Field>
         </div>
-        {(form.allowAttempts >= 2 || form.allowAttempts === -1) && (
+        {(form.allowAttempts >= 2 || form.unlimitedAttempts) && (
           <Field label="복수 응시 시 채점 방식"><CustomSelect value={form.scorePolicy} onChange={v => set('scorePolicy', v)} options={SCORE_POLICIES} /></Field>
         )}
       </Section>
