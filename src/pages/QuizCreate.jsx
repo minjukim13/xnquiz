@@ -250,18 +250,23 @@ function InfoTab({ form, set }) {
         <Field label="이용 종료 일시">
           <input type="datetime-local" value={form.lockDate} onChange={e => set('lockDate', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
           <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
+          {form.lockDate && form.dueDate && new Date(form.lockDate) < new Date(form.dueDate) && (
+            <div className="flex items-start gap-2 p-2.5 rounded-md text-xs bg-amber-50 border border-amber-300 text-amber-800 mt-2">
+              <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-600" />
+              <span>이용 종료 일시가 마감 일시보다 앞서 있습니다. 마감 전에 퀴즈 접근이 차단될 수 있습니다.</span>
+            </div>
+          )}
         </Field>
-        <div className="mt-1 space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.allowLateSubmit} onChange={e => set('allowLateSubmit', e.target.checked)} className="rounded accent-primary" />
-            <span className="text-sm text-slate-600">마감 후 지각 제출 허용</span>
-          </label>
+        <div className="mt-1 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-700">마감 후 지각 제출 허용</span>
+            <Switch checked={form.allowLateSubmit} onCheckedChange={v => set('allowLateSubmit', v)} className="data-[state=checked]:bg-foreground data-[state=unchecked]:bg-gray-200" />
+          </div>
           {form.allowLateSubmit && (
-            <div className="pl-6">
-              <Field label="지각 제출 마감 일시">
-                <input type="datetime-local" value={form.lateSubmitDeadline} onChange={e => set('lateSubmitDeadline', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
-              </Field>
-              {!form.lateSubmitDeadline && <p className="text-xs mt-1 text-muted-foreground">미설정 시 무제한 허용</p>}
+            <div className="border-l-2 border-gray-200 pl-4 ml-0.5 space-y-2">
+              <label className="block text-sm font-medium text-slate-700">지각 제출 마감 일시</label>
+              <input type="datetime-local" value={form.lateSubmitDeadline} onChange={e => set('lateSubmitDeadline', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all" />
+              {!form.lateSubmitDeadline && <p className="text-xs text-gray-500">미설정 시 무제한 허용</p>}
             </div>
           )}
         </div>
