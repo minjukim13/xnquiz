@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import TypeBadge from '../../components/TypeBadge'
-import { Users, BarChart3, Download, FolderDown, ChevronDown, RefreshCw } from 'lucide-react'
+import { Download, FolderDown, ChevronDown, RefreshCw } from 'lucide-react'
 import { getStudentAnswer } from '../../data/mockData'
 import ResponsesTab from './ResponsesTab'
 import StatsTab from './StatsTab'
@@ -31,8 +31,6 @@ export default function QuestionDetailPanel({ question, students, search, onSear
   // 문항 전환 시 초기화
   useEffect(() => { setChangedStudentIds(new Set()); setShowChoices(false) }, [question?.id])
 
-  // 통계 탭 전환 시 자동 펼치기
-  useEffect(() => { if (activeTab === 'stats') setShowChoices(true) }, [activeTab])
 
   return (
     <div className="flex flex-col h-full">
@@ -122,39 +120,35 @@ export default function QuestionDetailPanel({ question, students, search, onSear
 
       {/* 탭 + 엑셀 */}
       <div className="flex items-center justify-between mb-3 gap-2">
-        <div className="flex border-b-2 border-slate-200">
+        <div className="flex items-center gap-1">
           {[
-            { key: 'responses', icon: <Users size={12} />, label: `응시 현황`, count: students.length },
-            { key: 'stats', icon: <BarChart3 size={12} />, label: '통계' },
-          ].map(({ key, icon, label, count }) => (
+            { key: 'responses', label: '응시 현황' },
+            { key: 'stats', label: '통계' },
+          ].map(({ key, label }) => (
             <button
               key={key}
               onClick={() => onTabChange(key)}
               className={cn(
-                'flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors whitespace-nowrap -mb-0.5 border-b-2',
-                activeTab === key ? 'text-primary border-primary' : 'text-gray-400 border-transparent'
+                'px-3 py-1.5 text-sm rounded transition-colors border',
+                activeTab === key
+                  ? 'bg-accent text-primary font-medium border-primary/15'
+                  : 'text-gray-500 border-transparent hover:bg-gray-50'
               )}
             >
-              {icon}
               {label}
-              {count != null && (
-                <span className={cn('ml-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold', activeTab === key ? 'bg-accent text-primary' : 'bg-slate-100 text-gray-400')}>
-                  {count}
-                </span>
-              )}
             </button>
           ))}
         </div>
         {activeTab === 'responses' && (
           <div className="flex items-center gap-2">
             {question.type === 'file_upload' && (
-              <Button variant="outline" size="xs" onClick={() => showToast('프로토타입: 실제 파일 다운로드는 API 연동 후 지원됩니다')}>
-                <FolderDown size={12} />
+              <Button variant="outline" onClick={() => showToast('프로토타입: 실제 파일 다운로드는 API 연동 후 지원됩니다')}>
+                <FolderDown size={14} />
                 제출물 일괄 다운로드
               </Button>
             )}
-            <Button variant="soft" size="xs" onClick={onExcel}>
-              <Download size={12} />
+            <Button variant="outline" onClick={onExcel}>
+              <Download size={14} />
               엑셀 일괄 채점
             </Button>
           </div>

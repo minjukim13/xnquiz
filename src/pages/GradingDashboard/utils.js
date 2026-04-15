@@ -15,6 +15,21 @@ export function setLocalGrades(grades) {
   }
 }
 
+export function getLocalComments() {
+  try {
+    const raw = localStorage.getItem('xnq_student_comments')
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+export function setLocalComments(comments) {
+  try {
+    localStorage.setItem('xnq_student_comments', JSON.stringify(comments))
+  } catch {}
+}
+
 export const SORT_OPTIONS = [
   { value: 'ungraded_first', label: '미채점 우선' },
   { value: 'question_order', label: '문항 번호순' },
