@@ -24,16 +24,14 @@ const BASE_STYLE = `
   }
   body { font-size: 13px; line-height: 1.6; color: #1e293b; background: white; }
 
-  .pdf-root { padding: 40px; }
+  .pdf-root { padding: 0; }
 
   .header { border-bottom: 2px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
   .header h1 { font-size: 22px; font-weight: 800; margin-bottom: 6px; color: #0f172a; }
   .header-meta { display: flex; gap: 20px; font-size: 12px; color: #64748b; }
 
-  .info-row { display: flex; gap: 32px; margin-bottom: 24px; padding: 14px 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; }
-  .info-item { display: flex; gap: 6px; align-items: center; }
-  .info-label { color: #94a3b8; font-weight: 400; }
-  .info-value { font-weight: 700; color: #334155; }
+  .info-line { margin-bottom: 24px; font-size: 13px; color: #64748b; }
+  .info-line b { font-weight: 700; color: #1e293b; margin-left: 2px; }
 
   .student-info { display: flex; gap: 32px; margin-bottom: 28px; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
   .student-field { font-size: 13px; color: #475569; display: flex; align-items: center; gap: 4px; }
@@ -253,11 +251,7 @@ export async function printQuizQuestions(quiz, questions) {
         ${quiz.week ? `<span>${quiz.week}주차 ${quiz.session || ''}차시</span>` : ''}
       </div>
     </div>
-    <div class="info-row">
-      <div class="info-item"><span class="info-label">문항 수</span><span class="info-value">${questions.length}문항</span></div>
-      <div class="info-item"><span class="info-label">총점</span><span class="info-value">${totalPoints}점</span></div>
-      ${quiz.timeLimit ? `<div class="info-item"><span class="info-label">시간 제한</span><span class="info-value">${quiz.timeLimit}분</span></div>` : ''}
-    </div>
+    <p class="info-line">문항 수 <b>${questions.length}문항</b> &nbsp;&nbsp;&nbsp; 총점 <b>${totalPoints}점</b>${quiz.timeLimit ? ` &nbsp;&nbsp;&nbsp; 시간 제한 <b>${quiz.timeLimit}분</b>` : ''}</p>
     <div class="student-info">
       <div class="student-field"><span class="student-field-label">학번</span><span class="student-field-blank"></span></div>
       <div class="student-field"><span class="student-field-label">이름</span><span class="student-field-blank"></span></div>

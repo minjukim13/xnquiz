@@ -1,19 +1,32 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import TypeBadge from '../../components/TypeBadge'
-import { Users, BarChart3, RefreshCw, Download, FolderDown, ChevronDown } from 'lucide-react'
+import { Users, BarChart3, Download, FolderDown, ChevronDown, RefreshCw } from 'lucide-react'
 import { getStudentAnswer } from '../../data/mockData'
 import ResponsesTab from './ResponsesTab'
 import StatsTab from './StatsTab'
-import RegradeQuestionModal from './RegradeQuestionModal'
+
+const REGRADE_OPTION_LABELS = {
+  award_both: '이전 정답과 수정된 정답 모두 인정',
+  new_answer_only: '수정된 정답 기준 재채점',
+  full_points: '전원 만점 처리',
+}
 
 // ─── 문항 중심: 우측 상세 패널 ─────────────────────────────────────────────
-export default function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, questionsModifiedAt, showToast }) {
-  const canRegrade = questionsModifiedAt && question.autoGrade
-  const [showRegrade, setShowRegrade] = useState(false)
+export default function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, showToast }) {
   const [changedStudentIds, setChangedStudentIds] = useState(new Set())
   const [showChoices, setShowChoices] = useState(false)
+
+  // 재채점 로그 읽기
+  const regradeInfo = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('xnq_regrade_log')
+      if (!raw) return null
+      const log = JSON.parse(raw)
+      return log[quizId]?.[question.id] || null
+    } catch { return null }
+  }, [quizId, question.id])
 
   // 문항 전환 시 초기화
   useEffect(() => { setChangedStudentIds(new Set()); setShowChoices(false) }, [question?.id])
@@ -95,6 +108,19 @@ export default function QuestionDetailPanel({ question, students, search, onSear
         )
       })()}
 
+      {/* 재채점 적용 안내 */}
+      {regradeInfo && (
+        <div className="flex items-start gap-2.5 mb-3 px-3.5 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
+          <RefreshCw size={13} className="shrink-0 mt-0.5 text-amber-600" />
+          <div className="text-[12px] leading-relaxed text-amber-800">
+            <span className="font-semibold">재채점 적용됨</span>
+            <span className="mx-1 text-amber-400">|</span>
+            {REGRADE_OPTION_LABELS[regradeInfo.option] ?? regradeInfo.option}
+            {regradeInfo.count > 0 && <span> ({regradeInfo.count}명 점수 변경)</span>}
+          </div>
+        </div>
+      )}
+
       {/* 탭 + 엑셀 */}
       <div className="flex items-center justify-between mb-3 gap-2">
         <div className="flex border-b-2 border-slate-200">
@@ -122,12 +148,6 @@ export default function QuestionDetailPanel({ question, students, search, onSear
         </div>
         {activeTab === 'responses' && (
           <div className="flex items-center gap-2">
-            {canRegrade && (
-              <Button variant="outline" size="xs" className="border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:text-amber-700" onClick={() => setShowRegrade(true)}>
-                <RefreshCw size={12} />
-                재채점
-              </Button>
-            )}
             {question.type === 'file_upload' && (
               <Button variant="outline" size="xs" onClick={() => showToast('프로토타입: 실제 파일 다운로드는 API 연동 후 지원됩니다')}>
                 <FolderDown size={12} />
@@ -148,15 +168,6 @@ export default function QuestionDetailPanel({ question, students, search, onSear
         <StatsTab question={question} students={students} />
       )}
 
-      {showRegrade && (
-        <RegradeQuestionModal
-          question={question}
-          students={students}
-          questionsModifiedAt={questionsModifiedAt}
-          onClose={() => setShowRegrade(false)}
-          onDone={(count, ids) => { setShowRegrade(false); setChangedStudentIds(ids); onGradeSaved(); showToast(count > 0 ? `재채점 완료: ${count}명의 점수가 변경되었습니다.` : '재채점 완료: 점수 변경 없음') }}
-        />
-      )}
     </div>
   )
 }

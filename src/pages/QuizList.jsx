@@ -310,7 +310,15 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
           </div>
           <h3 className="text-base font-semibold leading-snug mb-1 truncate text-slate-900">{quiz.title}</h3>
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
+            <p className="text-xs text-muted-foreground">
+              {quiz.startDate} ~ {quiz.dueDate}
+              {quiz.lockDate && (
+                <>
+                  <span className="text-gray-400">{' | '}</span>
+                  <span className="text-gray-500">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span>
+                </>
+              )}
+            </p>
             {ddayBadge && (
               <span className={cn(
                 'text-xs font-semibold px-1.5 py-0.5 rounded',
@@ -325,11 +333,6 @@ function QuizCard({ quiz, onToggleVisibility, onCopy }) {
           )}
           {quiz.allowLateSubmit && !quiz.lateSubmitDeadline && (
             <p className="text-xs text-amber-600 mt-0.5">지각 제출: 무제한 허용</p>
-          )}
-          {quiz.lockDate && (
-            <p className={cn('text-xs mt-0.5', new Date() > new Date(quiz.lockDate) ? 'text-red-500' : 'text-muted-foreground')}>
-              이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}
-            </p>
           )}
         </div>
 
@@ -809,7 +812,7 @@ function StudentQuizCard({ quiz, studentId }) {
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-xs text-muted-foreground">
                 {quiz.startDate} ~ {quiz.dueDate}
-                {quiz.lockDate && <span className="text-muted-foreground/60"> (이용 종료: {quiz.lockDate})</span>}
+                {quiz.lockDate && <><span className="text-gray-400">{' | '}</span><span className="text-gray-500">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span></>}
               </p>
               {ddayBadge && (
                 <span className={cn(

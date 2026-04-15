@@ -79,16 +79,6 @@ export default function GradingDashboard() {
   const quizQuestions = getQuizQuestions(id)
   const quizStudents = getQuizStudents(id)
 
-  // 문항 수정 타임스탬프 읽기
-  const questionsModifiedAt = useMemo(() => {
-    try {
-      const raw = localStorage.getItem('xnq_questions_modified')
-      if (!raw) return null
-      const map = JSON.parse(raw)
-      return map[id] ? new Date(map[id]) : null
-    } catch { return null }
-  }, [id])
-
   // localStorage 채점 기록을 반영한 실시간 gradedCount 계산
   const questionsWithLiveCounts = useMemo(() => {
     const grades = getLocalGrades()
@@ -477,7 +467,6 @@ export default function GradingDashboard() {
                     gradeVersion={gradeVersion}
                     excelRows={excelRows}
                     onExcelRowsConsumed={() => setExcelRows(null)}
-                    questionsModifiedAt={questionsModifiedAt}
                     showToast={showToast}
                   />
                 )}

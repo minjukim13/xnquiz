@@ -5,6 +5,7 @@ import { DropdownSelect } from './DropdownSelect'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import RegradeOptionsModal from './RegradeOptionsModal'
 
 // ── 유형별 아이콘 + 설명 메타 ──────────
 const TYPE_META = {
@@ -718,6 +719,41 @@ function questionToForm(q) {
   }
 }
 
+// ── 정답 변경 감지 ────────────────────────────────────────────────────────
+function hasAnswerChanged(type, oldQuestion, newQuestion) {
+  switch (type) {
+    case 'multiple_choice':
+    case 'true_false':
+      return String(oldQuestion.correctAnswer).trim().toLowerCase() !== String(newQuestion.correctAnswer).trim().toLowerCase()
+    case 'multiple_answers':
+    case 'short_answer': {
+      const toArr = v => (Array.isArray(v) ? v : []).map(s => String(s).trim().toLowerCase()).sort()
+      return JSON.stringify(toArr(oldQuestion.correctAnswer)) !== JSON.stringify(toArr(newQuestion.correctAnswer))
+    }
+    case 'fill_in_multiple_blanks': {
+      const toArr = v => (Array.isArray(v) ? v : []).map(s => String(s).trim().toLowerCase())
+      return JSON.stringify(toArr(oldQuestion.correctAnswer)) !== JSON.stringify(toArr(newQuestion.correctAnswer))
+    }
+    case 'numerical':
+      return Number(oldQuestion.correctAnswer) !== Number(newQuestion.correctAnswer) ||
+        (oldQuestion.tolerance ?? 0) !== (newQuestion.tolerance ?? 0)
+    case 'matching':
+      return JSON.stringify(oldQuestion.pairs) !== JSON.stringify(newQuestion.pairs)
+    case 'multiple_dropdowns':
+      return JSON.stringify(oldQuestion.dropdowns) !== JSON.stringify(newQuestion.dropdowns)
+    case 'formula':
+      return oldQuestion.formula !== newQuestion.formula ||
+        JSON.stringify(oldQuestion.variables) !== JSON.stringify(newQuestion.variables)
+    default:
+      return false
+  }
+}
+
+function isAutoGradeable(type) {
+  const ag = QUIZ_TYPES[type]?.autoGrade
+  return ag === true || ag === 'partial'
+}
+
 // ── 메인 모달 ──────────────────────────────────────────────────────────────
 export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', initialQuestion = null, submittedCount = 0 }) {
   const isEditMode = !!initialQuestion
@@ -748,9 +784,27 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
     setHoveredType(null)
   }
 
+  const [showRegradeOptions, setShowRegradeOptions] = useState(false)
+  const [pendingQuestion, setPendingQuestion] = useState(null)
+
   const handleAdd = () => {
     if (!isValid(selectedType, form)) return
-    onAdd(buildQuestion(selectedType, form))
+    const built = buildQuestion(selectedType, form)
+
+    // 편집 모드 + 제출 학생 있음 + 자동채점 유형 + 정답 변경됨 → 재채점 옵션
+    if (isEditMode && submittedCount > 0 && isAutoGradeable(selectedType) && hasAnswerChanged(selectedType, initialQuestion, built)) {
+      setPendingQuestion(built)
+      setShowRegradeOptions(true)
+      return
+    }
+
+    onAdd(built)
+    onClose()
+  }
+
+  const handleRegradeConfirm = (option) => {
+    onAdd(pendingQuestion, option)
+    setShowRegradeOptions(false)
     onClose()
   }
 
@@ -910,6 +964,14 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
           </div>
         )}
       </DialogContent>
+      {showRegradeOptions && (
+        <RegradeOptionsModal
+          question={pendingQuestion}
+          submittedCount={submittedCount}
+          onConfirm={handleRegradeConfirm}
+          onCancel={() => setShowRegradeOptions(false)}
+        />
+      )}
     </Dialog>
   )
 }
