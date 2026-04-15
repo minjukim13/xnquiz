@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, CheckCircle2, AlertCircle, BarChart2, FolderInput, Copy, Search, Settings2 } from 'lucide-react'
+import { Plus, FileText, AlertCircle, BarChart2, FolderInput, Copy, Search, Settings2 } from 'lucide-react'
+import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
@@ -261,12 +262,7 @@ function InstructorQuizList() {
 
       <QuizSettingsDialog open={showGlobalSettings} onOpenChange={setShowGlobalSettings} />
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 text-sm text-white bg-slate-900 rounded-lg shadow-xl">
-          <CheckCircle2 size={15} className="shrink-0 text-blue-300" />
-          <span>{toast}</span>
-        </div>
-      )}
+      {toast && <Toast message={toast} />}
     </Layout>
   )
 }
