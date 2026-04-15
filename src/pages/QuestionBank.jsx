@@ -295,7 +295,7 @@ function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDr
         <div
           draggable
           onDragStart={onDragStart}
-          className="flex items-center px-1.5 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 transition-colors shrink-0 self-stretch"
+          className="flex items-center px-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-slate-500 transition-colors shrink-0 self-stretch"
           title="드래그하여 순서 변경"
         >
           <GripVertical size={16} />
@@ -377,7 +377,7 @@ function ExcelUploadModal({ onClose, onImport }) {
             className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
             onClick={() => fileInputRef.current?.click()}
           >
-            <Upload size={24} className="mx-auto mb-2 text-slate-400" />
+            <Upload size={24} className="mx-auto mb-2 text-muted-foreground" />
             {file ? (
               <p className="text-sm font-medium text-slate-700">{file.name}</p>
             ) : (

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import TypeBadge from '../../components/TypeBadge'
-import { Users, BarChart3, RefreshCw, Download, FolderDown } from 'lucide-react'
+import { Users, BarChart3, RefreshCw, Download, FolderDown, ChevronDown } from 'lucide-react'
 import { getStudentAnswer } from '../../data/mockData'
 import ResponsesTab from './ResponsesTab'
 import StatsTab from './StatsTab'
@@ -13,61 +13,87 @@ export default function QuestionDetailPanel({ question, students, search, onSear
   const canRegrade = questionsModifiedAt && question.autoGrade
   const [showRegrade, setShowRegrade] = useState(false)
   const [changedStudentIds, setChangedStudentIds] = useState(new Set())
+  const [showChoices, setShowChoices] = useState(false)
 
   // 문항 전환 시 초기화
-  useEffect(() => { setChangedStudentIds(new Set()) }, [question?.id])
+  useEffect(() => { setChangedStudentIds(new Set()); setShowChoices(false) }, [question?.id])
+
+  // 통계 탭 전환 시 자동 펼치기
+  useEffect(() => { if (activeTab === 'stats') setShowChoices(true) }, [activeTab])
 
   return (
     <div className="flex flex-col h-full">
-      {/* 문항 정보 */}
-      <div className="bg-white mb-3 border border-border rounded-2xl p-6">
-        {/* 헤더: Q번호 · 유형 | 점수 */}
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-[14px] text-muted-foreground leading-[1.5]">Q{question.order} <TypeBadge type={question.type} /></span>
-          <span className="text-[14px] text-muted-foreground leading-[1.5]">{question.points}점</span>
-        </div>
-        {/* 문제 본문 */}
-        <p className="text-[18px] font-bold text-foreground leading-[1.5] mt-2">{question.text}</p>
+      {/* 문항 정보 카드 — 접기/펼치기 */}
+      {(() => {
+        const hasDetail = question.choices?.length > 0 || question.correctAnswer
+        const isExpandable = hasDetail && !['essay', 'file_upload'].includes(question.type)
 
-        {/* 선택지 리스트 */}
-        {question.choices && question.choices.length > 0 && (
-          <div className="mt-4 flex flex-col gap-2">
-            {question.choices.map((choice, i) => {
-              const isCorrect = choice === question.correctAnswer
-              return (
-                <div key={i} className={cn(
-                  'flex items-baseline gap-2.5 text-[14px] leading-[1.5] px-3 py-2 rounded-lg transition-colors',
-                  isCorrect ? 'bg-accent text-primary font-semibold' : 'text-secondary-foreground'
-                )}>
-                  <span className="flex-shrink-0 w-4 text-right">{i + 1}.</span>
-                  <span>{choice}</span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* 정답 안내 박스 */}
-        {question.correctAnswer && (
-          <div className="mt-4 flex items-center gap-2.5 bg-background rounded-lg px-4 py-3">
-            <span className="text-[13px] font-medium px-2 py-0.5 rounded bg-correct-bg text-correct shrink-0">정답</span>
-            {question.type === 'true_false' ? (
-              <div className="flex items-center gap-1.5">
-                {['참', '거짓'].map(opt => {
-                  const isCorrect = opt === question.correctAnswer
-                  return (
-                    <span key={opt} className={cn('px-2.5 py-0.5 rounded-full text-[13px] font-medium', isCorrect ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400')}>
-                      {opt}
-                    </span>
-                  )
-                })}
+        return (
+          <div className="bg-white mb-3 border border-border rounded-2xl">
+            {/* 카드 헤더 (항상 노출) */}
+            <div
+              className={cn('flex items-center gap-3 p-4', isExpandable && 'cursor-pointer hover:bg-slate-50 transition-colors rounded-2xl')}
+              onClick={() => isExpandable && setShowChoices(v => !v)}
+            >
+              {isExpandable && (
+                <ChevronDown size={16} className={cn('shrink-0 text-muted-foreground transition-transform', showChoices && 'rotate-180')} />
+              )}
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="text-[13px] font-bold text-muted-foreground shrink-0">Q{question.order}</span>
+                <TypeBadge type={question.type} small />
+                <p className={cn('text-[14px] font-semibold text-foreground line-clamp-2', !showChoices && 'flex-1')}>
+                  {question.text}
+                </p>
               </div>
-            ) : (
-              <span className="text-[14px] font-medium text-foreground">{question.correctAnswer}</span>
+              <span className="text-[13px] text-muted-foreground shrink-0">{question.points}점</span>
+            </div>
+
+            {/* 펼침 영역: 선지 + 정답 */}
+            {showChoices && isExpandable && (
+              <div className="px-4 pb-4 pt-0">
+                {/* 선택지 리스트 */}
+                {question.choices && question.choices.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    {question.choices.map((choice, i) => {
+                      const isCorrect = choice === question.correctAnswer
+                      return (
+                        <div key={i} className={cn(
+                          'flex items-baseline gap-2 text-[13px] leading-[1.5] px-2.5 py-1.5 rounded-md transition-colors',
+                          isCorrect ? 'bg-accent text-primary font-semibold' : 'text-secondary-foreground'
+                        )}>
+                          <span className="flex-shrink-0 w-4 text-right">{i + 1}.</span>
+                          <span>{choice}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* 정답 안내 박스 */}
+                {question.correctAnswer && (
+                  <div className="mt-2 flex items-center gap-2 bg-background rounded-md px-3 py-2">
+                    <span className="text-[12px] font-medium px-1.5 py-0.5 rounded bg-correct-bg text-correct shrink-0">정답</span>
+                    {question.type === 'true_false' ? (
+                      <div className="flex items-center gap-1.5">
+                        {['참', '거짓'].map(opt => {
+                          const isCorrect = opt === question.correctAnswer
+                          return (
+                            <span key={opt} className={cn('px-2 py-0.5 rounded-full text-[12px] font-medium', isCorrect ? 'bg-primary text-white' : 'bg-slate-100 text-muted-foreground')}>
+                              {opt}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <span className="text-[13px] font-medium text-foreground">{question.correctAnswer}</span>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
+        )
+      })()}
 
       {/* 탭 + 엑셀 */}
       <div className="flex items-center justify-between mb-3 gap-2">

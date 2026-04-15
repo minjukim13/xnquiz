@@ -111,10 +111,12 @@ function InstructorQuizList() {
     const quiz = quizzes[idx]
     if (quiz.status === 'draft') return
     const updated = [...quizzes]
-    updated[idx] = { ...updated[idx], visible: !quiz.visible }
+    const nextVisible = !quiz.visible
+    updated[idx] = { ...updated[idx], visible: nextVisible }
     const globalIdx = mockQuizzes.findIndex(q => q.id === quizId)
     if (globalIdx !== -1) mockQuizzes[globalIdx] = updated[idx]
     setQuizzes(updated)
+    showToast(`"${quiz.title}" 퀴즈가 ${nextVisible ? '공개' : '비공개'} 처리되었습니다`)
   }
 
   const cloneQuestions = (srcId, newId) => {

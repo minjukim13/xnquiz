@@ -230,15 +230,15 @@ function GradesTab({ quiz, students: allStudents }) {
                     <td className="px-4 py-3 text-sm text-center text-slate-500">{s.studentId}</td>
                     <td className="px-4 py-3 text-sm text-slate-500">{s.department}</td>
                     <td className="px-3 py-3 text-sm text-center whitespace-nowrap text-slate-700">
-                      {elapsed ?? <span className="text-slate-300">-</span>}
+                      {elapsed ?? <span className="text-muted-foreground">-</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-center whitespace-nowrap text-slate-700">
-                      {s.submittedAt ? s.submittedAt.split(' ')[1] : <span className="text-slate-300">-</span>}
+                      {s.submittedAt ? s.submittedAt.split(' ')[1] : <span className="text-muted-foreground">-</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-center">
                       {s.score !== null
                         ? <span className={cn('font-semibold', scorePct >= 80 ? 'text-primary' : scorePct >= 60 ? 'text-slate-600' : 'text-red-500')}>{s.score}점</span>
-                        : <span className="text-slate-300">-</span>
+                        : <span className="text-muted-foreground">-</span>
                       }
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -257,7 +257,7 @@ function GradesTab({ quiz, students: allStudents }) {
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-300">검색 결과가 없습니다</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">검색 결과가 없습니다</td></tr>
               )}
             </tbody>
           </table>
@@ -358,13 +358,13 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={distData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                <XAxis dataKey="score" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} />
+                <XAxis dataKey="score" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} allowDecimals={false} />
                 <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val) => [`${val}명`, '인원']} />
-                <ReferenceLine x={`${Math.round(avg)}점`} stroke="#3182F6" strokeDasharray="3 3" label={{ value: '평균', position: 'top', fontSize: 10, fill: '#3182F6' }} />
+                <ReferenceLine x={`${Math.round(avg)}점`} stroke="var(--primary)" strokeDasharray="3 3" label={{ value: '평균', position: 'top', fontSize: 10, fill: 'var(--primary)' }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {distData.map((d, i) => (
-                    <Cell key={i} fill={d.raw === Math.round(avg) ? '#3182F6' : '#E8F3FF'} />
+                    <Cell key={i} fill={d.raw === Math.round(avg) ? 'var(--primary)' : 'var(--accent)'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -377,7 +377,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           <div className="space-y-3">
             {[
               { label: '수강 인원', value: quiz.totalStudents, barColor: '#B0B8C1' },
-              { label: '제출 완료', value: quiz.submitted, barColor: '#3182F6', rate: submitRate },
+              { label: '제출 완료', value: quiz.submitted, barColor: 'var(--primary)', rate: submitRate },
               { label: '미제출', value: quiz.totalStudents - quiz.submitted, barColor: '#F69D37', rate: (100 - parseFloat(submitRate)).toFixed(1) },
               { label: '채점 완료', value: quiz.graded, barColor: '#31B46E', rate: gradeRate },
               { label: '채점 대기', value: quiz.pendingGrade, barColor: '#F04452' },
@@ -418,12 +418,12 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={qRateData} layout="vertical" margin={{ top: 0, right: 44, left: 8, bottom: 0 }}>
-            <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={v => `${v}%`} />
+            <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickFormatter={v => `${v}%`} />
             <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} width={32} />
             <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val, _name, props) => [props.payload.hasData ? `${val}%` : '채점 데이터 없음', `${props.payload.label} 득점률`]} />
             <ReferenceLine x={70} stroke="#31B46E" strokeDasharray="3 3" label={{ value: '70%', position: 'right', fontSize: 10, fill: '#31B46E' }} />
             <ReferenceLine x={40} stroke="#F04452" strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 10, fill: '#F04452' }} />
-            <Bar dataKey="rate" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 11, fill: '#94a3b8', formatter: v => `${v}%` }}>
+            <Bar dataKey="rate" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 11, fill: 'var(--muted-foreground)', formatter: v => `${v}%` }}>
               {qRateData.map((q, i) => (
                 <Cell key={i} fill={!q.hasData ? '#E5E8EB' : q.rate >= 70 ? '#31B46E' : q.rate >= 40 ? '#F69D37' : '#F04452'} />
               ))}

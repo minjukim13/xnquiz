@@ -125,7 +125,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                     step === n ? 'font-bold text-foreground' : step > n ? 'font-medium text-secondary-foreground' : 'font-medium text-caption',
                   )}>{label}</span>
                 </div>
-                {i < 2 && <ChevronRight size={14} className="text-slate-300 shrink-0" />}
+                {i < 2 && <ChevronRight size={14} className="text-muted-foreground shrink-0" />}
               </div>
             ))}
           </div>
@@ -278,7 +278,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                       disabled={additionalAttempts <= 1}
                       className={cn(
                         'w-9 h-9 flex items-center justify-center rounded-l-lg border border-border border-r-0 bg-white text-lg font-medium',
-                        additionalAttempts <= 1 ? 'cursor-not-allowed text-slate-300' : 'cursor-pointer text-secondary-foreground',
+                        additionalAttempts <= 1 ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer text-secondary-foreground',
                       )}
                     >-</button>
                     <span className="w-12 h-9 flex items-center justify-center text-[15px] font-bold text-foreground border-t border-b border-border bg-white">
@@ -290,7 +290,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                       disabled={additionalAttempts >= 5}
                       className={cn(
                         'w-9 h-9 flex items-center justify-center rounded-r-lg border border-border border-l-0 bg-white text-lg font-medium',
-                        additionalAttempts >= 5 ? 'cursor-not-allowed text-slate-300' : 'cursor-pointer text-secondary-foreground',
+                        additionalAttempts >= 5 ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer text-secondary-foreground',
                       )}
                     >+</button>
                   </div>

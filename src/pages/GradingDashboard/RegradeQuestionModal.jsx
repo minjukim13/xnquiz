@@ -56,7 +56,7 @@ export default function RegradeQuestionModal({ question, students, questionsModi
             </div>
           </div>
 
-          <p className="text-[12px] text-slate-400 leading-relaxed">
+          <p className="text-[12px] text-muted-foreground leading-relaxed">
             제출한 {submitted.length}명을 대상으로, 변경된 정답 기준으로 자동채점 문항만 재채점됩니다.<br />수동 조정 점수는 유지됩니다.
           </p>
 

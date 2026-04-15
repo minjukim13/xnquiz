@@ -80,7 +80,7 @@ export default function QuestionBankList() {
         </div>
 
         {/* 은행 카드 그리드 */}
-        <p className="text-sm mb-3 text-slate-400">
+        <p className="text-sm mb-3 text-muted-foreground">
           은행 <span className="font-semibold text-slate-700">{banks.length}</span>개
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -151,8 +151,8 @@ export default function QuestionBankList() {
         {banks.length === 0 && (
           <div className="mt-12 text-center">
             <BookOpen size={36} className="mx-auto mb-3 text-slate-200" />
-            <p className="text-sm font-medium mb-1 text-slate-400">문제은행이 없습니다</p>
-            <p className="text-xs mb-4 text-slate-300">새 문제은행을 만들어 문항을 관리하세요</p>
+            <p className="text-sm font-medium mb-1 text-muted-foreground">문제은행이 없습니다</p>
+            <p className="text-xs mb-4 text-muted-foreground">새 문제은행을 만들어 문항을 관리하세요</p>
             <button
               onClick={() => setShowAddModal(true)}
               className="text-sm font-medium px-4 py-2 bg-primary text-primary-foreground rounded transition-colors hover:bg-primary-hover"
@@ -189,7 +189,7 @@ export default function QuestionBankList() {
             <p className="text-sm text-slate-700">
               <span className="font-semibold">{deleteTarget.name}</span>을(를) 삭제할까요?
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               은행에 포함된 문항 {getQuestionCount(deleteTarget.id)}개가 함께 삭제되며 복구할 수 없습니다.
             </p>
             <div className="flex justify-end gap-2 mt-2">
@@ -215,7 +215,7 @@ export default function QuestionBankList() {
             <p className="text-sm text-slate-700">
               <span className="font-semibold">{copyTarget.name}</span>의 복사본을 생성할까요?
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               문항 {getQuestionCount(copyTarget.id)}개가 포함된 "{copyTarget.name}-사본" 문제은행이 생성됩니다.
             </p>
             <div className="flex justify-end gap-2 mt-2">
@@ -360,7 +360,7 @@ function AddBankModal({ onClose, onAdd }) {
             ))}
           </div>
           {difficulty && (
-            <p className="text-xs mt-1.5 text-slate-400">
+            <p className="text-xs mt-1.5 text-muted-foreground">
               난이도 '{DIFF_LABEL[difficulty]}'인 문항만 추가할 수 있습니다
             </p>
           )}
@@ -408,9 +408,9 @@ function QuestionRow({ q, selected, selectable, onToggle }) {
           <span className="text-xs px-1.5 py-0.5 font-medium rounded bg-slate-100 text-slate-500">
             {QUIZ_TYPES[q.type]?.label}
           </span>
-          <span className="text-xs text-slate-400">{q.points}점</span>
+          <span className="text-xs text-muted-foreground">{q.points}점</span>
           {q._sourceBankName && (
-            <span className="text-xs text-slate-300">{q._sourceBankName}</span>
+            <span className="text-xs text-muted-foreground">{q._sourceBankName}</span>
           )}
         </div>
         <p className="text-xs leading-relaxed line-clamp-2 text-slate-700">{q.text}</p>
@@ -433,12 +433,12 @@ function DragRow({ q, index, dragOverIndex, onDragStart, onDragOver, onDragLeave
         dragOverIndex === index && 'border-primary'
       )}
     >
-      <GripVertical size={13} className="shrink-0 mt-0.5 text-slate-300" />
+      <GripVertical size={13} className="shrink-0 mt-0.5 text-muted-foreground" />
       <DiffBadge difficulty={q.difficulty} className="shrink-0 text-[10px]" />
       <p className="flex-1 text-xs leading-relaxed line-clamp-2 text-slate-700">{q.text}</p>
       <button
         onClick={() => onRemove(q.id)}
-        className="shrink-0 mt-0.5 text-slate-300 hover:text-red-500 transition-colors"
+        className="shrink-0 mt-0.5 text-muted-foreground hover:text-red-500 transition-colors"
       >
         <X size={13} />
       </button>
@@ -450,7 +450,7 @@ function DragRow({ q, index, dragOverIndex, onDragStart, onDragOver, onDragLeave
 function DifficultySelector({ value, allowedDifficulties, onChange }) {
   return (
     <div className="flex items-center gap-1">
-      <span className="text-xs shrink-0 text-slate-400">난이도</span>
+      <span className="text-xs shrink-0 text-muted-foreground">난이도</span>
       {['', 'high', 'medium', 'low'].map(d => {
         const isAllowed = allowedDifficulties.includes(d)
         const isActive = value === d
@@ -490,7 +490,7 @@ function SourceBankList({ availableCourses, courseGroups, selectedSourceIds, onT
         if (list.length === 0) return null
         return (
           <div key={c.id}>
-            <p className="px-3 py-1 text-xs font-medium truncate text-slate-400 bg-slate-50">{c.name}</p>
+            <p className="px-3 py-1 text-xs font-medium truncate text-muted-foreground bg-slate-50">{c.name}</p>
             {list.map(b => {
               const isChecked = selectedSourceIds.includes(b.id)
               return (
@@ -546,7 +546,7 @@ function QuestionChecklist({ selectedSourceIds, filtered, selectedQuestionIds, a
   if (selectedSourceIds.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center py-12">
-        <p className="text-sm text-center text-slate-400">좌측에서 소스 문제은행을 선택하세요</p>
+        <p className="text-sm text-center text-muted-foreground">좌측에서 소스 문제은행을 선택하세요</p>
       </div>
     )
   }
@@ -572,14 +572,14 @@ function QuestionChecklist({ selectedSourceIds, filtered, selectedQuestionIds, a
               {allFilteredSelected ? '전체 해제' : '전체선택'}
             </span>
           </label>
-          <span className={cn('text-xs', selectedQuestionIds.length > 0 ? 'text-primary' : 'text-slate-400')}>
+          <span className={cn('text-xs', selectedQuestionIds.length > 0 ? 'text-primary' : 'text-muted-foreground')}>
             {selectedQuestionIds.length > 0 ? `${selectedQuestionIds.length}개 선택` : `총 ${filtered.length}개`}
           </span>
         </div>
       )}
       <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
         {filtered.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-400">해당하는 문항이 없습니다</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">해당하는 문항이 없습니다</p>
         ) : (
           filtered.map(q => (
             <QuestionRow
@@ -755,9 +755,9 @@ function ExportToBankModal({ onClose, onExport }) {
             {/* 소스 */}
             <div className="flex flex-col border-b border-slate-100 overflow-hidden" style={{ flex: '0 0 50%' }}>
               <div className="px-3 pt-2.5 pb-1.5 shrink-0">
-                <p className="text-xs font-semibold mb-1.5 text-slate-400">소스 문제은행</p>
+                <p className="text-xs font-semibold mb-1.5 text-muted-foreground">소스 문제은행</p>
                 <div className="relative">
-                  <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
                     value={courseSearch}
@@ -792,7 +792,7 @@ function ExportToBankModal({ onClose, onExport }) {
                     onClick={() => { setTargetMode('new'); setTargetBankId(null) }}
                     className={cn(
                       'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                      targetMode === 'new' ? 'border-primary text-primary' : 'border-transparent text-slate-400'
+                      targetMode === 'new' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
                     )}
                   >
                     새 은행
@@ -801,7 +801,7 @@ function ExportToBankModal({ onClose, onExport }) {
                     onClick={() => setTargetMode('existing')}
                     className={cn(
                       'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                      targetMode === 'existing' ? 'border-primary text-primary' : 'border-transparent text-slate-400'
+                      targetMode === 'existing' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
                     )}
                   >
                     기존 은행
@@ -827,7 +827,7 @@ function ExportToBankModal({ onClose, onExport }) {
                 ) : (
                   <div className="overflow-y-auto p-2 space-y-1" style={{ maxHeight: 120 }}>
                     {courseBanks.length === 0 ? (
-                      <p className="text-xs py-2 text-center text-slate-300">선택 가능한 은행이 없습니다</p>
+                      <p className="text-xs py-2 text-center text-muted-foreground">선택 가능한 은행이 없습니다</p>
                     ) : (
                       courseBanks.map(b => (
                         <TargetBankBtn
@@ -889,12 +889,12 @@ function ExportToBankModal({ onClose, onExport }) {
             <div className="px-3 py-2.5 shrink-0 border-b border-slate-100">
               <p className="text-xs font-semibold text-slate-500">
                 선택된 문항
-                <span className="ml-1.5 font-normal text-slate-400">{selectedQuestions.length}개</span>
+                <span className="ml-1.5 font-normal text-muted-foreground">{selectedQuestions.length}개</span>
               </p>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {selectedQuestions.length === 0 ? (
-                <p className="py-6 text-center text-xs text-slate-300">선택된 문항이 없습니다</p>
+                <p className="py-6 text-center text-xs text-muted-foreground">선택된 문항이 없습니다</p>
               ) : (
                 selectedQuestions.map((q, index) => (
                   <DragRow
@@ -1091,9 +1091,9 @@ function ImportModal({ onClose, onImport }) {
           {/* 1열: 소스 은행 + 대상 설정 */}
           <div className="flex flex-col shrink-0 w-[200px] border-r border-slate-100">
             <div className="px-3 pt-2.5 pb-1.5 shrink-0">
-              <p className="text-xs font-semibold mb-1.5 text-slate-400">소스 문제은행</p>
+              <p className="text-xs font-semibold mb-1.5 text-muted-foreground">소스 문제은행</p>
               <div className="relative">
-                <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" />
+                <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
                   value={courseSearch}
@@ -1117,7 +1117,7 @@ function ImportModal({ onClose, onImport }) {
                   onClick={() => setTargetMode('new')}
                   className={cn(
                     'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                    targetMode === 'new' ? 'border-primary text-primary' : 'border-transparent text-slate-400'
+                    targetMode === 'new' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
                   )}
                 >
                   새 은행
@@ -1126,7 +1126,7 @@ function ImportModal({ onClose, onImport }) {
                   onClick={() => setTargetMode('existing')}
                   className={cn(
                     'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                    targetMode === 'existing' ? 'border-primary text-primary' : 'border-transparent text-slate-400'
+                    targetMode === 'existing' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
                   )}
                 >
                   기존 은행
@@ -1152,7 +1152,7 @@ function ImportModal({ onClose, onImport }) {
               ) : (
                 <div className="overflow-y-auto p-2 space-y-1" style={{ maxHeight: 120 }}>
                   {existingTargetBanks.length === 0 ? (
-                    <p className="text-xs py-2 text-center text-slate-300">선택 가능한 은행이 없습니다</p>
+                    <p className="text-xs py-2 text-center text-muted-foreground">선택 가능한 은행이 없습니다</p>
                   ) : (
                     existingTargetBanks.map(b => (
                       <TargetBankBtn
@@ -1213,12 +1213,12 @@ function ImportModal({ onClose, onImport }) {
             <div className="px-3 py-2.5 shrink-0 border-b border-slate-100">
               <p className="text-xs font-semibold text-slate-500">
                 선택된 문항
-                <span className="ml-1.5 font-normal text-slate-400">{selectedQuestions.length}개</span>
+                <span className="ml-1.5 font-normal text-muted-foreground">{selectedQuestions.length}개</span>
               </p>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {selectedQuestions.length === 0 ? (
-                <p className="py-6 text-center text-xs text-slate-300">선택된 문항이 없습니다</p>
+                <p className="py-6 text-center text-xs text-muted-foreground">선택된 문항이 없습니다</p>
               ) : (
                 selectedQuestions.map((q, index) => (
                   <DragRow
