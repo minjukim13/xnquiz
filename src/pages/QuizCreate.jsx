@@ -68,8 +68,51 @@ export default function QuizCreate() {
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
 
+  const hasChanges = form.title || form.description || questions.length > 0
+
   const isFormValid = form.title && form.startDate && form.dueDate
     && new Date(form.dueDate) > new Date(form.startDate) && questions.length > 0
+
+  const handleCancel = () => {
+    if (hasChanges) {
+      setConfirmDialog({
+        title: '작성 취소',
+        message: '작성 중인 내용이 있습니다. 저장하지 않고 나가시겠습니까?',
+        onConfirm: () => navigate('/'),
+      })
+    } else {
+      navigate('/')
+    }
+  }
+
+  const handleSaveDraft = () => {
+    if (!form.title) {
+      setAlertDialog({ title: '임시저장 불가', message: '퀴즈 제목을 입력해주세요.', variant: 'error' })
+      return
+    }
+    mockQuizzes.push({
+      id: String(Date.now()), title: form.title, description: form.description,
+      course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'draft', visible: false,
+      startDate: form.startDate || null, dueDate: form.dueDate || null,
+      week: form.week ?? null, session: form.session ?? null,
+      timeLimit: form.timeLimitType === -1 ? Number(form.timeLimitCustom) || 0 : form.timeLimitType,
+      allowAttempts: form.allowAttempts,
+      scorePolicy: form.allowAttempts >= 2 || form.allowAttempts === -1 ? form.scorePolicy : null,
+      shuffleChoices: form.shuffleChoices, shuffleQuestions: form.shuffleQuestions,
+      scoreRevealEnabled: form.scoreRevealEnabled,
+      scoreRevealScope: form.scoreRevealEnabled ? form.scoreRevealScope : null,
+      scoreRevealTiming: form.scoreRevealEnabled ? form.scoreRevealTiming : null,
+      scoreRevealStart: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealStart || null : null,
+      scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
+      accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
+      allowLateSubmit: form.allowLateSubmit,
+      lateSubmitHours: form.allowLateSubmit && form.lateSubmitHours ? Number(form.lateSubmitHours) : null,
+      notice: form.notice,
+      totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
+      questions: questions.length, totalPoints,
+    })
+    setAlertDialog({ title: '임시저장 완료', message: '퀴즈가 임시저장되었습니다. 퀴즈 목록에서 이어서 편집할 수 있습니다.' })
+  }
 
   const addQuestion = useCallback((q) => {
     setQuestions(prev => prev.find(e => e.id === q.id) ? prev : [...prev, q])
@@ -149,9 +192,9 @@ export default function QuizCreate() {
 
         {/* 하단 버튼 */}
         <div className="flex items-center justify-between mt-5 pt-5 border-t border-border">
-          <Button size="lg" variant="ghost" onClick={() => navigate('/')} className="text-muted-foreground hover:text-foreground px-4">취소</Button>
+          <Button size="lg" variant="ghost" onClick={handleCancel} className="text-muted-foreground hover:text-foreground px-4">취소</Button>
           <div className="flex items-center gap-2">
-            <Button size="lg" variant="outline" className="px-4">임시저장</Button>
+            <Button size="lg" variant="outline" onClick={handleSaveDraft} className="px-4">임시저장</Button>
             {tab === 'info' ? (
               <Button size="lg" onClick={() => setTab('questions')} className="px-4">문항 구성 →</Button>
             ) : (
@@ -204,7 +247,7 @@ function InfoTab({ form, set }) {
           <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder="학생에게 표시될 퀴즈 설명 (선택)" rows={2} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-none" />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="주차"><CustomSelect value={form.week} onChange={v => set('week', v)} options={WEEK_OPTIONS} placeholder="주차 선택" /></Field>
+          <Field label="주차"><CustomSelect value={form.week} onChange={v => { set('week', v); if (v !== null && !form.session) set('session', 1); if (v === null) set('session', null) }} options={WEEK_OPTIONS} placeholder="주차 선택" /></Field>
           <Field label="차시"><CustomSelect value={form.session} onChange={v => set('session', v)} options={SESSION_OPTIONS} placeholder="차시 선택" /></Field>
         </div>
       </Section>

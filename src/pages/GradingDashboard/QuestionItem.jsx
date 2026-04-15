@@ -29,7 +29,7 @@ export default function QuestionItem({ question, selected, onClick, dimmed }) {
               <span className="text-xs px-1.5 py-0.5 rounded text-green-700 bg-green-50">완료</span>
             )}
           </div>
-          <p className={cn('text-[13px] leading-relaxed line-clamp-2', dimmed ? 'text-slate-400' : 'text-foreground')}>
+          <p className={cn('text-[13px] leading-relaxed line-clamp-2', dimmed ? 'text-muted-foreground' : 'text-foreground')}>
             {question.text}
           </p>
         </div>

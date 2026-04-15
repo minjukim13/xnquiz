@@ -9,6 +9,7 @@ import { printQuizQuestions } from '../utils/pdfUtils'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
 import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, recalculateScorePolicy } from '../data/mockData'
+import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -84,11 +85,36 @@ export default function QuizEdit() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [hasUnsavedChanges])
 
+  const [confirmDialog, setConfirmDialog] = useState(null)
+  const [alertDialog, setAlertDialog] = useState(null)
+
   // react-router 네비게이션 시 경고 (브레드크럼 등)
   const safeNavigate = useCallback((path) => {
     if (hasUnsavedChanges && !window.confirm('저장하지 않은 변경사항이 있습니다. 나가시겠습니까?')) return
     navigate(path)
   }, [hasUnsavedChanges, navigate])
+
+  const handleCancel = () => {
+    if (hasUnsavedChanges) {
+      setConfirmDialog({
+        title: '편집 취소',
+        message: '저장하지 않은 변경사항이 있습니다. 저장하지 않고 나가시겠습니까?',
+        onConfirm: () => navigate('/'),
+      })
+    } else {
+      navigate('/')
+    }
+  }
+
+  const handleSaveDraft = () => {
+    const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
+    if (idx !== -1) {
+      if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
+      mockQuizzes[idx] = { ...mockQuizzes[idx], title, description, week: week ?? null, session: session ?? null, status: quiz.status, questions: questions.length, totalPoints, timeLimit: timeLimitType === -1 ? Number(timeLimitCustom) : timeLimitType, allowAttempts, scorePolicy, allowLateSubmit, lateSubmitHours: allowLateSubmit && lateSubmitHours ? Number(lateSubmitHours) : null, scoreRevealEnabled, scoreRevealScope: scoreRevealEnabled ? scoreRevealScope : null, scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null, scoreRevealStart: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null, scoreRevealEnd: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd || null : null }
+    }
+    setQuizQuestions(quiz.id, questions)
+    setAlertDialog({ title: '임시저장 완료', message: '변경사항이 임시저장되었습니다.' })
+  }
 
   const handleSave = () => {
     const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
@@ -121,6 +147,8 @@ export default function QuizEdit() {
                 <span className={cn('w-1.5 h-1.5 rounded-full inline-block', quiz.visible !== false ? 'bg-green-600' : 'bg-red-600')} />{quiz.visible !== false ? '공개 중' : '비공개'}
               </button>
             )}
+            <Button size="lg" variant="ghost" onClick={handleCancel} className="text-muted-foreground hover:text-foreground">취소</Button>
+            <Button size="lg" variant="outline" onClick={handleSaveDraft}>임시저장</Button>
             <Button size="lg" variant="outline" onClick={() => questions.length > 0 && printQuizQuestions(quiz, questions)} disabled={questions.length === 0}><Printer size={15} />문제지 인쇄</Button>
             <Button size="lg" onClick={handleSave} className="px-5">저장</Button>
           </div>
@@ -200,7 +228,7 @@ export default function QuizEdit() {
             )}
           </div>
           <div className="space-y-4">
-            <SC title="기본 정보"><SF label="퀴즈 제목"><input type="text" value={title} onChange={e => setTitle(e.target.value)} className={INPUT_CLS} placeholder="퀴즈 제목을 입력하세요" /></SF><SF label="퀴즈 설명"><textarea value={description} onChange={e => setDescription(e.target.value)} className={cn(INPUT_CLS, 'resize-none')} rows={3} placeholder="학생에게 표시될 퀴즈 설명 (선택)" /></SF><div className="grid grid-cols-2 gap-2"><SF label="주차"><CustomSelect value={week} onChange={setWeek} options={WEEK_OPTIONS} placeholder="선택 안함" /></SF><SF label="차시"><CustomSelect value={session} onChange={setSession} options={SESSION_OPTIONS} placeholder="선택 안함" /></SF></div></SC>
+            <SC title="기본 정보"><SF label="퀴즈 제목"><input type="text" value={title} onChange={e => setTitle(e.target.value)} className={INPUT_CLS} placeholder="퀴즈 제목을 입력하세요" /></SF><SF label="퀴즈 설명"><textarea value={description} onChange={e => setDescription(e.target.value)} className={cn(INPUT_CLS, 'resize-none')} rows={3} placeholder="학생에게 표시될 퀴즈 설명 (선택)" /></SF><div className="grid grid-cols-2 gap-2"><SF label="주차"><CustomSelect value={week} onChange={v => { setWeek(v); if (v !== null && !session) setSession(1); if (v === null) setSession(null) }} options={WEEK_OPTIONS} placeholder="선택 안함" /></SF><SF label="차시"><CustomSelect value={session} onChange={setSession} options={SESSION_OPTIONS} placeholder="선택 안함" /></SF></div></SC>
             <SC title="퀴즈 유형"><div className="grid grid-cols-2 gap-2">{[{ value: 'graded', label: '평가용', desc: '성적 반영' }, { value: 'practice', label: '연습용', desc: '성적 미반영' }].map(opt => (<button key={opt.value} onClick={() => setQuizMode(opt.value)} className={cn('text-left p-2.5 rounded-md transition-all border-2', quizMode === opt.value ? 'border-primary bg-accent' : 'border-border bg-white')}><p className={cn('text-sm font-semibold', quizMode === opt.value ? 'text-primary' : 'text-slate-700')}>{opt.label}</p><p className={cn('text-xs mt-0.5', quizMode === opt.value ? 'text-primary' : 'text-muted-foreground')}>{opt.desc}</p></button>))}</div></SC>
             <SC title="응시 설정"><SF label="응시 시간 제한"><CustomSelect value={timeLimitType} onChange={setTimeLimitType} options={TIME_LIMIT_OPTIONS} />{timeLimitType === -1 && <div className="flex items-center gap-2 mt-2"><input type="number" value={timeLimitCustom} onChange={e => setTimeLimitCustom(e.target.value)} placeholder="분 입력" min={1} className={INPUT_CLS} /><span className="text-xs shrink-0 text-muted-foreground">분</span></div>}</SF><SF label="최대 응시 횟수"><CustomSelect value={allowAttempts} onChange={setAllowAttempts} options={ATTEMPT_OPTIONS} /></SF>{isMultiAttempt && <SF label="복수 응시 시 채점 방식"><CustomSelect value={scorePolicy} onChange={setScorePolicy} options={SCORE_POLICIES} /></SF>}<div className="space-y-2"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={allowLateSubmit} onChange={e => setAllowLateSubmit(e.target.checked)} className="rounded accent-primary" /><span className="text-sm font-medium text-slate-700">마감 후 지각 제출 허용</span></label>{allowLateSubmit && <div className="flex items-center gap-2 pl-5"><input type="number" value={lateSubmitHours} onChange={e => setLateSubmitHours(e.target.value)} placeholder="예: 24" min={1} className="w-20 text-sm font-medium text-slate-700 px-2 py-1.5 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" /><span className="text-xs text-muted-foreground">시간</span><span className="text-xs text-muted-foreground">(비우면 무제한)</span></div>}</div></SC>
             <SC title="표시 설정"><div className="space-y-3"><Tgl checked={shuffleChoices} onChange={setShuffleChoices} label="선택지 무작위 배열" /><Tgl checked={shuffleQuestions} onChange={setShuffleQuestions} label="문항 순서 무작위" /><Tgl checked={scoreRevealEnabled} onChange={setScoreRevealEnabled} label="성적 공개" />{scoreRevealEnabled && <div className="space-y-3 pl-1"><div><p className="text-sm font-semibold mb-2 text-slate-600">공개 범위</p><div className="grid grid-cols-2 gap-2">{[{ value: 'wrong_only', label: '오답 여부만', desc: '정오답 + 점수' }, { value: 'with_answer', label: '정답까지', desc: '정오답 + 점수 + 정답' }].map(opt => (<button key={opt.value} type="button" onClick={() => setScoreRevealScope(opt.value)} className={cn('flex flex-col items-start gap-0.5 p-2.5 rounded-lg text-left w-full transition-all border-2', scoreRevealScope === opt.value ? 'border-primary bg-accent' : 'border-border bg-white')}><span className={cn('text-sm font-semibold', scoreRevealScope === opt.value ? 'text-primary' : 'text-slate-700')}>{opt.label}</span><span className="text-xs text-muted-foreground">{opt.desc}</span></button>))}</div></div><div><p className="text-sm font-semibold mb-2 text-slate-600">공개 시점</p><div className="space-y-1.5">{[{ value: 'immediately', label: '제출 즉시' }, { value: 'after_due', label: '마감 후' }, { value: 'period', label: '기간 설정' }].map(opt => (<label key={opt.value} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="revealTimingEdit" checked={scoreRevealTiming === opt.value} onChange={() => setScoreRevealTiming(opt.value)} className="accent-primary" /><span className="text-sm font-medium text-slate-700">{opt.label}</span></label>))}</div>{scoreRevealTiming === 'period' && <div className="mt-2 pt-2 space-y-1.5 border-t border-blue-100"><div><label className="block text-sm font-semibold mb-2 text-slate-600">공개 시작일</label><input type="datetime-local" value={scoreRevealStart} onChange={e => setScoreRevealStart(e.target.value)} className={INPUT_CLS} /></div><div><label className="block text-sm font-semibold mb-2 text-slate-600">공개 종료일</label><input type="datetime-local" value={scoreRevealEnd} onChange={e => setScoreRevealEnd(e.target.value)} className={INPUT_CLS} /></div></div>}</div></div>}</div></SC>
@@ -212,6 +240,8 @@ export default function QuizEdit() {
       <RandomQuestionBankModal open={showRandomBankModal} onOpenChange={setShowRandomBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse={quiz?.course} />
       {showAddModal && <AddQuestionModal onClose={() => setShowAddModal(false)} onAdd={addNewQuestion} />}
       {editingQuestion && <AddQuestionModal onClose={() => setEditingQuestion(null)} onAdd={updateQuestion} initialQuestion={editingQuestion} submittedCount={submittedCount} />}
+      {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
+      {alertDialog && <AlertDialog title={alertDialog.title} message={alertDialog.message} variant={alertDialog.variant} onClose={() => setAlertDialog(null)} />}
     </Layout>
   )
 }

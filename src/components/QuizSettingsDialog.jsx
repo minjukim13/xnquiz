@@ -194,7 +194,7 @@ function FormulaTooltip({ formula }) {
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
     >
-      <span className="w-3.5 h-3.5 rounded-full inline-flex items-center justify-center text-[9px] font-bold border border-slate-300 text-slate-400 cursor-help leading-none">?</span>
+      <span className="w-3.5 h-3.5 rounded-full inline-flex items-center justify-center text-[9px] font-bold border border-slate-300 text-muted-foreground cursor-help leading-none">?</span>
       {show && (
         <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-50 w-max max-w-[260px] px-2.5 py-1.5 rounded-md bg-slate-800 text-white text-[11px] leading-relaxed shadow-lg pointer-events-none">
           <span className="font-semibold block mb-0.5">산출 공식</span>
@@ -344,7 +344,7 @@ function ScoringSimulation({ penaltyMethod }) {
             }
           </span>
           {selected.size > 0 && (
-            <button onClick={() => setSelected(new Set())} className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors">초기화</button>
+            <button onClick={() => setSelected(new Set())} className="text-[11px] text-muted-foreground hover:text-slate-600 transition-colors">초기화</button>
           )}
         </div>
 
@@ -355,12 +355,12 @@ function ScoringSimulation({ penaltyMethod }) {
             const isActive = m.key === penaltyMethod
             return (
               <div key={m.key} className={cn('py-2 px-2 text-center', isActive && 'bg-blue-50/60')}>
-                <p className={cn('text-[10px] mb-0.5', isActive ? 'text-primary font-semibold' : 'text-slate-400')}>{m.label}</p>
+                <p className={cn('text-[10px] mb-0.5', isActive ? 'text-primary font-semibold' : 'text-muted-foreground')}>{m.label}</p>
                 <p className={cn(
                   'text-sm tabular-nums font-bold',
                   isActive
                     ? score === points ? 'text-primary' : score === 0 && selected.size > 0 ? 'text-red-500' : 'text-slate-800'
-                    : 'text-slate-400'
+                    : 'text-muted-foreground'
                 )}>
                   {score}점
                 </p>

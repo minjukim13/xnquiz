@@ -1,24 +1,46 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function CustomSelect({ value, onChange, options, placeholder = '선택', className = '' }) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
   const ref = useRef(null)
+  const btnRef = useRef(null)
+  const menuRef = useRef(null)
+
+  const updatePos = useCallback(() => {
+    if (!btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    setPos({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+  }, [])
 
   useEffect(() => {
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target) && menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+    updatePos()
+    window.addEventListener('scroll', updatePos, true)
+    window.addEventListener('resize', updatePos)
+    return () => {
+      window.removeEventListener('scroll', updatePos, true)
+      window.removeEventListener('resize', updatePos)
+    }
+  }, [open, updatePos])
 
   const selected = options.find(o => String(o.value) === String(value))
 
   return (
     <div ref={ref} className={cn('relative', className)}>
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen(o => !o)}
         className={cn(
@@ -35,8 +57,12 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
         />
       </button>
 
-      {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white z-50 overflow-hidden py-1 max-h-60 overflow-y-auto border border-border rounded-md shadow-lg">
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
+          className="bg-white py-1 max-h-60 overflow-y-auto border border-border rounded-md shadow-lg"
+        >
           {options.map(o => {
             const isSelected = String(o.value) === String(value)
             return (
@@ -54,7 +80,8 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
               </button>
             )
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

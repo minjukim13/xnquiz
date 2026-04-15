@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -20,13 +21,35 @@ export function DropdownSelect({
   ghost = false,
 }) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
   const ref = useRef(null)
+  const btnRef = useRef(null)
+  const menuRef = useRef(null)
+
+  const updatePos = useCallback(() => {
+    if (!btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    setPos({ top: rect.bottom + 6, left: rect.left, width: rect.width })
+  }, [])
 
   useEffect(() => {
-    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const handler = e => {
+      if (ref.current && !ref.current.contains(e.target) && menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
+    }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+    updatePos()
+    window.addEventListener('scroll', updatePos, true)
+    window.addEventListener('resize', updatePos)
+    return () => {
+      window.removeEventListener('scroll', updatePos, true)
+      window.removeEventListener('resize', updatePos)
+    }
+  }, [open, updatePos])
 
   const s = SIZE_MAP[size] ?? SIZE_MAP.md
   const selected = options.find(o => String(o.value) === String(value))
@@ -35,6 +58,7 @@ export function DropdownSelect({
   return (
     <div ref={ref} className={cn('relative', className)} style={style}>
       <button
+        ref={btnRef}
         type="button"
         onClick={() => !disabled && setOpen(o => !o)}
         className={cn(
@@ -59,13 +83,17 @@ export function DropdownSelect({
         />
       </button>
 
-      {open && !disabled && options.length > 0 && (
-        <div className={cn(
-          'absolute left-0 top-full mt-1.5 z-40 py-1.5 min-w-full w-max max-h-80 overflow-y-auto',
-          'bg-white rounded-xl ring-1 ring-black/[0.06]',
-          'shadow-[0_4px_16px_rgba(0,0,0,0.08),0_0px_0px_1px_rgba(0,0,0,0.04)]',
-          'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-100',
-        )}>
+      {open && !disabled && options.length > 0 && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, minWidth: pos.width, zIndex: 9999 }}
+          className={cn(
+            'py-1.5 w-max max-h-80 overflow-y-auto',
+            'bg-white rounded-xl ring-1 ring-black/[0.06]',
+            'shadow-[0_4px_16px_rgba(0,0,0,0.08),0_0px_0px_1px_rgba(0,0,0,0.04)]',
+            'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-100',
+          )}
+        >
           {options.map(o => {
             const isSel = String(o.value) === String(value)
             return (
@@ -88,7 +116,8 @@ export function DropdownSelect({
               </button>
             )
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

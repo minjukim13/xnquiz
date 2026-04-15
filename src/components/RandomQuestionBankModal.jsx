@@ -194,16 +194,16 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                   'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
                   step > n ? 'bg-green-500 text-white'
                     : step === n ? 'bg-primary text-primary-foreground'
-                    : 'bg-slate-100 text-slate-400'
+                    : 'bg-slate-100 text-muted-foreground'
                 )}>
                   {step > n ? <Check size={10} /> : n}
                 </span>
                 <span className={cn(
                   'text-xs whitespace-nowrap',
-                  step === n ? 'font-semibold text-slate-700' : 'text-slate-400'
+                  step === n ? 'font-semibold text-slate-700' : 'text-muted-foreground'
                 )}>{label}</span>
               </div>
-              {i < 1 && <ChevronRight size={12} className="text-slate-300 shrink-0" />}
+              {i < 1 && <ChevronRight size={12} className="text-muted-foreground shrink-0" />}
             </div>
           ))}
         </div>
@@ -229,7 +229,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
               </div>
 
               {currentBanks.length === 0 ? (
-                <p className="text-xs py-3 text-center text-slate-400">이 과목에 등록된 문제은행이 없습니다</p>
+                <p className="text-xs py-3 text-center text-muted-foreground">이 과목에 등록된 문제은행이 없습니다</p>
               ) : (
                 <div className="rounded-lg space-y-1">
                   {currentBanks.map(b => {
@@ -262,7 +262,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 mt-0.5">{available.length}개 출제 가능 (전체 {questions.length}개)</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{available.length}개 출제 가능 (전체 {questions.length}개)</p>
                         </div>
                         <button
                           onClick={(e) => { e.stopPropagation(); setPreviewBankId(previewBankId === b.id ? null : b.id) }}
@@ -293,7 +293,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                     const diff = DIFFICULTY_COLORS[q.difficulty]
                     return (
                       <div key={q.id} className="flex items-start gap-2 text-xs bg-white rounded px-2.5 py-2 border border-slate-100">
-                        <span className="text-slate-400 font-medium shrink-0">{i + 1}.</span>
+                        <span className="text-muted-foreground font-medium shrink-0">{i + 1}.</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                             <span className="px-1 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px]">
@@ -304,7 +304,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                                 {DIFFICULTY_LABELS[q.difficulty]}
                               </span>
                             )}
-                            <span className="text-slate-400">{q.points}점</span>
+                            <span className="text-muted-foreground">{q.points}점</span>
                           </div>
                           <p className="text-slate-600 leading-relaxed line-clamp-1">{q.text}</p>
                         </div>
@@ -312,7 +312,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                     )
                   })}
                   {previewQuestions.length > 10 && (
-                    <p className="text-[11px] text-slate-400 text-center py-1">외 {previewQuestions.length - 10}개 문항...</p>
+                    <p className="text-[11px] text-muted-foreground text-center py-1">외 {previewQuestions.length - 10}개 문항...</p>
                   )}
                 </div>
               </div>
@@ -362,7 +362,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                                   {isSelected && <Check size={10} className="text-white" />}
                                 </span>
                                 <span className="text-sm font-medium text-slate-700 flex-1">{b.name}</span>
-                                <span className="text-xs text-slate-400">{available.length}개</span>
+                                <span className="text-xs text-muted-foreground">{available.length}개</span>
                               </button>
                             )
                           })}
@@ -429,7 +429,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                           onChange={e => updateConfig(bankId, 'count', Math.max(1, Math.min(cfg.maxCount, Number(e.target.value) || 1)))}
                           className="w-16 text-center text-sm rounded-lg bg-background border-0 focus:outline-none transition-colors px-3 py-2"
                         />
-                        <span className="text-xs text-slate-400">/ {cfg.maxCount}개</span>
+                        <span className="text-xs text-muted-foreground">/ {cfg.maxCount}개</span>
                       </div>
 
                       {/* 배점 */}
@@ -444,7 +444,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                             onChange={e => updateConfig(bankId, 'points', Math.max(1, Number(e.target.value) || 1))}
                             className="w-16 text-center text-sm rounded-lg bg-background border-0 focus:outline-none transition-colors px-3 py-2"
                           />
-                          <span className="text-xs text-slate-400">점</span>
+                          <span className="text-xs text-muted-foreground">점</span>
                         </div>
                       ) : (
                         <div className="space-y-2">
