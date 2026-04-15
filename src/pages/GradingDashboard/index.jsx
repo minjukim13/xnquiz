@@ -69,8 +69,8 @@ export default function GradingDashboard() {
       await fn()
       showToast(`${type} PDF 다운로드 완료`)
     } catch (err) {
-      console.error('PDF 생성 실패:', err)
-      showToast('PDF 생성 중 오류가 발생했습니다')
+      console.error('PDF 생성 실패:', err, err?.stack)
+      showToast(`PDF 오류: ${err?.message || err}`)
     } finally {
       setPdfGenerating(null)
     }
