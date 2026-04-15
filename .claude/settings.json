@@ -5,7 +5,8 @@
       "Bash(npx vite *)",
       "Bash(cd c:\\\\\\\\Users\\\\\\\\김민주\\\\\\\\Desktop\\\\\\\\xnquiz)",
       "Bash(xargs ls *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(ls -la /c/Users/김민주/Desktop/xnquiz/src/components/*.jsx)"
     ]
   }
 }

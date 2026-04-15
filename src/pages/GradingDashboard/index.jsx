@@ -2,8 +2,8 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   AlertCircle, Download, FileDown,
-  ChevronDown, ChevronUp, BarChart3, Users,
-  FileText, Search, FileEdit, UserCheck, Printer
+  ChevronDown, ChevronUp, BarChart3,
+  Search, FileEdit, UserCheck, Printer
 } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../../components/Layout'
@@ -291,23 +291,22 @@ export default function GradingDashboard() {
         </div>
 
         {/* ── 액션 바 ── */}
-        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-          <div className="flex items-center gap-1 border-b border-border">
+        <div className="flex items-center justify-between border-b border-gray-200 mb-4 h-11">
+          <div className="flex items-center gap-6 h-full">
             {[
-              { mode: 'question', icon: FileText, label: '문항 중심' },
-              { mode: 'student',  icon: Users,    label: '학생 중심' },
-            ].map(({ mode, icon: Icon, label }) => (
+              { mode: 'question', label: '문항 중심' },
+              { mode: 'student', label: '학생 중심' },
+            ].map(({ mode, label }) => (
               <button
                 key={mode}
                 onClick={() => { setGradingMode(mode); setMobileView('questions') }}
                 className={cn(
-                  'flex items-center gap-1.5 text-sm px-3 pb-2.5 -mb-px border-b-2 transition-colors',
+                  'h-full flex items-center text-sm -mb-px border-b-2 transition-colors',
                   gradingMode === mode
-                    ? 'border-foreground text-foreground font-medium'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                    ? 'border-black text-gray-900 font-semibold'
+                    : 'border-transparent text-gray-500 font-medium hover:text-gray-700'
                 )}
               >
-                <Icon size={14} />
                 {label}
               </button>
             ))}
@@ -535,7 +534,7 @@ export default function GradingDashboard() {
                 {!selectedStudent ? (
                   <EmptyState message="학생을 선택하면 전체 문항 답안을 확인할 수 있습니다" />
                 ) : (
-                  <StudentDetailPanel student={selectedStudent} questions={quizQuestions} quizId={id} />
+                  <StudentDetailPanel student={selectedStudent} questions={quizQuestions} quizId={id} onGradeSaved={onGradeSaved} />
                 )}
               </div>
             </>

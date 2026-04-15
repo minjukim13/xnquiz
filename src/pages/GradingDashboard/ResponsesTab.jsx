@@ -147,7 +147,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
             <span className="text-xs font-medium text-emerald-600">저장 완료</span>
           )}
           <Button size="xs" onClick={handleBulkSave} disabled={pendingCount === 0}>
-            일괄 저장{pendingCount > 0 ? ` (${pendingCount})` : ''}
+            일괄 저장
           </Button>
         </div>
       </div>

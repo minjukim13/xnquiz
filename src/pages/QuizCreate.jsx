@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GripVertical, Pencil, Trash2 } from 'lucide-react'
+import { GripVertical, Pencil, Trash2, HelpCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 
 const WEEK_OPTIONS = [
   { value: null, label: '선택 안함' },
@@ -58,8 +59,15 @@ export default function QuizCreate() {
 
   const hasChanges = form.title || form.description || questions.length > 0
 
-  const isFormValid = form.title && form.startDate && form.dueDate
-    && new Date(form.dueDate) > new Date(form.startDate) && questions.length > 0
+  const getValidationErrors = () => {
+    const errors = []
+    if (!form.title) errors.push('퀴즈 제목을 입력해주세요')
+    if (!form.startDate) errors.push('시작 일시를 설정해주세요')
+    if (!form.dueDate) errors.push('마감 일시를 설정해주세요')
+    if (form.startDate && form.dueDate && new Date(form.dueDate) <= new Date(form.startDate)) errors.push('마감 일시는 시작 일시 이후여야 합니다')
+    if (questions.length === 0) errors.push('최소 1개 이상의 문항을 추가해주세요')
+    return errors
+  }
 
   const handleCancel = () => {
     if (hasChanges) {
@@ -127,6 +135,14 @@ export default function QuizCreate() {
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
 
   const handlePublish = () => {
+    const errors = getValidationErrors()
+    if (errors.length > 0) {
+      setAlertDialog({
+        title: '필수 항목 미입력',
+        message: errors.map(e => `- ${e}`).join('\n'),
+      })
+      return
+    }
     const isMultiAttempt = form.allowAttempts >= 2 || form.unlimitedAttempts
     const noRevealPeriod = form.scoreRevealEnabled && form.scoreRevealTiming !== 'period' && form.scoreRevealTiming !== 'after_due'
     const doPublish = () => {
@@ -168,7 +184,7 @@ export default function QuizCreate() {
   return (
     <Layout>
       <div className="max-w-5xl mx-auto pb-4">
-        <h1 className="text-[22px] font-bold text-foreground pt-3 pb-5">새 퀴즈 만들기</h1>
+        <h1 className="text-[22px] font-bold text-foreground pt-8 pb-5">새 퀴즈 만들기</h1>
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList variant="line" className="gap-4 border-b border-border pb-0">
@@ -194,7 +210,7 @@ export default function QuizCreate() {
             {tab === 'info' ? (
               <Button size="lg" onClick={() => setTab('questions')} className="px-4">문항 구성 →</Button>
             ) : (
-              <Button size="lg" disabled={!isFormValid} onClick={handlePublish} className="px-4">저장하기</Button>
+              <Button size="lg" onClick={handlePublish} className="px-4">저장하기</Button>
             )}
           </div>
         </div>
@@ -250,9 +266,9 @@ function InfoTab({ form, set }) {
       <Section title="응시 기간">
         <div className="grid grid-cols-2 gap-4">
           <Field label="시작 일시" required><input type="datetime-local" value={form.startDate} onChange={e => set('startDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
-          <Field label="마감 일시" required><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
+          <Field label={<span className="inline-flex items-center gap-1">마감 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>} required><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
         </div>
-        <Field label="이용 종료 일시">
+        <Field label={<span className="inline-flex items-center gap-1">이용 종료 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>퀴즈 페이지 자체에 접근할 수 없게 되는 시점입니다.<br />마감 이후에도 학생이 결과를 확인할 수 있도록<br />종료 일시는 마감 일시 이후로 설정하는 것을 권장합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
           <input type="datetime-local" value={form.lockDate} onChange={e => set('lockDate', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
           <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
           {form.lockDate && form.dueDate && new Date(form.lockDate) < new Date(form.dueDate) && (

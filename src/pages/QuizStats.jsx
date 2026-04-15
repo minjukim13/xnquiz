@@ -11,8 +11,6 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Checkbox } from '@/components/ui/checkbox'
 
 function TypeBadge({ type }) {
   const cfg = QUIZ_TYPES[type] || { label: type }
@@ -37,43 +35,30 @@ export default function QuizStats() {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto pb-10">
+      <div className="max-w-7xl mx-auto pb-10 pt-6">
 
         {/* 퀴즈 정보 헤더 */}
-        <Card className="mb-4">
-          <CardContent className="p-4 sm:p-5">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div>
-                <Badge className="mb-2 bg-accent text-primary border-0">{quiz.week}주차 {quiz.session}차시</Badge>
-                <h2 className="text-base font-bold">{quiz.title}</h2>
-                {quiz.description && <p className="text-xs mt-1.5 text-slate-500">{quiz.description}</p>}
-                <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <Button asChild size="lg" className="font-semibold">
-                  <Link to={`/quiz/${quiz.id}/grade`}>채점 대시보드</Link>
-                </Button>
-                <Button asChild size="lg" className="bg-secondary hover:bg-border text-secondary-foreground font-semibold border-0 shadow-none">
-                  <Link to="/">목록으로</Link>
-                </Button>
-              </div>
+        <div className="pb-4 mb-4 border-b border-gray-200">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <Badge className="mb-2 bg-accent text-primary border-0">{quiz.week}주차 {quiz.session}차시</Badge>
+              <h2 className="text-base font-bold">{quiz.title}</h2>
+              {quiz.description && <p className="text-xs mt-1.5 text-slate-500">{quiz.description}</p>}
+              <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex gap-2 shrink-0">
+              <Button asChild className="font-semibold">
+                <Link to={`/quiz/${quiz.id}/grade`}>채점 대시보드</Link>
+              </Button>
+              <Button asChild variant="secondary" className="font-semibold">
+                <Link to="/">목록으로</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
 
         {/* 탭 */}
-        <Tabs defaultValue="grades">
-          <TabsList>
-            <TabsTrigger value="grades">학생별 성적 조회</TabsTrigger>
-            <TabsTrigger value="stats">퀴즈 통계</TabsTrigger>
-          </TabsList>
-          <TabsContent value="grades">
-            <GradesTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
-          </TabsContent>
-          <TabsContent value="stats">
-            <StatsTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
-          </TabsContent>
-        </Tabs>
+        <StatsPageTabs quiz={quiz} quizQuestions={quizQuestions} quizStudents={quizStudents} />
       </div>
     </Layout>
   )
@@ -93,18 +78,56 @@ function calcElapsed(startTime, submittedAt) {
   return `${s}초`
 }
 
+function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
+  const [activeTab, setActiveTab] = useState('grades')
+  return (
+    <>
+      <div className="flex items-center border-b border-gray-200 mb-5 h-11">
+        <div className="flex items-center gap-6 h-full">
+          {[
+            { key: 'grades', label: '학생별 성적 조회' },
+            { key: 'stats', label: '퀴즈 통계' },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={cn(
+                'h-full flex items-center text-sm -mb-px border-b-2 transition-colors',
+                activeTab === key
+                  ? 'border-black text-gray-900 font-semibold'
+                  : 'border-transparent text-gray-500 font-medium hover:text-gray-700'
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {activeTab === 'grades'
+        ? <GradesTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
+        : <StatsTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
+      }
+    </>
+  )
+}
+
 function GradesTab({ quiz, students: allStudents }) {
   const [search, setSearch] = useState('')
-  const [onlyUngraded, setOnlyUngraded] = useState(false)
+  const [filterStatus, setFilterStatus] = useState('all')
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('desc')
 
-  const students = allStudents.filter(s => s.submitted)
-  const gradedCount = students.filter(s => s.score !== null).length
+  const submitted = allStudents.filter(s => s.submitted)
+  const unsubmitted = allStudents.filter(s => !s.submitted)
+  const gradedCount = submitted.filter(s => s.score !== null).length
+  const ungradedCount = submitted.length - gradedCount
 
   const filtered = useMemo(() => {
-    let list = students.filter(s => {
-      if (onlyUngraded && s.score !== null) return false
+    let base = filterStatus === 'unsubmitted' ? unsubmitted
+      : filterStatus === 'graded' ? submitted.filter(s => s.score !== null)
+      : filterStatus === 'ungraded' ? submitted.filter(s => s.score === null)
+      : allStudents
+    let list = base.filter(s => {
       if (search !== '' && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.studentId.includes(search)) return false
       return true
     })
@@ -128,64 +151,63 @@ function GradesTab({ quiz, students: allStudents }) {
       })
     }
     return list
-  }, [students, search, onlyUngraded, sortKey, sortDir])
+  }, [allStudents, submitted, unsubmitted, search, filterStatus, sortKey, sortDir])
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  const downloadCSV = () => downloadGradesXlsx(quiz, students)
-  const ungradedCount = students.length - gradedCount
+  const downloadCSV = () => downloadGradesXlsx(quiz, submitted)
 
   return (
     <div>
-      {/* 요약 카드 */}
-      <div className="inline-flex items-center gap-0 mb-5 border border-border rounded-lg bg-white overflow-hidden">
+      {/* 요약 필터 */}
+      <div className="inline-flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 mb-5">
         {[
-          { label: '제출', value: students.length, alert: false },
-          { label: '채점 완료', value: gradedCount, alert: false },
-          { label: '미채점', value: ungradedCount, alert: ungradedCount > 0 },
-        ].map(({ label, value, alert }, idx) => (
-          <div key={label} className="flex items-center">
-            {idx > 0 && <span className="w-px h-7 bg-border" />}
-            <div className="flex items-center gap-2 px-4 py-2.5">
-              <span className="text-sm text-muted-foreground">{label}</span>
-              <span className={cn('text-sm font-bold', alert ? 'text-red-500' : '')}>{value}명</span>
-            </div>
-          </div>
-        ))}
+          { key: 'all', label: '전체', value: allStudents.length, dotCls: null },
+          { key: 'graded', label: '채점완료', value: gradedCount, dotCls: 'bg-emerald-500' },
+          { key: 'ungraded', label: '미채점', value: ungradedCount, dotCls: 'bg-amber-500' },
+          { key: 'unsubmitted', label: '미제출', value: unsubmitted.length, dotCls: 'bg-gray-300' },
+        ].map(({ key, label, value, dotCls }) => {
+          const isActive = filterStatus === key
+          return (
+            <button
+              key={key}
+              onClick={() => setFilterStatus(key)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-all',
+                isActive ? 'bg-white shadow-sm' : 'bg-transparent'
+              )}
+            >
+              {dotCls && <span className={cn('w-1.5 h-1.5 rounded-full', dotCls)} />}
+              <span className={isActive ? 'text-gray-900 font-medium' : 'text-gray-500'}>{label}</span>
+              <span className={cn('font-bold text-xs', isActive ? 'text-primary' : 'text-gray-400')}>{value}</span>
+            </button>
+          )
+        })}
       </div>
 
-      {/* 필터 + 다운로드 */}
+      {/* 검색 + 다운로드 */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text" placeholder="학생 이름 또는 학번 검색"
-              value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full text-sm pl-8 py-2 border border-border rounded-md bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-blue-100 transition-all"
-            />
-          </div>
-          <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-            <Checkbox checked={onlyUngraded} onCheckedChange={setOnlyUngraded} />
-            <span className="text-sm text-slate-500">미채점만 보기</span>
-            {ungradedCount > 0 && (
-              <Badge variant="secondary" className="bg-red-50 text-red-500 text-[11px]">{ungradedCount}</Badge>
-            )}
-          </label>
+        <div className="relative w-64">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text" placeholder="학생 이름 또는 학번 검색"
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full text-sm pl-8 py-2 border border-border rounded-md bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-blue-100 transition-all"
+          />
         </div>
-        <Button variant="outline" size="sm" onClick={downloadCSV}>
-          <Download size={13} />
+        <Button variant="outline" onClick={downloadCSV}>
+          <Download size={14} />
           성적 다운로드
         </Button>
       </div>
 
       {/* 테이블 */}
-      <Card className="overflow-hidden">
+      <div className="overflow-hidden rounded-lg border border-border">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-[13px]">
             <thead>
               <tr className="bg-slate-50 border-b border-border">
                 {[
@@ -196,21 +218,21 @@ function GradesTab({ quiz, students: allStudents }) {
                   { key: 'submittedAt', label: '제출 일시', align: 'center' },
                   { key: 'score', label: `점수 / ${quiz.totalPoints}점`, align: 'center' },
                   { key: null, label: '상태', align: 'center' },
-                  { key: null, label: '', align: 'center' },
+                  { key: null, label: '답안', align: 'center' },
                 ].map(({ key, label, align }) => (
-                  <th key={label || '_action'} className={cn('px-4 py-3 font-medium whitespace-nowrap text-xs', `text-${align}`)}>
+                  <th key={label || '_action'} className={cn('px-4 py-2 whitespace-nowrap', `text-${align}`)}>
                     {key ? (
                       <button
                         onClick={() => handleSort(key)}
-                        className={cn('group inline-flex items-center gap-1 transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-primary' : 'text-slate-500')}
+                        className={cn('group inline-flex items-center gap-1 text-[13px] font-normal transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-primary' : 'text-gray-400')}
                       >
                         {label}
-                        {sortKey !== key && <ArrowUpDown size={11} className="opacity-0 group-hover:opacity-40 transition-opacity" />}
-                        {sortKey === key && sortDir === 'desc' && <ArrowDown size={11} />}
-                        {sortKey === key && sortDir === 'asc' && <ArrowUp size={11} />}
+                        {sortKey !== key && <ArrowUpDown size={12} className="opacity-0 group-hover:opacity-40 transition-opacity" />}
+                        {sortKey === key && sortDir === 'desc' && <ArrowDown size={12} />}
+                        {sortKey === key && sortDir === 'asc' && <ArrowUp size={12} />}
                       </button>
                     ) : (
-                      <span className="text-slate-500">{label}</span>
+                      <span className="text-[13px] font-normal text-gray-400">{label}</span>
                     )}
                   </th>
                 ))}
@@ -222,30 +244,30 @@ function GradesTab({ quiz, students: allStudents }) {
                 const elapsed = calcElapsed(s.startTime, s.submittedAt)
                 return (
                   <tr key={s.id} className="border-b border-slate-100 hover:bg-accent/30 transition-colors">
-                    <td className="px-4 py-3 text-sm">{s.name}</td>
-                    <td className="px-4 py-3 text-sm text-center text-slate-500">{s.studentId}</td>
-                    <td className="px-4 py-3 text-sm text-slate-500">{s.department}</td>
-                    <td className="px-3 py-3 text-sm text-center whitespace-nowrap text-slate-700">
+                    <td className="px-4 py-2.5">{s.name}</td>
+                    <td className="px-4 py-2.5 text-center text-slate-500">{s.studentId}</td>
+                    <td className="px-4 py-2.5 text-slate-500">{s.department}</td>
+                    <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-700">
                       {elapsed ?? <span className="text-muted-foreground">-</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-center whitespace-nowrap text-slate-700">
+                    <td className="px-4 py-2.5 text-center whitespace-nowrap text-slate-700">
                       {s.submittedAt ? s.submittedAt.split(' ')[1] : <span className="text-muted-foreground">-</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-center">
+                    <td className="px-4 py-2.5 text-center">
                       {s.score !== null
                         ? <span className={cn('font-semibold', scorePct >= 80 ? 'text-primary' : scorePct >= 60 ? 'text-slate-600' : 'text-red-500')}>{s.score}점</span>
                         : <span className="text-muted-foreground">-</span>
                       }
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-2.5 text-center">
                       {s.score !== null ? (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-md bg-correct-bg text-correct">채점 완료</span>
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-500">채점 완료</span>
                       ) : (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-md bg-amber-50 text-amber-500">미채점</span>
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-amber-50 text-amber-600">미채점</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      <Button asChild size="xs">
+                      <Button asChild variant="outline" size="xs">
                         <Link to={`/quiz/${quiz.id}/grade`}>답안 확인</Link>
                       </Button>
                     </td>
@@ -258,7 +280,7 @@ function GradesTab({ quiz, students: allStudents }) {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
