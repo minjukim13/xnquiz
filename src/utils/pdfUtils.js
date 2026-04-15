@@ -1,12 +1,7 @@
 import { QUIZ_TYPES } from '../data/mockData'
+import html2pdf from 'html2pdf.js'
 
 const DIFFICULTY_LABELS = { high: '상', medium: '중', low: '하' }
-
-// html2pdf.js 동적 import (번들 분리)
-async function getHtml2Pdf() {
-  const mod = await import('html2pdf.js')
-  return mod.default
-}
 
 const BASE_STYLE = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -106,7 +101,6 @@ function buildAnswerQuestionHtml(q, i, answer, score, isCorrect) {
 }
 
 async function renderToPdf(htmlContent, filename) {
-  const html2pdf = await getHtml2Pdf()
   const container = document.createElement('div')
   container.innerHTML = htmlContent
   container.style.position = 'absolute'
