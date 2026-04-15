@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Search, X, GripVertical, AlertCircle } from 'lucide-react'
+import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Search, X, Pencil } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { useQuestionBank } from '../context/QuestionBankContext'
@@ -22,13 +22,15 @@ const DIFF_LABEL = { '': '미지정', high: '상', medium: '중', low: '하' }
 
 export default function QuestionBankList() {
   const navigate = useNavigate()
-  const { banks, questions, addBank, deleteBank, getBankQuestions, addQuestions } = useQuestionBank()
+  const { banks, questions, addBank, deleteBank, getBankQuestions, addQuestions, updateBank } = useQuestionBank()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [copyTarget, setCopyTarget] = useState(null)
   const [toast, setToast] = useState(null)
+  const [editingBankId, setEditingBankId] = useState(null)
+  const [bankNameDraft, setBankNameDraft] = useState('')
 
   const showToast = (msg, bankId) => {
     setToast({ msg, bankId })
@@ -97,7 +99,41 @@ export default function QuestionBankList() {
                 <div>
                   {/* 1열: 제목 + 액션 아이콘 */}
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-semibold text-[15px] leading-snug text-foreground">{bank.name}</h3>
+                    {editingBankId === bank.id ? (
+                      <input
+                        autoFocus
+                        value={bankNameDraft}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => setBankNameDraft(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && bankNameDraft.trim()) {
+                            updateBank(bank.id, { name: bankNameDraft.trim() })
+                            setEditingBankId(null)
+                          }
+                          if (e.key === 'Escape') setEditingBankId(null)
+                        }}
+                        onBlur={() => {
+                          if (bankNameDraft.trim()) updateBank(bank.id, { name: bankNameDraft.trim() })
+                          setEditingBankId(null)
+                        }}
+                        className="font-semibold text-[15px] leading-snug text-foreground focus:outline-none border-b-2 border-primary bg-transparent min-w-0 w-full"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-1.5 group/title min-w-0">
+                        <h3 className="font-semibold text-[15px] leading-snug text-foreground truncate">{bank.name}</h3>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation()
+                            setBankNameDraft(bank.name)
+                            setEditingBankId(bank.id)
+                          }}
+                          className="opacity-0 group-hover/title:opacity-100 transition-opacity p-0.5 rounded text-muted-foreground hover:text-primary shrink-0"
+                          title="이름 수정"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                      </div>
+                    )}
                     <div className="flex items-center gap-0.5 shrink-0 -mt-0.5 -mr-1">
                       <button
                         onClick={e => { e.stopPropagation(); setCopyTarget(bank) }}
@@ -380,7 +416,7 @@ function AddBankModal({ onClose, onAdd }) {
   )
 }
 
-// ── 난이도 뱃지 (모달 내 공통) ──────────────────────────────────────────────
+// ── 난이도 뱃지 (공통) ──────────────────────────────────────────────────────
 function DiffBadge({ difficulty, className }) {
   const meta = difficulty && DIFFICULTY_META[difficulty]
   return (
@@ -390,66 +426,94 @@ function DiffBadge({ difficulty, className }) {
   )
 }
 
-// ── 문항 행 (모달 내 체크리스트용) ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// Wizard 공통 컴포넌트
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function WizardSteps({ step, labels }) {
+  return (
+    <div className="flex items-center">
+      {labels.map((label, i) => {
+        const num = i + 1
+        const isActive = step === num
+        const isDone = step > num
+        return (
+          <div key={num} className="flex items-center">
+            {i > 0 && <div className={cn('w-8 h-px mx-2', isDone ? 'bg-primary' : 'bg-border')} />}
+            <div className="flex items-center gap-1.5">
+              <span className={cn(
+                'w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-semibold leading-none',
+                isActive || isDone ? 'bg-primary text-white' : 'border border-border text-muted-foreground'
+              )}>
+                {isDone ? '\u2713' : num}
+              </span>
+              <span className={cn(
+                'text-xs',
+                isActive ? 'text-foreground font-semibold' : isDone ? 'text-secondary-foreground' : 'text-muted-foreground'
+              )}>
+                {label}
+              </span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function QuestionRow({ q, selected, selectable, onToggle }) {
   return (
     <div
       onClick={() => selectable && onToggle(q)}
       className={cn(
-        'flex items-start gap-2.5 p-2.5 rounded-md border transition-all',
-        selected ? 'border-blue-300 bg-accent' : selectable ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50',
-        selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-45'
+        'flex items-start gap-2.5 px-3 py-2.5 border rounded-lg transition-all',
+        selected ? 'border-primary bg-accent' : 'border-border',
+        selectable ? 'cursor-pointer hover:border-primary/40' : 'cursor-not-allowed opacity-40'
       )}
     >
       <input type="checkbox" checked={selected} readOnly disabled={!selectable} className="mt-0.5 shrink-0 accent-primary" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
           <DiffBadge difficulty={q.difficulty} />
-          <span className="text-xs px-1.5 py-0.5 font-medium rounded bg-slate-100 text-slate-500">
+          <span className="text-[11px] px-1.5 py-0.5 font-medium rounded bg-secondary text-secondary-foreground">
             {QUIZ_TYPES[q.type]?.label}
           </span>
-          <span className="text-xs text-muted-foreground">{q.points}점</span>
+          <span className="text-[11px] text-muted-foreground">{q.points}점</span>
           {q._sourceBankName && (
-            <span className="text-xs text-muted-foreground">{q._sourceBankName}</span>
+            <span className="text-[11px] text-muted-foreground">{q._sourceBankName}</span>
           )}
         </div>
-        <p className="text-xs leading-relaxed line-clamp-2 text-slate-700">{q.text}</p>
+        <p className="text-xs leading-relaxed line-clamp-2 text-secondary-foreground">{q.text}</p>
       </div>
     </div>
   )
 }
 
-// ── 선택된 문항 드래그 행 ─────────────────────────────────────────────────
-function DragRow({ q, index, dragOverIndex, onDragStart, onDragOver, onDragLeave, onDrop, onRemove }) {
+function ReviewRow({ q, index, onRemove }) {
   return (
-    <div
-      draggable
-      onDragStart={() => onDragStart(index)}
-      onDragOver={e => onDragOver(e, index)}
-      onDragLeave={onDragLeave}
-      onDrop={() => onDrop(index)}
-      className={cn(
-        'flex items-start gap-1.5 p-2 bg-slate-50 rounded-md cursor-grab border-t-2 border-transparent',
-        dragOverIndex === index && 'border-primary'
-      )}
-    >
-      <GripVertical size={13} className="shrink-0 mt-0.5 text-muted-foreground" />
-      <DiffBadge difficulty={q.difficulty} className="shrink-0 text-[10px]" />
-      <p className="flex-1 text-xs leading-relaxed line-clamp-2 text-slate-700">{q.text}</p>
+    <div className="flex items-center gap-2.5 px-3 py-2 border border-border rounded-lg">
+      <span className="text-[11px] font-mono text-muted-foreground shrink-0 w-4 text-right">{index + 1}</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <DiffBadge difficulty={q.difficulty} />
+          <span className="text-[11px] text-secondary-foreground">{QUIZ_TYPES[q.type]?.label}</span>
+          <span className="text-[11px] text-muted-foreground">{q.points}점</span>
+        </div>
+        <p className="text-xs leading-relaxed line-clamp-1 text-secondary-foreground mt-0.5">{q.text}</p>
+      </div>
       <button
         onClick={() => onRemove(q.id)}
-        className="shrink-0 mt-0.5 text-muted-foreground hover:text-red-500 transition-colors"
+        className="shrink-0 p-1 rounded text-muted-foreground hover:text-destructive hover:bg-incorrect-bg transition-colors"
       >
-        <X size={13} />
+        <X size={14} />
       </button>
     </div>
   )
 }
 
-// ── 난이도 선택 버튼 그룹 (모달 내 공통) ─────────────────────────────────
-function DifficultySelector({ value, allowedDifficulties, onChange }) {
+function WizardDifficultySelector({ value, allowedDifficulties, onChange }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1.5">
       <span className="text-xs shrink-0 text-muted-foreground">난이도</span>
       {['', 'high', 'medium', 'low'].map(d => {
         const isAllowed = allowedDifficulties.includes(d)
@@ -461,16 +525,8 @@ function DifficultySelector({ value, allowedDifficulties, onChange }) {
             disabled={!isAllowed}
             onClick={() => onChange(d)}
             className={cn(
-              'flex-1 text-xs py-1 whitespace-nowrap rounded border transition-all disabled:opacity-30 disabled:cursor-not-allowed',
-              isActive
-                ? 'border-blue-400 bg-accent text-primary font-semibold'
-                : cn(
-                    'border-slate-200',
-                    d === 'high' ? 'text-red-600'
-                      : d === 'medium' ? 'text-amber-600'
-                      : d === 'low' ? 'text-green-600'
-                      : 'text-slate-500'
-                  )
+              'text-xs px-2.5 py-1 rounded-md border transition-all font-medium disabled:opacity-30 disabled:cursor-not-allowed',
+              isActive ? 'border-primary bg-primary text-white' : 'border-border text-secondary-foreground hover:border-primary/40'
             )}
           >
             {DIFF_LABEL[d]}
@@ -481,8 +537,7 @@ function DifficultySelector({ value, allowedDifficulties, onChange }) {
   )
 }
 
-// ── 소스 은행 선택 목록 (모달 내 공통) ────────────────────────────────────
-function SourceBankList({ availableCourses, courseGroups, selectedSourceIds, onToggle }) {
+function WizardSourceBankList({ availableCourses, courseGroups, selectedSourceIds, onToggle }) {
   return (
     <>
       {availableCourses.map(c => {
@@ -490,26 +545,19 @@ function SourceBankList({ availableCourses, courseGroups, selectedSourceIds, onT
         if (list.length === 0) return null
         return (
           <div key={c.id}>
-            <p className="px-3 py-1 text-xs font-medium truncate text-muted-foreground bg-slate-50">{c.name}</p>
+            <p className="px-3 py-1.5 text-[11px] font-semibold text-muted-foreground bg-secondary/60 border-b border-border/60">{c.name}</p>
             {list.map(b => {
               const isChecked = selectedSourceIds.includes(b.id)
               return (
                 <label
                   key={b.id}
                   className={cn(
-                    'flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer transition-colors',
-                    isChecked ? 'bg-accent text-primary' : 'text-slate-700 hover:bg-slate-50'
+                    'flex items-center gap-2 px-3 py-2 text-xs cursor-pointer transition-colors border-l-2',
+                    isChecked ? 'border-l-primary bg-accent font-medium text-primary' : 'border-l-transparent text-secondary-foreground hover:bg-secondary/40'
                   )}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => onToggle(b.id)}
-                    className="accent-primary shrink-0"
-                  />
-                  <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[b.difficulty]?.cls || 'bg-secondary text-muted-foreground')}>
-                    {DIFF_LABEL[b.difficulty] || '미지정'}
-                  </span>
+                  <input type="checkbox" checked={isChecked} onChange={() => onToggle(b.id)} className="accent-primary shrink-0" />
+                  <DiffBadge difficulty={b.difficulty} />
                   <span className="truncate flex-1">{b.name}</span>
                 </label>
               )
@@ -521,84 +569,112 @@ function SourceBankList({ availableCourses, courseGroups, selectedSourceIds, onT
   )
 }
 
-// ── 대상 은행 버튼 (모달 내 공통) ─────────────────────────────────────────
-function TargetBankBtn({ bank, isSelected, onClick }) {
-  const diffLabel = bank.difficulty ? DIFF_LABEL[bank.difficulty] : ''
+// Step 1 공통: 소스 사이드바 + 문항 체크리스트
+function WizardStep1({ courseSearch, setCourseSearch, availableCourses, courseGroups, selectedSourceIds, handleSourceToggle, filterType, setFilterType, filterDifficulty, setFilterDifficulty, filtered, selectedQuestionIds, allFilteredSelected, someFilteredSelected, toggle, toggleAll }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'w-full text-left px-2 py-1.5 text-xs rounded border transition-colors',
-        isSelected ? 'border-blue-300 bg-accent text-primary font-semibold' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-      )}
-    >
-      <div className="flex items-center gap-1.5">
-        <span className={cn('shrink-0 text-[10px] px-1 py-px rounded font-medium', DIFFICULTY_META[bank.difficulty]?.cls || 'bg-secondary text-muted-foreground')}>{diffLabel || '미지정'}</span>
-        <span className="truncate">{bank.name}</span>
-      </div>
-    </button>
-  )
-}
-
-// ── 문항 체크리스트 열 (모달 내 공통) ────────────────────────────────────
-function QuestionChecklist({ selectedSourceIds, filtered, selectedQuestionIds, allFilteredSelected, someFilteredSelected, targetDifficulty, isSelectableForTarget, toggle, toggleAll }) {
-  if (selectedSourceIds.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center py-12">
-        <p className="text-sm text-center text-muted-foreground">좌측에서 소스 문제은행을 선택하세요</p>
-      </div>
-    )
-  }
-  return (
-    <>
-      {targetDifficulty && (
-        <div className="px-3 py-1.5 shrink-0 text-xs flex items-center gap-1.5 bg-amber-50 text-amber-700 border-b border-amber-200">
-          <AlertCircle size={12} className="shrink-0" />
-          난이도 '{DIFF_LABEL[targetDifficulty]}' 문제은행 — 해당 난이도 문항만 선택 가능
-        </div>
-      )}
-      {filtered.length > 0 && (
-        <div className="px-3 py-1.5 flex items-center justify-between shrink-0 border-b border-slate-50">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
+    <div className="flex flex-1 min-h-0">
+      {/* 사이드바 */}
+      <div className="flex flex-col shrink-0 w-[200px] border-r border-border">
+        <div className="px-3 pt-3 pb-2 shrink-0">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">소스 문제은행</p>
+          <div className="relative">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
-              type="checkbox"
-              checked={allFilteredSelected}
-              ref={el => { if (el) el.indeterminate = someFilteredSelected }}
-              onChange={toggleAll}
-              className="accent-primary"
+              type="text"
+              value={courseSearch}
+              onChange={e => setCourseSearch(e.target.value)}
+              placeholder="검색"
+              className="w-full text-xs pl-7 pr-2 py-1.5 border border-border rounded-md focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground"
             />
-            <span className="text-xs font-medium text-slate-500">
-              {allFilteredSelected ? '전체 해제' : '전체선택'}
-            </span>
-          </label>
-          <span className={cn('text-xs', selectedQuestionIds.length > 0 ? 'text-primary' : 'text-muted-foreground')}>
-            {selectedQuestionIds.length > 0 ? `${selectedQuestionIds.length}개 선택` : `총 ${filtered.length}개`}
-          </span>
+          </div>
         </div>
-      )}
-      <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
-        {filtered.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">해당하는 문항이 없습니다</p>
-        ) : (
-          filtered.map(q => (
-            <QuestionRow
-              key={q.id}
-              q={q}
-              selected={selectedQuestionIds.includes(q.id)}
-              selectable={isSelectableForTarget(q)}
-              onToggle={toggle}
+        <div className="flex-1 overflow-y-auto">
+          <WizardSourceBankList
+            availableCourses={availableCourses}
+            courseGroups={courseGroups}
+            selectedSourceIds={selectedSourceIds}
+            onToggle={handleSourceToggle}
+          />
+        </div>
+      </div>
+
+      {/* 문항 리스트 */}
+      <div className="flex flex-col flex-1 min-w-0">
+        <div className="px-4 py-2.5 shrink-0 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <DropdownSelect
+              value={filterType}
+              onChange={setFilterType}
+              filterMode
+              options={[
+                { value: 'all', label: '모든 유형' },
+                ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
+              ]}
             />
-          ))
+            <DropdownSelect
+              value={filterDifficulty}
+              onChange={setFilterDifficulty}
+              filterMode
+              options={[
+                { value: 'all', label: '모든 난이도' },
+                { value: '', label: '미지정' },
+                { value: 'high', label: '상' },
+                { value: 'medium', label: '중' },
+                { value: 'low', label: '하' },
+              ]}
+            />
+          </div>
+        </div>
+        {selectedSourceIds.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">좌측에서 소스 문제은행을 선택하세요</p>
+          </div>
+        ) : (
+          <>
+            {filtered.length > 0 && (
+              <div className="px-4 py-2 flex items-center justify-between border-b border-border/60">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    ref={el => { if (el) el.indeterminate = someFilteredSelected }}
+                    onChange={toggleAll}
+                    className="accent-primary"
+                  />
+                  <span className="text-xs text-secondary-foreground">{allFilteredSelected ? '전체 해제' : '전체 선택'}</span>
+                </label>
+                <span className="text-xs text-muted-foreground">총 {filtered.length}개</span>
+              </div>
+            )}
+            <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+              {filtered.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">해당하는 문항이 없습니다</p>
+              ) : (
+                filtered.map(q => (
+                  <QuestionRow
+                    key={q.id}
+                    q={q}
+                    selected={selectedQuestionIds.includes(q.id)}
+                    selectable={true}
+                    onToggle={toggle}
+                  />
+                ))
+              )}
+            </div>
+          </>
         )}
       </div>
-    </>
+    </div>
   )
 }
 
-// ── 내보내기 모달 ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// 내보내기 모달 (2-step wizard)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 function ExportToBankModal({ onClose, onExport }) {
   const { banks, getBankQuestions } = useQuestionBank()
+  const [step, setStep] = useState(1)
 
   const [selectedSourceIds, setSelectedSourceIds] = useState([])
   const [courseSearch, setCourseSearch] = useState('')
@@ -611,11 +687,8 @@ function ExportToBankModal({ onClose, onExport }) {
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
   const [inlineToast, setInlineToast] = useState(null)
-  const dragIndexRef = useRef(null)
-  const [dragOverIndex, setDragOverIndex] = useState(null)
 
-  const targetBank = targetBankId && targetBankId !== '__new__' ? banks.find(b => b.id === targetBankId) : null
-  const targetDifficulty = targetBank?.difficulty || ''
+  const targetBank = targetBankId ? banks.find(b => b.id === targetBankId) : null
   const courseBanks = banks.filter(b => b.course === targetCourse && !selectedSourceIds.includes(b.id))
 
   const sourceQuestions = useMemo(() => {
@@ -631,13 +704,10 @@ function ExportToBankModal({ onClose, onExport }) {
     return matchType && matchDiff
   }), [sourceQuestions, filterType, filterDifficulty])
 
-  const isSelectable = (q) => !targetDifficulty || q.difficulty === targetDifficulty
-  const selectableFiltered = filtered.filter(isSelectable)
-  const allFilteredSelected = selectableFiltered.length > 0 && selectableFiltered.every(q => selectedQuestionIds.includes(q.id))
-  const someFilteredSelected = selectableFiltered.some(q => selectedQuestionIds.includes(q.id)) && !allFilteredSelected
+  const allFilteredSelected = filtered.length > 0 && filtered.every(q => selectedQuestionIds.includes(q.id))
+  const someFilteredSelected = filtered.some(q => selectedQuestionIds.includes(q.id)) && !allFilteredSelected
 
   const toggle = (q) => {
-    if (!isSelectable(q)) return
     setSelectedQuestionIds(prev =>
       prev.includes(q.id) ? prev.filter(x => x !== q.id) : [...prev, q.id]
     )
@@ -645,9 +715,9 @@ function ExportToBankModal({ onClose, onExport }) {
 
   const toggleAll = () => {
     if (allFilteredSelected) {
-      setSelectedQuestionIds(prev => prev.filter(id => !selectableFiltered.find(q => q.id === id)))
+      setSelectedQuestionIds(prev => prev.filter(id => !filtered.find(q => q.id === id)))
     } else {
-      setSelectedQuestionIds(prev => [...new Set([...prev, ...selectableFiltered.map(q => q.id)])])
+      setSelectedQuestionIds(prev => [...new Set([...prev, ...filtered.map(q => q.id)])])
     }
   }
 
@@ -672,25 +742,9 @@ function ExportToBankModal({ onClose, onExport }) {
 
   const effectiveNewDifficulty = newBankDifficulty !== null ? newBankDifficulty : autoDifficulty
 
-  const handleDragStart = (index) => { dragIndexRef.current = index }
-  const handleDragOver = (e, index) => { e.preventDefault(); setDragOverIndex(index) }
-  const handleDragLeave = () => setDragOverIndex(null)
-  const handleDrop = (index) => {
-    const from = dragIndexRef.current
-    setDragOverIndex(null)
-    if (from === null || from === index) return
-    setSelectedQuestionIds(prev => {
-      const next = [...prev]
-      const [moved] = next.splice(from, 1)
-      next.splice(index, 0, moved)
-      return next
-    })
-    dragIndexRef.current = null
-  }
-
   const handleTargetBankChange = (id) => {
     setTargetBankId(id)
-    if (id && id !== '__new__') {
+    if (id) {
       const tb = banks.find(b => b.id === id)
       if (tb?.difficulty) {
         setSelectedQuestionIds(prev => {
@@ -707,11 +761,6 @@ function ExportToBankModal({ onClose, onExport }) {
         })
       }
     }
-  }
-
-  const handleTargetCourseChange = (course) => {
-    setTargetCourse(course)
-    setTargetBankId(null)
   }
 
   const handleSourceToggle = (bankId) => {
@@ -742,203 +791,213 @@ function ExportToBankModal({ onClose, onExport }) {
     return groups
   }, [banks])
 
+  const goToStep2 = () => {
+    if (targetBank?.difficulty) {
+      const diff = targetBank.difficulty
+      setSelectedQuestionIds(prev => {
+        const next = prev.filter(id => {
+          const q = sourceQuestions.find(x => x.id === id)
+          return q?.difficulty === diff
+        })
+        const removed = prev.length - next.length
+        if (removed > 0) {
+          setInlineToast(`난이도 불일치로 ${removed}개 문항이 제외되었습니다`)
+          setTimeout(() => setInlineToast(null), 3000)
+        }
+        return next
+      })
+    }
+    setStep(2)
+  }
+
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-4 py-3 border-b border-slate-100 shrink-0">
-          <DialogTitle>문제은행 내보내기</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden" style={{ minHeight: 500 }}>
+        {/* 헤더 */}
+        <div className="px-5 py-4 border-b border-border shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <DialogHeader className="p-0 space-y-0">
+              <DialogTitle>내보내기</DialogTitle>
+            </DialogHeader>
+            {/* step indicator is shown in WizardSteps below */}
+          </div>
+          <WizardSteps step={step} labels={['문항 선택', '검토 및 설정']} />
+        </div>
 
-        <div className="flex flex-1 min-h-0">
-          {/* 1열: 소스 + 대상 */}
-          <div className="flex flex-col shrink-0 w-[200px] border-r border-slate-100">
-            {/* 소스 */}
-            <div className="flex flex-col border-b border-slate-100 overflow-hidden" style={{ flex: '0 0 50%' }}>
-              <div className="px-3 pt-2.5 pb-1.5 shrink-0">
-                <p className="text-xs font-semibold mb-1.5 text-muted-foreground">소스 문제은행</p>
-                <div className="relative">
-                  <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={courseSearch}
-                    onChange={e => setCourseSearch(e.target.value)}
-                    placeholder="과목/은행 검색"
-                    className="w-full text-xs pl-6 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded focus:outline-none focus:border-blue-400 text-slate-900"
-                  />
-                </div>
+        {step === 1 ? (
+          <WizardStep1
+            courseSearch={courseSearch}
+            setCourseSearch={setCourseSearch}
+            availableCourses={availableCourses}
+            courseGroups={courseGroups}
+            selectedSourceIds={selectedSourceIds}
+            handleSourceToggle={handleSourceToggle}
+            filterType={filterType}
+            setFilterType={setFilterType}
+            filterDifficulty={filterDifficulty}
+            setFilterDifficulty={setFilterDifficulty}
+            filtered={filtered}
+            selectedQuestionIds={selectedQuestionIds}
+            allFilteredSelected={allFilteredSelected}
+            someFilteredSelected={someFilteredSelected}
+            toggle={toggle}
+            toggleAll={toggleAll}
+          />
+        ) : (
+          <div className="flex-1 overflow-y-auto">
+            {/* 선택한 문항 검토 */}
+            <div className="px-5 py-4 border-b border-border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-foreground">선택한 문항</h3>
+                <span className="text-xs text-muted-foreground">{selectedQuestions.length}개</span>
               </div>
-              <div className="flex-1 overflow-y-auto">
-                <SourceBankList
-                  availableCourses={availableCourses}
-                  courseGroups={courseGroups}
-                  selectedSourceIds={selectedSourceIds}
-                  onToggle={handleSourceToggle}
-                />
-              </div>
-            </div>
-
-            {/* 대상 */}
-            <div className="flex flex-col overflow-hidden" style={{ flex: '0 0 50%' }}>
-              <div className="px-2 pt-2 pb-1 shrink-0">
-                <DropdownSelect
-                  value={targetCourse}
-                  onChange={handleTargetCourseChange}
-                  options={MOCK_COURSES.map(c => ({ value: c.name, label: c.name }))}
-                />
-              </div>
-              <div className="shrink-0 border-t border-slate-100">
-                <div className="flex border-b border-slate-100">
-                  <button
-                    onClick={() => { setTargetMode('new'); setTargetBankId(null) }}
-                    className={cn(
-                      'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                      targetMode === 'new' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
-                    )}
-                  >
-                    새 은행
-                  </button>
-                  <button
-                    onClick={() => setTargetMode('existing')}
-                    className={cn(
-                      'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                      targetMode === 'existing' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
-                    )}
-                  >
-                    기존 은행
-                  </button>
-                </div>
-                {targetMode === 'new' ? (
-                  <div className="p-2 space-y-1.5">
-                    <input
-                      type="text"
-                      value={newBankName}
-                      onChange={e => setNewBankName(e.target.value)}
-                      placeholder="은행 이름"
-                      className="w-full text-xs px-2 py-1.5 border border-slate-200 rounded focus:outline-none text-slate-900"
-                    />
-                    {selectedQuestions.length > 0 && (
-                      <DifficultySelector
-                        value={effectiveNewDifficulty}
-                        allowedDifficulties={allowedDifficulties}
-                        onChange={setNewBankDifficulty}
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <div className="overflow-y-auto p-2 space-y-1" style={{ maxHeight: 120 }}>
-                    {courseBanks.length === 0 ? (
-                      <p className="text-xs py-2 text-center text-muted-foreground">선택 가능한 은행이 없습니다</p>
-                    ) : (
-                      courseBanks.map(b => (
-                        <TargetBankBtn
-                          key={b.id}
-                          bank={b}
-                          isSelected={b.id === targetBankId}
-                          onClick={() => handleTargetBankChange(b.id)}
-                        />
-                      ))
-                    )}
-                  </div>
+              <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+                {selectedQuestions.map((q, i) => (
+                  <ReviewRow key={q.id} q={q} index={i} onRemove={id => setSelectedQuestionIds(prev => prev.filter(x => x !== id))} />
+                ))}
+                {selectedQuestions.length === 0 && (
+                  <p className="py-4 text-center text-xs text-muted-foreground">모든 문항이 제거되었습니다. 이전 단계로 돌아가 문항을 선택하세요.</p>
                 )}
               </div>
             </div>
-          </div>
 
-          {/* 2열: 문항 체크리스트 */}
-          <div className="flex flex-col flex-1 min-w-0 border-r border-slate-100">
-            <div className="px-3 pt-2.5 pb-2 shrink-0 border-b border-slate-100">
-              <div className="flex items-center gap-1.5 flex-wrap">
+            {/* 내보낼 위치 설정 */}
+            <div className="px-5 py-4">
+              <h3 className="text-sm font-semibold text-foreground mb-1">내보낼 위치</h3>
+              <p className="text-xs text-muted-foreground mb-4">내보낼 과목과 문제은행을 선택하세요</p>
+
+              <div className="mb-4">
+                <label className="text-xs font-medium text-secondary-foreground block mb-1.5">대상 과목</label>
                 <DropdownSelect
-                  value={filterType}
-                  onChange={setFilterType}
-                  filterMode
-                  options={[
-                    { value: 'all', label: '모든 유형' },
-                    ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
-                  ]}
-                />
-                <DropdownSelect
-                  value={filterDifficulty}
-                  onChange={setFilterDifficulty}
-                  filterMode
-                  options={[
-                    { value: 'all', label: '모든 난이도' },
-                    { value: '', label: '미지정' },
-                    { value: 'high', label: '상' },
-                    { value: 'medium', label: '중' },
-                    { value: 'low', label: '하' },
-                  ]}
+                  value={targetCourse}
+                  onChange={(course) => { setTargetCourse(course); setTargetBankId(null) }}
+                  options={MOCK_COURSES.map(c => ({ value: c.name, label: c.name }))}
                 />
               </div>
-            </div>
-            <QuestionChecklist
-              selectedSourceIds={selectedSourceIds}
-              filtered={filtered}
-              selectedQuestionIds={selectedQuestionIds}
-              allFilteredSelected={allFilteredSelected}
-              someFilteredSelected={someFilteredSelected}
-              targetDifficulty={targetDifficulty}
-              isSelectableForTarget={isSelectable}
-              toggle={toggle}
-              toggleAll={toggleAll}
-            />
-          </div>
 
-          {/* 3열: 선택된 문항 */}
-          <div className="flex flex-col shrink-0 w-[220px]">
-            <div className="px-3 py-2.5 shrink-0 border-b border-slate-100">
-              <p className="text-xs font-semibold text-slate-500">
-                선택된 문항
-                <span className="ml-1.5 font-normal text-muted-foreground">{selectedQuestions.length}개</span>
-              </p>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {selectedQuestions.length === 0 ? (
-                <p className="py-6 text-center text-xs text-muted-foreground">선택된 문항이 없습니다</p>
-              ) : (
-                selectedQuestions.map((q, index) => (
-                  <DragRow
-                    key={q.id}
-                    q={q}
-                    index={index}
-                    dragOverIndex={dragOverIndex}
-                    onDragStart={handleDragStart}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onRemove={id => setSelectedQuestionIds(prev => prev.filter(x => x !== id))}
-                  />
-                ))
-              )}
+              <div className="space-y-3">
+                {/* 새 문제은행 만들기 - Option B: 테두리 통합 카드 */}
+                <div
+                  onClick={() => { setTargetMode('new'); setTargetBankId(null) }}
+                  className={cn(
+                    'w-full rounded-xl border-2 transition-all cursor-pointer overflow-hidden',
+                    targetMode === 'new' ? 'border-primary bg-accent/40' : 'border-border hover:border-primary/30'
+                  )}
+                >
+                  <div className="px-4 py-3">
+                    <p className={cn('text-sm', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제은행 만들기</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">선택한 과목에 새 문제은행을 생성합니다</p>
+                  </div>
+                  {targetMode === 'new' && (
+                    <div className="px-4 pb-3 pt-1 space-y-2 border-t border-primary/15">
+                      <input
+                        type="text"
+                        value={newBankName}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => setNewBankName(e.target.value)}
+                        placeholder="문제은행 이름"
+                        autoFocus
+                        className="w-full max-w-xs text-sm px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground bg-white"
+                      />
+                      {selectedQuestions.length > 0 && (
+                        <div onClick={e => e.stopPropagation()}>
+                          <WizardDifficultySelector
+                            value={effectiveNewDifficulty}
+                            allowedDifficulties={allowedDifficulties}
+                            onChange={setNewBankDifficulty}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 기존 문제은행에 추가 - Option B: 테두리 통합 카드 */}
+                <div
+                  onClick={() => setTargetMode('existing')}
+                  className={cn(
+                    'w-full rounded-xl border-2 transition-all cursor-pointer overflow-hidden',
+                    targetMode === 'existing' ? 'border-primary bg-accent/40' : 'border-border hover:border-primary/30'
+                  )}
+                >
+                  <div className="px-4 py-3">
+                    <p className={cn('text-sm', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제은행에 추가</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">이미 있는 문제은행에 문항을 추가합니다</p>
+                  </div>
+                  {targetMode === 'existing' && (
+                    <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-primary/15" onClick={e => e.stopPropagation()}>
+                      {courseBanks.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-2">선택한 과목에 사용 가능한 문제은행이 없습니다</p>
+                      ) : (
+                        courseBanks.map(b => (
+                          <button
+                            key={b.id}
+                            onClick={() => handleTargetBankChange(b.id)}
+                            className={cn(
+                              'w-full max-w-xs text-left px-3 py-2 rounded-lg border transition-colors text-xs flex items-center gap-2',
+                              b.id === targetBankId ? 'border-primary bg-accent font-semibold text-primary' : 'border-border text-secondary-foreground hover:border-primary/40 bg-white'
+                            )}
+                          >
+                            <DiffBadge difficulty={b.difficulty} />
+                            {b.name}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {inlineToast && (
-          <div className="px-4 py-2 shrink-0 text-xs flex items-center gap-1.5 bg-amber-50 text-amber-700 border-t border-amber-200">
-            <AlertCircle size={12} className="shrink-0" />
+          <div className="px-5 py-2 shrink-0 text-xs flex items-center gap-1.5 bg-amber-50 text-amber-700 border-t border-amber-200">
             {inlineToast}
           </div>
         )}
 
-        <div className="px-4 py-3 shrink-0 flex items-center justify-end gap-2 border-t border-slate-100">
-          <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>
-          <Button
-            size="sm"
-            disabled={!canSubmit}
-            onClick={() => onExport(selectedQuestions, targetCourse, targetMode === 'existing' ? targetBankId : null, targetMode === 'new' ? newBankName.trim() : null, effectiveNewDifficulty)}
-          >
-            {selectedQuestions.length}개 내보내기
-          </Button>
+        {/* 푸터 */}
+        <div className="px-5 py-3 border-t border-border shrink-0 flex items-center justify-between">
+          {step === 1 ? (
+            <>
+              <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground transition-colors">취소</button>
+              <div className="flex items-center gap-3">
+                {selectedQuestionIds.length > 0 && (
+                  <span className="text-xs bg-accent text-primary px-2.5 py-1 rounded-full font-medium">{selectedQuestionIds.length}개 선택됨</span>
+                )}
+                <Button
+                  disabled={selectedQuestionIds.length === 0}
+                  onClick={goToStep2}
+                >
+                  다음
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => setStep(1)}>이전</Button>
+              <Button
+                disabled={!canSubmit}
+                onClick={() => onExport(selectedQuestions, targetCourse, targetMode === 'existing' ? targetBankId : null, targetMode === 'new' ? newBankName.trim() : null, effectiveNewDifficulty)}
+              >
+                {selectedQuestions.length}개 내보내기
+              </Button>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   )
 }
 
-// ── 가져오기 모달 ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// 가져오기 모달 (2-step wizard)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 function ImportModal({ onClose, onImport }) {
   const { banks, getBankQuestions } = useQuestionBank()
+  const [step, setStep] = useState(1)
 
   const [selectedSourceIds, setSelectedSourceIds] = useState([])
   const [courseSearch, setCourseSearch] = useState('')
@@ -950,8 +1009,6 @@ function ImportModal({ onClose, onImport }) {
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
   const [inlineToast, setInlineToast] = useState(null)
-  const dragIndexRef = useRef(null)
-  const [dragOverIndex, setDragOverIndex] = useState(null)
 
   const sourceQuestions = useMemo(() => {
     return selectedSourceIds.flatMap(bankId => {
@@ -1006,9 +1063,6 @@ function ImportModal({ onClose, onImport }) {
 
   const existingTargetBanks = banks.filter(b => b.course === CURRENT_COURSE && !selectedSourceIds.includes(b.id))
   const targetBank = targetMode === 'existing' && targetBankId ? banks.find(b => b.id === targetBankId) : null
-  const targetDifficulty = targetBank?.difficulty || ''
-
-  const isSelectableForTarget = (q) => !targetDifficulty || q.difficulty === targetDifficulty
 
   const handleSourceToggle = (bankId) => {
     const isChecked = selectedSourceIds.includes(bankId)
@@ -1039,22 +1093,6 @@ function ImportModal({ onClose, onImport }) {
     }
   }
 
-  const handleDragStart = (index) => { dragIndexRef.current = index }
-  const handleDragOver = (e, index) => { e.preventDefault(); setDragOverIndex(index) }
-  const handleDragLeave = () => setDragOverIndex(null)
-  const handleDrop = (index) => {
-    const from = dragIndexRef.current
-    setDragOverIndex(null)
-    if (from === null || from === index) return
-    setSelectedQuestionIds(prev => {
-      const next = [...prev]
-      const [moved] = next.splice(from, 1)
-      next.splice(index, 0, moved)
-      return next
-    })
-    dragIndexRef.current = null
-  }
-
   const availableCourses = useMemo(() =>
     MOCK_COURSES.filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase())),
     [courseSearch]
@@ -1080,180 +1118,191 @@ function ImportModal({ onClose, onImport }) {
   }
   prevSourceLen.current = selectedSourceIds.length
 
+  const goToStep2 = () => {
+    if (targetBank?.difficulty) {
+      const diff = targetBank.difficulty
+      setSelectedQuestionIds(prev => {
+        const next = prev.filter(id => {
+          const q = sourceQuestions.find(x => x.id === id)
+          return q?.difficulty === diff
+        })
+        const removed = prev.length - next.length
+        if (removed > 0) {
+          setInlineToast(`난이도 불일치로 ${removed}개 문항이 제외되었습니다`)
+          setTimeout(() => setInlineToast(null), 3000)
+        }
+        return next
+      })
+    }
+    setStep(2)
+  }
+
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden" style={{ minHeight: 500 }}>
-        <DialogHeader className="px-4 py-3 border-b border-slate-100 shrink-0">
-          <DialogTitle>가져오기</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex flex-1 min-h-0">
-          {/* 1열: 소스 은행 + 대상 설정 */}
-          <div className="flex flex-col shrink-0 w-[200px] border-r border-slate-100">
-            <div className="px-3 pt-2.5 pb-1.5 shrink-0">
-              <p className="text-xs font-semibold mb-1.5 text-muted-foreground">소스 문제은행</p>
-              <div className="relative">
-                <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={courseSearch}
-                  onChange={e => setCourseSearch(e.target.value)}
-                  placeholder="과목/은행 검색"
-                  className="w-full text-xs pl-6 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded focus:outline-none focus:border-blue-400 text-slate-900"
-                />
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <SourceBankList
-                availableCourses={availableCourses}
-                courseGroups={courseGroups}
-                selectedSourceIds={selectedSourceIds}
-                onToggle={handleSourceToggle}
-              />
-            </div>
-            <div className="shrink-0 border-t border-slate-100">
-              <div className="flex border-b border-slate-100">
-                <button
-                  onClick={() => setTargetMode('new')}
-                  className={cn(
-                    'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                    targetMode === 'new' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
-                  )}
-                >
-                  새 은행
-                </button>
-                <button
-                  onClick={() => setTargetMode('existing')}
-                  className={cn(
-                    'flex-1 text-xs py-1.5 font-medium transition-colors border-b-2',
-                    targetMode === 'existing' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
-                  )}
-                >
-                  기존 은행
-                </button>
-              </div>
-              {targetMode === 'new' ? (
-                <div className="p-2 space-y-1.5">
-                  <input
-                    type="text"
-                    value={newBankName}
-                    onChange={e => setNewBankName(e.target.value)}
-                    placeholder="은행 이름"
-                    className="w-full text-xs px-2 py-1.5 border border-slate-200 rounded focus:outline-none text-slate-900"
-                  />
-                  {selectedQuestions.length > 0 && (
-                    <DifficultySelector
-                      value={effectiveDifficulty}
-                      allowedDifficulties={allowedDifficulties}
-                      onChange={setManualDifficulty}
-                    />
-                  )}
-                </div>
-              ) : (
-                <div className="overflow-y-auto p-2 space-y-1" style={{ maxHeight: 120 }}>
-                  {existingTargetBanks.length === 0 ? (
-                    <p className="text-xs py-2 text-center text-muted-foreground">선택 가능한 은행이 없습니다</p>
-                  ) : (
-                    existingTargetBanks.map(b => (
-                      <TargetBankBtn
-                        key={b.id}
-                        bank={b}
-                        isSelected={b.id === targetBankId}
-                        onClick={() => handleTargetBankChange(b.id)}
-                      />
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+        {/* 헤더 */}
+        <div className="px-5 py-4 border-b border-border shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <DialogHeader className="p-0 space-y-0">
+              <DialogTitle>가져오기</DialogTitle>
+            </DialogHeader>
+            {/* step indicator is shown in WizardSteps below */}
           </div>
-
-          {/* 2열: 문항 체크리스트 */}
-          <div className="flex flex-col flex-1 min-w-0 border-r border-slate-100">
-            <div className="px-3 pt-2.5 pb-2 shrink-0 border-b border-slate-100">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <DropdownSelect
-                  value={filterType}
-                  onChange={setFilterType}
-                  filterMode
-                  options={[
-                    { value: 'all', label: '모든 유형' },
-                    ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
-                  ]}
-                />
-                <DropdownSelect
-                  value={filterDifficulty}
-                  onChange={setFilterDifficulty}
-                  filterMode
-                  options={[
-                    { value: 'all', label: '모든 난이도' },
-                    { value: '', label: '미지정' },
-                    { value: 'high', label: '상' },
-                    { value: 'medium', label: '중' },
-                    { value: 'low', label: '하' },
-                  ]}
-                />
-              </div>
-            </div>
-            <QuestionChecklist
-              selectedSourceIds={selectedSourceIds}
-              filtered={filtered}
-              selectedQuestionIds={selectedQuestionIds}
-              allFilteredSelected={allFilteredSelected}
-              someFilteredSelected={someFilteredSelected}
-              targetDifficulty={targetDifficulty}
-              isSelectableForTarget={isSelectableForTarget}
-              toggle={toggle}
-              toggleAll={toggleAll}
-            />
-          </div>
-
-          {/* 3열: 선택된 문항 */}
-          <div className="flex flex-col shrink-0 w-[220px]">
-            <div className="px-3 py-2.5 shrink-0 border-b border-slate-100">
-              <p className="text-xs font-semibold text-slate-500">
-                선택된 문항
-                <span className="ml-1.5 font-normal text-muted-foreground">{selectedQuestions.length}개</span>
-              </p>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {selectedQuestions.length === 0 ? (
-                <p className="py-6 text-center text-xs text-muted-foreground">선택된 문항이 없습니다</p>
-              ) : (
-                selectedQuestions.map((q, index) => (
-                  <DragRow
-                    key={q.id}
-                    q={q}
-                    index={index}
-                    dragOverIndex={dragOverIndex}
-                    onDragStart={handleDragStart}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onRemove={id => setSelectedQuestionIds(prev => prev.filter(x => x !== id))}
-                  />
-                ))
-              )}
-            </div>
-          </div>
+          <WizardSteps step={step} labels={['문항 선택', '검토 및 설정']} />
         </div>
 
+        {step === 1 ? (
+          <WizardStep1
+            courseSearch={courseSearch}
+            setCourseSearch={setCourseSearch}
+            availableCourses={availableCourses}
+            courseGroups={courseGroups}
+            selectedSourceIds={selectedSourceIds}
+            handleSourceToggle={handleSourceToggle}
+            filterType={filterType}
+            setFilterType={setFilterType}
+            filterDifficulty={filterDifficulty}
+            setFilterDifficulty={setFilterDifficulty}
+            filtered={filtered}
+            selectedQuestionIds={selectedQuestionIds}
+            allFilteredSelected={allFilteredSelected}
+            someFilteredSelected={someFilteredSelected}
+            toggle={toggle}
+            toggleAll={toggleAll}
+          />
+        ) : (
+          <div className="flex-1 overflow-y-auto">
+            {/* 선택한 문항 검토 */}
+            <div className="px-5 py-4 border-b border-border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-foreground">선택한 문항</h3>
+                <span className="text-xs text-muted-foreground">{selectedQuestions.length}개</span>
+              </div>
+              <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+                {selectedQuestions.map((q, i) => (
+                  <ReviewRow key={q.id} q={q} index={i} onRemove={id => setSelectedQuestionIds(prev => prev.filter(x => x !== id))} />
+                ))}
+                {selectedQuestions.length === 0 && (
+                  <p className="py-4 text-center text-xs text-muted-foreground">모든 문항이 제거되었습니다. 이전 단계로 돌아가 문항을 선택하세요.</p>
+                )}
+              </div>
+            </div>
+
+            {/* 가져올 위치 설정 */}
+            <div className="px-5 py-4">
+              <h3 className="text-sm font-semibold text-foreground mb-1">가져올 위치</h3>
+              <p className="text-xs text-muted-foreground mb-4">가져올 문제은행을 선택하세요</p>
+
+              <div className="space-y-3">
+                {/* 새 문제은행 만들기 - Option B: 테두리 통합 카드 */}
+                <div
+                  onClick={() => setTargetMode('new')}
+                  className={cn(
+                    'w-full rounded-xl border-2 transition-all cursor-pointer overflow-hidden',
+                    targetMode === 'new' ? 'border-primary bg-accent/40' : 'border-border hover:border-primary/30'
+                  )}
+                >
+                  <div className="px-4 py-3">
+                    <p className={cn('text-sm', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제은행 만들기</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">새로운 문제은행을 생성하여 문항을 추가합니다</p>
+                  </div>
+                  {targetMode === 'new' && (
+                    <div className="px-4 pb-3 pt-1 space-y-2 border-t border-primary/15">
+                      <input
+                        type="text"
+                        value={newBankName}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => setNewBankName(e.target.value)}
+                        placeholder="문제은행 이름"
+                        autoFocus
+                        className="w-full max-w-xs text-sm px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground bg-white"
+                      />
+                      {selectedQuestions.length > 0 && (
+                        <div onClick={e => e.stopPropagation()}>
+                          <WizardDifficultySelector
+                            value={effectiveDifficulty}
+                            allowedDifficulties={allowedDifficulties}
+                            onChange={setManualDifficulty}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 기존 문제은행에 추가 - Option B: 테두리 통합 카드 */}
+                <div
+                  onClick={() => setTargetMode('existing')}
+                  className={cn(
+                    'w-full rounded-xl border-2 transition-all cursor-pointer overflow-hidden',
+                    targetMode === 'existing' ? 'border-primary bg-accent/40' : 'border-border hover:border-primary/30'
+                  )}
+                >
+                  <div className="px-4 py-3">
+                    <p className={cn('text-sm', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제은행에 추가</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">이미 있는 문제은행에 문항을 추가합니다</p>
+                  </div>
+                  {targetMode === 'existing' && (
+                    <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-primary/15" onClick={e => e.stopPropagation()}>
+                      {existingTargetBanks.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-2">선택 가능한 문제은행이 없습니다</p>
+                      ) : (
+                        existingTargetBanks.map(b => (
+                          <button
+                            key={b.id}
+                            onClick={() => handleTargetBankChange(b.id)}
+                            className={cn(
+                              'w-full max-w-xs text-left px-3 py-2 rounded-lg border transition-colors text-xs flex items-center gap-2',
+                              b.id === targetBankId ? 'border-primary bg-accent font-semibold text-primary' : 'border-border text-secondary-foreground hover:border-primary/40 bg-white'
+                            )}
+                          >
+                            <DiffBadge difficulty={b.difficulty} />
+                            {b.name}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {inlineToast && (
-          <div className="px-4 py-2 shrink-0 text-xs flex items-center gap-1.5 bg-amber-50 text-amber-700 border-t border-amber-200">
-            <AlertCircle size={12} className="shrink-0" />
+          <div className="px-5 py-2 shrink-0 text-xs flex items-center gap-1.5 bg-amber-50 text-amber-700 border-t border-amber-200">
             {inlineToast}
           </div>
         )}
 
-        <div className="px-4 py-3 shrink-0 flex items-center justify-end gap-2 border-t border-slate-100">
-          <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>
-          <Button
-            size="sm"
-            disabled={!canSubmit}
-            onClick={() => onImport(selectedQuestions, targetMode === 'new' ? newBankName.trim() : null, effectiveDifficulty, targetMode === 'existing' ? targetBankId : null)}
-          >
-            {selectedQuestions.length}개 가져오기
-          </Button>
+        {/* 푸터 */}
+        <div className="px-5 py-3 border-t border-border shrink-0 flex items-center justify-between">
+          {step === 1 ? (
+            <>
+              <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground transition-colors">취소</button>
+              <div className="flex items-center gap-3">
+                {selectedQuestionIds.length > 0 && (
+                  <span className="text-xs bg-accent text-primary px-2.5 py-1 rounded-full font-medium">{selectedQuestionIds.length}개 선택됨</span>
+                )}
+                <Button
+                  disabled={selectedQuestionIds.length === 0}
+                  onClick={goToStep2}
+                >
+                  다음
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => setStep(1)}>이전</Button>
+              <Button
+                disabled={!canSubmit}
+                onClick={() => onImport(selectedQuestions, targetMode === 'new' ? newBankName.trim() : null, effectiveDifficulty, targetMode === 'existing' ? targetBankId : null)}
+              >
+                {selectedQuestions.length}개 가져오기
+              </Button>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

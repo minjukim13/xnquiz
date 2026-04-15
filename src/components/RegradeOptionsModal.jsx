@@ -53,8 +53,8 @@ export default function RegradeOptionsModal({ question, submittedCount, onConfir
 
         <div className="space-y-4">
           {/* 문항 정보 */}
-          <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
-            <p className="text-[13px] leading-relaxed text-amber-800">
+          <div className="rounded-lg bg-amber-50/40 border border-amber-200 px-4 py-3">
+            <p className="text-[13px] leading-relaxed text-slate-600">
               이미 답안을 제출한 <span className="font-bold">{submittedCount}명</span>의 학생에 대한 재채점 옵션을 선택하십시오.
               퀴즈 저장 시 일괄 재채점됩니다.
             </p>

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
 import { DropdownSelect } from './DropdownSelect'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import RegradeOptionsModal from './RegradeOptionsModal'
+import { ConfirmDialog } from './ConfirmDialog'
 
 // ── 유형별 아이콘 + 설명 메타 ──────────
 const TYPE_META = {
@@ -784,6 +785,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
     setHoveredType(null)
   }
 
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [showRegradeOptions, setShowRegradeOptions] = useState(false)
   const [pendingQuestion, setPendingQuestion] = useState(null)
 
@@ -810,8 +812,8 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
 
   const typeInfo = selectedType ? QUIZ_TYPES[selectedType] : null
 
-  return (
-    <Dialog open={true} onOpenChange={(v) => { if (!v) onClose() }}>
+  return (<>
+    <Dialog open={true} onOpenChange={(v) => { if (!v) setShowCancelConfirm(true) }}>
       <DialogContent className="max-w-2xl p-0">
         {/* 헤더 */}
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border">
@@ -875,11 +877,10 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
           </div>
         ) : (
           /* 문항 폼 */
-          <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
+          <div className="px-4 pt-2.5 pb-4 space-y-4 overflow-y-auto max-h-[70vh]">
             {isEditMode && submittedCount > 0 && (
-              <div className="flex items-start gap-2 p-3 rounded-md bg-orange-50 border border-orange-200">
-                <AlertTriangle size={14} className="shrink-0 mt-0.5 text-orange-600" />
-                <p className="text-xs leading-relaxed text-orange-800">
+              <div className="flex items-center gap-2 p-3 rounded-md bg-orange-50/40 border border-orange-200">
+                <p className="text-xs leading-relaxed text-slate-600">
                   이 문항은 이미 <span className="font-bold">{submittedCount}명</span>이 응시했습니다. 수정 시 기존 제출 답안과 채점 결과에 영향을 줄 수 있습니다.
                 </p>
               </div>
@@ -951,7 +952,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
               )}
               {isEditMode && <div />}
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={onClose}>취소</Button>
+                <Button size="sm" variant="outline" onClick={() => setShowCancelConfirm(true)}>취소</Button>
                 <Button
                   size="sm"
                   disabled={!isValid(selectedType, form)}
@@ -973,5 +974,15 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
         />
       )}
     </Dialog>
-  )
+    {showCancelConfirm && (
+      <ConfirmDialog
+        title="작성 취소"
+        message="작성 중인 내용이 모두 사라집니다. 정말 취소하시겠습니까?"
+        confirmLabel="취소하기"
+        confirmDanger
+        onConfirm={onClose}
+        onCancel={() => setShowCancelConfirm(false)}
+      />
+    )}
+  </>)
 }

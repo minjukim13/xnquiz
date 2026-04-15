@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { AlertCircle } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { ConfirmDialog } from './ConfirmDialog'
 
 const STORAGE_KEY = 'xnq_global_settings'
 
@@ -64,6 +64,7 @@ const PENALTY_METHODS = [
 
 export default function QuizSettingsDialog({ open, onOpenChange }) {
   const [local, setLocal] = useState(DEFAULTS)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   useEffect(() => {
     if (open) setLocal(getGlobalSettings())
@@ -77,8 +78,8 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
     window.dispatchEvent(new CustomEvent('xnq-settings-changed'))
   }
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+  return (<>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) setShowCancelConfirm(true); else onOpenChange(true) }}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>퀴즈 전역 설정</DialogTitle>
@@ -140,8 +141,7 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
               </p>
             )}
             {local.caseSensitive && (
-              <div className="flex items-start gap-2 p-2.5 rounded text-xs bg-amber-50 border border-amber-300 text-amber-800">
-                <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-600" />
+              <div className="flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600">
                 <span>"Answer"와 "answer"를 다른 답으로 처리합니다. 학생 혼란 방지를 위해 퀴즈 안내사항에 명시를 권장합니다.</span>
               </div>
             )}
@@ -149,12 +149,22 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
         </div>
 
         <DialogFooter>
-          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>취소</Button>
+          <Button size="sm" variant="outline" onClick={() => setShowCancelConfirm(true)}>취소</Button>
           <Button size="sm" onClick={handleSave}>저장</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+    {showCancelConfirm && (
+      <ConfirmDialog
+        title="설정 취소"
+        message="변경한 설정이 저장되지 않습니다. 정말 취소하시겠습니까?"
+        confirmLabel="취소하기"
+        confirmDanger
+        onConfirm={() => { setShowCancelConfirm(false); onOpenChange(false) }}
+        onCancel={() => setShowCancelConfirm(false)}
+      />
+    )}
+  </>)
 }
 
 function RadioOption({ active, onClick, label, desc, formula }) {

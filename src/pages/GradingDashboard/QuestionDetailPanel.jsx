@@ -111,7 +111,6 @@ export default function QuestionDetailPanel({ question, students, search, onSear
       {/* 재채점 적용 안내 */}
       {regradeInfo && (
         <div className="flex items-start gap-2.5 mb-3 px-3.5 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
-          <RefreshCw size={13} className="shrink-0 mt-0.5 text-amber-600" />
           <div className="text-[12px] leading-relaxed text-amber-800">
             <span className="font-semibold">재채점 적용됨</span>
             <span className="mx-1 text-amber-400">|</span>

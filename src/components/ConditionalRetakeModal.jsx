@@ -3,8 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { ConfirmDialog } from './ConfirmDialog'
 
-import { UserCheck, AlertCircle, ChevronRight, ChevronLeft, Check } from 'lucide-react'
+import { UserCheck, ChevronRight, ChevronLeft, Check } from 'lucide-react'
 
 const STORAGE_KEY = 'xnq_conditional_retakes'
 
@@ -88,14 +89,16 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
     setStep(1); setExcludedIds(new Set()); setRetakeDeadline('')
   }
 
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+
   const handleClose = () => {
     onOpenChange(false)
     setStep(1); setExcludedIds(new Set()); setRetakeDeadline('')
   }
 
 
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
+  return (<>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) setShowCancelConfirm(true) }}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <div>
 
@@ -166,9 +169,8 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
               </div>
 
               {noConditionSelected && (
-                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50">
-                  <AlertCircle size={16} className="text-amber-600 shrink-0" />
-                  <span className="text-[13px] text-amber-800">조건을 하나 이상 선택해주세요.</span>
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50/40">
+                  <span className="text-[13px] text-slate-600">조건을 하나 이상 선택해주세요.</span>
                 </div>
               )}
 
@@ -352,7 +354,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
             )}
           </div>
           <div className="flex gap-2.5">
-            <Button size="sm" variant="outline" onClick={handleClose}>취소</Button>
+            <Button size="sm" variant="outline" onClick={() => setShowCancelConfirm(true)}>취소</Button>
             {step < 3 ? (
               <Button
                 size="sm"
@@ -376,5 +378,15 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
         </div>
       </DialogContent>
     </Dialog>
-  )
+    {showCancelConfirm && (
+      <ConfirmDialog
+        title="재응시 설정 취소"
+        message="설정 중인 내용이 모두 사라집니다. 정말 취소하시겠습니까?"
+        confirmLabel="취소하기"
+        confirmDanger
+        onConfirm={() => { setShowCancelConfirm(false); handleClose() }}
+        onCancel={() => setShowCancelConfirm(false)}
+      />
+    )}
+  </>)
 }

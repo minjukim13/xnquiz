@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GripVertical, Trash2, AlertCircle, ChevronDown } from 'lucide-react'
+import { GripVertical, Trash2, ChevronDown } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
@@ -38,7 +38,7 @@ export default function QuizCreate() {
   const [tab, setTab] = useState('info')
   const [form, setForm] = useState({
     title: '', description: '', week: null, session: null,
-    startDate: '', dueDate: '', lockDate: '', timeLimit: '60',
+    startDate: '', dueDate: '', lockDate: '', timeLimit: '60', unlimitedTimeLimit: false,
     allowAttempts: 1, unlimitedAttempts: false, scorePolicy: '최고 점수 유지',
     shuffleChoices: false, shuffleQuestions: false,
     scoreRevealEnabled: false, scoreRevealScope: 'wrong_only',
@@ -222,8 +222,7 @@ function InfoTab({ form, set }) {
           ))}
         </div>
         {form.quizMode === 'practice' && (
-          <div className="flex items-start gap-2 p-2.5 rounded-md text-xs bg-amber-50 border border-amber-300 text-amber-800">
-            <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-600" />
+          <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-amber-50/40 border border-amber-300 text-slate-600">
             <span>연습용 퀴즈는 성적에 반영되지 않습니다.</span>
           </div>
         )}
@@ -251,8 +250,7 @@ function InfoTab({ form, set }) {
           <input type="datetime-local" value={form.lockDate} onChange={e => set('lockDate', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
           <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
           {form.lockDate && form.dueDate && new Date(form.lockDate) < new Date(form.dueDate) && (
-            <div className="flex items-start gap-2 p-2.5 rounded-md text-xs bg-amber-50 border border-amber-300 text-amber-800 mt-2">
-              <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-600" />
+            <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-amber-50/40 border border-amber-300 text-slate-600 mt-2">
               <span>이용 종료 일시가 마감 일시보다 앞서 있습니다. 마감 전에 퀴즈 접근이 차단될 수 있습니다.</span>
             </div>
           )}
@@ -276,24 +274,21 @@ function InfoTab({ form, set }) {
         <div className="grid grid-cols-2 gap-4">
           <Field label="응시 시간 제한">
             <div className="flex items-center gap-2">
-              <input type="number" value={form.timeLimit} onChange={e => set('timeLimit', e.target.value)} placeholder="제한 없음" min={0} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" />
-              <span className="text-sm shrink-0 text-muted-foreground">분</span>
+              <div className={cn('flex items-center gap-2 flex-1 transition-opacity', form.unlimitedTimeLimit && 'opacity-40 pointer-events-none')}>
+                <input type="number" value={form.timeLimit} onChange={e => set('timeLimit', e.target.value)} placeholder="60" min={1} disabled={form.unlimitedTimeLimit} className={cn('w-full text-sm px-3.5 py-2.5 rounded-md border transition-all', form.unlimitedTimeLimit ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed' : 'border-gray-200 bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary')} />
+                <span className="text-sm shrink-0 text-muted-foreground">분</span>
+              </div>
+              <button type="button" onClick={() => set('unlimitedTimeLimit', !form.unlimitedTimeLimit)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', form.unlimitedTimeLimit ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700')}>무제한</button>
             </div>
-            <p className="text-xs mt-1.5 text-muted-foreground">비워두거나 0 입력 시 시간 제한 없음</p>
           </Field>
           <Field label="최대 응시 횟수">
-            <div className="flex items-center gap-3">
-              {!form.unlimitedAttempts && (
-                <div className="flex items-center border border-border rounded-md overflow-hidden">
-                  <button type="button" onClick={() => set('allowAttempts', Math.max(ATTEMPT_MIN, form.allowAttempts - 1))} disabled={form.allowAttempts <= ATTEMPT_MIN} className="px-3 py-2.5 text-sm font-medium text-secondary-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors">-</button>
-                  <span className="px-4 py-2.5 text-sm font-medium text-foreground min-w-[48px] text-center border-x border-border bg-white">{form.allowAttempts}회</span>
-                  <button type="button" onClick={() => set('allowAttempts', Math.min(ATTEMPT_MAX, form.allowAttempts + 1))} disabled={form.allowAttempts >= ATTEMPT_MAX} className="px-3 py-2.5 text-sm font-medium text-secondary-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors">+</button>
-                </div>
-              )}
-              <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
-                <input type="checkbox" checked={form.unlimitedAttempts} onChange={e => set('unlimitedAttempts', e.target.checked)} className="rounded accent-primary" />
-                <span className="text-sm text-secondary-foreground">무제한</span>
-              </label>
+            <div className="flex items-center gap-2">
+              <div className={cn('flex items-center border rounded-md overflow-hidden transition-opacity', form.unlimitedAttempts ? 'border-gray-200 opacity-40 pointer-events-none' : 'border-gray-200')}>
+                <button type="button" onClick={() => set('allowAttempts', Math.max(ATTEMPT_MIN, form.allowAttempts - 1))} disabled={form.allowAttempts <= ATTEMPT_MIN || form.unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', form.unlimitedAttempts ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed')}>-</button>
+                <span className={cn('px-4 py-2.5 text-sm font-medium min-w-[48px] text-center border-x', form.unlimitedAttempts ? 'border-gray-200 bg-gray-50 text-gray-400' : 'border-gray-200 bg-white text-foreground')}>{form.allowAttempts}회</span>
+                <button type="button" onClick={() => set('allowAttempts', Math.min(ATTEMPT_MAX, form.allowAttempts + 1))} disabled={form.allowAttempts >= ATTEMPT_MAX || form.unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', form.unlimitedAttempts ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed')}>+</button>
+              </div>
+              <button type="button" onClick={() => set('unlimitedAttempts', !form.unlimitedAttempts)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', form.unlimitedAttempts ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700')}>무제한</button>
             </div>
           </Field>
         </div>
