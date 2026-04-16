@@ -7,7 +7,7 @@ import QuestionAnswer from '../components/QuestionAnswer'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
-import { QUIZ_TYPES, mockQuizzes } from '../data/mockData'
+import { QUIZ_TYPES, addQuiz } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import { cn } from '@/lib/utils'
@@ -88,7 +88,7 @@ export default function QuizCreate() {
       setAlertDialog({ title: '임시저장 불가', message: '퀴즈 제목을 입력해주세요.', variant: 'error' })
       return
     }
-    mockQuizzes.push({
+    addQuiz({
       id: String(Date.now()), title: form.title, description: form.description,
       course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'draft', visible: form.visible,
       startDate: form.startDate || null, dueDate: form.dueDate || null,
@@ -150,7 +150,7 @@ export default function QuizCreate() {
     const isMultiAttempt = form.allowAttempts >= 2 || form.unlimitedAttempts
     const noRevealPeriod = form.scoreRevealEnabled && form.scoreRevealTiming !== 'period' && form.scoreRevealTiming !== 'after_due'
     const doPublish = () => {
-      mockQuizzes.push({
+      addQuiz({
         id: String(Date.now()), title: form.title, description: form.description,
         course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'open', visible: form.visible,
         startDate: form.startDate, dueDate: form.dueDate,

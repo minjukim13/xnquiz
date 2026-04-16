@@ -8,7 +8,7 @@ import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { printQuizQuestions } from '../utils/pdfUtils'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
-import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, recalculateScorePolicy, regradeQuestionWithOption } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, recalculateScorePolicy, regradeQuestionWithOption, updateQuiz } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import { cn } from '@/lib/utils'
@@ -126,11 +126,8 @@ export default function QuizEdit() {
       setAlertDialog({ title: '임시저장 불가', message: '퀴즈 제목을 입력해주세요.' })
       return
     }
-    const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
-    if (idx !== -1) {
-      if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
-      mockQuizzes[idx] = { ...mockQuizzes[idx], title, description, week: week ?? null, session: session ?? null, status: quiz.status, visible, questions: questions.length, totalPoints, timeLimit: timeLimit === '' ? 0 : Number(timeLimit), allowAttempts: unlimitedAttempts ? -1 : allowAttempts, scorePolicy, allowLateSubmit, lateSubmitDeadline: allowLateSubmit && lateSubmitDeadline ? lateSubmitDeadline : null, lockDate: lockDate || null, scoreRevealEnabled, scoreRevealScope: scoreRevealEnabled ? scoreRevealScope : null, scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null, scoreRevealStart: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null, scoreRevealEnd: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd || null : null }
-    }
+    if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
+    updateQuiz(quiz.id, { title, description, week: week ?? null, session: session ?? null, status: quiz.status, visible, questions: questions.length, totalPoints, timeLimit: timeLimit === '' ? 0 : Number(timeLimit), allowAttempts: unlimitedAttempts ? -1 : allowAttempts, scorePolicy, allowLateSubmit, lateSubmitDeadline: allowLateSubmit && lateSubmitDeadline ? lateSubmitDeadline : null, lockDate: lockDate || null, scoreRevealEnabled, scoreRevealScope: scoreRevealEnabled ? scoreRevealScope : null, scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null, scoreRevealStart: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null, scoreRevealEnd: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd || null : null })
     setQuizQuestions(quiz.id, questions)
     setConfirmDialog({
       title: '임시저장 완료',
@@ -149,11 +146,8 @@ export default function QuizEdit() {
       setAlertDialog({ title: '필수 항목 미입력', message: errors.map(e => `- ${e}`).join('\n') })
       return
     }
-    const idx = mockQuizzes.findIndex(q => q.id === quiz.id)
-    if (idx !== -1) {
-      if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
-      mockQuizzes[idx] = { ...mockQuizzes[idx], title, description, week: week ?? null, session: session ?? null, status: quiz.status, visible, questions: questions.length, totalPoints, timeLimit: timeLimit === '' ? 0 : Number(timeLimit), allowAttempts: unlimitedAttempts ? -1 : allowAttempts, scorePolicy, allowLateSubmit, lateSubmitDeadline: allowLateSubmit && lateSubmitDeadline ? lateSubmitDeadline : null, lockDate: lockDate || null, scoreRevealEnabled, scoreRevealScope: scoreRevealEnabled ? scoreRevealScope : null, scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null, scoreRevealStart: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null, scoreRevealEnd: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd || null : null }
-    }
+    if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
+    updateQuiz(quiz.id, { title, description, week: week ?? null, session: session ?? null, status: quiz.status, visible, questions: questions.length, totalPoints, timeLimit: timeLimit === '' ? 0 : Number(timeLimit), allowAttempts: unlimitedAttempts ? -1 : allowAttempts, scorePolicy, allowLateSubmit, lateSubmitDeadline: allowLateSubmit && lateSubmitDeadline ? lateSubmitDeadline : null, lockDate: lockDate || null, scoreRevealEnabled, scoreRevealScope: scoreRevealEnabled ? scoreRevealScope : null, scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null, scoreRevealStart: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null, scoreRevealEnd: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd || null : null })
     setQuizQuestions(quiz.id, questions)
     // 문항이 변경되었으면 수정 타임스탬프 기록 (수정 전 제출 학생 필터용)
     if (JSON.stringify(questions) !== initialQuestionsSnapshot) {
