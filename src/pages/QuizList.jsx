@@ -390,7 +390,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
               {quiz.startDate} ~ {quiz.dueDate}
               {quiz.lockDate && (
                 <>
-                  <span className="text-gray-400">{' | '}</span>
+                  <span className="text-muted-foreground">{' | '}</span>
                   <span className="text-gray-500">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span>
                 </>
               )}
@@ -431,7 +431,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="text-gray-400 hover:text-gray-900">
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-gray-900">
                 <MoreVertical size={16} />
               </Button>
             </DropdownMenuTrigger>
@@ -888,7 +888,7 @@ function StudentQuizCard({ quiz, studentId }) {
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-xs text-muted-foreground">
                 {quiz.startDate} ~ {quiz.dueDate}
-                {quiz.lockDate && <><span className="text-gray-400">{' | '}</span><span className="text-gray-500">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span></>}
+                {quiz.lockDate && <><span className="text-muted-foreground">{' | '}</span><span className="text-gray-500">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span></>}
               </p>
               {ddayBadge && (
                 <span className={cn(

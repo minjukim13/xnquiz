@@ -31,7 +31,7 @@ export default function QuizInfoCard({ quiz }) {
               if (!enabled) {
                 return (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-gray-400">성적 공개</span>
+                    <span className="text-xs font-medium text-muted-foreground">성적 공개</span>
                     <span className="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-gray-500">비공개</span>
                   </div>
                 )
@@ -45,7 +45,7 @@ export default function QuizInfoCard({ quiz }) {
               const periodEnd = quiz.scoreRevealEnd?.split(' ')[0]
               return (
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-xs font-medium text-gray-400">성적 공개</span>
+                  <span className="text-xs font-medium text-muted-foreground">성적 공개</span>
                   <span className="text-xs px-2 py-0.5 rounded font-medium bg-accent text-primary">
                     {isWithAnswer ? '정답 포함' : '점수만'}
                   </span>

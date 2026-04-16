@@ -72,7 +72,7 @@ function QuestionRow({ question, student, studentIdx, quizId, pendingScore, onSc
             <div className="flex-1 min-w-0">
               <p className="text-[14px] font-medium text-foreground truncate">{question.text}</p>
               <div className="flex items-center gap-2 mt-1">
-                <Paperclip size={13} className={extIcon[file.fileType] || 'text-gray-400'} />
+                <Paperclip size={13} className={extIcon[file.fileType] || 'text-muted-foreground'} />
                 <p className="text-[13px] text-muted-foreground truncate">{file.fileName} ({file.fileSize})</p>
                 <button className="p-1 rounded hover:bg-slate-100 transition-colors text-muted-foreground hover:text-primary" title="파일 다운로드">
                   <Download size={13} />
@@ -129,7 +129,7 @@ function QuestionRow({ question, student, studentIdx, quizId, pendingScore, onSc
               pendingScore !== undefined ? 'border-primary' : 'border-slate-200'
             )}
           />
-          <span className="text-sm shrink-0 text-gray-400">/ {question.points}</span>
+          <span className="text-sm shrink-0 text-muted-foreground">/ {question.points}</span>
         </div>
       </div>
 
@@ -139,7 +139,7 @@ function QuestionRow({ question, student, studentIdx, quizId, pendingScore, onSc
           <div className="ml-[7rem] p-3 rounded bg-slate-50 border border-slate-200">
             <p className="leading-relaxed text-[14px] text-black whitespace-pre-wrap">{rawAnswer}</p>
             {question.autoGrade && autoCorrect === false && question.correctAnswer && (
-              <p className="mt-2 text-xs text-gray-400">정답: {question.correctAnswer}</p>
+              <p className="mt-2 text-xs text-muted-foreground">정답: {question.correctAnswer}</p>
             )}
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
               <Popover open={commentOpen} onOpenChange={open => { if (!open) setComment(savedComment); setCommentOpen(open) }}>
                 <PopoverTrigger asChild>
                   <button className="p-0.5 rounded hover:bg-slate-200/60 transition-colors" title="코멘트">
-                    <MessageSquare size={14} className={savedComment ? 'text-primary' : 'text-gray-400'} />
+                    <MessageSquare size={14} className={savedComment ? 'text-primary' : 'text-muted-foreground'} />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-72 p-3">

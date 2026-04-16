@@ -22,7 +22,7 @@ const typeBadgeVariants = cva(
         fill_in_multiple_blanks: 'bg-orange-50 text-orange-600',
         multiple_dropdowns:      'bg-indigo-50 text-indigo-600',
         file_upload:             'bg-slate-50 text-slate-500',
-        text:                    'bg-neutral-100 text-neutral-400',
+        text:                    'bg-neutral-100 text-muted-foreground',
       },
     },
     defaultVariants: { size: 'default' },
