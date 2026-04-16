@@ -24,6 +24,9 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
         </div>
         <p className="flex-1 min-w-0 text-sm text-muted-foreground">미제출</p>
         {question.type === 'file_upload' && <div className="w-12 shrink-0" />}
+        <div className="w-28 shrink-0 text-center">
+          <span className="text-xs text-muted-foreground">-</span>
+        </div>
         {question.autoGrade && <div className="w-16 shrink-0" />}
         <div className="flex items-center gap-1.5 w-40 shrink-0 justify-center">
           <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0 text-muted-foreground bg-slate-100">
@@ -126,6 +129,13 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
             </button>
           </div>
         )}
+
+        {/* 제출 일시 */}
+        <div className="w-28 shrink-0 text-center">
+          <span className={cn('text-xs', student.isLate ? 'text-amber-600 font-semibold' : 'text-muted-foreground')}>
+            {student.submittedAt ? student.submittedAt.slice(5, 16) : '-'}
+          </span>
+        </div>
 
         {/* 정답 여부 */}
         {question.autoGrade && (

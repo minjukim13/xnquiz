@@ -23,6 +23,7 @@ export default function QuizAttempt() {
   const questions = getQuizQuestions(id)
 
   const noTimeLimit = quiz?.timeLimit === 0 || isPreview
+  const isLate = !isPreview && !!quiz?.dueDate && new Date() > new Date(quiz.dueDate)
   const [answers, setAnswers] = useState({})
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
@@ -87,6 +88,7 @@ export default function QuizAttempt() {
       submittedAt: new Date().toLocaleString('ko-KR'),
       timeTaken: noTimeLimit ? null : Math.ceil(((quiz?.timeLimit ?? 30) * 60 - (timeRemaining ?? 0)) / 60),
       autoSubmitted: auto,
+      isLate: isLate || false,
       scorePolicy: quiz?.scorePolicy ?? '최고 점수 유지',
     }
 
@@ -99,7 +101,7 @@ export default function QuizAttempt() {
       }
     }
     setResult(attempt)
-  }, [answers, questions, id, currentStudent, timeRemaining, submitted, isPreview])
+  }, [answers, questions, id, currentStudent, timeRemaining, submitted, isPreview, isLate])
 
   if (!isPreview && role !== 'student') return <Navigate to="/" replace />
 
@@ -110,6 +112,21 @@ export default function QuizAttempt() {
           <Lock size={36} className="mx-auto mb-3 text-muted-foreground/40" />
           <p className="text-base font-semibold mb-1 text-slate-700">이용이 종료되었습니다</p>
           <p className="text-sm mb-5 text-muted-foreground">이용 종료 일시가 지나 퀴즈에 접근할 수 없습니다</p>
+          <Button variant="outline" onClick={() => navigate('/')}>
+            퀴즈 목록으로
+          </Button>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (!isPreview && quiz && quiz.status === 'open' && quiz.startDate && new Date() < new Date(quiz.startDate)) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto py-16 text-center">
+          <Clock size={36} className="mx-auto mb-3 text-amber-400" />
+          <p className="text-base font-semibold mb-1 text-slate-700">응시 시작 전입니다</p>
+          <p className="text-sm mb-5 text-muted-foreground">{quiz.startDate}부터 응시할 수 있습니다</p>
           <Button variant="outline" onClick={() => navigate('/')}>
             퀴즈 목록으로
           </Button>
@@ -138,6 +155,31 @@ export default function QuizAttempt() {
     )
   }
 
+  // 지각 제출 검증: dueDate 경과 시 allowLateSubmit 정책 확인
+  if (!isPreview && quiz && quiz.status === 'open' && quiz.dueDate && new Date() > new Date(quiz.dueDate)) {
+    const lateDeadlinePassed = quiz.allowLateSubmit && quiz.lateSubmitDeadline && new Date() > new Date(quiz.lateSubmitDeadline)
+    if (!quiz.allowLateSubmit || lateDeadlinePassed) {
+      return (
+        <Layout>
+          <div className="max-w-2xl mx-auto py-16 text-center">
+            <Clock size={36} className="mx-auto mb-3 text-red-400" />
+            <p className="text-base font-semibold mb-1 text-slate-700">
+              {lateDeadlinePassed ? '지각 제출 기한이 종료되었습니다' : '제출 기한이 종료되었습니다'}
+            </p>
+            <p className="text-sm mb-5 text-muted-foreground">
+              {lateDeadlinePassed
+                ? `지각 제출 마감: ${quiz.lateSubmitDeadline.replace('T', ' ')}`
+                : `마감일: ${quiz.dueDate}`}
+            </p>
+            <Button variant="outline" onClick={() => navigate('/')}>
+              퀴즈 목록으로
+            </Button>
+          </div>
+        </Layout>
+      )
+    }
+  }
+
   if (!quiz || questions.length === 0) {
     return (
       <Layout>
@@ -151,6 +193,20 @@ export default function QuizAttempt() {
   return (
     <Layout>
       <div className="max-w-3xl mx-auto pb-6">
+
+        {/* 지각 제출 배너 */}
+        {isLate && !submitted && (
+          <div className="px-4 py-3 rounded-lg mb-5 bg-amber-50 border border-amber-200">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={15} className="text-amber-600 shrink-0" />
+              <span className="text-sm font-semibold text-amber-800">지각 제출</span>
+              <span className="text-xs text-amber-700">마감일({quiz.dueDate})이 지났습니다. 제출 시 지각으로 기록됩니다.</span>
+            </div>
+            {quiz.lateSubmitDeadline && (
+              <p className="text-xs text-amber-600 mt-1.5 ml-[23px]">지각 제출 마감: {quiz.lateSubmitDeadline.replace('T', ' ')}</p>
+            )}
+          </div>
+        )}
 
         {/* 미리보기 배너 */}
         {isPreview && (
@@ -479,6 +535,12 @@ function ResultModal({ result, quiz, questions, onClose }) {
             </DialogTitle>
           </DialogHeader>
           <p className="text-xs text-gray-500 mt-1">{result.submittedAt}</p>
+          {result.isLate && (
+            <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+              <AlertCircle size={11} />
+              지각 제출
+            </span>
+          )}
         </div>
 
         {/* 결과 */}
@@ -577,13 +639,10 @@ function ResultModal({ result, quiz, questions, onClose }) {
 
         {/* 버튼 */}
         <div className="px-6 pb-5">
-          <button
-            onClick={onClose}
-            className="w-full flex items-center justify-center gap-1 px-4 py-2.5 rounded-lg bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
-          >
+          <Button onClick={onClose} className="w-full gap-1">
             퀴즈 목록으로
             <ChevronRight size={14} />
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

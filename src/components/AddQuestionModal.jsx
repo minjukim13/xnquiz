@@ -226,8 +226,8 @@ function initForm(type) {
     case 'essay':                   return { ...base, rubric: '' }
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
     case 'formula':                 return { ...base, variables: [{ name: '', min: '1', max: '10', decimals: '0' }], formula: '', tolerance: '0', toleranceType: 'absolute', answerDecimals: '2', solutions: [] }
-    case 'matching':                return { ...base, pairs: [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }] }
-    case 'fill_in_multiple_blanks': return { ...base, blanks: ['', ''] }
+    case 'matching':                return { ...base, pairs: [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }], distractors: [] }
+    case 'fill_in_multiple_blanks': return { ...base, blanks: [[''], ['']] }
     case 'multiple_dropdowns':      return { ...base, dropdowns: [{ label: '', options: ['', ''], answerIdx: 0 }] }
     case 'file_upload':             return base
     case 'text':                    return { text: '', points: 0, difficulty: '' }
@@ -252,8 +252,8 @@ function buildQuestion(type, form) {
     case 'essay':                   return { ...base, rubric: form.rubric }
     case 'numerical':               return { ...base, correctAnswer: Number(form.correctNum), tolerance: Number(form.tolerance) || 0 }
     case 'formula':                 return { ...base, variables: form.variables.filter(v => v.name.trim()), formula: form.formula.trim(), tolerance: Number(form.tolerance) || 0, toleranceType: form.toleranceType || 'absolute', answerDecimals: Number(form.answerDecimals) ?? 2, solutions: form.solutions || [] }
-    case 'matching':                return { ...base, pairs: form.pairs.filter(p => p.left.trim() && p.right.trim()) }
-    case 'fill_in_multiple_blanks': return { ...base, correctAnswer: form.blanks.filter(b => b.trim()) }
+    case 'matching':                return { ...base, pairs: form.pairs.filter(p => p.left.trim() && p.right.trim()), distractors: (form.distractors || []).filter(d => d.trim()) }
+    case 'fill_in_multiple_blanks': return { ...base, correctAnswer: form.blanks.map(b => b.filter(a => a.trim())).filter(b => b.length > 0) }
     case 'multiple_dropdowns':      return { ...base, dropdowns: form.dropdowns }
     case 'file_upload':             return base
     case 'text':                    return { type, text: form.text.trim(), points: 0, difficulty: '' }
@@ -362,7 +362,7 @@ function isValid(type, form) {
       return evalFormulaPreview(form.formula, validVars) !== null
     }
     case 'matching':                return form.pairs.filter(p => p.left.trim() && p.right.trim()).length >= 2
-    case 'fill_in_multiple_blanks': return form.blanks.some(b => b.trim())
+    case 'fill_in_multiple_blanks': return form.blanks.some(b => b.some(a => a.trim()))
     default:                        return true
   }
 }
@@ -554,6 +554,27 @@ function TypeForm({ type, form, setForm }) {
             ))}
           </div>
           {form.pairs.length < 8 && <AddBtn onClick={() => upd('pairs', [...form.pairs, { left: '', right: '' }])} label="항목 추가" />}
+
+          {/* 오답 보기 */}
+          <div className="border-t border-border pt-3">
+            <label className="text-sm font-medium block mb-1 text-foreground">오답 보기</label>
+            <p className="text-xs mb-2 text-muted-foreground">우측에만 표시되는 오답 보기를 추가하면 난이도가 올라갑니다</p>
+            <div className="space-y-2">
+              {(form.distractors || []).map((d, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input type="text" value={d} placeholder={`오답 보기 ${i + 1}`}
+                    onChange={e => { const n = [...(form.distractors || [])]; n[i] = e.target.value; upd('distractors', n) }}
+                    className={inputCls} />
+                  <TrashBtn onClick={() => upd('distractors', (form.distractors || []).filter((_, j) => j !== i))} />
+                </div>
+              ))}
+            </div>
+            {(form.distractors || []).length < 4 && (
+              <div className="mt-2">
+                <AddBtn onClick={() => upd('distractors', [...(form.distractors || []), ''])} label="오답 보기 추가" />
+              </div>
+            )}
+          </div>
         </div>
       )
 
@@ -752,19 +773,37 @@ function TypeForm({ type, form, setForm }) {
 
     case 'fill_in_multiple_blanks':
       return (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label required>빈칸 정답</Label>
-          {form.blanks.map((blank, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-xs w-12 flex-shrink-0 text-right text-muted-foreground">빈칸 {i + 1}</span>
-              <input type="text" value={blank} placeholder={`${i + 1}번째 빈칸 정답`}
-                onChange={e => { const n = [...form.blanks]; n[i] = e.target.value; upd('blanks', n) }}
-                className={inputCls} />
-              {form.blanks.length > 2 && <TrashBtn onClick={() => upd('blanks', form.blanks.filter((_, j) => j !== i))} />}
+          {form.blanks.map((blankAnswers, i) => (
+            <div key={i} className="rounded-lg p-2.5 space-y-2 bg-secondary border border-border">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">빈칸 {i + 1}</span>
+                {form.blanks.length > 2 && (
+                  <TrashBtn onClick={() => upd('blanks', form.blanks.filter((_, j) => j !== i))} />
+                )}
+              </div>
+              {blankAnswers.map((ans, j) => (
+                <div key={j} className="flex items-center gap-2">
+                  <input type="text" value={ans}
+                    onChange={e => { const n = form.blanks.map(b => [...b]); n[i][j] = e.target.value; upd('blanks', n) }}
+                    placeholder={j === 0 ? `${i + 1}번째 빈칸 정답` : '대체 정답'}
+                    className={inputCls} />
+                  {blankAnswers.length > 1 && (
+                    <TrashBtn onClick={() => { const n = form.blanks.map(b => [...b]); n[i] = n[i].filter((_, k) => k !== j); upd('blanks', n) }} />
+                  )}
+                </div>
+              ))}
+              {blankAnswers.length < 5 && (
+                <button type="button" onClick={() => { const n = form.blanks.map(b => [...b]); n[i] = [...n[i], '']; upd('blanks', n) }}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-indigo-500 px-2 py-1 rounded-md border border-dashed border-indigo-300 hover:bg-indigo-50 transition-colors">
+                  <Plus size={10} /> 대체 정답 추가
+                </button>
+              )}
             </div>
           ))}
-          {form.blanks.length < 6 && <AddBtn onClick={() => upd('blanks', [...form.blanks, ''])} label="빈칸 추가" />}
-          <p className="text-xs text-muted-foreground">문제 텍스트에 [1], [2] 등으로 빈칸 위치를 표시하세요</p>
+          {form.blanks.length < 6 && <AddBtn onClick={() => upd('blanks', [...form.blanks, ['']])} label="빈칸 추가" />}
+          <p className="text-xs text-muted-foreground">문제 텍스트에 [1], [2] 등으로 빈칸 위치를 표시하세요. 대소문자 구분 없이 채점</p>
         </div>
       )
 
@@ -884,9 +923,14 @@ function questionToForm(q) {
     case 'formula':
       return { ...base, variables: q.variables?.length ? q.variables.map(v => ({ ...v })) : [{ name: '', min: '1', max: '10', decimals: '0' }], formula: q.formula || '', tolerance: q.tolerance != null ? String(q.tolerance) : '0', toleranceType: q.toleranceType || 'absolute', answerDecimals: q.answerDecimals != null ? String(q.answerDecimals) : '2', solutions: q.solutions || [] }
     case 'matching':
-      return { ...base, pairs: q.pairs?.length ? q.pairs.map(p => ({ ...p })) : [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }] }
-    case 'fill_in_multiple_blanks':
-      return { ...base, blanks: Array.isArray(q.correctAnswer) && q.correctAnswer.length ? [...q.correctAnswer] : ['', ''] }
+      return { ...base, pairs: q.pairs?.length ? q.pairs.map(p => ({ ...p })) : [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }], distractors: q.distractors?.length ? [...q.distractors] : [] }
+    case 'fill_in_multiple_blanks': {
+      let blanks = [[''], ['']]
+      if (Array.isArray(q.correctAnswer) && q.correctAnswer.length) {
+        blanks = q.correctAnswer.map(b => Array.isArray(b) ? [...b] : [b])
+      }
+      return { ...base, blanks }
+    }
     case 'multiple_dropdowns':
       return { ...base, dropdowns: q.dropdowns?.length ? q.dropdowns.map(d => ({ ...d, options: [...d.options] })) : [{ label: '', options: ['', ''], answerIdx: 0 }] }
     case 'file_upload':
@@ -910,14 +954,17 @@ function hasAnswerChanged(type, oldQuestion, newQuestion) {
       return JSON.stringify(toArr(oldQuestion.correctAnswer)) !== JSON.stringify(toArr(newQuestion.correctAnswer))
     }
     case 'fill_in_multiple_blanks': {
-      const toArr = v => (Array.isArray(v) ? v : []).map(s => String(s).trim().toLowerCase())
+      const toArr = v => (Array.isArray(v) ? v : []).map(s =>
+        Array.isArray(s) ? s.map(a => String(a).trim().toLowerCase()) : [String(s).trim().toLowerCase()]
+      )
       return JSON.stringify(toArr(oldQuestion.correctAnswer)) !== JSON.stringify(toArr(newQuestion.correctAnswer))
     }
     case 'numerical':
       return Number(oldQuestion.correctAnswer) !== Number(newQuestion.correctAnswer) ||
         (oldQuestion.tolerance ?? 0) !== (newQuestion.tolerance ?? 0)
     case 'matching':
-      return JSON.stringify(oldQuestion.pairs) !== JSON.stringify(newQuestion.pairs)
+      return JSON.stringify(oldQuestion.pairs) !== JSON.stringify(newQuestion.pairs) ||
+        JSON.stringify(oldQuestion.distractors || []) !== JSON.stringify(newQuestion.distractors || [])
     case 'multiple_dropdowns':
       return JSON.stringify(oldQuestion.dropdowns) !== JSON.stringify(newQuestion.dropdowns)
     case 'formula':

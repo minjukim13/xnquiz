@@ -103,6 +103,8 @@ export const mockQuizzes = [
     scoreRevealEnabled: true,
     scoreRevealScope: 'with_answer',
     scoreRevealTiming: 'after_due',
+    allowLateSubmit: true,
+    lateSubmitDeadline: '2026-04-20T23:59',
   },
   {
     // draft / 성적 비공개
@@ -361,6 +363,32 @@ export const mockQuizzes = [
     scoreRevealEnabled: true,
     scoreRevealScope: 'wrong_only',
     scoreRevealTiming: 'immediately',
+  },
+  {
+    // 예약 발행: status open이지만 startDate가 미래 → 학생에게 "예정" 표시 + 응시 차단
+    id: '9',
+    title: '주차별 퀴즈 5 - 트랜잭션과 동시성 제어',
+    description: '트랜잭션 ACID 속성, 동시성 제어 기법(Lock, MVCC), 교착상태 처리를 다룹니다.',
+    course: 'CS301 데이터베이스',
+    status: 'open',
+    visible: true,
+    startDate: '2026-04-21 09:00',
+    dueDate: '2026-04-23 23:59',
+    lockDate: '2026-05-21 23:59',
+    week: 9,
+    session: 1,
+    totalStudents: 65,
+    submitted: 0,
+    graded: 0,
+    pendingGrade: 0,
+    questions: 8,
+    totalPoints: 20,
+    timeLimit: 20,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 2,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: 'after_due',
   },
 ]
 
@@ -1702,7 +1730,29 @@ function gradeByQuestion(question, answer) {
     case 'fill_in_multiple_blanks': {
       const blanks = Array.isArray(ca) ? ca : []
       const answers = Array.isArray(answer) ? answer : String(answer).split(',').map(s => s.trim())
-      const correct = blanks.length > 0 && blanks.every((b, i) => answers[i] && String(answers[i]).trim().toLowerCase() === String(b).trim().toLowerCase())
+      const correct = blanks.length > 0 && blanks.every((b, i) => {
+        const studentAns = answers[i]
+        if (!studentAns) return false
+        const accepted = Array.isArray(b) ? b : [b]
+        return accepted.some(a => String(studentAns).trim().toLowerCase() === String(a).trim().toLowerCase())
+      })
+      return correct ? pts : 0
+    }
+    case 'matching': {
+      const pairs = question.pairs || []
+      if (pairs.length === 0) return 0
+      let answerMap = {}
+      if (typeof answer === 'object' && !Array.isArray(answer)) {
+        answerMap = answer
+      } else if (typeof answer === 'string') {
+        answer.split(',').forEach(pair => {
+          const [l, r] = pair.split(':').map(s => s.trim())
+          if (l && r) answerMap[l] = r
+        })
+      } else { return 0 }
+      const correct = pairs.every(p =>
+        String(answerMap[p.left] || '').trim().toLowerCase() === String(p.right).trim().toLowerCase()
+      )
       return correct ? pts : 0
     }
     default:
@@ -1861,6 +1911,15 @@ export function autoGradeAnswer(question, answer, options = {}) {
       const noWrong   = studentSelected.every(s => correctSet.has(s.toLowerCase()))
       return (allCorrect && noWrong) ? question.points : 0
     }
+  }
+
+  // correctAnswer 기반 자동채점 (신규 생성 문항)
+  const _autoTypes = ['multiple_choice', 'true_false', 'short_answer', 'numerical', 'fill_in_multiple_blanks']
+  if (_autoTypes.includes(question.type) && question.correctAnswer !== undefined) {
+    return gradeByQuestion(question, answer)
+  }
+  if (question.type === 'matching' && question.pairs?.length > 0) {
+    return gradeByQuestion(question, answer)
   }
 
   let correctMap
@@ -2439,6 +2498,24 @@ export function getQuizStudents(quizId) {
     : ['cs401_1', 'cs401_2'].includes(quizId) ? '2023' : '2022'
   const questions = getQuizQuestions(quizId)
   const students = generateStudents(quiz.totalStudents, quiz.submitted, quiz.graded, `${quizId}_s`, yearPrefix, dateStr, questions)
+
+  // 지각 제출 학생 표시: allowLateSubmit 퀴즈에서 일부 학생을 지각으로 마킹
+  if (quiz.allowLateSubmit && quiz.dueDate) {
+    const due = new Date(quiz.dueDate)
+    students.forEach((s, i) => {
+      if (!s.submitted) return
+      if (i % 5 === 0) {
+        s.isLate = true
+        const lateDate = new Date(due)
+        lateDate.setDate(lateDate.getDate() + 1 + (i % 3))
+        const h = 9 + (i % 12)
+        const m = (i * 7) % 60
+        s.submittedAt = `${lateDate.getFullYear()}-${String(lateDate.getMonth() + 1).padStart(2, '0')}-${String(lateDate.getDate()).padStart(2, '0')} ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+        s.endTime = s.submittedAt.slice(0, 16)
+      }
+    })
+  }
+
   studentCache[quizId] = students
   return students
 }

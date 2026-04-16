@@ -190,6 +190,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
         <div className="w-28 shrink-0 text-center"><SortTh col="studentId">학번</SortTh></div>
         <div className="flex-1 text-[14px] font-semibold text-gray-500">{question.type === 'file_upload' ? '제출 파일' : '제출 답안'}</div>
         {question.type === 'file_upload' && <div className="w-12 shrink-0 text-center text-[14px] font-semibold text-gray-500" />}
+        <div className="w-28 shrink-0 text-center text-[14px] font-semibold text-gray-500">제출 일시</div>
         {question.autoGrade && <div className="w-16 shrink-0 text-center text-[14px] font-semibold text-gray-500">정답 여부</div>}
         <div className="w-40 shrink-0 text-center"><SortTh col="score">점수</SortTh></div>
       </div>

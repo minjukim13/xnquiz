@@ -235,7 +235,14 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-xs text-muted-foreground">{student.submitted ? `제출 ${student.endTime || '-'}` : '미제출'}</p>
+          <div className="flex items-center gap-1.5">
+            <p className={cn('text-xs', student.isLate ? 'text-amber-600 font-medium' : 'text-muted-foreground')}>
+              {student.submitted ? `제출 ${student.endTime || '-'}` : '미제출'}
+            </p>
+            {student.isLate && (
+              <span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-1.5 py-px rounded">지각</span>
+            )}
+          </div>
           <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
             {saveStatus === 'saved' && (
               <span className="text-xs font-medium text-emerald-600">저장 완료</span>
