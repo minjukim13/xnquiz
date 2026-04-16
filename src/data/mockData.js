@@ -22,6 +22,10 @@ export const QUIZ_TYPES = {
   text:                   { label: '텍스트',           autoGrade: null      },
 }
 
+// ── mockQuizzes: 초기 mock 데이터 + localStorage 복원 ──
+const QUIZ_STORAGE_KEY = 'xnq_quizzes'
+const _staticQuizIds = new Set()
+
 export const mockQuizzes = [
   {
     // grading 상태 / 성적 비공개 (채점 중 공개 안 함)
@@ -359,6 +363,65 @@ export const mockQuizzes = [
     scoreRevealTiming: 'immediately',
   },
 ]
+
+// ── mockQuizzes localStorage 동기화 ──
+// 정적 mock ID 기록 (복원 시 중복 방지)
+mockQuizzes.forEach(q => _staticQuizIds.add(q.id))
+
+// localStorage에서 사용자가 추가/수정한 퀴즈 복원
+try {
+  const raw = localStorage.getItem(QUIZ_STORAGE_KEY)
+  if (raw) {
+    const saved = JSON.parse(raw)
+    // 정적 mock 퀴즈의 수정사항 반영
+    saved.forEach(sq => {
+      const idx = mockQuizzes.findIndex(q => q.id === sq.id)
+      if (idx !== -1) {
+        Object.assign(mockQuizzes[idx], sq)
+      } else {
+        mockQuizzes.push(sq)
+      }
+    })
+  }
+} catch { /* localStorage 파싱 실패 시 기본 mock 사용 */ }
+
+function _persistQuizzes() {
+  try {
+    // 정적 mock과 달라진 항목 + 새로 추가된 항목만 저장
+    const toSave = mockQuizzes.filter(q => !_staticQuizIds.has(q.id))
+    // 정적 mock 중 수정된 항목도 저장
+    mockQuizzes.forEach(q => {
+      if (_staticQuizIds.has(q.id)) toSave.push(q)
+    })
+    localStorage.setItem(QUIZ_STORAGE_KEY, JSON.stringify(toSave))
+  } catch { /* quota exceeded 등 무시 */ }
+}
+
+export function addQuiz(quiz) {
+  mockQuizzes.push(quiz)
+  _persistQuizzes()
+  return quiz
+}
+
+export function updateQuiz(id, updates) {
+  const idx = mockQuizzes.findIndex(q => q.id === id)
+  if (idx !== -1) {
+    mockQuizzes[idx] = { ...mockQuizzes[idx], ...updates }
+    _persistQuizzes()
+    return mockQuizzes[idx]
+  }
+  return null
+}
+
+export function removeQuiz(id) {
+  const idx = mockQuizzes.findIndex(q => q.id === id)
+  if (idx !== -1) {
+    mockQuizzes.splice(idx, 1)
+    _persistQuizzes()
+    return true
+  }
+  return false
+}
 
 // 배점 합계: 5+5+10+10+20+5+10+15+10+10+15 = 115점
 export const mockQuestions = [

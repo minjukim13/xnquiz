@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
-import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
+import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions, addQuiz, removeQuiz } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { getStudentAttempts } from '../data/mockData'
 import { DropdownSelect } from '../components/DropdownSelect'
@@ -212,7 +212,7 @@ function InstructorQuizList() {
   const handleCopyQuiz = (quiz, targetCourse) => {
     const newId = `copy_${Date.now()}`
     const copy = resetFields(quiz, { id: newId, course: targetCourse })
-    mockQuizzes.push(copy)
+    addQuiz(copy)
     cloneQuestions(quiz.id, newId)
     const label = targetCourse === CURRENT_COURSE ? '현재 과목' : targetCourse
     showToast(`"${quiz.title}"을(를) ${label}으로 복사했습니다`)
@@ -223,7 +223,7 @@ function InstructorQuizList() {
     const imported = selectedQuizzes.map(q => {
       const newId = `import_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`
       const copy = resetFields(q, { id: newId, course: CURRENT_COURSE })
-      mockQuizzes.push(copy)
+      addQuiz(copy)
       cloneQuestions(q.id, newId)
       return copy
     })
@@ -241,8 +241,7 @@ function InstructorQuizList() {
 
   const confirmDeleteQuiz = () => {
     if (!deleteConfirm) return
-    const globalIdx = mockQuizzes.findIndex(q => q.id === deleteConfirm.id)
-    if (globalIdx !== -1) mockQuizzes.splice(globalIdx, 1)
+    removeQuiz(deleteConfirm.id)
     setQuizzes(prev => prev.filter(q => q.id !== deleteConfirm.id))
     showToast(`"${deleteConfirm.title}" 퀴즈가 삭제되었습니다`)
     setDeleteConfirm(null)
