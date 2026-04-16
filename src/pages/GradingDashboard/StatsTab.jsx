@@ -76,13 +76,13 @@ function StatsTab({ question, students }) {
           <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-gray-700">정답률</span>
-              <span className={cn('text-sm font-bold', correctPct >= 70 ? 'text-emerald-600' : correctPct >= 40 ? 'text-amber-600' : 'text-red-600')}>
+              <span className={cn('text-sm font-bold', correctPct >= 70 ? 'text-green-700' : correctPct >= 40 ? 'text-orange-700' : 'text-red-600')}>
                 {correctPct}%
               </span>
             </div>
             <div className="w-full h-2 rounded-full overflow-hidden mb-2 bg-slate-200">
               <div
-                className={cn('h-full rounded-full transition-all', correctPct >= 70 ? 'bg-emerald-400' : correctPct >= 40 ? 'bg-amber-400' : 'bg-red-400')}
+                className={cn('h-full rounded-full transition-all', correctPct >= 70 ? 'bg-correct' : correctPct >= 40 ? 'bg-amber-500' : 'bg-destructive')}
                 style={{ width: `${correctPct}%` }}
               />
             </div>
