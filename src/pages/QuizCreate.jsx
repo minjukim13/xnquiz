@@ -67,6 +67,7 @@ export default function QuizCreate() {
     if (!form.startDate) errors.push('시작 일시를 설정해주세요')
     if (!form.dueDate) errors.push('마감 일시를 설정해주세요')
     if (form.startDate && form.dueDate && new Date(form.dueDate) <= new Date(form.startDate)) errors.push('마감 일시는 시작 일시 이후여야 합니다')
+    if (!form.unlimitedTimeLimit && (form.timeLimit === '' || Number(form.timeLimit) <= 0)) errors.push('제한 시간을 입력하거나 무제한으로 설정해주세요')
     if (questions.length === 0) errors.push('최소 1개 이상의 문항을 추가해주세요')
     return errors
   }
