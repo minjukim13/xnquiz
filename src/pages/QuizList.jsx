@@ -414,7 +414,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
           {quiz.allowLateSubmit && quiz.lateSubmitDeadline && (
             <p className="text-xs text-amber-600 mt-0.5">지각 제출: {quiz.lateSubmitDeadline.replace('T', ' ')}까지</p>
           )}
-          {quiz.allowLateSubmit && !quiz.lateSubmitDeadline && (
+          {quiz.allowLateSubmit && !quiz.lateSubmitDeadline && quiz.dueDate && (
             <p className="text-xs text-amber-600 mt-0.5">지각 제출: 무제한 허용</p>
           )}
         </div>
@@ -478,7 +478,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
 function ActiveStats({ quiz }) {
   const newAttempts = getStudentAttempts(quiz.id)
   const submitted = quiz.submitted + newAttempts.length
-  const submitRate = Math.round((submitted / quiz.totalStudents) * 100)
+  const submitRate = quiz.totalStudents > 0 ? Math.round((submitted / quiz.totalStudents) * 100) : 0
   const unsubmitted = Math.max(0, quiz.totalStudents - submitted)
   const isClosed = quiz.status === 'closed' || quiz.status === 'grading'
 

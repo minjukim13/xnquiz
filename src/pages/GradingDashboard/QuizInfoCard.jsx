@@ -4,7 +4,7 @@ import StatusBadge from '../../components/StatusBadge'
 // ─── 퀴즈 정보 카드 ─────────────────────────────────────────────────────────
 export default function QuizInfoCard({ quiz }) {
   const submitRate = useMemo(
-    () => Math.round((quiz.submitted / quiz.totalStudents) * 100),
+    () => quiz.totalStudents > 0 ? Math.round((quiz.submitted / quiz.totalStudents) * 100) : 0,
     [quiz.submitted, quiz.totalStudents]
   )
   const gradeProgress = useMemo(
