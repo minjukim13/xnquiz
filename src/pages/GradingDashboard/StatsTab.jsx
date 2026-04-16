@@ -43,7 +43,7 @@ function StatsTab({ question, students }) {
       <div className="px-4 py-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-semibold text-gray-700">점수 분포</span>
-          <span className="text-xs text-gray-400">만점 {question.points}점</span>
+          <span className="text-xs text-muted-foreground">만점 {question.points}점</span>
         </div>
         {scoredStudents.length === 0 ? (
           <div className="flex items-center justify-center h-28 rounded bg-slate-50 border border-dashed border-slate-200">
@@ -86,7 +86,7 @@ function StatsTab({ question, students }) {
                 style={{ width: `${correctPct}%` }}
               />
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               정답 {correctCount}명 · 오답 {scoredStudents.length - correctCount}명
             </p>
           </div>

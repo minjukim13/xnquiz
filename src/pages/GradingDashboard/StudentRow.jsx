@@ -17,16 +17,16 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
     return (
       <div className="flex items-center gap-2 px-3 py-3 border-b border-slate-100 bg-slate-50">
         <div className="w-28 shrink-0">
-          <p className="text-[14px] font-medium truncate text-gray-400 text-center">{student.name}</p>
+          <p className="text-[14px] font-medium truncate text-muted-foreground text-center">{student.name}</p>
         </div>
         <div className="w-28 shrink-0">
-          <p className="text-[14px] truncate text-gray-400 text-center">{student.studentId}</p>
+          <p className="text-[14px] truncate text-muted-foreground text-center">{student.studentId}</p>
         </div>
-        <p className="flex-1 min-w-0 text-sm text-gray-400">미제출</p>
+        <p className="flex-1 min-w-0 text-sm text-muted-foreground">미제출</p>
         {question.type === 'file_upload' && <div className="w-12 shrink-0" />}
         {question.autoGrade && <div className="w-16 shrink-0" />}
         <div className="flex items-center gap-1.5 w-40 shrink-0 justify-center">
-          <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0 text-gray-400 bg-slate-100">
+          <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0 text-muted-foreground bg-slate-100">
             미제출
           </span>
           <input
@@ -42,7 +42,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
               pendingScore !== undefined ? 'border-primary' : 'border-slate-200'
             )}
           />
-          <span className="text-sm shrink-0 text-gray-400">/ {question.points}</span>
+          <span className="text-sm shrink-0 text-muted-foreground">/ {question.points}</span>
         </div>
       </div>
     )
@@ -99,7 +99,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
           const extIcon = { pdf: 'text-red-500', png: 'text-blue-500', jpg: 'text-green-500', hwp: 'text-sky-600' }
           return (
             <div className="flex-1 min-w-0 flex items-center gap-2">
-              <Paperclip size={13} className={extIcon[file.fileType] || 'text-gray-400'} />
+              <Paperclip size={13} className={extIcon[file.fileType] || 'text-muted-foreground'} />
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-medium text-black truncate">{file.fileName}</p>
                 <p className="text-[11px] text-muted-foreground">{file.fileSize} · {file.uploadedAt}</p>
@@ -158,7 +158,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
               pendingScore !== undefined ? 'border-primary' : 'border-slate-200'
             )}
           />
-          <span className="text-sm shrink-0 text-gray-400">/ {question.points}</span>
+          <span className="text-sm shrink-0 text-muted-foreground">/ {question.points}</span>
         </div>
       </div>
 
@@ -167,7 +167,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
           <div className="p-3 rounded bg-slate-50 border border-slate-200">
             <p className="leading-relaxed text-[14px] text-black">{rawAnswer}</p>
             {autoCorrect !== null && !autoCorrect && question.correctAnswer && (
-              <p className="mt-2 text-xs text-gray-400">정답: {question.correctAnswer}</p>
+              <p className="mt-2 text-xs text-muted-foreground">정답: {question.correctAnswer}</p>
             )}
           </div>
         </div>

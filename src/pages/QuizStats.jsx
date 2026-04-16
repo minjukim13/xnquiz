@@ -186,7 +186,7 @@ function GradesTab({ quiz, students: allStudents }) {
             >
               {dotCls && <span className={cn('w-1.5 h-1.5 rounded-full', dotCls)} />}
               <span className={isActive ? 'text-gray-900 font-medium' : 'text-gray-500'}>{label}</span>
-              <span className={cn('font-bold text-xs', isActive ? 'text-primary' : 'text-gray-400')}>{value}</span>
+              <span className={cn('font-bold text-xs', isActive ? 'text-primary' : 'text-muted-foreground')}>{value}</span>
             </button>
           )
         })}

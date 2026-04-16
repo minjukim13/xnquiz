@@ -487,13 +487,13 @@ function ResultModal({ result, quiz, questions, onClose }) {
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium text-gray-900">자동채점 결과</p>
               {!hasAutoGrade ? (
-                <p className="text-sm text-gray-400">점수 없음</p>
+                <p className="text-sm text-muted-foreground">점수 없음</p>
               ) : showScoreNow ? (
                 <p className="text-xl font-semibold text-gray-900 tracking-tight">
-                  {autoTotal}<span className="text-sm font-normal ml-1 text-gray-400">/ {autoMax}점</span>
+                  {autoTotal}<span className="text-sm font-normal ml-1 text-muted-foreground">/ {autoMax}점</span>
                 </p>
               ) : (
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   {quiz.showScore ? '공개 예정' : '점수 비공개'}
                 </p>
               )}
@@ -508,7 +508,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
                     style={{ width: `${scorePercent}%` }}
                   />
                 </div>
-                <p className="text-xs mt-1.5 text-right text-gray-400">{scorePercent}% 정답</p>
+                <p className="text-xs mt-1.5 text-right text-muted-foreground">{scorePercent}% 정답</p>
               </>
             )}
           </div>
@@ -540,12 +540,12 @@ function ResultModal({ result, quiz, questions, onClose }) {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs font-mono font-medium shrink-0 text-gray-400">Q{idx + 1}</span>
+                          <span className="text-xs font-mono font-medium shrink-0 text-muted-foreground">Q{idx + 1}</span>
                           <span className="text-xs truncate text-gray-600">{q.text}</span>
                         </div>
                         <span className={cn(
                           'shrink-0 text-xs font-medium px-2 py-0.5 rounded-full',
-                          !isAutoGraded && 'bg-gray-100 text-gray-400',
+                          !isAutoGraded && 'bg-gray-100 text-muted-foreground',
                           isAutoGraded && isCorrect && 'bg-emerald-50 text-emerald-600',
                           isAutoGraded && isPartial && 'bg-amber-50 text-amber-600',
                           isAutoGraded && !isCorrect && !isPartial && 'bg-red-50 text-red-500',
@@ -555,7 +555,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
                       </div>
                       {showAnswerNow && isAutoGraded && !isCorrect && q.correctAnswer && (
                         <div className="mt-2 pt-2 border-t border-gray-100">
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-muted-foreground">
                             정답: <span className="font-medium text-gray-700">
                               {Array.isArray(q.correctAnswer) ? q.correctAnswer.join(', ') : q.correctAnswer}
                             </span>
@@ -569,7 +569,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs text-gray-400 pt-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
             <span>{result.timeTaken != null ? `응시시간 ${result.timeTaken}분` : '시간 제한 없음'}</span>
             <span>총 {quiz.questions}문항 · {quiz.totalPoints}점 만점</span>
           </div>

@@ -34,15 +34,15 @@ const TYPE_TW = {
   fill_in_multiple_blanks: { text: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-400', iconBorder: 'border-orange-600/15' },
   multiple_dropdowns:      { text: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-500', iconBorder: 'border-indigo-600/15' },
   file_upload:             { text: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-300', iconBorder: 'border-slate-500/15' },
-  text:                    { text: 'text-neutral-400', bg: 'bg-neutral-100', border: 'border-neutral-300', iconBorder: 'border-neutral-400/15' },
+  text:                    { text: 'text-muted-foreground', bg: 'bg-neutral-100', border: 'border-neutral-300', iconBorder: 'border-neutral-400/15' },
 }
-const getTypeTw = (key) => TYPE_TW[key] ?? { text: 'text-neutral-400', bg: 'bg-neutral-100', border: 'border-neutral-300', iconBorder: 'border-neutral-400/15' }
+const getTypeTw = (key) => TYPE_TW[key] ?? { text: 'text-muted-foreground', bg: 'bg-neutral-100', border: 'border-neutral-300', iconBorder: 'border-neutral-400/15' }
 
 // ── 유형별 미리보기 ────────────────────────────────────────────────────────
 function TypePreview({ type }) {
   if (!type) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-2 text-neutral-400">
+      <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
         <div className="w-8 h-8 rounded-full flex items-center justify-center bg-neutral-100">
           <span className="text-base">?</span>
         </div>
@@ -198,7 +198,7 @@ function TypePreview({ type }) {
         <p className="text-xs font-semibold mb-2 text-neutral-700">Q. 완성된 보고서를 제출하시오.</p>
         <div className="rounded px-2 py-3 text-center mb-1 border-2 border-dashed border-neutral-200">
           <p className="text-xs text-muted-foreground">파일을 드래그하거나 클릭</p>
-          <p className="text-xs mt-0.5 text-neutral-400">PDF, DOC, DOCX, HWP</p>
+          <p className="text-xs mt-0.5 text-muted-foreground">PDF, DOC, DOCX, HWP</p>
         </div>
         <p className="text-xs text-muted-foreground">파일 업로드, 교수자 직접 채점</p>
       </>
@@ -225,7 +225,7 @@ function initForm(type) {
     case 'short_answer':            return { ...base, acceptedAnswers: [''] }
     case 'essay':                   return { ...base, rubric: '' }
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
-    case 'formula':                 return { ...base, variables: [{ name: '', min: '1', max: '10', decimals: '0' }], formula: '', tolerance: '0' }
+    case 'formula':                 return { ...base, variables: [{ name: '', min: '1', max: '10', decimals: '0' }], formula: '', tolerance: '0', toleranceType: 'absolute', answerDecimals: '2', solutions: [] }
     case 'matching':                return { ...base, pairs: [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }] }
     case 'fill_in_multiple_blanks': return { ...base, blanks: ['', ''] }
     case 'multiple_dropdowns':      return { ...base, dropdowns: [{ label: '', options: ['', ''], answerIdx: 0 }] }
@@ -251,7 +251,7 @@ function buildQuestion(type, form) {
     case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
     case 'essay':                   return { ...base, rubric: form.rubric }
     case 'numerical':               return { ...base, correctAnswer: Number(form.correctNum), tolerance: Number(form.tolerance) || 0 }
-    case 'formula':                 return { ...base, variables: form.variables.filter(v => v.name.trim()), formula: form.formula.trim(), tolerance: Number(form.tolerance) || 0 }
+    case 'formula':                 return { ...base, variables: form.variables.filter(v => v.name.trim()), formula: form.formula.trim(), tolerance: Number(form.tolerance) || 0, toleranceType: form.toleranceType || 'absolute', answerDecimals: Number(form.answerDecimals) ?? 2, solutions: form.solutions || [] }
     case 'matching':                return { ...base, pairs: form.pairs.filter(p => p.left.trim() && p.right.trim()) }
     case 'fill_in_multiple_blanks': return { ...base, correctAnswer: form.blanks.filter(b => b.trim()) }
     case 'multiple_dropdowns':      return { ...base, dropdowns: form.dropdowns }
@@ -261,23 +261,92 @@ function buildQuestion(type, form) {
   }
 }
 
-// ── 유효성 검사 ─────────────────────────────────────────────────────────────
-function evalFormulaPreview(formula, variables) {
+// ── 수식 엔진 (Canvas 호환 수학 함수 지원) ──────────────────────────────────
+const FORMULA_FUNCTIONS = {
+  abs: Math.abs, acos: Math.acos, asin: Math.asin, atan: Math.atan,
+  ceil: Math.ceil, cos: Math.cos, floor: Math.floor, ln: Math.log,
+  log: (x, base = 10) => Math.log(x) / Math.log(base),
+  max: Math.max, min: Math.min, round: Math.round,
+  sin: Math.sin, sqrt: Math.sqrt, tan: Math.tan,
+  fact: n => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r },
+  comb: (n, k) => { let r = 1; for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return Math.round(r) },
+  perm: (n, k) => { let r = 1; for (let i = 0; i < k; i++) r *= (n - i); return r },
+  deg_to_rad: d => d * Math.PI / 180,
+  rad_to_deg: r => r * 180 / Math.PI,
+}
+const FORMULA_CONSTANTS = { pi: Math.PI, e: Math.E }
+const FORMULA_FN_NAMES = Object.keys(FORMULA_FUNCTIONS)
+const FORMULA_CONST_NAMES = Object.keys(FORMULA_CONSTANTS)
+
+function evalFormula(formula, varValues) {
   try {
-    const validVars = variables.filter(v => v.name.trim())
-    if (!validVars.length || !formula.trim()) return null
+    if (!formula.trim()) return null
     let expr = formula.trim()
-    for (const v of validVars) {
-      const mid = ((Number(v.min) || 1) + (Number(v.max) || 10)) / 2
-      expr = expr.replace(new RegExp(`\\b${v.name}\\b`, 'g'), String(mid))
+    // 함수 호출을 __fn_name( 으로 치환해서 변수명 충돌 방지
+    for (const fn of FORMULA_FN_NAMES) {
+      expr = expr.replace(new RegExp(`\\b${fn}\\s*\\(`, 'g'), `__fn_${fn}(`)
     }
+    // 변수 치환 (상수보다 우선 - 변수명이 e나 pi일 경우 변수가 우선)
+    for (const [name, val] of Object.entries(varValues)) {
+      expr = expr.replace(new RegExp(`\\b${name}\\b`, 'g'), String(val))
+    }
+    // 상수 치환 (변수 치환 이후 남은 pi, e만 대체)
+    for (const c of FORMULA_CONST_NAMES) {
+      expr = expr.replace(new RegExp(`\\b${c}\\b`, 'g'), String(FORMULA_CONSTANTS[c]))
+    }
+    // ^ → **
     expr = expr.replace(/\^/g, '**')
-    if (/[^0-9+\-*/().\s*]/.test(expr.replace(/\*\*/g, 'XX'))) return null
+    // 허용 패턴: 숫자, 연산자, 괄호, 소수점, 공백, 쉼표, __fn_ 접두어
+    const cleaned = expr.replace(/__fn_[a-z_]+/g, '').replace(/\*\*/g, '')
+    if (/[^0-9+\-*/().,\s]/.test(cleaned)) return null
+    // 함수 참조 주입
+    const fnEntries = FORMULA_FN_NAMES.map(fn => `const __fn_${fn} = __fns.${fn};`)
     // eslint-disable-next-line no-new-func
-    const result = Function('"use strict"; return (' + expr + ')')()
+    const result = Function('__fns', `"use strict"; ${fnEntries.join(' ')} return (${expr})`)(FORMULA_FUNCTIONS)
     return isNaN(result) || !isFinite(result) ? null : result
   } catch { return null }
 }
+
+function evalFormulaPreview(formula, variables) {
+  const validVars = variables.filter(v => v.name.trim())
+  if (!validVars.length || !formula.trim()) return null
+  const varValues = {}
+  for (const v of validVars) {
+    varValues[v.name] = ((Number(v.min) || 1) + (Number(v.max) || 10)) / 2
+  }
+  return evalFormula(formula, varValues)
+}
+
+// 시드 기반 의사 난수 생성 (학생별 고정 값)
+function seededRandom(seed) {
+  let s = seed % 2147483647
+  if (s <= 0) s += 2147483646
+  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646 }
+}
+
+function generateSolutions(variables, formula, count = 10) {
+  const validVars = variables.filter(v => v.name.trim())
+  if (!validVars.length || !formula.trim()) return []
+  const solutions = []
+  for (let i = 0; i < count; i++) {
+    const rng = seededRandom(i * 9973 + 1)
+    const varValues = {}
+    for (const v of validVars) {
+      const min = Number(v.min) || 1
+      const max = Number(v.max) || 10
+      const decimals = Number(v.decimals) || 0
+      const raw = min + rng() * (max - min)
+      varValues[v.name] = Number(raw.toFixed(decimals))
+    }
+    const answer = evalFormula(formula, varValues)
+    if (answer !== null) {
+      solutions.push({ index: i + 1, variables: { ...varValues }, answer })
+    }
+  }
+  return solutions
+}
+
+// ── 유효성 검사 ─────────────────────────────────────────────────────────────
 
 function isValid(type, form) {
   if (type === 'text') return form.text?.trim().length > 0
@@ -301,11 +370,12 @@ function isValid(type, form) {
 // ── 유형별 전용 폼 ──────────────────────────────────────────────────────────
 function TypeForm({ type, form, setForm }) {
   const upd = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
+  const [showFnRef, setShowFnRef] = useState(false)
 
   const inputCls = 'flex-1 text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500'
 
   const TrashBtn = ({ onClick }) => (
-    <button type="button" onClick={onClick} className="text-neutral-400 shrink-0 hover:text-red-500 transition-colors">
+    <button type="button" onClick={onClick} className="text-muted-foreground shrink-0 hover:text-red-500 transition-colors">
       <Trash2 size={13} />
     </button>
   )
@@ -489,31 +559,45 @@ function TypeForm({ type, form, setForm }) {
 
     case 'formula': {
       const vars = (form.variables || [])
-      const preview = evalFormulaPreview(form.formula, vars.filter(v => v.name.trim()))
-      const exampleLabel = vars.filter(v => v.name.trim()).map(v => {
+      const validVars = vars.filter(v => v.name.trim())
+      const preview = evalFormulaPreview(form.formula, validVars)
+      const exampleLabel = validVars.map(v => {
         const mid = ((Number(v.min) || 1) + (Number(v.max) || 10)) / 2
         return `${v.name}=${mid}`
       }).join(', ')
+      const answerDec = Number(form.answerDecimals) || 0
+      const solutions = form.solutions || []
       return (
         <div className="space-y-4">
+          {/* 문제 설명 안내 */}
+          {validVars.length > 0 && (
+            <div className="px-2.5 py-2 rounded text-xs bg-teal-50/60 border border-teal-200">
+              <span className="text-teal-700 font-medium">변수 참조 안내</span>
+              <span className="text-muted-foreground ml-1.5">문제 설명에 변수명을 대괄호로 감싸면 학생에게 실제 값으로 표시됩니다.</span>
+              <div className="mt-1 font-mono text-teal-600">
+                예: "[{validVars[0]?.name || 'a'}]명의 학생이 [{validVars[1]?.name || 'b'}]권의 책을 가지고 있을 때"
+              </div>
+            </div>
+          )}
+
           {/* 변수 설정 */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label required>변수 설정</Label>
               <span className="text-xs text-muted-foreground">학생마다 범위 안에서 무작위 값 부여</span>
             </div>
-            <div className="grid gap-1 mb-1 px-0.5" style={{ gridTemplateColumns: '2.5rem 1fr auto 1fr 2.5rem 1.5rem' }}>
+            <div className="grid gap-1 mb-1 px-0.5" style={{ gridTemplateColumns: '3.5rem 1fr auto 1fr 3.5rem 1.5rem' }}>
               {['변수명', '최솟값', '', '최댓값', '소수점', ''].map((h, i) => (
                 <span key={i} className="text-xs text-muted-foreground">{h}</span>
               ))}
             </div>
             <div className="space-y-1.5">
               {vars.map((v, i) => (
-                <div key={i} className="grid items-center gap-1.5" style={{ gridTemplateColumns: '2.5rem 1fr auto 1fr 2.5rem 1.5rem' }}>
+                <div key={i} className="grid items-center gap-1.5" style={{ gridTemplateColumns: '3.5rem 1fr auto 1fr 3.5rem 1.5rem' }}>
                   <input type="text" value={v.name} placeholder="a"
                     maxLength={4}
                     onChange={e => { const n = [...vars]; n[i] = { ...n[i], name: e.target.value }; upd('variables', n) }}
-                    className="text-sm px-2 py-1.5 bg-white font-mono text-center focus:outline-none border border-neutral-200 rounded text-teal-600 focus:border-indigo-500" />
+                    className="text-sm px-2 py-1.5 bg-white font-mono placeholder:font-sans text-center focus:outline-none border border-neutral-200 rounded text-teal-600 focus:border-indigo-500" />
                   <input type="number" value={v.min} placeholder="1"
                     onChange={e => { const n = [...vars]; n[i] = { ...n[i], min: e.target.value }; upd('variables', n) }}
                     className="text-sm px-2 py-1.5 bg-white text-center focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
@@ -521,35 +605,57 @@ function TypeForm({ type, form, setForm }) {
                   <input type="number" value={v.max} placeholder="10"
                     onChange={e => { const n = [...vars]; n[i] = { ...n[i], max: e.target.value }; upd('variables', n) }}
                     className="text-sm px-2 py-1.5 bg-white text-center focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
-                  <input type="number" value={v.decimals} placeholder="0" min="0" max="4"
+                  <select value={v.decimals || '0'}
                     onChange={e => { const n = [...vars]; n[i] = { ...n[i], decimals: e.target.value }; upd('variables', n) }}
-                    className="text-sm px-2 py-1.5 bg-white text-center focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
+                    className="text-sm px-1 py-1.5 bg-white text-center focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500 appearance-none pr-1">
+                    {[0, 1, 2, 3, 4].map(d => <option key={d} value={String(d)}>{d}</option>)}
+                  </select>
                   {vars.length > 1
                     ? <TrashBtn onClick={() => upd('variables', vars.filter((_, j) => j !== i))} />
                     : <span />}
                 </div>
               ))}
             </div>
-            {vars.length < 4 && (
+            {vars.length < 10 && (
               <AddBtn onClick={() => upd('variables', [...vars, { name: '', min: '1', max: '10', decimals: '0' }])} label="변수 추가" />
             )}
           </div>
 
           {/* 수식 입력 */}
           <div>
-            <Label required>수식</Label>
-            <p className="text-xs mb-1.5 text-muted-foreground">위에서 정의한 변수명을 그대로 입력하세요. 사칙연산(+, -, *, /) 및 ^(거듭제곱) 사용 가능</p>
-            <input type="text" value={form.formula} placeholder="예: a * b + 10"
+            <div className="flex items-center justify-between mb-1">
+              <Label required>수식</Label>
+              <button type="button" onClick={() => setShowFnRef(!showFnRef)}
+                className="text-xs text-indigo-500 hover:text-indigo-700 transition-colors">
+                {showFnRef ? '함수 목록 접기' : '사용 가능한 함수 보기'}
+              </button>
+            </div>
+            <p className="text-xs mb-1.5 text-muted-foreground">
+              변수명을 그대로 입력하세요. 사칙연산(+, -, *, /), ^(거듭제곱), 수학 함수, 상수(pi, e) 사용 가능
+            </p>
+            {showFnRef && (
+              <div className="mb-2 p-2.5 rounded border border-neutral-200 bg-neutral-50 text-xs space-y-1.5">
+                <div><span className="font-medium text-neutral-700">기본 연산</span> <span className="font-mono text-muted-foreground">+ - * / ^(거듭제곱) (괄호)</span></div>
+                <div><span className="font-medium text-neutral-700">상수</span> <span className="font-mono text-muted-foreground">pi (3.14159...) e (2.71828...)</span></div>
+                <div><span className="font-medium text-neutral-700">삼각함수</span> <span className="font-mono text-muted-foreground">sin(x) cos(x) tan(x) asin(x) acos(x) atan(x)</span></div>
+                <div><span className="font-medium text-neutral-700">지수/로그</span> <span className="font-mono text-muted-foreground">sqrt(x) ln(x) log(x) log(x,밑)</span></div>
+                <div><span className="font-medium text-neutral-700">반올림</span> <span className="font-mono text-muted-foreground">abs(x) round(x) ceil(x) floor(x)</span></div>
+                <div><span className="font-medium text-neutral-700">조합/순열</span> <span className="font-mono text-muted-foreground">fact(n) comb(n,k) perm(n,k)</span></div>
+                <div><span className="font-medium text-neutral-700">각도 변환</span> <span className="font-mono text-muted-foreground">deg_to_rad(x) rad_to_deg(x)</span></div>
+                <div><span className="font-medium text-neutral-700">비교</span> <span className="font-mono text-muted-foreground">min(a,b) max(a,b)</span></div>
+              </div>
+            )}
+            <input type="text" value={form.formula} placeholder="예: sqrt(a^2 + b^2)"
               onChange={e => upd('formula', e.target.value)}
               className={cn(
-                'w-full text-sm px-2.5 py-1.5 bg-white font-mono focus:outline-none border rounded text-foreground focus:border-indigo-500',
+                'w-full text-sm px-2.5 py-1.5 bg-white font-mono placeholder:font-sans focus:outline-none border rounded text-foreground focus:border-indigo-500',
                 form.formula && preview === null ? 'border-red-500' : 'border-neutral-200'
               )} />
             {form.formula && preview !== null && exampleLabel && (
               <div className="mt-1.5 px-2.5 py-1.5 rounded text-xs flex items-center gap-1.5 bg-teal-50 border border-teal-200">
                 <span className="text-teal-700">예시 ({exampleLabel})</span>
-                <span className="text-muted-foreground">→</span>
-                <span className="font-medium font-mono text-teal-600">정답 = {Number(preview.toFixed(6))}</span>
+                <span className="text-muted-foreground">=</span>
+                <span className="font-medium font-mono text-teal-600">{Number(preview.toFixed(answerDec))}</span>
               </div>
             )}
             {form.formula && preview === null && (
@@ -557,15 +663,81 @@ function TypeForm({ type, form, setForm }) {
             )}
           </div>
 
-          {/* 허용 오차 */}
-          <div>
-            <Label>허용 오차</Label>
-            <div className="flex items-center gap-2">
-              <input type="number" value={form.tolerance} min="0" placeholder="0"
-                onChange={e => upd('tolerance', e.target.value)}
-                className="w-28 text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
-              <span className="text-xs text-muted-foreground">계산 결과 ± 이 값 범위 내면 정답 처리 (0 = 완전 일치)</span>
+          {/* 정답 소수점 자릿수 + 허용 오차 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>정답 소수점 자릿수</Label>
+              <input type="number" value={form.answerDecimals} min="0" max="6" placeholder="2"
+                onChange={e => upd('answerDecimals', e.target.value)}
+                className="w-full text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
+              <p className="text-xs mt-0.5 text-muted-foreground">계산 결과 표시/채점 시 적용</p>
             </div>
+            <div>
+              <Label>허용 오차</Label>
+              <div className="flex gap-1.5">
+                <input type="number" value={form.tolerance} min="0" placeholder="0"
+                  onChange={e => upd('tolerance', e.target.value)}
+                  className="flex-1 text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
+                <select value={form.toleranceType || 'absolute'}
+                  onChange={e => upd('toleranceType', e.target.value)}
+                  className="text-sm px-2 py-1.5 bg-white border border-neutral-200 rounded text-foreground focus:outline-none focus:border-indigo-500">
+                  <option value="absolute">절대값</option>
+                  <option value="percent">%</option>
+                </select>
+              </div>
+              <p className="text-xs mt-0.5 text-muted-foreground">
+                {(form.toleranceType || 'absolute') === 'percent'
+                  ? `정답의 ±${form.tolerance || 0}% 범위 내 정답 처리`
+                  : `정답 ±${form.tolerance || 0} 범위 내 정답 처리 (0 = 완전 일치)`}
+              </p>
+            </div>
+          </div>
+
+          {/* 정답 생성 및 검증 테이블 */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label>정답 생성 및 검증</Label>
+              <Button type="button" variant="soft" size="sm"
+                disabled={preview === null}
+                onClick={() => {
+                  const sols = generateSolutions(vars, form.formula, 10)
+                  upd('solutions', sols)
+                }}>
+                {solutions.length > 0 ? '다시 생성' : '10개 생성'}
+              </Button>
+            </div>
+            {solutions.length === 0 && preview !== null && (
+              <p className="text-xs text-muted-foreground">수식이 유효합니다. "10개 생성" 버튼을 눌러 변수 조합별 정답을 미리 확인하세요.</p>
+            )}
+            {solutions.length === 0 && preview === null && (
+              <p className="text-xs text-muted-foreground">수식과 변수를 먼저 설정하세요.</p>
+            )}
+            {solutions.length > 0 && (
+              <div className="border border-neutral-200 rounded overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-neutral-50 border-b border-neutral-200">
+                      <th className="px-2 py-1.5 text-left font-medium text-muted-foreground w-8">#</th>
+                      {validVars.map(v => (
+                        <th key={v.name} className="px-2 py-1.5 text-right font-medium text-teal-700">{v.name}</th>
+                      ))}
+                      <th className="px-2 py-1.5 text-right font-medium text-neutral-700">정답</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {solutions.map((sol, i) => (
+                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'}>
+                        <td className="px-2 py-1 text-muted-foreground">{sol.index}</td>
+                        {validVars.map(v => (
+                          <td key={v.name} className="px-2 py-1 text-right font-mono">{sol.variables[v.name]}</td>
+                        ))}
+                        <td className="px-2 py-1 text-right font-mono font-medium text-teal-600">{Number(sol.answer.toFixed(answerDec))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )
@@ -599,7 +771,7 @@ function TypeForm({ type, form, setForm }) {
                 <span className="text-xs font-medium text-neutral-500">드롭다운 {i + 1}</span>
                 {form.dropdowns.length > 1 && (
                   <button type="button" onClick={() => upd('dropdowns', form.dropdowns.filter((_, j) => j !== i))}
-                    className="ml-auto text-neutral-400 hover:text-red-500 transition-colors">
+                    className="ml-auto text-muted-foreground hover:text-red-500 transition-colors">
                     <Trash2 size={12} />
                   </button>
                 )}
@@ -627,7 +799,7 @@ function TypeForm({ type, form, setForm }) {
                       <button type="button" onClick={() => {
                         const nd = [...form.dropdowns]; const no = nd[i].options.filter((_, oi) => oi !== j)
                         nd[i] = { ...nd[i], options: no, answerIdx: Math.min(dd.answerIdx, no.length - 1) }; upd('dropdowns', nd)
-                      }} className="text-neutral-400 shrink-0 hover:text-red-500 transition-colors">
+                      }} className="text-muted-foreground shrink-0 hover:text-red-500 transition-colors">
                         <Trash2 size={11} />
                       </button>
                     )}
@@ -659,8 +831,8 @@ function TypeForm({ type, form, setForm }) {
       return (
         <div className="text-center py-3 rounded bg-secondary border border-neutral-200">
           <p className="text-sm text-muted-foreground">문제 내용과 배점만 입력하면 됩니다.</p>
-          <p className="text-xs mt-1 text-neutral-400">허용 파일: PDF, DOC, DOCX, HWP, ZIP</p>
-          <p className="text-xs mt-0.5 text-neutral-400">채점은 교수자가 직접 수행합니다.</p>
+          <p className="text-xs mt-1 text-muted-foreground">허용 파일: PDF, DOC, DOCX, HWP, ZIP</p>
+          <p className="text-xs mt-0.5 text-muted-foreground">채점은 교수자가 직접 수행합니다.</p>
         </div>
       )
 
@@ -703,7 +875,7 @@ function questionToForm(q) {
     case 'numerical':
       return { ...base, correctNum: q.correctAnswer != null ? String(q.correctAnswer) : '', tolerance: q.tolerance != null ? String(q.tolerance) : '0' }
     case 'formula':
-      return { ...base, variables: q.variables?.length ? q.variables.map(v => ({ ...v })) : [{ name: '', min: '1', max: '10', decimals: '0' }], formula: q.formula || '', tolerance: q.tolerance != null ? String(q.tolerance) : '0' }
+      return { ...base, variables: q.variables?.length ? q.variables.map(v => ({ ...v })) : [{ name: '', min: '1', max: '10', decimals: '0' }], formula: q.formula || '', tolerance: q.tolerance != null ? String(q.tolerance) : '0', toleranceType: q.toleranceType || 'absolute', answerDecimals: q.answerDecimals != null ? String(q.answerDecimals) : '2', solutions: q.solutions || [] }
     case 'matching':
       return { ...base, pairs: q.pairs?.length ? q.pairs.map(p => ({ ...p })) : [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }] }
     case 'fill_in_multiple_blanks':
@@ -743,7 +915,9 @@ function hasAnswerChanged(type, oldQuestion, newQuestion) {
       return JSON.stringify(oldQuestion.dropdowns) !== JSON.stringify(newQuestion.dropdowns)
     case 'formula':
       return oldQuestion.formula !== newQuestion.formula ||
-        JSON.stringify(oldQuestion.variables) !== JSON.stringify(newQuestion.variables)
+        JSON.stringify(oldQuestion.variables) !== JSON.stringify(newQuestion.variables) ||
+        (oldQuestion.tolerance ?? 0) !== (newQuestion.tolerance ?? 0) ||
+        (oldQuestion.toleranceType ?? 'absolute') !== (newQuestion.toleranceType ?? 'absolute')
     default:
       return false
   }
