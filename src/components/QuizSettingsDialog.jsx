@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { ConfirmDialog } from './ConfirmDialog'
+
 
 const STORAGE_KEY = 'xnq_global_settings'
 
@@ -64,7 +64,6 @@ const PENALTY_METHODS = [
 
 export default function QuizSettingsDialog({ open, onOpenChange }) {
   const [local, setLocal] = useState(DEFAULTS)
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   useEffect(() => {
     if (open) setLocal(getGlobalSettings())
@@ -78,8 +77,8 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
     window.dispatchEvent(new CustomEvent('xnq-settings-changed'))
   }
 
-  return (<>
-    <Dialog open={open} onOpenChange={(v) => { if (!v) setShowCancelConfirm(true); else onOpenChange(true) }}>
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>퀴즈 전역 설정</DialogTitle>
@@ -149,22 +148,12 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
         </div>
 
         <DialogFooter>
-          <Button size="sm" variant="outline" onClick={() => setShowCancelConfirm(true)}>취소</Button>
+          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>취소</Button>
           <Button size="sm" onClick={handleSave}>저장</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    {showCancelConfirm && (
-      <ConfirmDialog
-        title="설정 취소"
-        message="변경한 설정이 저장되지 않습니다. 정말 취소하시겠습니까?"
-        confirmLabel="취소하기"
-        confirmDanger
-        onConfirm={() => { setShowCancelConfirm(false); onOpenChange(false) }}
-        onCancel={() => setShowCancelConfirm(false)}
-      />
-    )}
-  </>)
+  )
 }
 
 function RadioOption({ active, onClick, label, desc, formula }) {
@@ -243,6 +232,7 @@ const SIM_INPUT = "w-14 text-center text-xs px-1.5 py-1 rounded border border-sl
 const CHOICE_LABELS = 'ABCDEFGHIJ'.split('')
 
 function ScoringSimulation({ penaltyMethod }) {
+  const [expanded, setExpanded] = useState(false)
   const [points, setPoints] = useState(10)
   const [totalCorrect, setTotalCorrect] = useState(2)
   const [totalChoices, setTotalChoices] = useState(5)
@@ -286,8 +276,21 @@ function ScoringSimulation({ penaltyMethod }) {
 
   return (
     <div className="mt-3 pt-3 border-t border-slate-200">
-      <p className="text-xs font-semibold text-slate-600 mb-2.5">채점 시뮬레이션</p>
+      <button
+        type="button"
+        onClick={() => setExpanded(prev => !prev)}
+        className="w-full flex items-center justify-between text-xs font-semibold text-slate-600 hover:text-slate-800 transition-colors"
+      >
+        <span>채점 시뮬레이션</span>
+        <svg
+          className={cn('w-3.5 h-3.5 text-slate-400 transition-transform', expanded && 'rotate-180')}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
 
+      {!expanded ? null : <div className="mt-2.5">
       {/* 조건 입력 */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-3 text-xs text-slate-600">
         <label className="flex items-center gap-1.5">
@@ -379,6 +382,7 @@ function ScoringSimulation({ penaltyMethod }) {
           })}
         </div>
       </div>
+      </div>}
     </div>
   )
 }

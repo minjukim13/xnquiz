@@ -372,9 +372,9 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
 
       {/* 점수 분포 + 응시 현황 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold">점수 분포</h3>
+        <Card className="lg:col-span-2 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold">점수 분포</h3>
             <span className="text-xs text-muted-foreground">
               제출 {quiz.submitted}명 중 채점 완료 {graded.length}명 기준 (미채점 {quiz.submitted - graded.length}명 제외)
             </span>
@@ -437,9 +437,9 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
       </div>
 
       {/* 문항별 득점률 */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold">문항별 득점률</h3>
+      <Card className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold">문항별 득점률</h3>
           <span className="text-xs text-muted-foreground">채점된 학생 기준 실시간 집계</span>
         </div>
         <ResponsiveContainer width="100%" height={220}>
@@ -472,10 +472,10 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
       </Card>
 
       {/* 문항별 상세 통계 테이블 */}
-      <Card className="overflow-hidden">
-        <div className="px-4 py-3 flex items-center justify-between border-b border-border">
-          <h3 className="text-sm font-semibold">문항별 상세 통계</h3>
-          <div className="flex items-center gap-3">
+      <Card className="overflow-hidden py-0 gap-0">
+        <div className="px-5 py-5 border-b border-border">
+          <h3 className="text-base font-semibold">문항별 상세 통계</h3>
+          <div className="flex items-center justify-between mt-1">
             <span className="text-xs text-muted-foreground">총 {quizQuestions.length}문항 · {quiz.totalPoints}점 만점</span>
             <Button variant="outline" size="sm" onClick={() => downloadItemAnalysisXlsx(quiz, quizQuestions, allStudents)}>
               <Download size={12} />
