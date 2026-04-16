@@ -1,9 +1,10 @@
 import { useState, useMemo, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { Plus, Search, X, Edit2, Trash2, Upload, Download, ChevronLeft, AlertCircle, GripVertical } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { QUIZ_TYPES } from '../data/mockData'
+import { useRole } from '../context/RoleContext'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { useQuestionBank } from '../context/QuestionBankContext'
 import AddQuestionModal from '../components/AddQuestionModal'
@@ -24,9 +25,10 @@ const DIFFICULTY_META = {
 export default function QuestionBank() {
   const { bankId } = useParams()
   const navigate = useNavigate()
+  const { role } = useRole()
   const { banks, getBankQuestions, addBank, updateBank, addQuestions, updateQuestion, deleteQuestion, reorderQuestions } = useQuestionBank()
 
-  const bank = banks.find(b => b.id === bankId) ?? banks[0]
+  const bank = banks.find(b => b.id === bankId)
   const questions = bank ? getBankQuestions(bank.id) : []
 
   const [search, setSearch] = useState('')
@@ -40,6 +42,17 @@ export default function QuestionBank() {
   const [toast, setToast] = useState(null)
   const dragIndexRef = useRef(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
+
+  const filtered = useMemo(() => questions.filter(q => {
+    const matchSearch = search === '' || q.text.toLowerCase().includes(search.toLowerCase())
+    const matchType = filterType === 'all' || q.type === filterType
+    const matchDiff = filterDifficulty === 'all' || q.difficulty === filterDifficulty
+    return matchSearch && matchType && matchDiff
+  }), [questions, search, filterType, filterDifficulty])
+
+  const [deleteTargetId, setDeleteTargetId] = useState(null)
+
+  if (role !== 'instructor' || !bank) return <Navigate to="/" replace />
 
   const isFiltered = search !== '' || filterType !== 'all' || filterDifficulty !== 'all'
 
@@ -59,21 +72,12 @@ export default function QuestionBank() {
     setTimeout(() => setToast(null), 4000)
   }
 
-  const filtered = useMemo(() => questions.filter(q => {
-    const matchSearch = search === '' || q.text.toLowerCase().includes(search.toLowerCase())
-    const matchType = filterType === 'all' || q.type === filterType
-    const matchDiff = filterDifficulty === 'all' || q.difficulty === filterDifficulty
-    return matchSearch && matchType && matchDiff
-  }), [questions, search, filterType, filterDifficulty])
-
   const handleSaveEdit = (updated) => {
     if (!editingQuestion) return
     const enforced = bank.difficulty ? { ...updated, difficulty: bank.difficulty } : updated
     updateQuestion(editingQuestion.id, enforced)
     setEditingQuestion(null)
   }
-
-  const [deleteTargetId, setDeleteTargetId] = useState(null)
   const handleDelete = (id) => setDeleteTargetId(id)
   const confirmDelete = () => {
     if (deleteTargetId) deleteQuestion(deleteTargetId)

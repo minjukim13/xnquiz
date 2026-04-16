@@ -1,10 +1,11 @@
 import { useState, useMemo, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Search, X, Pencil } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { useQuestionBank } from '../context/QuestionBankContext'
 import { QUIZ_TYPES, MOCK_COURSES } from '../data/mockData'
+import { useRole } from '../context/RoleContext'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ const DIFF_LABEL = { '': '미지정', high: '상', medium: '중', low: '하' }
 
 export default function QuestionBankList() {
   const navigate = useNavigate()
+  const { role } = useRole()
   const { banks, questions, addBank, deleteBank, getBankQuestions, addQuestions, updateBank } = useQuestionBank()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
@@ -31,6 +33,8 @@ export default function QuestionBankList() {
   const [toast, setToast] = useState(null)
   const [editingBankId, setEditingBankId] = useState(null)
   const [bankNameDraft, setBankNameDraft] = useState('')
+
+  if (role !== 'instructor') return <Navigate to="/" replace />
 
   const showToast = (msg, bankId) => {
     setToast({ msg, bankId })
@@ -242,16 +246,18 @@ export default function QuestionBankList() {
       {copyTarget && (
         <Dialog open onOpenChange={open => !open && setCopyTarget(null)}>
           <DialogContent className="max-w-sm">
-            <DialogHeader>
+            <DialogHeader className="mb-1">
               <DialogTitle>문제은행 복사</DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-slate-700">
-              <span className="font-semibold">{copyTarget.name}</span>의 복사본을 생성할까요?
-            </p>
-            <p className="text-xs text-muted-foreground">
-              문항 {getQuestionCount(copyTarget.id)}개가 포함된 "{copyTarget.name}-사본" 문제은행이 생성됩니다.
-            </p>
-            <div className="flex justify-end gap-2 mt-2">
+            <div className="space-y-1">
+              <p className="text-sm text-slate-700">
+                <span className="font-semibold">{copyTarget.name}</span>의 복사본을 생성할까요?
+              </p>
+              <p className="text-xs text-muted-foreground">
+                문항 {getQuestionCount(copyTarget.id)}개가 포함된 "{copyTarget.name}-사본" 문제은행이 생성됩니다.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setCopyTarget(null)}>취소</Button>
               <Button
                 size="sm"
