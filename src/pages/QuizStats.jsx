@@ -150,6 +150,10 @@ function GradesTab({ quiz, students: allStudents }) {
           av = toSec(a); bv = toSec(b)
         }
         if (sortKey === 'score') { av = a.score ?? -1; bv = b.score ?? -1 }
+        if (sortKey === 'status') {
+          const rank = s => s.score !== null ? 0 : s.submitted ? 1 : 2
+          av = rank(a); bv = rank(b)
+        }
         if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
         return sortDir === 'asc' ? av - bv : bv - av
       })
@@ -221,7 +225,7 @@ function GradesTab({ quiz, students: allStudents }) {
                   { key: 'elapsed', label: '소요 시간', align: 'center' },
                   { key: 'submittedAt', label: '제출 일시', align: 'center' },
                   { key: 'score', label: `점수 / ${quiz.totalPoints}점`, align: 'center' },
-                  { key: null, label: '상태', align: 'center' },
+                  { key: 'status', label: '상태', align: 'center' },
                   { key: null, label: '답안', align: 'center' },
                 ].map(({ key, label, align }) => (
                   <th key={label || '_action'} className={cn('px-4 py-2 whitespace-nowrap', `text-${align}`)}>
@@ -231,7 +235,7 @@ function GradesTab({ quiz, students: allStudents }) {
                         className={cn('group inline-flex items-center gap-1 text-[13px] font-medium transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-primary' : 'text-slate-600')}
                       >
                         {label}
-                        {sortKey !== key && <ArrowUpDown size={12} className="opacity-0 group-hover:opacity-40 transition-opacity" />}
+                        {sortKey !== key && <ArrowUpDown size={12} className="opacity-30 group-hover:opacity-60 transition-opacity" />}
                         {sortKey === key && sortDir === 'desc' && <ArrowDown size={12} />}
                         {sortKey === key && sortDir === 'asc' && <ArrowUp size={12} />}
                       </button>
