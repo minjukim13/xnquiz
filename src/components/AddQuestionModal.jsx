@@ -372,7 +372,7 @@ function TypeForm({ type, form, setForm }) {
   const upd = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
   const [showFnRef, setShowFnRef] = useState(false)
 
-  const inputCls = 'flex-1 text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500'
+  const inputCls = 'flex-1 text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30'
 
   const TrashBtn = ({ onClick }) => (
     <button type="button" onClick={onClick} className="text-muted-foreground shrink-0 hover:text-red-500 transition-colors">
@@ -387,8 +387,8 @@ function TypeForm({ type, form, setForm }) {
   )
 
   const Label = ({ children, required }) => (
-    <label className="text-sm font-medium block mb-1.5 text-neutral-700">
-      {children}{required && <span className="ml-0.5 text-red-500">*</span>}
+    <label className="text-sm font-medium block mb-1.5 text-foreground">
+      {children}{required && <span className="ml-0.5 text-destructive">*</span>}
     </label>
   )
 
@@ -567,14 +567,15 @@ function TypeForm({ type, form, setForm }) {
       }).join(', ')
       const answerDec = Number(form.answerDecimals) || 0
       const solutions = form.solutions || []
+      const varInputCls = 'text-sm px-2 py-1.5 bg-white text-center focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30'
       return (
-        <div className="space-y-4">
-          {/* 문제 설명 안내 */}
+        <div className="space-y-5">
+          {/* 변수 참조 안내 */}
           {validVars.length > 0 && (
-            <div className="px-2.5 py-2 rounded text-xs bg-teal-50/60 border border-teal-200">
+            <div className="px-3.5 py-2.5 rounded-lg text-xs bg-teal-50/60 border border-teal-200">
               <span className="text-teal-700 font-medium">변수 참조 안내</span>
               <span className="text-muted-foreground ml-1.5">문제 설명에 변수명을 대괄호로 감싸면 학생에게 실제 값으로 표시됩니다.</span>
-              <div className="mt-1 font-mono text-teal-600">
+              <div className="mt-1.5 font-mono text-teal-600">
                 예: "[{validVars[0]?.name || 'a'}]명의 학생이 [{validVars[1]?.name || 'b'}]권의 책을 가지고 있을 때"
               </div>
             </div>
@@ -582,110 +583,116 @@ function TypeForm({ type, form, setForm }) {
 
           {/* 변수 설정 */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2.5">
               <Label required>변수 설정</Label>
               <span className="text-xs text-muted-foreground">학생마다 범위 안에서 무작위 값 부여</span>
             </div>
-            <div className="grid gap-1 mb-1 px-0.5" style={{ gridTemplateColumns: '3.5rem 1fr auto 1fr 3.5rem 1.5rem' }}>
-              {['변수명', '최솟값', '', '최댓값', '소수점', ''].map((h, i) => (
-                <span key={i} className="text-xs text-muted-foreground">{h}</span>
-              ))}
-            </div>
-            <div className="space-y-1.5">
-              {vars.map((v, i) => (
-                <div key={i} className="grid items-center gap-1.5" style={{ gridTemplateColumns: '3.5rem 1fr auto 1fr 3.5rem 1.5rem' }}>
-                  <input type="text" value={v.name} placeholder="a"
-                    maxLength={4}
-                    onChange={e => { const n = [...vars]; n[i] = { ...n[i], name: e.target.value }; upd('variables', n) }}
-                    className="text-sm px-2 py-1.5 bg-white font-mono placeholder:font-sans text-center focus:outline-none border border-neutral-200 rounded text-teal-600 focus:border-indigo-500" />
-                  <input type="number" value={v.min} placeholder="1"
-                    onChange={e => { const n = [...vars]; n[i] = { ...n[i], min: e.target.value }; upd('variables', n) }}
-                    className="text-sm px-2 py-1.5 bg-white text-center focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
-                  <span className="text-xs text-center text-muted-foreground">~</span>
-                  <input type="number" value={v.max} placeholder="10"
-                    onChange={e => { const n = [...vars]; n[i] = { ...n[i], max: e.target.value }; upd('variables', n) }}
-                    className="text-sm px-2 py-1.5 bg-white text-center focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
-                  <select value={v.decimals || '0'}
-                    onChange={e => { const n = [...vars]; n[i] = { ...n[i], decimals: e.target.value }; upd('variables', n) }}
-                    className="text-sm px-1 py-1.5 bg-white text-center focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500 appearance-none pr-1">
-                    {[0, 1, 2, 3, 4].map(d => <option key={d} value={String(d)}>{d}</option>)}
-                  </select>
-                  {vars.length > 1
-                    ? <TrashBtn onClick={() => upd('variables', vars.filter((_, j) => j !== i))} />
-                    : <span />}
+            {(() => {
+              const showDel = vars.length > 1
+              const cols = showDel ? '4.5rem 5rem auto 5rem 4.5rem 1.5rem' : '4.5rem 1fr auto 1fr 4.5rem'
+              const headers = showDel ? ['변수명', '최솟값', '', '최댓값', '소수점', ''] : ['변수명', '최솟값', '', '최댓값', '소수점']
+              return <>
+                <div className="grid gap-1.5 mb-1.5 px-0.5" style={{ gridTemplateColumns: cols }}>
+                  {headers.map((h, i) => (
+                    <span key={i} className="text-xs text-muted-foreground">{h}</span>
+                  ))}
                 </div>
-              ))}
-            </div>
+                <div className="space-y-2">
+                  {vars.map((v, i) => (
+                    <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: cols }}>
+                      <input type="text" value={v.name} placeholder="a"
+                        maxLength={4}
+                        onChange={e => { const n = [...vars]; n[i] = { ...n[i], name: e.target.value }; upd('variables', n) }}
+                        className={cn(varInputCls, 'font-mono placeholder:font-sans text-teal-600')} />
+                      <input type="number" value={v.min} placeholder="1"
+                        onChange={e => { const n = [...vars]; n[i] = { ...n[i], min: e.target.value }; upd('variables', n) }}
+                        className={varInputCls} />
+                      <span className="text-xs text-center text-muted-foreground">~</span>
+                      <input type="number" value={v.max} placeholder="10"
+                        onChange={e => { const n = [...vars]; n[i] = { ...n[i], max: e.target.value }; upd('variables', n) }}
+                        className={varInputCls} />
+                      <DropdownSelect size="sm"
+                        value={v.decimals || '0'}
+                        onChange={val => { const n = [...vars]; n[i] = { ...n[i], decimals: val }; upd('variables', n) }}
+                        options={[0, 1, 2, 3, 4].map(d => ({ value: String(d), label: String(d) }))} />
+                      {showDel && <TrashBtn onClick={() => upd('variables', vars.filter((_, j) => j !== i))} />}
+                    </div>
+                  ))}
+                </div>
+              </>
+            })()}
             {vars.length < 10 && (
-              <AddBtn onClick={() => upd('variables', [...vars, { name: '', min: '1', max: '10', decimals: '0' }])} label="변수 추가" />
+              <div className="mt-2">
+                <AddBtn onClick={() => upd('variables', [...vars, { name: '', min: '1', max: '10', decimals: '0' }])} label="변수 추가" />
+              </div>
             )}
           </div>
 
           {/* 수식 입력 */}
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1.5">
               <Label required>수식</Label>
               <button type="button" onClick={() => setShowFnRef(!showFnRef)}
-                className="text-xs text-indigo-500 hover:text-indigo-700 transition-colors">
+                className="text-xs text-primary hover:text-primary-hover transition-colors">
                 {showFnRef ? '함수 목록 접기' : '사용 가능한 함수 보기'}
               </button>
             </div>
-            <p className="text-xs mb-1.5 text-muted-foreground">
+            <p className="text-xs mb-2 text-muted-foreground">
               변수명을 그대로 입력하세요. 사칙연산(+, -, *, /), ^(거듭제곱), 수학 함수, 상수(pi, e) 사용 가능
             </p>
             {showFnRef && (
-              <div className="mb-2 p-2.5 rounded border border-neutral-200 bg-neutral-50 text-xs space-y-1.5">
-                <div><span className="font-medium text-neutral-700">기본 연산</span> <span className="font-mono text-muted-foreground">+ - * / ^(거듭제곱) (괄호)</span></div>
-                <div><span className="font-medium text-neutral-700">상수</span> <span className="font-mono text-muted-foreground">pi (3.14159...) e (2.71828...)</span></div>
-                <div><span className="font-medium text-neutral-700">삼각함수</span> <span className="font-mono text-muted-foreground">sin(x) cos(x) tan(x) asin(x) acos(x) atan(x)</span></div>
-                <div><span className="font-medium text-neutral-700">지수/로그</span> <span className="font-mono text-muted-foreground">sqrt(x) ln(x) log(x) log(x,밑)</span></div>
-                <div><span className="font-medium text-neutral-700">반올림</span> <span className="font-mono text-muted-foreground">abs(x) round(x) ceil(x) floor(x)</span></div>
-                <div><span className="font-medium text-neutral-700">조합/순열</span> <span className="font-mono text-muted-foreground">fact(n) comb(n,k) perm(n,k)</span></div>
-                <div><span className="font-medium text-neutral-700">각도 변환</span> <span className="font-mono text-muted-foreground">deg_to_rad(x) rad_to_deg(x)</span></div>
-                <div><span className="font-medium text-neutral-700">비교</span> <span className="font-mono text-muted-foreground">min(a,b) max(a,b)</span></div>
+              <div className="mb-2.5 p-3 rounded-lg border border-border bg-secondary text-xs space-y-2">
+                <div><span className="font-medium text-foreground">기본 연산</span> <span className="font-mono text-muted-foreground">+ - * / ^(거듭제곱) (괄호)</span></div>
+                <div><span className="font-medium text-foreground">상수</span> <span className="font-mono text-muted-foreground">pi (3.14159...) e (2.71828...)</span></div>
+                <div><span className="font-medium text-foreground">삼각함수</span> <span className="font-mono text-muted-foreground">sin(x) cos(x) tan(x) asin(x) acos(x) atan(x)</span></div>
+                <div><span className="font-medium text-foreground">지수/로그</span> <span className="font-mono text-muted-foreground">sqrt(x) ln(x) log(x) log(x,밑)</span></div>
+                <div><span className="font-medium text-foreground">반올림</span> <span className="font-mono text-muted-foreground">abs(x) round(x) ceil(x) floor(x)</span></div>
+                <div><span className="font-medium text-foreground">조합/순열</span> <span className="font-mono text-muted-foreground">fact(n) comb(n,k) perm(n,k)</span></div>
+                <div><span className="font-medium text-foreground">각도 변환</span> <span className="font-mono text-muted-foreground">deg_to_rad(x) rad_to_deg(x)</span></div>
+                <div><span className="font-medium text-foreground">비교</span> <span className="font-mono text-muted-foreground">min(a,b) max(a,b)</span></div>
               </div>
             )}
             <input type="text" value={form.formula} placeholder="예: sqrt(a^2 + b^2)"
               onChange={e => upd('formula', e.target.value)}
               className={cn(
-                'w-full text-sm px-2.5 py-1.5 bg-white font-mono placeholder:font-sans focus:outline-none border rounded text-foreground focus:border-indigo-500',
-                form.formula && preview === null ? 'border-red-500' : 'border-neutral-200'
+                'w-full text-sm px-3 py-2 bg-white font-mono placeholder:font-sans focus:outline-none border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30',
+                form.formula && preview === null ? 'border-destructive ring-2 ring-destructive/20' : 'border-border'
               )} />
             {form.formula && preview !== null && exampleLabel && (
-              <div className="mt-1.5 px-2.5 py-1.5 rounded text-xs flex items-center gap-1.5 bg-teal-50 border border-teal-200">
+              <div className="mt-2 px-3 py-2 rounded-lg text-xs flex items-center gap-2 bg-teal-50 border border-teal-200">
                 <span className="text-teal-700">예시 ({exampleLabel})</span>
                 <span className="text-muted-foreground">=</span>
                 <span className="font-medium font-mono text-teal-600">{Number(preview.toFixed(answerDec))}</span>
               </div>
             )}
             {form.formula && preview === null && (
-              <p className="mt-1 text-xs text-red-500">수식을 확인해 주세요 (변수명 오타, 잘못된 기호 등)</p>
+              <p className="mt-1.5 text-xs text-destructive">수식을 확인해 주세요 (변수명 오타, 잘못된 기호 등)</p>
             )}
           </div>
 
           {/* 정답 소수점 자릿수 + 허용 오차 */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>정답 소수점 자릿수</Label>
-              <input type="number" value={form.answerDecimals} min="0" max="6" placeholder="2"
-                onChange={e => upd('answerDecimals', e.target.value)}
-                className="w-full text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
-              <p className="text-xs mt-0.5 text-muted-foreground">계산 결과 표시/채점 시 적용</p>
+              <DropdownSelect size="sm"
+                value={form.answerDecimals || '2'}
+                onChange={val => upd('answerDecimals', val)}
+                options={[0, 1, 2, 3, 4, 5, 6].map(d => ({ value: String(d), label: `${d}자리` }))} />
+              <p className="text-xs mt-1 text-muted-foreground">계산 결과 표시/채점 시 적용</p>
             </div>
             <div>
               <Label>허용 오차</Label>
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 <input type="number" value={form.tolerance} min="0" placeholder="0"
                   onChange={e => upd('tolerance', e.target.value)}
-                  className="flex-1 text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
-                <select value={form.toleranceType || 'absolute'}
-                  onChange={e => upd('toleranceType', e.target.value)}
-                  className="text-sm px-2 py-1.5 bg-white border border-neutral-200 rounded text-foreground focus:outline-none focus:border-indigo-500">
-                  <option value="absolute">절대값</option>
-                  <option value="percent">%</option>
-                </select>
+                  className="flex-1 text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30" />
+                <DropdownSelect size="sm"
+                  value={form.toleranceType || 'absolute'}
+                  onChange={val => upd('toleranceType', val)}
+                  options={[{ value: 'absolute', label: '절대값' }, { value: 'percent', label: '%' }]}
+                  className="w-[5.5rem]" />
               </div>
-              <p className="text-xs mt-0.5 text-muted-foreground">
+              <p className="text-xs mt-1 text-muted-foreground">
                 {(form.toleranceType || 'absolute') === 'percent'
                   ? `정답의 ±${form.tolerance || 0}% 범위 내 정답 처리`
                   : `정답 ±${form.tolerance || 0} 범위 내 정답 처리 (0 = 완전 일치)`}
@@ -695,7 +702,7 @@ function TypeForm({ type, form, setForm }) {
 
           {/* 정답 생성 및 검증 테이블 */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2.5">
               <Label>정답 생성 및 검증</Label>
               <Button type="button" variant="soft" size="sm"
                 disabled={preview === null}
@@ -713,25 +720,25 @@ function TypeForm({ type, form, setForm }) {
               <p className="text-xs text-muted-foreground">수식과 변수를 먼저 설정하세요.</p>
             )}
             {solutions.length > 0 && (
-              <div className="border border-neutral-200 rounded overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="bg-neutral-50 border-b border-neutral-200">
-                      <th className="px-2 py-1.5 text-left font-medium text-muted-foreground w-8">#</th>
+                    <tr className="bg-secondary border-b border-border">
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground w-8">#</th>
                       {validVars.map(v => (
-                        <th key={v.name} className="px-2 py-1.5 text-right font-medium text-teal-700">{v.name}</th>
+                        <th key={v.name} className="px-3 py-2 text-right font-medium text-teal-700">{v.name}</th>
                       ))}
-                      <th className="px-2 py-1.5 text-right font-medium text-neutral-700">정답</th>
+                      <th className="px-3 py-2 text-right font-medium text-foreground">정답</th>
                     </tr>
                   </thead>
                   <tbody>
                     {solutions.map((sol, i) => (
-                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'}>
-                        <td className="px-2 py-1 text-muted-foreground">{sol.index}</td>
+                      <tr key={i} className={cn('border-b border-border last:border-b-0', i % 2 === 0 ? 'bg-white' : 'bg-secondary/40')}>
+                        <td className="px-3 py-1.5 text-muted-foreground">{sol.index}</td>
                         {validVars.map(v => (
-                          <td key={v.name} className="px-2 py-1 text-right font-mono">{sol.variables[v.name]}</td>
+                          <td key={v.name} className="px-3 py-1.5 text-right font-mono">{sol.variables[v.name]}</td>
                         ))}
-                        <td className="px-2 py-1 text-right font-mono font-medium text-teal-600">{Number(sol.answer.toFixed(answerDec))}</td>
+                        <td className="px-3 py-1.5 text-right font-mono font-medium text-teal-600">{Number(sol.answer.toFixed(answerDec))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -988,7 +995,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
     <Dialog open={true} onOpenChange={(v) => { if (!v) onClose() }}>
       <DialogContent className="max-w-2xl p-0">
         {/* 헤더 */}
-        <DialogHeader className="px-4 pt-4 pb-3 border-b border-border">
+        <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
           <DialogTitle>{isEditMode ? '문항 편집' : '문항 직접 추가'}</DialogTitle>
           {step === 'form' && typeInfo && (
             <DialogDescription className="flex items-center gap-1">
@@ -1049,9 +1056,9 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
           </div>
         ) : (
           /* 문항 폼 */
-          <div className="px-4 pt-2.5 pb-4 space-y-4 overflow-y-auto max-h-[70vh]">
+          <div className="px-5 pt-4 pb-5 space-y-5 overflow-y-auto max-h-[70vh]">
             {isEditMode && submittedCount > 0 && (
-              <div className="flex items-center gap-2 p-3 rounded-md bg-orange-50/40 border border-orange-200">
+              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-orange-50/40 border border-orange-200">
                 <p className="text-xs leading-relaxed text-slate-600">
                   이 문항은 이미 <span className="font-bold">{submittedCount}명</span>이 응시했습니다. 수정 시 기존 제출 답안과 채점 결과에 영향을 줄 수 있습니다.
                 </p>
@@ -1059,9 +1066,9 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
             )}
             {/* 문제 내용 */}
             <div>
-              <label className="text-sm font-medium block mb-1.5 text-neutral-700">
+              <label className="text-sm font-medium block mb-1.5 text-foreground">
                 {selectedType === 'text' ? '안내문 내용' : selectedType === 'formula' ? '문제 설명' : '문제 내용'}
-                {' '}<span className="text-red-500">*</span>
+                {' '}<span className="text-destructive">*</span>
               </label>
               <textarea
                 value={form.text}
@@ -1075,23 +1082,23 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                 }
                 rows={3}
                 autoFocus
-                className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none resize-none border border-neutral-200 text-foreground focus:border-indigo-500"
+                className="w-full bg-white text-sm px-3 py-2.5 rounded-lg focus:outline-none resize-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
               />
             </div>
 
             {/* 배점 / 난이도 — text 유형은 숨김 */}
-            {selectedType !== 'text' && <div className="grid grid-cols-2 gap-3">
+            {selectedType !== 'text' && <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium block mb-1.5 text-neutral-700">배점 <span className="text-red-500">*</span></label>
+                <label className="text-sm font-medium block mb-1.5 text-foreground">배점 <span className="text-destructive">*</span></label>
                 <input type="number" value={form.points} min={0.5} step={0.5}
                   onChange={e => setForm(prev => ({ ...prev, points: e.target.value }))}
-                  className="w-full bg-white text-sm px-3 py-2 rounded focus:outline-none border border-neutral-200 text-foreground focus:border-indigo-500"
+                  className="w-full bg-white text-sm px-3 py-2 rounded-lg focus:outline-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium block mb-1.5 text-neutral-700">난이도</label>
+                <label className="text-sm font-medium block mb-1.5 text-foreground">난이도</label>
                 {bankDifficulty ? (
-                  <div className="text-sm px-3 py-2 flex items-center gap-2 bg-neutral-100 border border-neutral-200 rounded text-neutral-700">
+                  <div className="text-sm h-[30px] px-3 flex items-center gap-2 bg-muted border border-border rounded-lg text-foreground">
                     <span className="font-medium">{bankDifficulty === 'high' ? '상' : bankDifficulty === 'medium' ? '중' : '하'}</span>
                     <span className="text-xs text-muted-foreground">이 문제은행 고정</span>
                   </div>
@@ -1116,7 +1123,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
             <TypeForm type={selectedType} form={form} setForm={setForm} />
 
             {/* 하단 버튼 */}
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-2 border-t border-border">
               {!isEditMode && (
                 <Button size="sm" variant="ghost" onClick={handleBack} className="text-muted-foreground">
                   ← 유형 변경
