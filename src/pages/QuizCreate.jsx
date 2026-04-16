@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { GripVertical, Pencil, Trash2, HelpCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
@@ -8,6 +8,7 @@ import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { QUIZ_TYPES, mockQuizzes } from '../data/mockData'
+import { useRole } from '../context/RoleContext'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,7 @@ const DEFAULT_NOTICE = `- 제출 후에는 답안을 수정할 수 없습니다.
 
 export default function QuizCreate() {
   const navigate = useNavigate()
+  const { role } = useRole()
   const [tab, setTab] = useState('info')
   const [form, setForm] = useState({
     title: '', description: '', week: null, session: null,
@@ -133,6 +135,8 @@ export default function QuizCreate() {
     })
   }, [])
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
+
+  if (role !== 'instructor') return <Navigate to="/" replace />
 
   const handlePublish = () => {
     const errors = getValidationErrors()

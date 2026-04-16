@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, Navigate } from 'react-router-dom'
 import {
   AlertCircle, Download, FileDown,
   ChevronDown, ChevronUp, BarChart3,
@@ -8,6 +8,7 @@ import {
 import { Toast } from '@/components/ui/toast'
 import Layout from '../../components/Layout'
 import { getQuizStudents, mockQuizzes, getQuizQuestions, getStudentAnswer } from '../../data/mockData'
+import { useRole } from '../../context/RoleContext'
 import { downloadAnswerSheetsXlsx } from '../../utils/excelUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ import EmptyState from './EmptyState'
 
 export default function GradingDashboard() {
   const { id } = useParams()
+  const { role } = useRole()
   const QUIZ_INFO = mockQuizzes.find(q => q.id === id)
 
   // 채점 모드: 'question' = 문항 중심, 'student' = 학생 중심
@@ -157,6 +159,8 @@ export default function GradingDashboard() {
       if (first) setSelectedStudent(first)
     }
   }, [gradingMode, submittedStudents, allStudents]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (role !== 'instructor') return <Navigate to="/" replace />
 
   // ── 유효하지 않은 quiz id ──
   if (!QUIZ_INFO) {

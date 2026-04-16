@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { Plus, GripVertical, Trash2, Settings2, Pencil, Printer, AlertCircle, RefreshCw, HelpCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import AddQuestionModal from '../components/AddQuestionModal'
@@ -9,6 +9,7 @@ import { printQuizQuestions } from '../utils/pdfUtils'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
 import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, recalculateScorePolicy, regradeQuestionWithOption } from '../data/mockData'
+import { useRole } from '../context/RoleContext'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -29,34 +30,35 @@ const INPUT_CLS = "w-full text-sm font-medium text-slate-700 px-3.5 py-2.5 round
 export default function QuizEdit() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const quiz = mockQuizzes.find(q => q.id === id) ?? mockQuizzes[0]
+  const { role } = useRole()
+  const quiz = mockQuizzes.find(q => q.id === id)
   const [showBankModal, setShowBankModal] = useState(false)
   const [showRandomBankModal, setShowRandomBankModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [questions, setQuestions] = useState(() => getQuizQuestions(quiz.id))
-  const [initialQuestionsSnapshot] = useState(() => JSON.stringify(getQuizQuestions(quiz.id)))
-  const [title, setTitle] = useState(quiz.title ?? '')
-  const [description, setDescription] = useState(quiz.description ?? '')
-  const [week, setWeek] = useState(quiz.week ?? null)
-  const [session, setSession] = useState(quiz.session ?? null)
-  const [allowLateSubmit, setAllowLateSubmit] = useState(quiz.allowLateSubmit ?? false)
-  const [lateSubmitDeadline, setLateSubmitDeadline] = useState(quiz.lateSubmitDeadline ?? '')
-  const [lockDate, setLockDate] = useState(quiz.lockDate ?? '')
-  const [timeLimit, setTimeLimit] = useState(String(quiz.timeLimit ?? 60))
-  const [unlimitedTimeLimit, setUnlimitedTimeLimit] = useState((quiz.timeLimit ?? 60) === 0)
-  const [allowAttempts, setAllowAttempts] = useState(quiz.allowAttempts === -1 ? 1 : (quiz.allowAttempts ?? 1))
-  const [unlimitedAttempts, setUnlimitedAttempts] = useState(quiz.allowAttempts === -1)
-  const [scorePolicy, setScorePolicy] = useState(quiz.scorePolicy ?? '최고 점수 유지')
+  const [questions, setQuestions] = useState(() => quiz ? getQuizQuestions(quiz.id) : [])
+  const [initialQuestionsSnapshot] = useState(() => quiz ? JSON.stringify(getQuizQuestions(quiz.id)) : '[]')
+  const [title, setTitle] = useState(quiz?.title ?? '')
+  const [description, setDescription] = useState(quiz?.description ?? '')
+  const [week, setWeek] = useState(quiz?.week ?? null)
+  const [session, setSession] = useState(quiz?.session ?? null)
+  const [allowLateSubmit, setAllowLateSubmit] = useState(quiz?.allowLateSubmit ?? false)
+  const [lateSubmitDeadline, setLateSubmitDeadline] = useState(quiz?.lateSubmitDeadline ?? '')
+  const [lockDate, setLockDate] = useState(quiz?.lockDate ?? '')
+  const [timeLimit, setTimeLimit] = useState(String(quiz?.timeLimit ?? 60))
+  const [unlimitedTimeLimit, setUnlimitedTimeLimit] = useState((quiz?.timeLimit ?? 60) === 0)
+  const [allowAttempts, setAllowAttempts] = useState(quiz?.allowAttempts === -1 ? 1 : (quiz?.allowAttempts ?? 1))
+  const [unlimitedAttempts, setUnlimitedAttempts] = useState(quiz?.allowAttempts === -1)
+  const [scorePolicy, setScorePolicy] = useState(quiz?.scorePolicy ?? '최고 점수 유지')
   const [shuffleChoices, setShuffleChoices] = useState(false)
   const [shuffleQuestions, setShuffleQuestions] = useState(false)
-  const [scoreRevealEnabled, setScoreRevealEnabled] = useState(quiz.scoreRevealEnabled ?? false)
-  const [scoreRevealScope, setScoreRevealScope] = useState(quiz.scoreRevealScope ?? 'wrong_only')
-  const [scoreRevealTiming, setScoreRevealTiming] = useState(quiz.scoreRevealTiming ?? 'immediately')
-  const [scoreRevealStart, setScoreRevealStart] = useState(quiz.scoreRevealStart ?? '')
-  const [scoreRevealEnd, setScoreRevealEnd] = useState(quiz.scoreRevealEnd ?? '')
+  const [scoreRevealEnabled, setScoreRevealEnabled] = useState(quiz?.scoreRevealEnabled ?? false)
+  const [scoreRevealScope, setScoreRevealScope] = useState(quiz?.scoreRevealScope ?? 'wrong_only')
+  const [scoreRevealTiming, setScoreRevealTiming] = useState(quiz?.scoreRevealTiming ?? 'immediately')
+  const [scoreRevealStart, setScoreRevealStart] = useState(quiz?.scoreRevealStart ?? '')
+  const [scoreRevealEnd, setScoreRevealEnd] = useState(quiz?.scoreRevealEnd ?? '')
   const [accessCode, setAccessCode] = useState('')
   const [ipRestriction, setIpRestriction] = useState('')
-  const [visible, setVisible] = useState(quiz.visible !== false)
+  const [visible, setVisible] = useState(quiz?.visible !== false)
   const [quizMode, setQuizMode] = useState('graded')
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
@@ -79,14 +81,14 @@ export default function QuizEdit() {
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
   const isMultiAttempt = allowAttempts >= 2 || unlimitedAttempts
   const [editingQuestion, setEditingQuestion] = useState(null)
-  const submittedCount = quiz.submitted || 0
+  const submittedCount = quiz?.submitted || 0
 
   // 변경사항 감지
   const hasUnsavedChanges = useMemo(() => {
     return JSON.stringify(questions) !== initialQuestionsSnapshot ||
-      title !== (quiz.title ?? '') ||
-      description !== (quiz.description ?? '')
-  }, [questions, initialQuestionsSnapshot, title, description, quiz.title, quiz.description])
+      title !== (quiz?.title ?? '') ||
+      description !== (quiz?.description ?? '')
+  }, [questions, initialQuestionsSnapshot, title, description, quiz?.title, quiz?.description])
 
   // 브라우저 뒤로가기/새로고침 시 경고
   useEffect(() => {
@@ -104,6 +106,8 @@ export default function QuizEdit() {
     if (hasUnsavedChanges && !window.confirm('저장하지 않은 변경사항이 있습니다. 나가시겠습니까?')) return
     navigate(path)
   }, [hasUnsavedChanges, navigate])
+
+  if (role !== 'instructor' || !quiz) return <Navigate to="/" replace />
 
   const handleCancel = () => {
     if (hasUnsavedChanges) {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, Navigate } from 'react-router-dom'
 import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { downloadGradesXlsx, downloadItemAnalysisXlsx } from '../utils/excelUtils'
 import {
@@ -7,6 +7,7 @@ import {
 } from 'recharts'
 import Layout from '../components/Layout'
 import { mockQuizzes, getQuizStudents, QUIZ_TYPES, getQuizQuestions } from '../data/mockData'
+import { useRole } from '../context/RoleContext'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -29,9 +30,12 @@ function variance(arr) {
 
 export default function QuizStats() {
   const { id } = useParams()
-  const quiz = mockQuizzes.find(q => q.id === id) ?? mockQuizzes[0]
+  const { role } = useRole()
+  const quiz = mockQuizzes.find(q => q.id === id)
   const quizQuestions = getQuizQuestions(id)
   const quizStudents = getQuizStudents(id)
+
+  if (role !== 'instructor' || !quiz) return <Navigate to="/" replace />
 
   return (
     <Layout>
