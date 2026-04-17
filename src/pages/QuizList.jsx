@@ -463,14 +463,32 @@ function QuizCard({ quiz, onCopy, onDelete }) {
 
       <div className="px-6 py-4 bg-slate-50 border-t border-slate-100" onClick={e => e.stopPropagation()}>
         {quiz.status === 'draft' || scheduled ? (
-          <p className="text-xs text-slate-500">
-            문항 {quiz.questions}개 | 총점 {quiz.totalPoints}점 | 제한시간 {quiz.timeLimit === 0 ? '없음' : `${quiz.timeLimit}분`}
-          </p>
+          <DraftSpecs quiz={quiz} />
         ) : (
           <ActiveStats quiz={quiz} />
         )}
       </div>
     </Card>
+  )
+}
+
+
+function DraftSpecs({ quiz }) {
+  const cols = [
+    { label: '문항 수',   value: `${quiz.questions}개` },
+    { label: '총점',       value: `${quiz.totalPoints}점` },
+    { label: '제한시간',   value: quiz.timeLimit === 0 ? '없음' : `${quiz.timeLimit}분` },
+  ]
+
+  return (
+    <div className="grid grid-cols-3">
+      {cols.map((item, idx) => (
+        <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < cols.length - 1 && 'border-r border-slate-100')}>
+          <p className="text-base font-semibold leading-none text-slate-700">{item.value}</p>
+          <p className="text-xs mt-1 text-muted-foreground">{item.label}</p>
+        </div>
+      ))}
+    </div>
   )
 }
 
