@@ -141,6 +141,7 @@ export default function QuizEdit() {
   const handleSave = () => {
     const errors = []
     if (!title.trim()) errors.push('퀴즈 제목을 입력해주세요')
+    if (!quiz.dueDate && allowLateSubmit && lateSubmitDeadline) errors.push('지각 제출 마감 일시는 마감 일시가 설정되어 있을 때만 사용할 수 있습니다')
     if (questions.length === 0) errors.push('최소 1개 이상의 문항을 추가해주세요')
     if (errors.length > 0) {
       setAlertDialog({ title: '필수 항목 미입력', message: errors.map(e => `- ${e}`).join('\n') })

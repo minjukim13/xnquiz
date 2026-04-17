@@ -24,7 +24,7 @@ export default function QuizInfoCard({ quiz }) {
               <StatusBadge status={quiz.status} className="px-2.5 py-1 rounded-full font-semibold" />
             </div>
             <h2 className="text-xl font-extrabold text-foreground mb-1.5">{quiz.title}</h2>
-            <p className="text-sm text-muted-foreground mb-2">{quiz.startDate} ~ {quiz.dueDate}</p>
+            <p className="text-sm text-muted-foreground mb-2">{quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}</p>
             {(() => {
               if (quiz.scoreRevealEnabled === undefined && quiz.scoreReleasePolicy === undefined) return null
               const enabled = quiz.scoreRevealEnabled ?? (quiz.scoreReleasePolicy !== null)

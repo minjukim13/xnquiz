@@ -218,7 +218,7 @@ export default function GradingDashboard() {
                   <StatusBadge status={QUIZ_INFO.status} className="px-2.5 py-1 rounded-full font-semibold" />
                 </div>
                 <h2 className="text-xl font-extrabold text-foreground mb-1.5">{QUIZ_INFO.title}</h2>
-                <p className="text-sm text-muted-foreground mb-2">{QUIZ_INFO.startDate} ~ {QUIZ_INFO.dueDate}</p>
+                <p className="text-sm text-muted-foreground mb-2">{QUIZ_INFO.startDate || QUIZ_INFO.dueDate ? `${QUIZ_INFO.startDate || '제한 없음'} ~ ${QUIZ_INFO.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}</p>
                 {(() => {
                   if (QUIZ_INFO.scoreRevealEnabled === undefined && QUIZ_INFO.scoreReleasePolicy === undefined) return null
                   const enabled = QUIZ_INFO.scoreRevealEnabled ?? (QUIZ_INFO.scoreReleasePolicy !== null)

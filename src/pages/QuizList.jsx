@@ -394,7 +394,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
           <h3 className="text-base font-semibold leading-snug mb-1 truncate text-slate-900">{quiz.title}</h3>
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xs text-muted-foreground">
-              {quiz.startDate} ~ {quiz.dueDate}
+              {quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}
               {quiz.lockDate && (
                 <>
                   <span className="text-muted-foreground">{' | '}</span>
@@ -883,7 +883,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false }) {
 
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xs text-muted-foreground">
-              {quiz.startDate} ~ {quiz.dueDate}
+              {quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}
               {quiz.lockDate && (
                 <>
                   <span className="text-muted-foreground">{' | '}</span>
