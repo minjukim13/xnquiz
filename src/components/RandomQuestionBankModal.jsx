@@ -172,7 +172,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
 
         {/* ── 상단 고정 헤더 ── */}
         <div className="shrink-0 px-6 pt-6 pb-4 border-b border-gray-200">

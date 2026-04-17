@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { getLocalGrades } from './utils'
+import { getLocalGrades, getLocalFudgePoints } from './utils'
 import { getStudentAnswer, isAnswerCorrect, getStudentFileSubmission } from '../../data/mockData'
-import { Paperclip, ChevronDown, ChevronUp, Download } from 'lucide-react'
+import { Paperclip, ChevronDown, ChevronUp, Download, Sparkles } from 'lucide-react'
 
 function StudentRow({ student, question, quizId, onScoreChange, pendingScore, isChanged }) {
   // 미제출 학생
@@ -79,6 +79,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
   const displayScore = pendingScore !== undefined ? pendingScore : initScore
 
   const isUngraded = student.score === null
+  const studentFudge = getLocalFudgePoints()[`${quizId}_${student.id}`] || 0
 
   return (
     <div className="border-b border-slate-100">
@@ -88,6 +89,15 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
           <p className="text-[14px] font-medium truncate text-gray-700 flex items-center gap-1 justify-center">
             {student.name}
             {isChanged && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" title="점수 변경됨" />}
+            {studentFudge !== 0 && (
+              <span
+                className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-px rounded bg-amber-50 text-amber-700 shrink-0"
+                title={`가산점 ${studentFudge > 0 ? '+' : ''}${studentFudge}점`}
+              >
+                <Sparkles size={9} />
+                {studentFudge > 0 ? `+${studentFudge}` : studentFudge}
+              </span>
+            )}
           </p>
         </div>
 

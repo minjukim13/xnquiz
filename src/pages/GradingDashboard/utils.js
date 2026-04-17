@@ -30,6 +30,21 @@ export function setLocalComments(comments) {
   } catch {}
 }
 
+export function getLocalFudgePoints() {
+  try {
+    const raw = localStorage.getItem('xnq_fudge_points')
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+export function setLocalFudgePoints(fudge) {
+  try {
+    localStorage.setItem('xnq_fudge_points', JSON.stringify(fudge))
+  } catch {}
+}
+
 export const SORT_OPTIONS = [
   { value: 'ungraded_first', label: '미채점 우선' },
   { value: 'question_order', label: '문항 번호순' },
