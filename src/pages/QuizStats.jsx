@@ -56,7 +56,7 @@ export default function QuizStats() {
           </div>
           <h2 className="text-base font-bold">{quiz.title}</h2>
           {quiz.description && <p className="text-xs mt-1.5 text-slate-500">{quiz.description}</p>}
-          <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
+          <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}</p>
         </div>
 
         {/* 탭 */}
