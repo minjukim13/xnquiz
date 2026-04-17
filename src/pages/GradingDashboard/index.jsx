@@ -18,6 +18,7 @@ import StatusBadge from '../../components/StatusBadge'
 import { printQuizQuestions, printBulkAnswerSheets } from '../../utils/pdfUtils'
 import { DropdownSelect } from '../../components/DropdownSelect'
 import { getLocalGrades, SORT_OPTIONS } from './utils'
+import { getEffectiveSubmittedCount } from '@/utils/deadlineUtils'
 import QuestionItem from './QuestionItem'
 import QuestionDetailPanel from './QuestionDetailPanel'
 import StudentListItem from './StudentListItem'
@@ -198,9 +199,11 @@ export default function GradingDashboard() {
     )
   }
 
-  const submitRate = Math.round((QUIZ_INFO.submitted / QUIZ_INFO.totalStudents) * 100)
-  const gradeProgress = QUIZ_INFO.submitted > 0
-    ? Math.round((QUIZ_INFO.graded / QUIZ_INFO.submitted) * 100) : 0
+  const effectiveSubmitted = getEffectiveSubmittedCount(QUIZ_INFO, quizStudents)
+  const submitRate = QUIZ_INFO.totalStudents > 0
+    ? Math.round((effectiveSubmitted / QUIZ_INFO.totalStudents) * 100) : 0
+  const gradeProgress = effectiveSubmitted > 0
+    ? Math.round((QUIZ_INFO.graded / effectiveSubmitted) * 100) : 0
 
   return (
     <Layout>
@@ -265,14 +268,14 @@ export default function GradingDashboard() {
                 <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
                   <p className="text-xs mb-2 text-muted-foreground">제출 인원</p>
                   <p className="text-2xl leading-none font-extrabold text-foreground">
-                    {QUIZ_INFO.submitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {QUIZ_INFO.totalStudents}명</span>
+                    {effectiveSubmitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {QUIZ_INFO.totalStudents}명</span>
                   </p>
                 </div>
                 <div className="w-px bg-border" />
                 <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
                   <p className="text-xs mb-2 text-muted-foreground">채점 완료</p>
                   <p className="text-2xl leading-none font-extrabold text-foreground">
-                    {QUIZ_INFO.graded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {QUIZ_INFO.submitted}명</span>
+                    {QUIZ_INFO.graded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {effectiveSubmitted}명</span>
                   </p>
                 </div>
               </div>

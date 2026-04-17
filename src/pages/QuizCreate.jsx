@@ -10,6 +10,7 @@ import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { QUIZ_TYPES, addQuiz } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
+import AssignmentOverrides, { hasDuplicateStudent, sanitizeAssignments } from '../components/AssignmentOverrides'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -46,8 +47,11 @@ export default function QuizCreate() {
     shuffleChoices: false, shuffleQuestions: false,
     scoreRevealEnabled: false, scoreRevealScope: 'wrong_only',
     scoreRevealTiming: 'immediately', scoreRevealStart: '', scoreRevealEnd: '',
+    oneTimeResults: false,
     quizMode: 'graded', accessCode: '', ipRestriction: '',
-    allowLateSubmit: false, lateSubmitDeadline: '',
+    allowLateSubmit: false, lateSubmitDeadline: '', gracePeriod: 0,
+    oneQuestionAtATime: false, lockAfterAnswer: false,
+    assignments: [],
     notice: DEFAULT_NOTICE, visible: true,
   })
   const [questions, setQuestions] = useState([])
@@ -68,6 +72,7 @@ export default function QuizCreate() {
     if (!form.dueDate && form.allowLateSubmit && form.lateSubmitDeadline) errors.push('지각 제출 마감 일시는 마감 일시가 설정되어 있을 때만 사용할 수 있습니다')
     if (!form.unlimitedTimeLimit && (form.timeLimit === '' || Number(form.timeLimit) <= 0)) errors.push('제한 시간을 입력하거나 무제한으로 설정해주세요')
     if (questions.length === 0) errors.push('최소 1개 이상의 문항을 추가해주세요')
+    if (hasDuplicateStudent(form.assignments)) errors.push('동일한 학생이 여러 추가 기간 설정에 포함되어 있습니다')
     return errors
   }
 
@@ -103,9 +108,14 @@ export default function QuizCreate() {
       scoreRevealTiming: form.scoreRevealEnabled ? form.scoreRevealTiming : null,
       scoreRevealStart: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealStart || null : null,
       scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
+      oneTimeResults: form.oneTimeResults,
       accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
       allowLateSubmit: form.allowLateSubmit,
       lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
+      gracePeriod: form.dueDate && Number(form.gracePeriod) > 0 ? Number(form.gracePeriod) : 0,
+      oneQuestionAtATime: form.oneQuestionAtATime,
+      lockAfterAnswer: form.oneQuestionAtATime && form.lockAfterAnswer,
+      assignments: sanitizeAssignments(form.assignments),
       notice: form.notice,
       totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
       questions: questions.length, totalPoints,
@@ -165,6 +175,9 @@ export default function QuizCreate() {
         accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
         allowLateSubmit: form.allowLateSubmit,
         lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
+        oneQuestionAtATime: form.oneQuestionAtATime,
+        lockAfterAnswer: form.oneQuestionAtATime && form.lockAfterAnswer,
+        assignments: sanitizeAssignments(form.assignments),
         notice: form.notice,
         totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
         questions: questions.length, totalPoints,
@@ -279,6 +292,13 @@ function InfoTab({ form, set }) {
             </div>
           )}
         </Field>
+        <Field label={<span className="inline-flex items-center gap-1">유예 시간<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>마감 직후 네트워크 지연 등으로 늦게 제출될 수 있는 경우를<br />대비한 버퍼 시간입니다. 이 시간 이내 제출은 지각으로 처리하지 않습니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
+          <div className={cn('flex items-center gap-2', !form.dueDate && 'opacity-40 pointer-events-none')}>
+            <input type="number" value={form.gracePeriod} onChange={e => set('gracePeriod', e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} min={0} placeholder="0" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
+            <span className="text-sm shrink-0 text-muted-foreground">분</span>
+          </div>
+          <p className="text-xs mt-1.5 text-muted-foreground">{form.dueDate ? '0분 또는 미설정 시 유예 없이 마감 일시에 지각 처리됩니다.' : '마감 일시가 설정되어야 사용할 수 있습니다.'}</p>
+        </Field>
         <div className="mt-1 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-slate-700">마감 후 지각 제출 허용</span>
@@ -292,6 +312,16 @@ function InfoTab({ form, set }) {
             </div>
           )}
         </div>
+      </Section>
+
+      <Section title="추가 기간 설정">
+        <AssignmentOverrides
+          assignments={form.assignments}
+          onChange={val => set('assignments', val)}
+          baseDueDate={form.dueDate}
+          baseAvailableFrom={form.startDate}
+          baseAvailableUntil={form.lockDate}
+        />
       </Section>
 
       <Section title="응시 설정">
@@ -325,6 +355,25 @@ function InfoTab({ form, set }) {
         <div className="space-y-3">
           <Toggle checked={form.shuffleChoices} onChange={v => set('shuffleChoices', v)} label="선택지 무작위 배열" description="학생마다 선택지 순서가 달라집니다" />
           <Toggle checked={form.shuffleQuestions} onChange={v => set('shuffleQuestions', v)} label="문항 순서 무작위" description="학생마다 문항 순서가 달라집니다" />
+          <Toggle
+            checked={form.oneQuestionAtATime}
+            onChange={v => {
+              set('oneQuestionAtATime', v)
+              if (!v) set('lockAfterAnswer', false)
+            }}
+            label="한 번에 한 문항씩 표시"
+            description="학생에게 문항을 1개씩만 보여주고 이전/다음 버튼으로 이동합니다"
+          />
+          {form.oneQuestionAtATime && (
+            <div className="border-l-2 border-gray-200 pl-4 ml-0.5 space-y-2">
+              <Toggle
+                checked={form.lockAfterAnswer}
+                onChange={v => set('lockAfterAnswer', v)}
+                label="응답 후 문항 잠금"
+                description="다음으로 이동하면 이전 문항으로 돌아갈 수 없습니다"
+              />
+            </div>
+          )}
         </div>
       </Section>
 
@@ -382,6 +431,14 @@ function InfoTab({ form, set }) {
                     </div>
                   </div>
                 )}
+              </div>
+              <div>
+                <Toggle
+                  checked={form.oneTimeResults}
+                  onChange={v => set('oneTimeResults', v)}
+                  label="응답 1회만 조회 허용"
+                  description="제출 직후 1회만 응답과 정답을 보여주고 이후 재접근 시 비공개 처리합니다"
+                />
               </div>
             </div>
           )}
