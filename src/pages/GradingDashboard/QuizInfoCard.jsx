@@ -1,15 +1,20 @@
 import { useMemo } from 'react'
 import StatusBadge from '../../components/StatusBadge'
+import { getEffectiveSubmittedCount } from '@/utils/deadlineUtils'
 
 // ─── 퀴즈 정보 카드 ─────────────────────────────────────────────────────────
-export default function QuizInfoCard({ quiz }) {
+export default function QuizInfoCard({ quiz, students }) {
+  const effectiveSubmitted = useMemo(
+    () => getEffectiveSubmittedCount(quiz, students),
+    [quiz, students]
+  )
   const submitRate = useMemo(
-    () => quiz.totalStudents > 0 ? Math.round((quiz.submitted / quiz.totalStudents) * 100) : 0,
-    [quiz.submitted, quiz.totalStudents]
+    () => quiz.totalStudents > 0 ? Math.round((effectiveSubmitted / quiz.totalStudents) * 100) : 0,
+    [effectiveSubmitted, quiz.totalStudents]
   )
   const gradeProgress = useMemo(
-    () => quiz.submitted > 0 ? Math.round((quiz.graded / quiz.submitted) * 100) : 0,
-    [quiz.graded, quiz.submitted]
+    () => effectiveSubmitted > 0 ? Math.round((quiz.graded / effectiveSubmitted) * 100) : 0,
+    [quiz.graded, effectiveSubmitted]
   )
 
   return (
@@ -71,14 +76,14 @@ export default function QuizInfoCard({ quiz }) {
             <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
               <p className="text-xs mb-2 text-muted-foreground">제출 인원</p>
               <p className="text-2xl leading-none font-extrabold text-foreground">
-                {quiz.submitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.totalStudents}명</span>
+                {effectiveSubmitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.totalStudents}명</span>
               </p>
             </div>
             <div className="w-px bg-border" />
             <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
               <p className="text-xs mb-2 text-muted-foreground">채점 완료</p>
               <p className="text-2xl leading-none font-extrabold text-foreground">
-                {quiz.graded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.submitted}명</span>
+                {quiz.graded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {effectiveSubmitted}명</span>
               </p>
             </div>
           </div>

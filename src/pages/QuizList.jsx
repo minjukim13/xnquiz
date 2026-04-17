@@ -5,7 +5,8 @@ import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions, addQuiz, removeQuiz } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
-import { getStudentAttempts } from '../data/mockData'
+import { getStudentAttempts, getQuizStudents } from '../data/mockData'
+import { getEffectiveSubmittedCount } from '@/utils/deadlineUtils'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -221,7 +222,7 @@ function InstructorQuizList() {
     addQuiz(copy)
     cloneQuestions(quiz.id, newId)
     const label = targetCourse === CURRENT_COURSE ? '현재 과목' : targetCourse
-    showToast(`"${quiz.title}"을(를) ${label}으로 복사했습니다`)
+    showToast(`'${quiz.title}'을(를) ${label}으로 복사했습니다`)
     setCopySourceQuiz(null)
   }
 
@@ -236,7 +237,7 @@ function InstructorQuizList() {
     setQuizzes(prev => [...imported, ...prev])
     setShowImportModal(false)
     const msg = imported.length === 1
-      ? `"${imported[0].title}" 가져오기 완료 — 목록에서 편집하세요`
+      ? `'${imported[0].title}' 가져오기 완료 — 목록에서 편집하세요`
       : `퀴즈 ${imported.length}개 가져오기 완료 — 임시저장 상태로 추가되었습니다`
     showToast(msg)
   }
@@ -249,7 +250,7 @@ function InstructorQuizList() {
     if (!deleteConfirm) return
     removeQuiz(deleteConfirm.id)
     setQuizzes(prev => prev.filter(q => q.id !== deleteConfirm.id))
-    showToast(`"${deleteConfirm.title}" 퀴즈가 삭제되었습니다`)
+    showToast(`'${deleteConfirm.title}' 퀴즈가 삭제되었습니다`)
     setDeleteConfirm(null)
   }
 
@@ -339,7 +340,7 @@ function InstructorQuizList() {
       {deleteConfirm && (
         <ConfirmDialog
           title="퀴즈 삭제"
-          message={`"${deleteConfirm.title}" 퀴즈를 삭제하시겠습니까?\n삭제된 퀴즈는 복구할 수 없습니다.`}
+          message={`'${deleteConfirm.title}' 퀴즈를 삭제하시겠습니까?\n삭제된 퀴즈는 복구할 수 없습니다.`}
           confirmLabel="삭제"
           confirmDanger
           onConfirm={confirmDeleteQuiz}
@@ -495,7 +496,8 @@ function DraftSpecs({ quiz }) {
 
 function ActiveStats({ quiz }) {
   const newAttempts = getStudentAttempts(quiz.id)
-  const submitted = quiz.submitted + newAttempts.length
+  const quizStudents = getQuizStudents(quiz.id)
+  const submitted = getEffectiveSubmittedCount(quiz, quizStudents) + newAttempts.length
   const submitRate = quiz.totalStudents > 0 ? Math.round((submitted / quiz.totalStudents) * 100) : 0
   const unsubmitted = Math.max(0, quiz.totalStudents - submitted)
   const isClosed = quiz.status === 'closed' || quiz.status === 'grading'
@@ -558,9 +560,9 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-sm font-semibold">퀴즈 복사</DialogTitle>
+          <DialogTitle>퀴즈 복사</DialogTitle>
           <p className="text-xs text-muted-foreground truncate">{quiz.title}</p>
         </DialogHeader>
 
@@ -586,7 +588,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
                 key={course.id}
                 onClick={() => setSelected(course.name)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 text-sm text-left rounded-md border transition-colors',
+                  'w-full flex items-center gap-3 px-4 py-3 text-[15px] text-left rounded-md border transition-colors',
                   isSelected
                     ? 'border-blue-400 bg-accent text-primary font-semibold'
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
@@ -654,10 +656,10 @@ function QuizImportModal({ onClose, onImport }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-[720px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-5 py-4 border-b border-slate-100 shrink-0">
-          <DialogTitle className="text-sm font-semibold">타 과목 퀴즈 가져오기</DialogTitle>
-          <p className="text-xs text-muted-foreground">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>
+      <DialogContent className="max-w-4xl min-h-[600px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 py-5 border-b border-slate-100 shrink-0">
+          <DialogTitle>타 과목 퀴즈 가져오기</DialogTitle>
+          <p className="text-[15px] text-muted-foreground">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden min-h-0">
@@ -678,20 +680,29 @@ function QuizImportModal({ onClose, onImport }) {
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {filteredCourses.length === 0 ? (
                 <p className="text-xs text-center py-3 text-muted-foreground">없음</p>
-              ) : filteredCourses.map(course => (
-                <button
-                  key={course.id}
-                  onClick={() => handleSelectCourse(course.name)}
-                  className={cn(
-                    'w-full text-left text-xs px-3 py-2.5 rounded transition-colors',
-                    selectedCourse === course.name
-                      ? 'bg-accent text-primary font-semibold'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  )}
-                >
-                  {course.name}
-                </button>
-              ))}
+              ) : filteredCourses.map(course => {
+                const isSelected = selectedCourse === course.name
+                const code = course.name.split(' ')[0]
+                const label = course.name.split(' ').slice(1).join(' ')
+                return (
+                  <button
+                    key={course.id}
+                    onClick={() => handleSelectCourse(course.name)}
+                    className={cn(
+                      'w-full flex items-center gap-1.5 text-left px-3 py-2.5 rounded transition-colors',
+                      isSelected
+                        ? 'bg-accent text-primary font-semibold'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    )}
+                  >
+                    <span className={cn(
+                      'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0',
+                      isSelected ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
+                    )}>{code}</span>
+                    <span className="text-xs truncate">{label}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -699,11 +710,11 @@ function QuizImportModal({ onClose, onImport }) {
           <div className="flex-1 overflow-y-auto p-4">
             {!selectedCourse ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">
-                <p className="text-sm">좌측에서 과목을 선택하세요</p>
+                <p className="text-[15px]">좌측에서 과목을 선택하세요</p>
               </div>
             ) : courseQuizzes.length === 0 ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">
-                <p className="text-sm">공개된 퀴즈가 없습니다</p>
+                <p className="text-[15px]">공개된 퀴즈가 없습니다</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -727,7 +738,7 @@ function QuizImportModal({ onClose, onImport }) {
                         <div className="flex items-center gap-2 mb-0.5">
                           <StatusBadge status={quiz.status} />
                         </div>
-                        <p className="text-sm font-medium truncate text-slate-900">{quiz.title}</p>
+                        <p className="text-[15px] font-medium truncate text-slate-900">{quiz.title}</p>
                         <p className="text-xs mt-0.5 text-muted-foreground">
                           {quiz.questions}문항 · {quiz.totalPoints}점
                           {quiz.dueDate ? ` · ${quiz.dueDate.split(' ')[0]}` : ''}
@@ -747,14 +758,13 @@ function QuizImportModal({ onClose, onImport }) {
           </div>
         )}
 
-        <div className={cn('flex items-center justify-between px-5 py-3', checkedIds.size === 0 && 'border-t border-slate-100')}>
-          <p className="text-xs text-muted-foreground">
+        <div className={cn('flex items-center justify-between px-6 py-4', checkedIds.size === 0 && 'border-t border-slate-100')}>
+          <p className="text-[15px] text-muted-foreground">
             {checkedIds.size > 0 ? `${checkedIds.size}개 선택됨` : '가져올 퀴즈를 선택하세요'}
           </p>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>
+            <Button variant="ghost" onClick={onClose}>취소</Button>
             <Button
-              size="sm"
               disabled={checkedIds.size === 0}
               onClick={handleImport}
               >
