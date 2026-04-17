@@ -227,6 +227,7 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
       if (!question) continue
       const storageKey = `${quizId}_${student.id}_${questionId}`
       grades[storageKey] = Number(score)
+      /* eslint-disable react-hooks/immutability -- prototype: mockData student 객체를 단일 소스로 공유, 실제 API 연동 시 불변 업데이트로 교체 */
       if (question.autoGrade) {
         if (!student.autoScores) student.autoScores = {}
         student.autoScores[questionId] = Number(score)
@@ -234,6 +235,7 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
         if (!student.manualScores) student.manualScores = {}
         student.manualScores[questionId] = Number(score)
       }
+      /* eslint-enable react-hooks/immutability */
     }
     setLocalGrades(grades)
     const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
@@ -252,12 +254,14 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
     fudges[fudgeKey] = val
     setLocalFudgePoints(fudges)
     setSavedFudge(val)
+    /* eslint-disable react-hooks/immutability -- prototype: mockData student 객체를 단일 소스로 공유 */
     student.fudgePoints = val
     if (student.score !== null) {
       const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
       const manualTotal = Object.values(student.manualScores || {}).reduce((a, b) => a + (b || 0), 0)
       student.score = Math.max(0, autoTotal + manualTotal + val)
     }
+    /* eslint-enable react-hooks/immutability */
     setFudgeOpen(false)
     onGradeSaved?.()
   }

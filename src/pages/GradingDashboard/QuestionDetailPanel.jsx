@@ -3,7 +3,6 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import TypeBadge from '../../components/TypeBadge'
 import { Download, FolderDown, ChevronDown, RefreshCw } from 'lucide-react'
-import { getStudentAnswer } from '../../data/mockData'
 import ResponsesTab from './ResponsesTab'
 import StatsTab from './StatsTab'
 
@@ -28,8 +27,11 @@ export default function QuestionDetailPanel({ question, students, search, onSear
     } catch { return null }
   }, [quizId, question.id])
 
-  // 문항 전환 시 초기화
-  useEffect(() => { setChangedStudentIds(new Set()); setShowChoices(false) }, [question?.id])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on question switch
+    setChangedStudentIds(new Set())
+    setShowChoices(false)
+  }, [question?.id])
 
 
   return (

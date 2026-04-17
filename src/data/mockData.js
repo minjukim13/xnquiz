@@ -1666,7 +1666,6 @@ export function regradeQuestion(quizId, updatedQuestion) {
       const manualKey = `${attempt.studentId}_${quizId}_${updatedQuestion.id}`
       if (manualGrades[manualKey] !== undefined) return
 
-      const quiz = mockQuizzes.find(q => q.id === quizId)
       const newScore = autoGradeAnswer(updatedQuestion, answer)
       if (newScore === null) return // 수동채점 필요 유형은 제외
 
@@ -1916,7 +1915,7 @@ export function gradeQuiz3Answer(questionId, answer) {
   return isCorrect ? points : 0
 }
 
-export function autoGradeAnswer(question, answer, options = {}) {
+export function autoGradeAnswer(question, answer) {
   if (!answer && answer !== 0) return 0
 
   // multiple_answers: 전역 설정(scoringMode + penaltyMethod) 기반 채점

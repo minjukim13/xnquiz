@@ -34,7 +34,6 @@ export function evalFormula(formula, varValues) {
     const cleaned = expr.replace(/__fn_[a-z_]+/g, '').replace(/\*\*/g, '')
     if (/[^0-9+\-*/().,\s]/.test(cleaned)) return null
     const fnEntries = FORMULA_FN_NAMES.map(fn => `const __fn_${fn} = __fns.${fn};`)
-    // eslint-disable-next-line no-new-func
     const result = Function('__fns', `"use strict"; ${fnEntries.join(' ')} return (${expr})`)(FORMULA_FUNCTIONS)
     return isNaN(result) || !isFinite(result) ? null : result
   } catch { return null }

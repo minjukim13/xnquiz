@@ -113,21 +113,13 @@ function AssignToSelector({ selected, onChange, excludeStudentIds = new Set() })
   )
 }
 
-export default function AssignmentOverrides({ assignments, onChange, baseDueDate, baseAvailableFrom, baseAvailableUntil }) {
+export default function AssignmentOverrides({ assignments, onChange, baseDueDate }) {
   const update = (id, field, val) => onChange(assignments.map(a => a.id === id ? { ...a, [field]: val } : a))
   const remove = (id) => onChange(assignments.filter(a => a.id !== id))
   const add = () => onChange([
     ...assignments,
     { id: `a${Date.now()}`, assignTo: [], dueDate: '', availableFrom: '', availableUntil: '' },
   ])
-
-  const allStudentIds = useMemo(() => {
-    const map = new Map()
-    assignments.forEach(a => a.assignTo.filter(t => t.type === 'student').forEach(t => {
-      map.set(t.id, (map.get(t.id) || 0) + 1)
-    }))
-    return map
-  }, [assignments])
 
   return (
     <div className="space-y-2">
@@ -207,26 +199,3 @@ export default function AssignmentOverrides({ assignments, onChange, baseDueDate
   )
 }
 
-export function hasDuplicateStudent(assignments) {
-  const seen = new Set()
-  for (const a of assignments) {
-    for (const t of a.assignTo) {
-      if (t.type !== 'student') continue
-      if (seen.has(t.id)) return true
-      seen.add(t.id)
-    }
-  }
-  return false
-}
-
-export function sanitizeAssignments(assignments) {
-  return (assignments || [])
-    .filter(a => a.assignTo.length > 0)
-    .map(a => ({
-      id: a.id,
-      assignTo: a.assignTo,
-      dueDate: a.dueDate || null,
-      availableFrom: a.availableFrom || null,
-      availableUntil: a.availableUntil || null,
-    }))
-}

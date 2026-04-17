@@ -23,55 +23,56 @@ function formatAnswerForDisplay(question, answer) {
   return JSON.stringify(answer)
 }
 
-function StudentRow({ student, question, quizId, onScoreChange, pendingScore, isChanged }) {
-  // 미제출 학생
-  if (!student.submitted) {
-    const unsubStorageKey = `${quizId}_${student.id}_${question.id}`
-    const unsubInitScore = (() => {
-      const grades = getLocalGrades()
-      if (unsubStorageKey in grades) return grades[unsubStorageKey]
-      return ''
-    })()
-    const unsubDisplayScore = pendingScore !== undefined ? pendingScore : unsubInitScore
-    return (
-      <div className="flex items-center gap-2 px-3 py-3 border-b border-slate-100 bg-slate-50">
-        <div className="w-28 shrink-0">
-          <p className="text-[14px] font-medium truncate text-muted-foreground text-center">{student.name}</p>
-        </div>
-        <div className="w-28 shrink-0">
-          <p className="text-[14px] truncate text-muted-foreground text-center">{student.studentId}</p>
-        </div>
-        <p className="flex-1 min-w-0 text-sm text-muted-foreground">미제출</p>
-        {question.type === 'file_upload' && <div className="w-12 shrink-0" />}
-        <div className="w-28 shrink-0 text-center">
-          <span className="text-xs text-muted-foreground">-</span>
-        </div>
-        {question.autoGrade && <div className="w-16 shrink-0" />}
-        <div className="flex items-center gap-1.5 w-40 shrink-0 justify-center">
-          <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0 text-muted-foreground bg-slate-100">
-            미제출
-          </span>
-          <input
-            type="number"
-            value={unsubDisplayScore}
-            onChange={e => onScoreChange(student.id, e.target.value)}
-            placeholder="—"
-            min={0}
-            max={question.points}
-            step={0.5}
-            className={cn(
-              'w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-blue-200 text-center border text-slate-900',
-              pendingScore !== undefined ? 'border-primary' : 'border-slate-200'
-            )}
-          />
-          <span className="text-sm shrink-0 text-muted-foreground">/ {question.points}</span>
-        </div>
+function UnsubmittedRow({ student, question, quizId, onScoreChange, pendingScore }) {
+  const unsubStorageKey = `${quizId}_${student.id}_${question.id}`
+  const grades = getLocalGrades()
+  const unsubInitScore = unsubStorageKey in grades ? grades[unsubStorageKey] : ''
+  const unsubDisplayScore = pendingScore !== undefined ? pendingScore : unsubInitScore
+  return (
+    <div className="flex items-center gap-2 px-3 py-3 border-b border-slate-100 bg-slate-50">
+      <div className="w-28 shrink-0">
+        <p className="text-[14px] font-medium truncate text-muted-foreground text-center">{student.name}</p>
       </div>
-    )
+      <div className="w-28 shrink-0">
+        <p className="text-[14px] truncate text-muted-foreground text-center">{student.studentId}</p>
+      </div>
+      <p className="flex-1 min-w-0 text-sm text-muted-foreground">미제출</p>
+      {question.type === 'file_upload' && <div className="w-12 shrink-0" />}
+      <div className="w-28 shrink-0 text-center">
+        <span className="text-xs text-muted-foreground">-</span>
+      </div>
+      {question.autoGrade && <div className="w-16 shrink-0" />}
+      <div className="flex items-center gap-1.5 w-40 shrink-0 justify-center">
+        <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0 text-muted-foreground bg-slate-100">
+          미제출
+        </span>
+        <input
+          type="number"
+          value={unsubDisplayScore}
+          onChange={e => onScoreChange(student.id, e.target.value)}
+          placeholder="—"
+          min={0}
+          max={question.points}
+          step={0.5}
+          className={cn(
+            'w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-blue-200 text-center border text-slate-900',
+            pendingScore !== undefined ? 'border-primary' : 'border-slate-200'
+          )}
+        />
+        <span className="text-sm shrink-0 text-muted-foreground">/ {question.points}</span>
+      </div>
+    </div>
+  )
+}
+
+function StudentRow({ student, question, quizId, onScoreChange, pendingScore, isChanged }) {
+  const [expanded, setExpanded] = useState(false)
+
+  if (!student.submitted) {
+    return <UnsubmittedRow student={student} question={question} quizId={quizId} onScoreChange={onScoreChange} pendingScore={pendingScore} />
   }
 
   const storageKey = `${quizId}_${student.id}_${question.id}`
-  const [expanded, setExpanded] = useState(false)
   const studentIdx = parseInt(student.id.replace('s', ''))
   const rawAnswer = student.selections?.[question.id] ??
     (question.autoGrade

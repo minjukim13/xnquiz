@@ -301,6 +301,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
   const avg  = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
   const maxScore = scores.length ? Math.max(...scores) : 0
   const minScore = scores.length ? Math.min(...scores) : 0
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- React Compiler optimization miss, 수동 memoization 유지
   const stdev = useMemo(() => Math.sqrt(variance(scores)), [scores])
 
   const submitRate = ((quiz.submitted / quiz.totalStudents) * 100).toFixed(1)

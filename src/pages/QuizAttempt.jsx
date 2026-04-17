@@ -5,7 +5,7 @@ import Layout from '../components/Layout'
 import { mockQuizzes, getQuizQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { AlertDialog, ConfirmDialog } from '../components/ConfirmDialog'
-import { getLateThreshold, isLateSubmission } from '../utils/deadlineUtils'
+import { isLateSubmission } from '../utils/deadlineUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -191,7 +191,7 @@ export default function QuizAttempt() {
       window.removeEventListener('pagehide', onUnload)
       flush()
     }
-  }, [sessionKey, submitted])
+  }, [sessionKey, submitted]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (submitted || noTimeLimit || timeRemaining <= 0) return
@@ -206,7 +206,7 @@ export default function QuizAttempt() {
       })
     }, 1000)
     return () => clearInterval(timer)
-  }, [submitted])
+  }, [submitted]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60)
@@ -266,7 +266,7 @@ export default function QuizAttempt() {
       if (activityKey) appendActivityLog(activityKey, { type: ACTIVITY_TYPES.SUBMIT, auto })
     }
     setResult(attempt)
-  }, [answers, questions, id, currentStudent, timeRemaining, submitted, isPreview, isLate, sessionKey, activityKey])
+  }, [answers, questions, id, currentStudent, timeRemaining, submitted, isPreview, isLate, sessionKey, activityKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isPreview && role !== 'student') return <Navigate to="/" replace />
 

@@ -1,11 +1,23 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { getLocalGrades, setLocalGrades, PAGE_SIZE_OPTIONS } from './utils'
-import { getStudentAnswer, isAnswerCorrect } from '../../data/mockData'
 import StudentRow from './StudentRow'
 import { Button } from '@/components/ui/button'
 import { Search, ArrowUpDown } from 'lucide-react'
 import { DropdownSelect } from '../../components/DropdownSelect'
+
+function SortTh({ col, children, className = '', sortBy, sortDir, onSort }) {
+  const active = sortBy === col
+  return (
+    <button
+      onClick={() => onSort(col)}
+      className={cn('flex items-center justify-center gap-0.5 w-full transition-colors text-[14px] font-semibold', active ? 'text-primary' : 'text-gray-500', className)}
+    >
+      {children}
+      <ArrowUpDown size={11} className={cn('flex-shrink-0', active ? 'text-primary' : 'text-gray-300')} style={active && sortDir === 'desc' ? { transform: 'scaleY(-1)' } : undefined} />
+    </button>
+  )
+}
 
 function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, changedStudentIds, onStudentChanged }) {
   const [pageSize, setPageSize] = useState(20)
@@ -17,15 +29,20 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'graded' | 'ungraded' | 'unsubmitted'
   const isFirstRender = useRef(true)
 
-  useEffect(() => { setPage(1) }, [search, pageSize, sortBy, sortDir, filterStatus])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset page on filter change
+    setPage(1)
+  }, [search, pageSize, sortBy, sortDir, filterStatus])
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- reset per question change */
     setPendingScores({})
     setSaveStatus('idle')
     setSortBy('name')
     setSortDir('asc')
     setFilterStatus('all')
     isFirstRender.current = true
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [question?.id])
 
   useEffect(() => {
@@ -35,15 +52,17 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
       const student = students.find(s => s.studentId === row.studentId)
       if (student) merged[student.id] = row.score
     })
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot excel merge
     setPendingScores(prev => ({ ...prev, ...merged }))
     onExcelRowsConsumed?.()
   }, [excelRows]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- transient "saved" flash
     setSaveStatus('saved')
     setTimeout(() => setSaveStatus('idle'), 3000)
-  }, [gradeVersion]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gradeVersion])
 
   const sorted = useMemo(() => {
     const list = [...students]
@@ -106,19 +125,6 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const gradedCount = students.filter(s => s.submitted && s.score !== null).length
   const ungradedCount = students.filter(s => s.submitted && s.score === null).length
   const unsubmittedCount = students.filter(s => !s.submitted).length
-
-  const SortTh = ({ col, children, className = '' }) => {
-    const isActive = sortBy === col
-    return (
-      <button
-        onClick={() => handleSortClick(col)}
-        className={cn('flex items-center justify-center gap-0.5 w-full transition-colors text-[14px] font-semibold', isActive ? 'text-primary' : 'text-gray-500', className)}
-      >
-        {children}
-        <ArrowUpDown size={11} className={cn('flex-shrink-0', isActive ? 'text-primary' : 'text-gray-300')} style={isActive && sortDir === 'desc' ? { transform: 'scaleY(-1)' } : undefined} />
-      </button>
-    )
-  }
 
   return (
     <div className="flex-1 bg-white overflow-hidden flex flex-col border border-slate-200 rounded-lg">
@@ -186,13 +192,13 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
 
       {/* 테이블 헤더 */}
       <div className="flex items-center px-3 py-2 gap-2 border-b-2 border-slate-200 bg-slate-50">
-        <div className="w-28 shrink-0 text-center"><SortTh col="name">이름</SortTh></div>
-        <div className="w-28 shrink-0 text-center"><SortTh col="studentId">학번</SortTh></div>
+        <div className="w-28 shrink-0 text-center"><SortTh col="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSortClick}>이름</SortTh></div>
+        <div className="w-28 shrink-0 text-center"><SortTh col="studentId" sortBy={sortBy} sortDir={sortDir} onSort={handleSortClick}>학번</SortTh></div>
         <div className="flex-1 text-[14px] font-semibold text-gray-500">{question.type === 'file_upload' ? '제출 파일' : '제출 답안'}</div>
         {question.type === 'file_upload' && <div className="w-12 shrink-0 text-center text-[14px] font-semibold text-gray-500" />}
         <div className="w-28 shrink-0 text-center text-[14px] font-semibold text-gray-500">제출 일시</div>
         {question.autoGrade && <div className="w-16 shrink-0 text-center text-[14px] font-semibold text-gray-500">정답 여부</div>}
-        <div className="w-40 shrink-0 text-center"><SortTh col="score">점수</SortTh></div>
+        <div className="w-40 shrink-0 text-center"><SortTh col="score" sortBy={sortBy} sortDir={sortDir} onSort={handleSortClick}>점수</SortTh></div>
       </div>
 
       {/* 행 목록 */}

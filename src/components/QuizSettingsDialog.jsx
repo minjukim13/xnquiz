@@ -67,6 +67,7 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
   const [local, setLocal] = useState(DEFAULTS)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync local with global on open
     if (open) setLocal(getGlobalSettings())
   }, [open])
 
@@ -263,6 +264,7 @@ function ScoringSimulation({ penaltyMethod }) {
 
   // 조건 변경 시 선택 초기화
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset selection on constraint change
     setSelected(new Set())
   }, [totalChoices, totalCorrect, points])
 
@@ -291,8 +293,6 @@ function ScoringSimulation({ penaltyMethod }) {
     { key: 'right_minus_wrong', label: '오답 차감' },
     { key: 'formula_scoring', label: '추측 보정' },
   ]
-
-  const currentScore = calc(penaltyMethod)
 
   return (
     <div className="mt-3 pt-3 border-t border-slate-200">

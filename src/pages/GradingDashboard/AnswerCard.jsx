@@ -132,11 +132,13 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
               const grades = getLocalGrades()
               grades[storageKey] = Number(score)
               setLocalGrades(grades)
+              /* eslint-disable react-hooks/immutability -- prototype: mockData student 객체를 단일 소스로 공유, 실제 API 연동 시 불변 업데이트로 교체 */
               if (!student.manualScores) student.manualScores = {}
               student.manualScores[question.id] = Number(score)
               const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
               const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
               student.score = autoTotal + manualTotal
+              /* eslint-enable react-hooks/immutability */
               setSaved(true)
               onSaved?.()
             }}

@@ -30,7 +30,10 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
   const [previewBankId, setPreviewBankId] = useState(null)
 
   const currentBanks = currentCourse ? banks.filter(b => b.course === currentCourse) : banks
-  const otherBanks = currentCourse ? banks.filter(b => b.course !== currentCourse) : []
+  const otherBanks = useMemo(
+    () => (currentCourse ? banks.filter(b => b.course !== currentCourse) : []),
+    [banks, currentCourse]
+  )
 
   // 과목별 그룹핑
   const otherGrouped = useMemo(() => {
