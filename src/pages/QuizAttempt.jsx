@@ -11,6 +11,19 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import QuestionAnswer from '../components/QuestionAnswer'
+
+// 응시 여부 판정 (유형별 답안 구조 대응)
+function isQuestionAnswered(q, v) {
+  if (q.type === 'text') return true // 안내문은 응답 불요
+  if (v === '' || v === undefined || v === null) return false
+  if (Array.isArray(v)) return v.length > 0 && v.some(x => x !== '' && x !== undefined && x !== null)
+  if (typeof v === 'object') {
+    if (q.type === 'file_upload') return !!v.fileName
+    return Object.values(v).some(x => x !== '' && x !== undefined && x !== null)
+  }
+  return true
+}
 
 export default function QuizAttempt() {
   const { id } = useParams()
@@ -52,7 +65,7 @@ export default function QuizAttempt() {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   }
 
-  const answeredCount = Object.keys(answers).filter(k => answers[k] !== '' && answers[k] !== undefined).length
+  const answeredCount = questions.filter(q => q.type !== 'text' && isQuestionAnswered(q, answers[q.id])).length
 
   const handleSubmit = useCallback((auto = false) => {
     if (submitted) return
@@ -286,7 +299,7 @@ export default function QuizAttempt() {
               key={q.id}
               question={q}
               index={idx}
-              value={answers[q.id] ?? ''}
+              value={answers[q.id]}
               onChange={val => setAnswers(prev => ({ ...prev, [q.id]: val }))}
               disabled={submitted}
               showAnswer={isPreview && showAnswerPreview}
@@ -329,8 +342,25 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
     multiple_choice: '객관식', true_false: '참/거짓', short_answer: '단답형',
     essay: '서술형', numerical: '수치형', fill_in_blank: '빈칸 채우기',
     multiple_answers: '복수 선택', ordering: '순서 배열',
+    matching: '연결형', multiple_dropdowns: '드롭다운 선택',
+    fill_in_multiple_blanks: '다중 빈칸', formula: '수식형',
+    text: '안내', file_upload: '파일 제출',
   }
-  const isAnswered = value !== '' && value !== undefined
+  const isAnswered = isQuestionAnswered(question, value)
+
+  // text 유형: 안내문으로만 렌더링 (Q번호 없음)
+  if (question.type === 'text') {
+    return (
+      <Card className="overflow-hidden border-slate-200">
+        <CardContent className="px-5 py-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-0">안내</Badge>
+          </div>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700">{question.text}</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className={cn('overflow-hidden', isAnswered && !disabled && 'border-blue-200')}>
@@ -375,10 +405,11 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
         {question.type === 'multiple_answers' && (
           <div className="space-y-2">
             {(question.options || question.choices || []).map((choice, i) => {
-              const selected = value ? value.split(',').map(s => s.trim()).includes(choice) : false
+              const str = typeof value === 'string' ? value : ''
+              const selected = str ? str.split(',').map(s => s.trim()).includes(choice) : false
               const toggle = () => {
                 if (disabled) return
-                const current = value ? value.split(',').map(s => s.trim()).filter(Boolean) : []
+                const current = str ? str.split(',').map(s => s.trim()).filter(Boolean) : []
                 const next = selected ? current.filter(c => c !== choice) : [...current, choice]
                 onChange(next.join(','))
               }
@@ -402,7 +433,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
 
         {question.type === 'short_answer' && (
           <input
-            type="text" value={value}
+            type="text" value={typeof value === 'string' ? value : ''}
             onChange={e => onChange(e.target.value)}
             placeholder="답안을 입력하세요" disabled={disabled}
             className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all disabled:bg-muted"
@@ -411,7 +442,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
 
         {question.type === 'essay' && (
           <textarea
-            value={value} onChange={e => onChange(e.target.value)}
+            value={typeof value === 'string' ? value : ''} onChange={e => onChange(e.target.value)}
             placeholder="답안을 입력하세요" rows={5} disabled={disabled}
             className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-none disabled:bg-muted"
           />
@@ -419,12 +450,155 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
 
         {question.type === 'numerical' && (
           <input
-            type="number" value={value}
+            type="number" value={value ?? ''}
             onChange={e => onChange(e.target.value)}
             placeholder="숫자를 입력하세요" disabled={disabled}
             className="w-full max-w-[200px] text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all disabled:bg-muted"
           />
         )}
+
+        {/* 수식형 (학생마다 변수값이 다를 수 있지만 프로토타입에서는 단순 숫자 입력) */}
+        {question.type === 'formula' && (
+          <div className="space-y-2">
+            {Array.isArray(question.variables) && question.variables.length > 0 && (
+              <div className="inline-flex flex-wrap gap-2 text-xs text-muted-foreground px-3 py-2 rounded-md bg-slate-50 border border-slate-100">
+                <span className="font-medium">주어진 값:</span>
+                {question.variables.map((v, i) => {
+                  const example = ((Number(v.min) || 1) + (Number(v.max) || 10)) / 2
+                  return (
+                    <span key={i} className="font-mono text-teal-700">
+                      {v.name} = {Number(example.toFixed(Number(v.decimals) || 0))}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+            <input
+              type="number" value={value ?? ''}
+              onChange={e => onChange(e.target.value)}
+              placeholder="계산 결과를 입력하세요" disabled={disabled}
+              className="w-full max-w-[240px] text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all disabled:bg-muted"
+            />
+          </div>
+        )}
+
+        {/* 연결형 */}
+        {question.type === 'matching' && Array.isArray(question.pairs) && (() => {
+          const rights = [...question.pairs.map(p => p.right), ...(question.distractors || [])]
+          const answerMap = (value && typeof value === 'object' && !Array.isArray(value)) ? value : {}
+          return (
+            <div className="space-y-2">
+              {question.pairs.map((p, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-slate-100 bg-slate-50">
+                  <span className="text-sm text-slate-700 flex-1 truncate">{p.left}</span>
+                  <span className="text-muted-foreground text-xs shrink-0">↔</span>
+                  <select
+                    value={answerMap[p.left] ?? ''} disabled={disabled}
+                    onChange={e => onChange({ ...answerMap, [p.left]: e.target.value })}
+                    className="flex-1 text-sm px-2.5 py-1.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary disabled:bg-muted"
+                  >
+                    <option value="">선택하세요</option>
+                    {rights.map((r, j) => (
+                      <option key={j} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+
+        {/* 드롭다운 선택 */}
+        {question.type === 'multiple_dropdowns' && Array.isArray(question.dropdowns) && (() => {
+          const arr = Array.isArray(value) ? value : []
+          return (
+            <div className="space-y-2">
+              {question.dropdowns.map((dd, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-slate-100 bg-slate-50">
+                  {dd.label && <span className="text-sm font-medium text-slate-700 flex-shrink-0">{dd.label}</span>}
+                  <select
+                    value={arr[i] ?? ''} disabled={disabled}
+                    onChange={e => {
+                      const next = [...arr]
+                      next[i] = e.target.value
+                      onChange(next)
+                    }}
+                    className="flex-1 text-sm px-2.5 py-1.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary disabled:bg-muted"
+                  >
+                    <option value="">선택하세요</option>
+                    {dd.options.map((o, j) => (
+                      <option key={j} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+
+        {/* 다중 빈칸 */}
+        {question.type === 'fill_in_multiple_blanks' && Array.isArray(question.correctAnswer) && (() => {
+          const arr = Array.isArray(value) ? value : []
+          return (
+            <div className="space-y-2">
+              {question.correctAnswer.map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-muted-foreground w-14 shrink-0">빈칸 {i + 1}</span>
+                  <input
+                    type="text" value={arr[i] ?? ''} disabled={disabled}
+                    onChange={e => {
+                      const next = [...arr]
+                      next[i] = e.target.value
+                      onChange(next)
+                    }}
+                    placeholder="답안을 입력하세요"
+                    className="flex-1 text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all disabled:bg-muted"
+                  />
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+
+        {/* 파일 제출 (프로토타입: 파일명만 저장) */}
+        {question.type === 'file_upload' && (() => {
+          const file = (value && typeof value === 'object') ? value : null
+          return (
+            <div className="space-y-2">
+              <label className={cn(
+                'flex items-center gap-3 px-3 py-4 rounded-md border border-dashed transition-colors',
+                file ? 'border-blue-200 bg-accent/40' : 'border-slate-200 bg-slate-50',
+                !disabled && 'cursor-pointer hover:border-blue-300',
+                disabled && 'cursor-default'
+              )}>
+                <input
+                  type="file" disabled={disabled}
+                  onChange={e => {
+                    const f = e.target.files?.[0]
+                    if (!f) return
+                    onChange({ fileName: f.name, fileSize: f.size })
+                  }}
+                  className="hidden"
+                />
+                <div className="flex-1">
+                  {file ? (
+                    <>
+                      <p className="text-sm font-medium text-foreground">{file.fileName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {file.fileSize ? `${(file.fileSize / 1024).toFixed(1)} KB` : '파일 선택됨'}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-slate-700">파일을 선택하세요</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">허용 파일: PDF, DOC, DOCX, HWP, ZIP</p>
+                    </>
+                  )}
+                </div>
+              </label>
+            </div>
+          )
+        })()}
       </CardContent>
 
       {/* 답변 완료 표시 */}
@@ -438,21 +612,24 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
       )}
 
       {/* 정답 표시 (미리보기 모드 전용) */}
-      {showAnswer && question.correctAnswer != null && (
-        <div className="px-5 py-2.5 bg-green-50 border-t border-green-200">
-          <p className="text-xs font-medium text-green-700">
-            정답:&nbsp;
-            <span className="font-semibold">
-              {Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : String(question.correctAnswer)}
-            </span>
-          </p>
-        </div>
-      )}
-      {showAnswer && question.correctAnswer == null && (
-        <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-200">
-          <p className="text-xs text-muted-foreground">정답 없음 (수동 채점 문항)</p>
-        </div>
-      )}
+      {showAnswer && (() => {
+        const hasAnswer = question.correctAnswer != null
+          || (question.type === 'matching' && question.pairs?.length > 0)
+          || (question.type === 'multiple_dropdowns' && question.dropdowns?.length > 0)
+          || (question.type === 'formula' && question.formula)
+        if (!hasAnswer) {
+          return (
+            <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-200">
+              <p className="text-xs text-muted-foreground">정답 없음 (수동 채점 문항)</p>
+            </div>
+          )
+        }
+        return (
+          <div className="px-5 py-2.5 bg-green-50 border-t border-green-200">
+            <QuestionAnswer q={question} />
+          </div>
+        )
+      })()}
     </Card>
   )
 }
@@ -615,13 +792,9 @@ function ResultModal({ result, quiz, questions, onClose }) {
                           {!isAutoGraded ? '채점 대기' : isCorrect ? '정답' : isPartial ? `부분점수 ${scored}/${q.points}` : '오답'}
                         </span>
                       </div>
-                      {showAnswerNow && isAutoGraded && !isCorrect && q.correctAnswer && (
+                      {showAnswerNow && isAutoGraded && !isCorrect && (
                         <div className="mt-2 pt-2 border-t border-gray-100">
-                          <p className="text-xs text-muted-foreground">
-                            정답: <span className="font-medium text-gray-700">
-                              {Array.isArray(q.correctAnswer) ? q.correctAnswer.join(', ') : q.correctAnswer}
-                            </span>
-                          </p>
+                          <QuestionAnswer q={q} />
                         </div>
                       )}
                     </div>

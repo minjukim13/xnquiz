@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type } from 'lucide-react'
+import { useState, useRef, useLayoutEffect } from 'react'
+import { Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type, Check } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
 import { DropdownSelect } from './DropdownSelect'
 import { Button } from '@/components/ui/button'
@@ -367,6 +367,27 @@ function isValid(type, form) {
   }
 }
 
+// ── 자동 높이 조정 textarea (줄바꿈 지원, 답변 입력용) ────────────────────
+function AnswerTextarea({ value, onChange, placeholder, className }) {
+  const ref = useRef(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = el.scrollHeight + 'px'
+  }, [value])
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={cn(className, 'resize-none overflow-hidden leading-5')}
+    />
+  )
+}
+
 // ── 유형별 전용 폼 ──────────────────────────────────────────────────────────
 function TypeForm({ type, form, setForm }) {
   const upd = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
@@ -401,13 +422,14 @@ function TypeForm({ type, form, setForm }) {
             {form.options.map((opt, i) => (
               <div key={i} className="flex items-center gap-2">
                 <button type="button" onClick={() => upd('correctIdx', i)}
+                  title={form.correctIdx === i ? '정답' : '정답으로 지정'}
                   className={cn(
-                    'w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all',
-                    form.correctIdx === i ? 'border-indigo-500 bg-indigo-500' : 'border-neutral-400 bg-white'
+                    'w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all',
+                    form.correctIdx === i ? 'border-indigo-500 bg-indigo-500' : 'border-neutral-300 bg-white hover:border-indigo-400'
                   )}>
-                  {form.correctIdx === i && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  {form.correctIdx === i && <Check size={12} strokeWidth={3} className="text-white" />}
                 </button>
-                <input type="text" value={opt} placeholder={`보기 ${i + 1}`}
+                <AnswerTextarea value={opt} placeholder={`보기 ${i + 1}`}
                   onChange={e => { const n = [...form.options]; n[i] = e.target.value; upd('options', n) }}
                   className={inputCls} />
                 {form.options.length > 2 && (
@@ -421,7 +443,6 @@ function TypeForm({ type, form, setForm }) {
             ))}
           </div>
           {form.options.length < 6 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
-          <p className="text-xs text-muted-foreground">라디오 버튼을 클릭해 정답을 지정하세요</p>
         </div>
       )
 
@@ -461,7 +482,7 @@ function TypeForm({ type, form, setForm }) {
                     )}>
                     {isCorrect && <span className="text-white text-[9px]">✓</span>}
                   </button>
-                  <input type="text" value={opt} placeholder={`보기 ${i + 1}`}
+                  <AnswerTextarea value={opt} placeholder={`보기 ${i + 1}`}
                     onChange={e => { const n = [...form.options]; n[i] = e.target.value; upd('options', n) }}
                     className={inputCls} />
                   {form.options.length > 2 && (
@@ -476,7 +497,6 @@ function TypeForm({ type, form, setForm }) {
             })}
           </div>
           {form.options.length < 8 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
-          <p className="text-xs text-muted-foreground">체크박스를 클릭해 정답을 복수 지정하세요</p>
         </div>
       )
 
@@ -486,7 +506,7 @@ function TypeForm({ type, form, setForm }) {
           <Label required>허용 정답</Label>
           {form.acceptedAnswers.map((ans, i) => (
             <div key={i} className="flex items-center gap-2">
-              <input type="text" value={ans}
+              <AnswerTextarea value={ans}
                 onChange={e => { const n = [...form.acceptedAnswers]; n[i] = e.target.value; upd('acceptedAnswers', n) }}
                 placeholder={i === 0 ? '정답 입력 (예: 서울)' : '대체 정답 (예: Seoul)'}
                 className={inputCls} />
@@ -494,7 +514,6 @@ function TypeForm({ type, form, setForm }) {
             </div>
           ))}
           {form.acceptedAnswers.length < 5 && <AddBtn onClick={() => upd('acceptedAnswers', [...form.acceptedAnswers, ''])} label="대체 정답 추가" />}
-          <p className="text-xs text-muted-foreground">대소문자 구분 없이 채점, 복수 정답 설정 가능</p>
         </div>
       )
 
@@ -506,7 +525,6 @@ function TypeForm({ type, form, setForm }) {
             placeholder="채점 기준을 입력하세요 (학생에게는 표시되지 않음)"
             rows={3}
             className="w-full bg-white text-sm px-2.5 py-2 focus:outline-none resize-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
-          <p className="text-xs mt-1 text-muted-foreground">서술형은 교수자가 직접 채점합니다</p>
         </div>
       )
 
@@ -776,7 +794,7 @@ function TypeForm({ type, form, setForm }) {
         <div className="space-y-3">
           <Label required>빈칸 정답</Label>
           {form.blanks.map((blankAnswers, i) => (
-            <div key={i} className="rounded-lg p-2.5 space-y-2 bg-secondary border border-border">
+            <div key={i} className="rounded-lg p-2.5 space-y-2 border border-neutral-300">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">빈칸 {i + 1}</span>
                 {form.blanks.length > 2 && (
@@ -785,7 +803,7 @@ function TypeForm({ type, form, setForm }) {
               </div>
               {blankAnswers.map((ans, j) => (
                 <div key={j} className="flex items-center gap-2">
-                  <input type="text" value={ans}
+                  <AnswerTextarea value={ans}
                     onChange={e => { const n = form.blanks.map(b => [...b]); n[i][j] = e.target.value; upd('blanks', n) }}
                     placeholder={j === 0 ? `${i + 1}번째 빈칸 정답` : '대체 정답'}
                     className={inputCls} />
@@ -803,7 +821,6 @@ function TypeForm({ type, form, setForm }) {
             </div>
           ))}
           {form.blanks.length < 6 && <AddBtn onClick={() => upd('blanks', [...form.blanks, ['']])} label="빈칸 추가" />}
-          <p className="text-xs text-muted-foreground">문제 텍스트에 [1], [2] 등으로 빈칸 위치를 표시하세요. 대소문자 구분 없이 채점</p>
         </div>
       )
 
@@ -812,7 +829,7 @@ function TypeForm({ type, form, setForm }) {
         <div className="space-y-3">
           <Label required>드롭다운 항목</Label>
           {form.dropdowns.map((dd, i) => (
-            <div key={i} className="rounded p-2.5 space-y-2 bg-secondary border border-neutral-200">
+            <div key={i} className="rounded p-2.5 space-y-2 border border-neutral-300">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-neutral-500">드롭다운 {i + 1}</span>
                 {form.dropdowns.length > 1 && (
@@ -835,7 +852,7 @@ function TypeForm({ type, form, setForm }) {
                       )}>
                       {dd.answerIdx === j && <div className="w-1 h-1 rounded-full bg-white" />}
                     </button>
-                    <input type="text" value={opt} placeholder={`선택지 ${j + 1}`}
+                    <AnswerTextarea value={opt} placeholder={`선택지 ${j + 1}`}
                       onChange={e => {
                         const nd = [...form.dropdowns]; const no = [...nd[i].options]; no[j] = e.target.value
                         nd[i] = { ...nd[i], options: no }; upd('dropdowns', nd)
@@ -1040,7 +1057,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
 
   return (<>
     <Dialog open={true} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-3xl p-0">
+      <DialogContent className="max-w-3xl p-0 gap-0">
         {/* 헤더 */}
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
           <DialogTitle>{isEditMode ? '문항 편집' : '문항 직접 추가'}</DialogTitle>
@@ -1062,7 +1079,6 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
           /* 유형 선택 — 좌: 목록, 우: 미리보기 */
           <div className="flex min-h-[400px]">
             <div className="flex-1 p-5 border-r border-border">
-              <p className="text-sm mb-3 text-neutral-500">추가할 문항 유형을 선택하세요</p>
               <div className="grid grid-cols-2 gap-2.5 overflow-y-auto scrollbar-thin max-h-[360px]">
                 {Object.entries(QUIZ_TYPES).map(([key, val]) => (
                   <button
