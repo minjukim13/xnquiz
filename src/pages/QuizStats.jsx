@@ -473,15 +473,15 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
 
       {/* 문항별 상세 통계 테이블 */}
       <Card className="overflow-hidden py-0 gap-0">
-        <div className="px-5 py-5 border-b border-border">
-          <h3 className="text-base font-semibold">문항별 상세 통계</h3>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xs text-muted-foreground">총 {quizQuestions.length}문항 · {quiz.totalPoints}점 만점</span>
-            <Button variant="outline" size="sm" onClick={() => downloadItemAnalysisXlsx(quiz, quizQuestions, allStudents)}>
-              <Download size={12} />
-              문항 분석 (.xlsx)
-            </Button>
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold">문항별 상세 통계</h3>
+            <span className="block text-xs text-muted-foreground mt-0.5">총 {quizQuestions.length}문항 · {quiz.totalPoints}점 만점</span>
           </div>
+          <Button variant="outline" size="sm" onClick={() => downloadItemAnalysisXlsx(quiz, quizQuestions, allStudents)}>
+            <Download size={12} />
+            문항 분석 (.xlsx)
+          </Button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
