@@ -96,7 +96,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <div>
 
           {/* --- 헤더 --- */}
@@ -155,7 +155,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                         <input
                           type="number" min={0} max={100} value={scoreThreshold}
                           onChange={e => setScoreThreshold(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-                          className="w-14 text-center text-sm font-semibold px-2 py-1.5 rounded-lg border border-border text-foreground outline-none"
+                          className="w-14 text-center text-[15px] font-semibold px-2 py-1.5 rounded-lg border border-border text-foreground outline-none"
                         />
                         <span className="text-[13px] text-secondary-foreground">% 미만</span>
                         <span className="text-xs text-caption ml-1">({thresholdScore}점 / {totalPoints}점)</span>
@@ -189,7 +189,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
           {/* --- Step 2: 대상자 확인 --- */}
           {step === 2 && (
             <div className="flex flex-col gap-3">
-              <p className="text-sm text-secondary-foreground">
+              <p className="text-[15px] text-secondary-foreground">
                 총 <span className="font-bold text-primary">{matchedStudents.length}</span>명 중{' '}
                 <span className="font-bold text-foreground">{finalTargets.length}</span>명 선택됨
               </p>
@@ -220,7 +220,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                 {/* 테이블 바디 */}
                 <div className="max-h-80 overflow-y-auto">
                   {matchedStudents.length === 0 ? (
-                    <div className="py-10 text-center text-sm text-caption">조건에 해당하는 학생이 없습니다.</div>
+                    <div className="py-10 text-center text-[15px] text-caption">조건에 해당하는 학생이 없습니다.</div>
                   ) : (
                     matchedStudents.map((s, idx) => {
                       const isExcluded = excludedIds.has(s.id)
@@ -242,7 +242,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                           )}>
                             {!isExcluded && <Check size={12} className="text-white" />}
                           </span>
-                          <span className="text-sm font-semibold text-foreground text-center">{s.name}</span>
+                          <span className="text-[15px] font-semibold text-foreground text-center">{s.name}</span>
                           <span className="text-[13px] text-slate-500 text-center">{s.studentId}</span>
                           <span className="text-[13px] text-slate-500 text-center">{s.department}</span>
                           <span className={cn(
@@ -302,7 +302,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                 <input
                   type="datetime-local" value={retakeDeadline}
                   onChange={e => setRetakeDeadline(e.target.value)}
-                  className="w-full text-sm px-3.5 py-2.5 rounded-[10px] border border-border text-foreground outline-none"
+                  className="w-full text-[15px] px-3.5 py-2.5 rounded-[10px] border border-border text-foreground outline-none"
                 />
               </div>
 
@@ -311,27 +311,27 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                 <p className="text-[15px] font-semibold text-foreground mb-3.5">최종 요약</p>
                 <div className="flex flex-col gap-3">
                   <div className="flex justify-between">
-                    <span className="text-sm text-secondary-foreground">대상 인원</span>
-                    <span className="text-sm font-semibold text-foreground">{finalTargets.length}명</span>
+                    <span className="text-[15px] text-secondary-foreground">대상 인원</span>
+                    <span className="text-[15px] font-semibold text-foreground">{finalTargets.length}명</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-secondary-foreground">추가 응시 횟수</span>
-                    <span className="text-sm font-semibold text-foreground">{additionalAttempts}회</span>
+                    <span className="text-[15px] text-secondary-foreground">추가 응시 횟수</span>
+                    <span className="text-[15px] font-semibold text-foreground">{additionalAttempts}회</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-secondary-foreground">재응시 기한</span>
-                    <span className="text-sm font-semibold text-foreground">{retakeDeadline ? retakeDeadline.replace('T', ' ') : '퀴즈 마감일 따름'}</span>
+                    <span className="text-[15px] text-secondary-foreground">재응시 기한</span>
+                    <span className="text-[15px] font-semibold text-foreground">{retakeDeadline ? retakeDeadline.replace('T', ' ') : '퀴즈 마감일 따름'}</span>
                   </div>
                   {includeNotSubmitted && (
                     <div className="flex justify-between">
-                      <span className="text-sm text-secondary-foreground">미응시자</span>
-                      <span className="text-sm font-semibold text-muted-foreground">{finalTargets.filter(s => s.retakeReason === '미응시').length}명</span>
+                      <span className="text-[15px] text-secondary-foreground">미응시자</span>
+                      <span className="text-[15px] font-semibold text-muted-foreground">{finalTargets.filter(s => s.retakeReason === '미응시').length}명</span>
                     </div>
                   )}
                   {includeScoreBelow && (
                     <div className="flex justify-between">
-                      <span className="text-sm text-secondary-foreground">점수 미달 ({scoreThreshold}% 미만)</span>
-                      <span className="text-sm font-semibold text-muted-foreground">{finalTargets.filter(s => s.retakeReason !== '미응시' && s.retakeReason !== '채점 미완료').length}명</span>
+                      <span className="text-[15px] text-secondary-foreground">점수 미달 ({scoreThreshold}% 미만)</span>
+                      <span className="text-[15px] font-semibold text-muted-foreground">{finalTargets.filter(s => s.retakeReason !== '미응시' && s.retakeReason !== '채점 미완료').length}명</span>
                     </div>
                   )}
                 </div>
@@ -344,17 +344,16 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
         <div className="flex items-center justify-between pt-3 gap-3">
           <div>
             {step > 1 && (
-              <Button size="sm" variant="outline" onClick={() => setStep(s => s - 1)}>
+              <Button variant="outline" onClick={() => setStep(s => s - 1)}>
                 <ChevronLeft size={14} />
                 이전
               </Button>
             )}
           </div>
           <div className="flex gap-2.5">
-            <Button size="sm" variant="outline" onClick={handleClose}>취소</Button>
+            <Button variant="outline" onClick={handleClose}>취소</Button>
             {step < 3 ? (
               <Button
-                size="sm"
                 onClick={() => setStep(s => s + 1)}
                 disabled={noConditionSelected || (step === 2 && finalTargets.length === 0)}
               >
@@ -363,7 +362,6 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
               </Button>
             ) : (
               <Button
-                size="sm"
                 onClick={handleConfirm}
                 disabled={finalTargets.length === 0}
               >

@@ -80,6 +80,8 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-soft: var(--destructive-soft);
   --color-correct: var(--correct);
   --color-correct-bg: var(--correct-bg);
   --color-incorrect: var(--incorrect);
@@ -139,6 +141,8 @@
 
   /* ── Semantic ── */
   --destructive: oklch(0.600 0.215 22);        /* #F04452 */
+  --destructive-hover: oklch(0.540 0.215 22);  /* #D83E4C — darker destructive */
+  --destructive-soft: oklch(0.975 0.020 18);   /* #FFF0F0 — soft red bg (icon) */
 
   /* ── Correct / Incorrect ── */
   --correct: oklch(0.665 0.170 152);           /* #31B46E */

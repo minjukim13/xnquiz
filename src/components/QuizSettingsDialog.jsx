@@ -80,10 +80,10 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>퀴즈 전역 설정</DialogTitle>
-          <p className="text-xs text-muted-foreground">이 설정은 모든 퀴즈에 공통으로 적용됩니다.</p>
+          <p className="text-[15px] text-muted-foreground">이 설정은 모든 퀴즈에 공통으로 적용됩니다.</p>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -107,7 +107,7 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
             {/* 감점 방식 (partial 선택 시만) */}
             {local.multipleAnswersScoringMode === 'partial' && (
               <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-                <p className="text-xs font-semibold text-slate-600 mb-2">오답 감점 방식</p>
+                <p className="text-[15px] font-semibold text-slate-600 mb-2">오답 감점 방식</p>
                 {PENALTY_METHODS.map(opt => (
                   <RadioOption
                     key={opt.value}
@@ -168,8 +168,8 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
         </div>
 
         <DialogFooter>
-          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>취소</Button>
-          <Button size="sm" onClick={handleSave}>저장</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>취소</Button>
+          <Button onClick={handleSave}>저장</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -194,7 +194,7 @@ function RadioOption({ active, onClick, label, desc, formula }) {
           {active && <span className="w-2 h-2 rounded-full bg-primary" />}
         </span>
         <div className="flex-1 min-w-0">
-          <p className={cn('text-sm font-semibold flex items-center gap-1', active ? 'text-primary' : 'text-slate-700')}>
+          <p className={cn('text-[15px] font-semibold flex items-center gap-1', active ? 'text-primary' : 'text-slate-700')}>
             {label}
             {formula && <FormulaTooltip formula={formula} />}
           </p>
@@ -229,7 +229,7 @@ function SettingsSection({ title, children }) {
   return (
     <Card>
       <CardContent className="px-4 py-3 space-y-3">
-        <h3 className="text-xs font-semibold pb-2 border-b border-border text-slate-700">{title}</h3>
+        <h3 className="text-[15px] font-semibold pb-2 border-b border-border text-slate-700">{title}</h3>
         {children}
       </CardContent>
     </Card>
@@ -241,7 +241,7 @@ function SettingsToggle({ checked, onChange, label, description }) {
     <label className="flex items-start gap-3 cursor-pointer">
       <Switch checked={checked} onCheckedChange={onChange} className="mt-0.5 data-[state=checked]:bg-primary" />
       <div>
-        <p className="text-sm font-medium text-slate-700">{label}</p>
+        <p className="text-[15px] font-medium text-slate-700">{label}</p>
         {description && <p className="text-xs mt-0.5 text-muted-foreground">{description}</p>}
       </div>
     </label>
@@ -390,7 +390,7 @@ function ScoringSimulation({ penaltyMethod }) {
               <div key={m.key} className={cn('py-2 px-2 text-center', isActive && 'bg-blue-50/60')}>
                 <p className={cn('text-[10px] mb-0.5', isActive ? 'text-primary font-semibold' : 'text-muted-foreground')}>{m.label}</p>
                 <p className={cn(
-                  'text-sm tabular-nums font-bold',
+                  'text-[15px] tabular-nums font-bold',
                   isActive
                     ? score === points ? 'text-primary' : score === 0 && selected.size > 0 ? 'text-red-500' : 'text-slate-800'
                     : 'text-muted-foreground'
