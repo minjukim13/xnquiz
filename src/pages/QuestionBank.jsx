@@ -26,10 +26,13 @@ export default function QuestionBank() {
   const { bankId } = useParams()
   const navigate = useNavigate()
   const { role } = useRole()
-  const { banks, getBankQuestions, addBank, updateBank, addQuestions, updateQuestion, deleteQuestion, reorderQuestions } = useQuestionBank()
+  const { banks, getBankQuestions, updateBank, addQuestions, updateQuestion, deleteQuestion, reorderQuestions } = useQuestionBank()
 
   const bank = banks.find(b => b.id === bankId)
-  const questions = bank ? getBankQuestions(bank.id) : []
+  const questions = useMemo(
+    () => (bank ? getBankQuestions(bank.id) : []),
+    [bank, getBankQuestions]
+  )
 
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')
@@ -65,11 +68,6 @@ export default function QuestionBank() {
     dragIndexRef.current = null
     if (from === null || from === index) return
     reorderQuestions(bank.id, from, index)
-  }
-
-  const showToast = (msg, bankId = null) => {
-    setToast({ msg, bankId })
-    setTimeout(() => setToast(null), 4000)
   }
 
   const handleSaveEdit = (updated) => {

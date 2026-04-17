@@ -10,7 +10,8 @@ import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { QUIZ_TYPES, addQuiz } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
-import AssignmentOverrides, { hasDuplicateStudent, sanitizeAssignments } from '../components/AssignmentOverrides'
+import AssignmentOverrides from '../components/AssignmentOverrides'
+import { hasDuplicateStudent, sanitizeAssignments } from '../utils/assignments'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -94,6 +95,7 @@ export default function QuizCreate() {
       return
     }
     addQuiz({
+      // eslint-disable-next-line react-hooks/purity -- event-handler-only ID generation
       id: String(Date.now()), title: form.title, description: form.description,
       course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'draft', visible: form.visible,
       startDate: form.startDate || null, dueDate: form.dueDate || null,
@@ -319,8 +321,6 @@ function InfoTab({ form, set }) {
           assignments={form.assignments}
           onChange={val => set('assignments', val)}
           baseDueDate={form.dueDate}
-          baseAvailableFrom={form.startDate}
-          baseAvailableUntil={form.lockDate}
         />
       </Section>
 

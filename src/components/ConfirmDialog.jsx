@@ -94,16 +94,17 @@ export function AlertDialog({
   message,
   onClose,
   closeLabel = '확인',
-  variant,
+  variant = 'info',
 }) {
   const { isList, lines, text } = parseMessage(message)
+  const tone = variant === 'error' ? 'destructive' : 'info'
 
   return (
     <ShadcnAlertDialog open onOpenChange={(open) => { if (!open) onClose?.() }}>
       <AlertDialogContent className="max-w-sm rounded-2xl">
         <div>
           <div className="flex items-start gap-2">
-            <DialogIcon />
+            <DialogIcon tone={tone} />
             <div>
               <AlertDialogTitle className="text-base leading-[1.45]">{title}</AlertDialogTitle>
               {isList && (

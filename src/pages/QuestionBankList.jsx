@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Search, X, Pencil } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
@@ -25,7 +25,7 @@ const DIFF_LABEL = { '': '미지정', high: '상', medium: '중', low: '하' }
 export default function QuestionBankList() {
   const navigate = useNavigate()
   const { role } = useRole()
-  const { banks, questions, addBank, deleteBank, getBankQuestions, addQuestions, updateBank } = useQuestionBank()
+  const { banks, addBank, deleteBank, getBankQuestions, addQuestions, updateBank } = useQuestionBank()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -44,6 +44,7 @@ export default function QuestionBankList() {
   const getQuestionCount = (bankId) => getBankQuestions(bankId).length
 
   const executeCopyBank = (bank) => {
+    // eslint-disable-next-line react-hooks/purity -- event-handler-only ID generation
     const newId = `bank_copy_${Date.now()}`
     const newName = `${bank.name}-사본`
     addBank({
@@ -1073,11 +1074,14 @@ function ImportModal({ onClose, onImport }) {
     (targetMode === 'new' ? newBankName.trim() !== '' : targetBankId !== null)
 
   const prevSourceLen = useRef(0)
-  if (selectedSourceIds.length === 1 && prevSourceLen.current === 0 && !newBankName) {
-    const srcBank = banks.find(b => b.id === selectedSourceIds[0])
-    if (srcBank) setTimeout(() => setNewBankName(`${srcBank.name}-사본`), 0)
-  }
-  prevSourceLen.current = selectedSourceIds.length
+  useEffect(() => {
+    if (selectedSourceIds.length === 1 && prevSourceLen.current === 0 && !newBankName) {
+      const srcBank = banks.find(b => b.id === selectedSourceIds[0])
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- auto-populate copy name once
+      if (srcBank) setNewBankName(`${srcBank.name}-사본`)
+    }
+    prevSourceLen.current = selectedSourceIds.length
+  }, [selectedSourceIds, banks, newBankName])
 
   const goToStep2 = () => {
     if (targetBank?.difficulty) {

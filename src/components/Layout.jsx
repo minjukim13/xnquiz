@@ -7,24 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
 
-export default function Layout({ children }) {
-  const { role, setRole, currentStudent } = useRole()
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const location = useLocation()
-
-  const navItems = role === 'student'
-    ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
-    : [
-        { label: '퀴즈', href: '/', icon: LayoutList },
-        { label: '문제은행', href: '/question-banks', icon: BookOpen },
-      ]
-
-  const isActive = (href) => {
-    if (href === '/') return location.pathname === '/' || location.pathname.startsWith('/quiz')
-    return location.pathname.startsWith(href)
-  }
-
-  const NavLinks = ({ onNavigate } = {}) => (
+function NavLinks({ navItems, isActive, role, onNavigate }) {
+  return (
     <nav className="p-3 space-y-0.5">
       <p className="text-xs font-semibold px-2 pt-2 pb-1.5 text-muted-foreground/60 tracking-wide">
         {role === 'student' ? '학습' : '강의'}
@@ -51,9 +35,11 @@ export default function Layout({ children }) {
       })}
     </nav>
   )
+}
 
-  /* ── 역할 토글 (사이드바/모바일 공용) ── */
-  const RoleToggle = () => (
+/* ── 역할 토글 (사이드바/모바일 공용) ── */
+function RoleToggle({ role, setRole }) {
+  return (
     <div className="flex items-center p-0.5 rounded-lg w-full bg-secondary">
       <button
         onClick={() => setRole('instructor')}
@@ -79,6 +65,24 @@ export default function Layout({ children }) {
       </button>
     </div>
   )
+}
+
+export default function Layout({ children }) {
+  const { role, setRole, currentStudent } = useRole()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const location = useLocation()
+
+  const navItems = role === 'student'
+    ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
+    : [
+        { label: '퀴즈', href: '/', icon: LayoutList },
+        { label: '문제은행', href: '/question-banks', icon: BookOpen },
+      ]
+
+  const isActive = (href) => {
+    if (href === '/') return location.pathname === '/' || location.pathname.startsWith('/quiz')
+    return location.pathname.startsWith(href)
+  }
 
 
   return (
@@ -108,9 +112,9 @@ export default function Layout({ children }) {
                 </Link>
               </div>
               <Separator />
-              <NavLinks onNavigate={() => setMobileNavOpen(false)} />
+              <NavLinks navItems={navItems} isActive={isActive} role={role} onNavigate={() => setMobileNavOpen(false)} />
               <div className="mt-auto p-3 space-y-2">
-                <RoleToggle />
+                <RoleToggle role={role} setRole={setRole} />
               </div>
             </SheetContent>
           </Sheet>
@@ -158,11 +162,11 @@ export default function Layout({ children }) {
           </div>
 
           {/* 네비게이션 */}
-          <NavLinks />
+          <NavLinks navItems={navItems} isActive={isActive} role={role} />
 
           {/* 하단 고정: 역할 토글 */}
           <div className="mt-auto p-3 space-y-2">
-            <RoleToggle />
+            <RoleToggle role={role} setRole={setRole} />
           </div>
         </aside>
 

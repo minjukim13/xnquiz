@@ -38,7 +38,7 @@ const REGRADE_OPTIONS = [
   },
 ]
 
-export default function RegradeOptionsModal({ question, submittedCount, onConfirm, onCancel }) {
+export default function RegradeOptionsModal({ submittedCount, onConfirm, onCancel }) {
   const [selected, setSelected] = useState('award_both')
 
   return (

@@ -27,7 +27,7 @@ export function getLocalComments() {
 export function setLocalComments(comments) {
   try {
     localStorage.setItem('xnq_student_comments', JSON.stringify(comments))
-  } catch {}
+  } catch { /* quota exceeded 등 무시 */ }
 }
 
 export function getLocalFudgePoints() {
@@ -42,7 +42,7 @@ export function getLocalFudgePoints() {
 export function setLocalFudgePoints(fudge) {
   try {
     localStorage.setItem('xnq_fudge_points', JSON.stringify(fudge))
-  } catch {}
+  } catch { /* quota exceeded 등 무시 */ }
 }
 
 export const SORT_OPTIONS = [

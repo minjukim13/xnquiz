@@ -176,8 +176,9 @@ function InstructorQuizList() {
   // 다른 페이지에서 전달된 토스트 표시
   useEffect(() => {
     const msg = sessionStorage.getItem('xnq_toast')
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot toast on mount
     if (msg) { showToast(msg); sessionStorage.removeItem('xnq_toast') }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const cloneQuestions = (srcId, newId) => {
     const srcQs = getQuizQuestions(srcId)
@@ -801,7 +802,7 @@ function StudentQuizList() {
 
   const filteredAll = useMemo(
     () => sortQuizzes(applyWeekSessionFilter(allQuizzes, filterWeek, filterSession), sortKey),
-    [filterWeek, filterSession, sortKey]
+    [allQuizzes, filterWeek, filterSession, sortKey]
   )
 
   const hasAny = filteredAll.length > 0

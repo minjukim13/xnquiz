@@ -298,7 +298,7 @@ function buildQuestion(type, form) {
     case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
     case 'essay':                   return { ...base, rubric: form.rubric }
     case 'numerical':               return { ...base, correctAnswer: Number(form.correctNum), tolerance: Number(form.tolerance) || 0 }
-    case 'formula':                 return { ...base, variables: form.variables.filter(v => v.name.trim()), formula: form.formula.trim(), tolerance: Number(form.tolerance) || 0, toleranceType: form.toleranceType || 'absolute', answerDecimals: Number(form.answerDecimals) ?? 2, solutions: form.solutions || [] }
+    case 'formula':                 return { ...base, variables: form.variables.filter(v => v.name.trim()), formula: form.formula.trim(), tolerance: Number(form.tolerance) || 0, toleranceType: form.toleranceType || 'absolute', answerDecimals: Number.isFinite(Number(form.answerDecimals)) ? Number(form.answerDecimals) : 2, solutions: form.solutions || [] }
     case 'matching':                return { ...base, pairs: form.pairs.filter(p => p.left.trim() && p.right.trim()), distractors: (form.distractors || []).filter(d => d.trim()) }
     case 'fill_in_multiple_blanks': return { ...base, correctAnswer: form.blanks.map(b => b.filter(a => a.trim())).filter(b => b.length > 0) }
     case 'multiple_dropdowns':      return { ...base, dropdowns: form.dropdowns.map(d => {
@@ -366,6 +366,31 @@ function AnswerTextarea({ value, onChange, placeholder, className }) {
   )
 }
 
+// ── 폼 내부에서 반복 사용되는 정적 컴포넌트 ───────────────────────────────
+function TrashBtn({ onClick }) {
+  return (
+    <button type="button" onClick={onClick} className="text-muted-foreground shrink-0 hover:text-red-500 transition-colors">
+      <Trash2 size={13} />
+    </button>
+  )
+}
+
+function AddBtn({ onClick, label }) {
+  return (
+    <button type="button" onClick={onClick} className="flex items-center gap-1 text-xs text-indigo-500">
+      <Plus size={12} />{label}
+    </button>
+  )
+}
+
+function Label({ children, required }) {
+  return (
+    <label className="text-[15px] font-medium block mb-1.5 text-foreground">
+      {children}{required && <span className="ml-0.5 text-destructive">*</span>}
+    </label>
+  )
+}
+
 // ── 유형별 전용 폼 ──────────────────────────────────────────────────────────
 function TypeForm({ type, form, setForm, textareaRef }) {
   const upd = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
@@ -382,7 +407,7 @@ function TypeForm({ type, form, setForm, textareaRef }) {
         try {
           el.focus()
           el.setSelectionRange(start + tag.length, start + tag.length)
-        } catch {}
+        } catch { /* ignore */ }
       }, 0)
       return newText
     }
@@ -407,24 +432,6 @@ function TypeForm({ type, form, setForm, textareaRef }) {
   }
 
   const inputCls = 'flex-1 text-[15px] px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30'
-
-  const TrashBtn = ({ onClick }) => (
-    <button type="button" onClick={onClick} className="text-muted-foreground shrink-0 hover:text-red-500 transition-colors">
-      <Trash2 size={13} />
-    </button>
-  )
-
-  const AddBtn = ({ onClick, label }) => (
-    <button type="button" onClick={onClick} className="flex items-center gap-1 text-xs text-indigo-500">
-      <Plus size={12} />{label}
-    </button>
-  )
-
-  const Label = ({ children, required }) => (
-    <label className="text-[15px] font-medium block mb-1.5 text-foreground">
-      {children}{required && <span className="ml-0.5 text-destructive">*</span>}
-    </label>
-  )
 
   switch (type) {
     case 'multiple_choice':

@@ -6,7 +6,7 @@ import { parseGradingSheet, downloadGradingSheetXlsx } from '../../utils/excelUt
 import { Upload, Download } from 'lucide-react'
 
 // ─── 모달: 엑셀 일괄 채점 ──────────────────────────────────────────────────
-export default function ExcelModal({ question, students: allStudents, quizId, onClose, onApplied }) {
+export default function ExcelModal({ question, students: allStudents, onClose, onApplied }) {
   const [step, setStep] = useState('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [fileName, setFileName] = useState('')
