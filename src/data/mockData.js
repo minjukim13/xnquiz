@@ -1762,6 +1762,18 @@ function gradeByQuestion(question, answer) {
       const correct = pairs.every(p => norm(answerMap[p.left] || '') === norm(p.right))
       return correct ? pts : 0
     }
+    case 'multiple_dropdowns': {
+      const dropdowns = question.dropdowns || []
+      if (dropdowns.length === 0) return 0
+      // 학생 답안: 배열 [opt0, opt1, ...] 또는 객체 {0: opt0, 1: opt1, ...} 지원
+      const getStudentSel = (i) => Array.isArray(answer) ? answer[i] : (answer?.[i] ?? answer?.[String(i)])
+      const correct = dropdowns.every((dd, i) => {
+        const correctOpt = dd.options?.[dd.answerIdx]
+        const studentSel = getStudentSel(i)
+        return correctOpt && studentSel && norm(studentSel) === norm(correctOpt)
+      })
+      return correct ? pts : 0
+    }
     default:
       return 0
   }
@@ -1926,6 +1938,9 @@ export function autoGradeAnswer(question, answer, options = {}) {
     return gradeByQuestion(question, answer)
   }
   if (question.type === 'matching' && question.pairs?.length > 0) {
+    return gradeByQuestion(question, answer)
+  }
+  if (question.type === 'multiple_dropdowns' && question.dropdowns?.length > 0) {
     return gradeByQuestion(question, answer)
   }
 

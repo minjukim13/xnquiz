@@ -136,12 +136,12 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
               description="단답형/수치형 등 자동채점 시 대소문자를 구분하여 정답을 판정합니다"
             />
             {!local.caseSensitive && (
-              <p className="text-xs text-muted-foreground pl-1">
+              <p className="text-xs text-muted-foreground pl-11">
                 현재: "Answer"와 "answer"를 동일한 정답으로 처리합니다.
               </p>
             )}
             {local.caseSensitive && (
-              <div className="flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600">
+              <div className="ml-11 flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600">
                 <span>"Answer"와 "answer"를 다른 답으로 처리합니다. 학생 혼란 방지를 위해 퀴즈 안내사항에 명시를 권장합니다.</span>
               </div>
             )}
@@ -154,12 +154,12 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
                 description="단답형/빈칸 채우기 등 자동채점 시 띄어쓰기를 구분하여 정답을 판정합니다"
               />
               {!local.whitespaceSensitive && (
-                <p className="text-xs text-muted-foreground pl-1 mt-2">
+                <p className="text-xs text-muted-foreground pl-11 mt-2">
                   현재: "key word"와 "keyword"를 동일한 정답으로 처리합니다.
                 </p>
               )}
               {local.whitespaceSensitive && (
-                <div className="flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600 mt-2">
+                <div className="ml-11 flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600 mt-2">
                   <span>"key word"와 "keyword"를 다른 답으로 처리합니다. 학생 혼란 방지를 위해 퀴즈 안내사항에 명시를 권장합니다.</span>
                 </div>
               )}
