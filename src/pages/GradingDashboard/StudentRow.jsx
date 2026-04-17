@@ -4,6 +4,25 @@ import { getLocalGrades, getLocalFudgePoints } from './utils'
 import { getStudentAnswer, isAnswerCorrect, getStudentFileSubmission } from '../../data/mockData'
 import { Paperclip, ChevronDown, ChevronUp, Download, Sparkles } from 'lucide-react'
 
+// 복합 답안(객체/배열)을 표시용 문자열로 변환
+function formatAnswerForDisplay(question, answer) {
+  if (answer === null || answer === undefined || answer === '') return answer
+  if (typeof answer === 'string' || typeof answer === 'number' || typeof answer === 'boolean') return answer
+  if (question.type === 'formula' && typeof answer === 'object') return answer.value ?? ''
+  if (question.type === 'matching' && typeof answer === 'object' && !Array.isArray(answer)) {
+    return Object.entries(answer).map(([l, r]) => `${l} → ${r}`).join(', ')
+  }
+  if (question.type === 'multiple_dropdowns' && Array.isArray(answer)) {
+    return answer.filter(Boolean).join(', ')
+  }
+  if (question.type === 'fill_in_multiple_blanks' && Array.isArray(answer)) {
+    return answer.map((v, i) => `빈칸${i + 1}: ${v || '-'}`).join(', ')
+  }
+  if (question.type === 'file_upload' && typeof answer === 'object') return answer.fileName ?? ''
+  if (Array.isArray(answer)) return answer.join(', ')
+  return JSON.stringify(answer)
+}
+
 function StudentRow({ student, question, quizId, onScoreChange, pendingScore, isChanged }) {
   // 미제출 학생
   if (!student.submitted) {
@@ -61,11 +80,12 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
 
   let compactAnswer
   if (question.type === 'true_false') {
-    const lower = (rawAnswer || '').toLowerCase()
+    const lower = (typeof rawAnswer === 'string' ? rawAnswer : '').toLowerCase()
     compactAnswer = (lower === '참' || lower === 'true') ? '참' : (lower === '거짓' || lower === 'false') ? '거짓' : rawAnswer
   } else {
     compactAnswer = rawAnswer
   }
+  compactAnswer = formatAnswerForDisplay(question, compactAnswer)
 
   const autoCorrect = question.autoGrade ? isAnswerCorrect(rawAnswer, question.id) : null
 
@@ -185,9 +205,9 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
       {expanded && ['essay', 'short_answer', 'multiple_answers'].includes(question.type) && (
         <div className="px-3 pb-3">
           <div className="p-3 rounded bg-slate-50 border border-slate-200">
-            <p className="leading-relaxed text-[14px] text-black">{rawAnswer}</p>
-            {autoCorrect !== null && !autoCorrect && question.correctAnswer && (
-              <p className="mt-2 text-xs text-muted-foreground">정답: {question.correctAnswer}</p>
+            <p className="leading-relaxed text-[14px] text-black">{formatAnswerForDisplay(question, rawAnswer) || '(답안 없음)'}</p>
+            {autoCorrect !== null && !autoCorrect && (
+              <p className="mt-2 text-xs text-muted-foreground">정답: {Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : (question.correctAnswer ?? '')}</p>
             )}
           </div>
         </div>

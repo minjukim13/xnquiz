@@ -74,10 +74,10 @@ export default function QuestionAnswer({ q }) {
     )
   }
 
-  // 드롭다운: 정답 배지 우측에 라벨→정답
+  // 드롭다운: 정답 배지 우측에 라벨(또는 [드롭다운N])→정답
   if (t === 'multiple_dropdowns' && Array.isArray(q.dropdowns) && q.dropdowns.length > 0) {
     const items = q.dropdowns
-      .map(dd => ({ label: dd.label, answer: dd.options?.[dd.answerIdx] }))
+      .map((dd, i) => ({ label: dd.label || `[드롭다운${i + 1}]`, answer: dd.options?.[dd.answerIdx] }))
       .filter(it => it.answer)
     if (items.length === 0) return null
     return (
@@ -85,7 +85,7 @@ export default function QuestionAnswer({ q }) {
         <span className={BADGE}>정답</span>
         {items.map((it, i) => (
           <span key={i} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary">
-            {it.label && <>{it.label} <ArrowRight size={10} className="text-muted-foreground" /></>}
+            <span className="font-semibold">{it.label}</span> <ArrowRight size={10} className="text-muted-foreground" />
             {it.answer}
           </span>
         ))}
@@ -116,7 +116,8 @@ export default function QuestionAnswer({ q }) {
         {ans.map((item, i) => {
           const answers = Array.isArray(item) ? item : [item]
           return (
-            <span key={i} className={ITEM_BADGE}>
+            <span key={i} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary">
+              <span className="font-semibold">[빈칸{i + 1}]</span> <ArrowRight size={10} className="text-muted-foreground" />
               {answers.join(' / ')}
             </span>
           )
