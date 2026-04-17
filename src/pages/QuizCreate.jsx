@@ -110,12 +110,9 @@ export default function QuizCreate() {
       totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
       questions: questions.length, totalPoints,
     })
-    setConfirmDialog({
+    setAlertDialog({
       title: '임시저장 완료',
-      message: '퀴즈가 임시저장되었습니다. 퀴즈 목록으로 이동하시겠습니까?',
-      confirmLabel: '목록으로 이동',
-      cancelLabel: '계속 편집',
-      onConfirm: () => navigate('/'),
+      message: '퀴즈가 임시저장되었습니다.',
     })
   }
 

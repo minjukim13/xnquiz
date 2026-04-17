@@ -129,12 +129,9 @@ export default function QuizEdit() {
     if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
     updateQuiz(quiz.id, { title, description, week: week ?? null, session: session ?? null, status: quiz.status, visible, questions: questions.length, totalPoints, timeLimit: timeLimit === '' ? 0 : Number(timeLimit), allowAttempts: unlimitedAttempts ? -1 : allowAttempts, scorePolicy, allowLateSubmit, lateSubmitDeadline: allowLateSubmit && lateSubmitDeadline ? lateSubmitDeadline : null, lockDate: lockDate || null, scoreRevealEnabled, scoreRevealScope: scoreRevealEnabled ? scoreRevealScope : null, scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null, scoreRevealStart: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null, scoreRevealEnd: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd || null : null })
     setQuizQuestions(quiz.id, questions)
-    setConfirmDialog({
+    setAlertDialog({
       title: '임시저장 완료',
-      message: '변경사항이 임시저장되었습니다. 퀴즈 목록으로 이동하시겠습니까?',
-      confirmLabel: '목록으로 이동',
-      cancelLabel: '계속 편집',
-      onConfirm: () => navigate('/'),
+      message: '변경사항이 임시저장되었습니다.',
     })
   }
 

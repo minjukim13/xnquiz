@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { getLocalGrades, setLocalGrades, getLocalComments, setLocalComments } from './utils'
+import { getLocalGrades, setLocalGrades, getLocalComments, setLocalComments, getLocalFudgePoints, setLocalFudgePoints } from './utils'
 import { getStudentAnswer, isAnswerCorrect, getStudentFileSubmission } from '../../data/mockData'
 import TypeBadge from '../../components/TypeBadge'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, ChevronUp, Paperclip, Download, MessageSquare } from 'lucide-react'
+import { ChevronDown, ChevronUp, Paperclip, Download, MessageSquare, Sparkles, Plus, Minus } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 
 // ─── 문항 행 ────────────────────────────────────────────────────────────────
 function QuestionRow({ question, student, studentIdx, quizId, pendingScore, onScoreChange }) {
@@ -154,15 +155,23 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
   const [pendingScores, setPendingScores] = useState({})
   const [saveStatus, setSaveStatus] = useState('idle')
   const commentKey = `${quizId}_${student.id}`
+  const fudgeKey = `${quizId}_${student.id}`
   const [savedComment, setSavedComment] = useState(() => getLocalComments()[commentKey] || '')
   const [comment, setComment] = useState(() => getLocalComments()[commentKey] || '')
+  const [savedFudge, setSavedFudge] = useState(() => getLocalFudgePoints()[fudgeKey] || 0)
+  const [fudge, setFudge] = useState(() => getLocalFudgePoints()[fudgeKey] || 0)
+  const [fudgeOpen, setFudgeOpen] = useState(false)
 
   useEffect(() => {
     setPendingScores({})
     setSaveStatus('idle')
-    const c = getLocalComments()[`${quizId}_${student.id}`] || ''
+    const key = `${quizId}_${student.id}`
+    const c = getLocalComments()[key] || ''
     setSavedComment(c)
     setComment(c)
+    const f = getLocalFudgePoints()[key] || 0
+    setSavedFudge(f)
+    setFudge(f)
   }, [student?.id, quizId])
 
   const handleScoreChange = useCallback((questionId, score) => {
@@ -172,6 +181,20 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
 
   const scorePendingCount = Object.values(pendingScores).filter(v => v !== '' && !isNaN(Number(v)) && Number(v) >= 0).length
   const [commentOpen, setCommentOpen] = useState(false)
+  const [showCommentCancelConfirm, setShowCommentCancelConfirm] = useState(false)
+
+  const commentDirty = comment !== savedComment
+
+  const handleCommentCancel = () => {
+    if (commentDirty) setShowCommentCancelConfirm(true)
+    else setCommentOpen(false)
+  }
+
+  const confirmCommentDiscard = () => {
+    setComment(savedComment)
+    setShowCommentCancelConfirm(false)
+    setCommentOpen(false)
+  }
 
   const handleBulkSave = () => {
     const grades = getLocalGrades()
@@ -192,10 +215,27 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
     setLocalGrades(grades)
     const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
     const manualTotal = Object.values(student.manualScores || {}).reduce((a, b) => a + (b || 0), 0)
-    student.score = autoTotal + manualTotal
+    student.score = Math.max(0, autoTotal + manualTotal + savedFudge)
+    student.fudgePoints = savedFudge
     setPendingScores({})
     setSaveStatus('saved')
     setTimeout(() => setSaveStatus('idle'), 3000)
+    onGradeSaved?.()
+  }
+
+  const handleFudgeSave = () => {
+    const val = Number(fudge) || 0
+    const fudges = getLocalFudgePoints()
+    fudges[fudgeKey] = val
+    setLocalFudgePoints(fudges)
+    setSavedFudge(val)
+    student.fudgePoints = val
+    if (student.score !== null) {
+      const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
+      const manualTotal = Object.values(student.manualScores || {}).reduce((a, b) => a + (b || 0), 0)
+      student.score = Math.max(0, autoTotal + manualTotal + val)
+    }
+    setFudgeOpen(false)
     onGradeSaved?.()
   }
 
@@ -210,7 +250,14 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
           <div>
             <div className="flex items-center gap-1.5">
               <p className="text-base font-bold text-foreground leading-tight">{student.name}</p>
-              <Popover open={commentOpen} onOpenChange={open => { if (!open) setComment(savedComment); setCommentOpen(open) }}>
+              <Popover
+                open={commentOpen}
+                onOpenChange={open => {
+                  if (open) { setCommentOpen(true); return }
+                  if (commentDirty) setShowCommentCancelConfirm(true)
+                  else setCommentOpen(false)
+                }}
+              >
                 <PopoverTrigger asChild>
                   <button className="p-0.5 rounded hover:bg-slate-200/60 transition-colors" title="코멘트">
                     <MessageSquare size={14} className={savedComment ? 'text-primary' : 'text-muted-foreground'} />
@@ -225,7 +272,7 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
                     className="w-full text-sm resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-200 text-foreground placeholder:text-muted-foreground leading-relaxed"
                   />
                   <div className="flex justify-end gap-1.5 mt-1.5">
-                    <Button variant="ghost" size="xs" onClick={() => { setComment(savedComment); setCommentOpen(false) }}>취소</Button>
+                    <Button variant="ghost" size="xs" onClick={handleCommentCancel}>취소</Button>
                     <Button size="xs" onClick={() => { const c = getLocalComments(); c[commentKey] = comment; setLocalComments(c); setSavedComment(comment); setCommentOpen(false) }}>저장</Button>
                   </div>
                 </PopoverContent>
@@ -244,6 +291,63 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
             )}
           </div>
           <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+            <Popover open={fudgeOpen} onOpenChange={open => { if (!open) setFudge(savedFudge); setFudgeOpen(open) }}>
+              <PopoverTrigger asChild>
+                <button
+                  className={cn(
+                    'flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors',
+                    savedFudge !== 0
+                      ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                      : 'text-muted-foreground hover:bg-slate-200/60'
+                  )}
+                  title="가산점 (Fudge Points)"
+                >
+                  <Sparkles size={13} />
+                  <span>가산점</span>
+                  {savedFudge !== 0 && (
+                    <span className="font-semibold">{savedFudge > 0 ? `+${savedFudge}` : savedFudge}</span>
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-3">
+                <div className="space-y-2.5">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">가산점 부여</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">총점에 +/- 점수를 가감합니다</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 h-8 w-8 p-0"
+                      onClick={() => setFudge(Number(fudge || 0) - 0.5)}
+                    >
+                      <Minus size={14} />
+                    </Button>
+                    <input
+                      type="number"
+                      step={0.5}
+                      value={fudge}
+                      onChange={e => setFudge(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="flex-1 min-w-0 text-center text-sm px-2 py-1.5 rounded border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-200 text-foreground"
+                      placeholder="0"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 h-8 w-8 p-0"
+                      onClick={() => setFudge(Number(fudge || 0) + 0.5)}
+                    >
+                      <Plus size={14} />
+                    </Button>
+                  </div>
+                  <div className="flex justify-end gap-1.5">
+                    <Button variant="ghost" size="xs" onClick={() => { setFudge(savedFudge); setFudgeOpen(false) }}>취소</Button>
+                    <Button size="xs" onClick={handleFudgeSave}>저장</Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
             {saveStatus === 'saved' && (
               <span className="text-xs font-medium text-emerald-600">저장 완료</span>
             )}
@@ -286,6 +390,17 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
         </>
       )}
 
+      {showCommentCancelConfirm && (
+        <ConfirmDialog
+          title="코멘트 작성 취소"
+          message="작성 중인 코멘트가 저장되지 않습니다. 정말 취소하시겠습니까?"
+          confirmLabel="취소하기"
+          cancelLabel="계속 작성"
+          confirmDanger
+          onConfirm={confirmCommentDiscard}
+          onCancel={() => setShowCommentCancelConfirm(false)}
+        />
+      )}
     </div>
   )
 }

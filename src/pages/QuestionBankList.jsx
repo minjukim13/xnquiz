@@ -29,7 +29,6 @@ export default function QuestionBankList() {
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
-  const [copyTarget, setCopyTarget] = useState(null)
   const [toast, setToast] = useState(null)
   const [editingBankId, setEditingBankId] = useState(null)
   const [bankNameDraft, setBankNameDraft] = useState('')
@@ -137,7 +136,7 @@ export default function QuestionBankList() {
                     )}
                     <div className="flex items-center gap-0.5 shrink-0 -mt-0.5 -mr-1">
                       <button
-                        onClick={e => { e.stopPropagation(); setCopyTarget(bank) }}
+                        onClick={e => { e.stopPropagation(); executeCopyBank(bank) }}
                         className="p-1.5 rounded-md text-muted-foreground hover:text-secondary-foreground hover:bg-secondary transition-colors"
                         title="복사"
                       >
@@ -237,33 +236,6 @@ export default function QuestionBankList() {
                 onClick={() => { deleteBank(deleteTarget.id); setDeleteTarget(null) }}
               >
                 삭제
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {copyTarget && (
-        <Dialog open onOpenChange={open => !open && setCopyTarget(null)}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader className="mb-1">
-              <DialogTitle>문제은행 복사</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-1">
-              <p className="text-sm text-slate-700">
-                <span className="font-semibold">{copyTarget.name}</span>의 복사본을 생성할까요?
-              </p>
-              <p className="text-xs text-muted-foreground">
-                문항 {getQuestionCount(copyTarget.id)}개가 포함된 "{copyTarget.name}-사본" 문제은행이 생성됩니다.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setCopyTarget(null)}>취소</Button>
-              <Button
-                size="sm"
-                onClick={() => { executeCopyBank(copyTarget); setCopyTarget(null) }}
-              >
-                복사
               </Button>
             </div>
           </DialogContent>
