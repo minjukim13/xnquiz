@@ -6,7 +6,28 @@ import TypeBadge from '../../components/TypeBadge'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, ChevronUp, Paperclip, Download, MessageSquare, Sparkles, Plus, Minus } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import ActivityLogPanel from './ActivityLogPanel'
+
+// 복합 답안(객체/배열)을 표시용 문자열로 변환
+function formatAnswerForDisplay(question, answer) {
+  if (answer === null || answer === undefined || answer === '') return answer
+  if (typeof answer === 'string' || typeof answer === 'number' || typeof answer === 'boolean') return answer
+  if (question.type === 'formula' && typeof answer === 'object') return answer.value ?? ''
+  if (question.type === 'matching' && typeof answer === 'object' && !Array.isArray(answer)) {
+    return Object.entries(answer).map(([l, r]) => `${l} → ${r}`).join(', ')
+  }
+  if (question.type === 'multiple_dropdowns' && Array.isArray(answer)) {
+    return answer.filter(Boolean).join(', ')
+  }
+  if (question.type === 'fill_in_multiple_blanks' && Array.isArray(answer)) {
+    return answer.map((v, i) => `빈칸${i + 1}: ${v || '-'}`).join(', ')
+  }
+  if (question.type === 'file_upload' && typeof answer === 'object') return answer.fileName ?? ''
+  if (Array.isArray(answer)) return answer.join(', ')
+  return JSON.stringify(answer)
+}
 
 // ─── 문항 행 ────────────────────────────────────────────────────────────────
 function QuestionRow({ question, student, studentIdx, quizId, pendingScore, onScoreChange }) {
@@ -40,11 +61,13 @@ function QuestionRow({ question, student, studentIdx, quizId, pendingScore, onSc
 
   let compactAnswer
   if (question.type === 'true_false') {
-    const lower = (rawAnswer || '').toLowerCase()
+    const lower = (typeof rawAnswer === 'string' ? rawAnswer : '').toLowerCase()
     compactAnswer = (lower === '참' || lower === 'true') ? '참' : (lower === '거짓' || lower === 'false') ? '거짓' : rawAnswer
   } else {
     compactAnswer = rawAnswer
   }
+  // 복합 답안(객체/배열) → 사람이 읽을 수 있는 문자열로 변환
+  compactAnswer = formatAnswerForDisplay(question, compactAnswer)
 
   const isExpandable = ['essay', 'short_answer', 'multiple_answers'].includes(question.type)
   const isFileUpload = question.type === 'file_upload'
@@ -138,9 +161,9 @@ function QuestionRow({ question, student, studentIdx, quizId, pendingScore, onSc
       {expanded && isExpandable && (
         <div className="px-3 pb-3">
           <div className="ml-[7rem] p-3 rounded bg-slate-50 border border-slate-200">
-            <p className="leading-relaxed text-[14px] text-black whitespace-pre-wrap">{rawAnswer}</p>
-            {question.autoGrade && autoCorrect === false && question.correctAnswer && (
-              <p className="mt-2 text-xs text-muted-foreground">정답: {question.correctAnswer}</p>
+            <p className="leading-relaxed text-[14px] text-black whitespace-pre-wrap">{formatAnswerForDisplay(question, rawAnswer) || '(답안 없음)'}</p>
+            {question.autoGrade && autoCorrect === false && (
+              <p className="mt-2 text-xs text-muted-foreground">정답: {Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : (question.correctAnswer ?? '')}</p>
             )}
           </div>
         </div>
@@ -289,6 +312,9 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
             {student.isLate && (
               <span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-1.5 py-px rounded">지각</span>
             )}
+            {student.autoSubmitted && (
+              <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-1.5 py-px rounded">자동 제출</span>
+            )}
           </div>
           <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
             <Popover open={fudgeOpen} onOpenChange={open => { if (!open) setFudge(savedFudge); setFudgeOpen(open) }}>
@@ -363,31 +389,44 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
           <p className="text-sm text-caption">제출된 답안이 없습니다</p>
         </div>
       ) : (
-        <>
-          {/* 테이블 헤더 */}
-          <div className="flex items-center px-3 py-2 gap-2 border-b-2 border-slate-200 bg-slate-50">
-            <div className="w-12 shrink-0 text-center text-[14px] font-semibold text-gray-500">번호</div>
-            <div className="w-16 shrink-0 text-center text-[14px] font-semibold text-gray-500">유형</div>
-            <div className="flex-1 text-[14px] font-semibold text-gray-500">문제 / 답안</div>
-            <div className="w-16 shrink-0 text-center text-[14px] font-semibold text-gray-500">정답</div>
-            <div className="w-36 shrink-0 text-center text-[14px] font-semibold text-gray-500">점수</div>
+        <Tabs defaultValue="answers" className="flex-1 min-h-0 gap-0">
+          <div className="px-3 pt-2 pb-1 border-b border-slate-100">
+            <TabsList variant="line" className="h-9">
+              <TabsTrigger value="answers">답안</TabsTrigger>
+              <TabsTrigger value="activity">활동 로그</TabsTrigger>
+            </TabsList>
           </div>
 
-          {/* 문항 행 목록 */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin">
-            {questions.map(q => (
-              <QuestionRow
-                key={q.id}
-                question={q}
-                student={student}
-                studentIdx={studentIdx}
-                quizId={quizId}
-                pendingScore={pendingScores[q.id]}
-                onScoreChange={handleScoreChange}
-              />
-            ))}
-          </div>
-        </>
+          <TabsContent value="answers" className="flex flex-col min-h-0">
+            {/* 테이블 헤더 */}
+            <div className="flex items-center px-3 py-2 gap-2 border-b-2 border-slate-200 bg-slate-50">
+              <div className="w-12 shrink-0 text-center text-[14px] font-semibold text-gray-500">번호</div>
+              <div className="w-16 shrink-0 text-center text-[14px] font-semibold text-gray-500">유형</div>
+              <div className="flex-1 text-[14px] font-semibold text-gray-500">문제 / 답안</div>
+              <div className="w-16 shrink-0 text-center text-[14px] font-semibold text-gray-500">정답</div>
+              <div className="w-36 shrink-0 text-center text-[14px] font-semibold text-gray-500">점수</div>
+            </div>
+
+            {/* 문항 행 목록 */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
+              {questions.map(q => (
+                <QuestionRow
+                  key={q.id}
+                  question={q}
+                  student={student}
+                  studentIdx={studentIdx}
+                  quizId={quizId}
+                  pendingScore={pendingScores[q.id]}
+                  onScoreChange={handleScoreChange}
+                />
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="activity" className="flex flex-col min-h-0">
+            <ActivityLogPanel student={student} quizId={quizId} questions={questions} />
+          </TabsContent>
+        </Tabs>
       )}
 
       {showCommentCancelConfirm && (

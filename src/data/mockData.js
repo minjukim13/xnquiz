@@ -1,3 +1,6 @@
+import { evalFormula as _evalFormula } from '@/utils/formulaEngine'
+import { autoSubmitExpiredStudents } from '@/utils/deadlineUtils'
+
 // ── 전역 설정 읽기 (localStorage) ──
 function _getGlobalSettings() {
   try {
@@ -466,6 +469,9 @@ export const mockQuestions = [
     text: 'SQL에서 데이터를 검색할 때 사용하는 기본 명령어는?',
     points: 5, autoGrade: true, gradedCount: 82, totalCount: 82, avgScore: 4.0,
     correctAnswer: 'SELECT', choices: ['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
+    correct_comments: 'SELECT는 SQL DML의 핵심 명령어입니다. 잘 알고 계시네요!',
+    incorrect_comments: 'SELECT, INSERT, UPDATE, DELETE 중 "검색"에 해당하는 것은 SELECT입니다. 강의 노트 2장 SQL 기초 절을 다시 확인해 보세요.',
+    neutral_comments: '참고: SELECT 외에도 WHERE, ORDER BY, GROUP BY 등을 함께 활용하면 더 정교한 검색이 가능합니다.',
   },
   {
     id: 'q2', order: 2, type: 'multiple_choice',
@@ -479,6 +485,7 @@ export const mockQuestions = [
     text: '관계형 데이터베이스에서 두 테이블을 연결하는 데 사용되는 키의 이름을 쓰시오.',
     points: 10, autoGrade: false, gradedCount: 45, totalCount: 82, avgScore: 8.0,
     correctAnswer: '외래키(Foreign Key)',
+    incorrect_comments: '두 테이블 간 참조 무결성을 유지하기 위한 키입니다. "외래키" 또는 "Foreign Key"가 정답입니다.',
   },
   {
     id: 'q4', order: 4, type: 'multiple_answers',
@@ -498,6 +505,8 @@ export const mockQuestions = [
     text: 'PRIMARY KEY는 NULL 값을 허용한다.',
     points: 5, autoGrade: true, gradedCount: 82, totalCount: 82, avgScore: 4.0,
     correctAnswer: '거짓',
+    correct_comments: '맞습니다. PRIMARY KEY는 유일성과 NOT NULL 제약을 동시에 가집니다.',
+    incorrect_comments: 'PRIMARY KEY는 행을 고유하게 식별해야 하므로 NULL을 허용하지 않습니다. UNIQUE 제약과의 차이점을 함께 확인해 보세요.',
   },
   {
     id: 'q7', order: 7, type: 'short_answer',
@@ -516,6 +525,7 @@ export const mockQuestions = [
     text: '아래 테이블에 저장된 레코드 수를 구하는 SQL 결과값은? (단, NULL 포함)',
     points: 10, autoGrade: true, gradedCount: 82, totalCount: 82, avgScore: 8.0,
     correctAnswer: '15',
+    neutral_comments: 'COUNT(*)는 NULL을 포함한 전체 행 수를, COUNT(컬럼)은 NULL을 제외한 행 수를 반환합니다.',
   },
   {
     id: 'q10', order: 10, type: 'matching',
@@ -1774,6 +1784,33 @@ function gradeByQuestion(question, answer) {
       })
       return correct ? pts : 0
     }
+    case 'formula': {
+      // 답안 포맷: { value, variables } 또는 문자열(구 포맷)
+      if (!question.formula) return 0
+      const studentValue = typeof answer === 'object' && answer !== null ? answer.value : answer
+      if (studentValue === '' || studentValue === undefined || studentValue === null) return 0
+      const studentNum = parseFloat(studentValue)
+      if (isNaN(studentNum)) return 0
+      // 학생이 봤던 변수값을 그대로 사용 (답안에 포함). 없으면 중앙값으로 폴백
+      const studentVars = (typeof answer === 'object' && answer?.variables) ? answer.variables : null
+      let varValues = studentVars
+      if (!varValues) {
+        varValues = {}
+        for (const v of (question.variables || [])) {
+          if (!v.name?.trim()) continue
+          varValues[v.name] = ((Number(v.min) || 1) + (Number(v.max) || 10)) / 2
+        }
+      }
+      const correct = _evalFormula(question.formula, varValues)
+      if (correct === null) return 0
+      const tol = Number(question.tolerance) || 0
+      const tolType = question.toleranceType || 'absolute'
+      const diff = Math.abs(studentNum - correct)
+      const pass = tolType === 'percent'
+        ? diff <= Math.abs(correct) * (tol / 100)
+        : diff <= tol
+      return pass ? pts : 0
+    }
     default:
       return 0
   }
@@ -1941,6 +1978,9 @@ export function autoGradeAnswer(question, answer, options = {}) {
     return gradeByQuestion(question, answer)
   }
   if (question.type === 'multiple_dropdowns' && question.dropdowns?.length > 0) {
+    return gradeByQuestion(question, answer)
+  }
+  if (question.type === 'formula' && question.formula) {
     return gradeByQuestion(question, answer)
   }
 
@@ -2189,19 +2229,41 @@ const DEMO_YEARS = ['2021','2022','2023','2024']
 // Quiz 1 학생: 87명 (82명 제출, 5명 미제출)
 export const mockStudents = Array.from({ length: 87 }, (_, i) => {
   // 마지막 5명은 미제출
+  // - i=82,83: 응시 시작 후 이탈(응시 중단) — 부분 답안 보유, 자동 제출 대상
+  // - i=84,85,86: 응시 미시작 — 답안 없음, 자동 제출 대상 아님
   if (i >= 82) {
+    const startedButIncomplete = i < 84
+    if (!startedButIncomplete) {
+      return {
+        id: `s${i + 1}`,
+        studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+        name: DEMO_NAMES[i % DEMO_NAMES.length],
+        department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
+        score: null,
+        startTime: null,
+        endTime: null,
+        submitted: false,
+        submittedAt: null,
+        response: null,
+        autoScores: {},
+        manualScores: null,
+      }
+    }
+    // 응시 시작 후 이탈: 앞쪽 문항만 일부 응답
     return {
       id: `s${i + 1}`,
       studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
       name: DEMO_NAMES[i % DEMO_NAMES.length],
       department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
       score: null,
-      startTime: null,
+      startTime: '2026-04-03 09:05',
       endTime: null,
       submitted: false,
       submittedAt: null,
       response: null,
-      autoScores: {},
+      autoScores: i === 82
+        ? { q1: 5, q2: 5, q4: 10, q6: 0 }
+        : { q1: 5, q2: 0, q4: 5 },
       manualScores: null,
     }
   }
@@ -2409,15 +2471,73 @@ function generateStudents(total, submitted, graded, prefix, _baseYear = '2022', 
     const isSubmitted = i < submitted
     const isGraded = isSubmitted && i < graded
 
-    // 미제출 학생
+    // 미제출 학생 — 응시 시작 여부를 두 경우로 분기 (Canvas 정합)
+    // - 응시 시작 후 미완료(startedButIncomplete): 부분 답안 보유, 자동 제출 대상
+    // - 응시 미시작: 답안 없음, 자동 제출 대상 아님
     if (!isSubmitted) {
+      const startedButIncomplete = (i - submitted) % 2 === 0
+      if (!startedButIncomplete) {
+        return {
+          id: `${prefix}${i + 1}`,
+          studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+          name: DEMO_NAMES[i % DEMO_NAMES.length],
+          department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
+          score: null, startTime: null, endTime: null, submitted: false, submittedAt: null,
+          response: null, autoScores: {}, manualScores: null, selections: {},
+        }
+      }
+
+      // 응시 중 이탈: 앞쪽 문항 약 절반만 답변
+      const partialCount = Math.max(1, Math.ceil(questions.length / 2))
+      const partialAutoScores = {}
+      const partialSelections = {}
+      let firstManualResponse = null
+
+      questions.forEach((q, j) => {
+        if (j >= partialCount) return
+        const rate = difficultyRates[j % difficultyRates.length]
+        const hash = _seedHash(i, j)
+        const isCorrect = hash < rate
+
+        if (q.autoGrade === true || q.autoGrade === 'partial') {
+          partialAutoScores[q.id] = isCorrect ? q.points : 0
+          if (q.choices && q.choices.length > 0) {
+            if (isCorrect) {
+              partialSelections[q.id] = q.correctAnswer
+            } else {
+              const wrongChoices = q.choices.filter(c => c !== q.correctAnswer)
+              partialSelections[q.id] = wrongChoices[(i + j) % wrongChoices.length] || q.choices[0]
+            }
+          } else {
+            const pool = ANSWER_POOL[q.id]
+            if (pool) {
+              partialSelections[q.id] = isCorrect ? pool[0] : pool[(1 + (i + j) % (pool.length - 1)) % pool.length]
+            } else {
+              partialSelections[q.id] = isCorrect ? (q.correctAnswer || '정답') : '오답'
+            }
+          }
+        } else {
+          // 수동채점 문항: 응답만 입력 (채점 전)
+          const pool = ANSWER_POOL[q.id]
+          partialSelections[q.id] = pool ? pool[(i + j) % pool.length] : '답안 내용입니다.'
+          if (firstManualResponse === null) firstManualResponse = partialSelections[q.id]
+        }
+      })
+
       return {
         id: `${prefix}${i + 1}`,
         studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
         name: DEMO_NAMES[i % DEMO_NAMES.length],
         department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
-        score: null, startTime: null, endTime: null, submitted: false, submittedAt: null,
-        response: null, autoScores: {}, manualScores: null, selections: {},
+        score: null,
+        startTime: `${startDate} 09:${String(10 + (i % 40)).padStart(2, '0')}`,
+        endTime: null,
+        submitted: false,
+        submittedAt: null,
+        response: firstManualResponse,
+        autoScores: partialAutoScores,
+        manualScores: null,
+        selections: partialSelections,
       }
     }
 
@@ -2506,18 +2626,19 @@ function generateStudents(total, submitted, graded, prefix, _baseYear = '2022', 
 // 퀴즈 ID별 학생 데이터 반환
 const studentCache = {}
 export function getQuizStudents(quizId) {
-  if (quizId === '1') return mockStudents
-  if (quizId === '8') return mockStudents8
+  const quiz = mockQuizzes.find(q => q.id === quizId)
+
+  if (quizId === '1') return autoSubmitExpiredStudents(mockStudents, quiz)
+  if (quizId === '8') return autoSubmitExpiredStudents(mockStudents8, quiz)
   if (studentCache[quizId]) return studentCache[quizId]
 
-  const quiz = mockQuizzes.find(q => q.id === quizId)
   if (!quiz) return mockStudents
 
   const dateStr = quiz.startDate?.split(' ')[0] || '2026-03-20'
   const yearPrefix = ['cs201_1', 'cs201_2', 'cs201_3'].includes(quizId) ? '2024'
     : ['cs401_1', 'cs401_2'].includes(quizId) ? '2023' : '2022'
   const questions = getQuizQuestions(quizId)
-  const students = generateStudents(quiz.totalStudents, quiz.submitted, quiz.graded, `${quizId}_s`, yearPrefix, dateStr, questions)
+  let students = generateStudents(quiz.totalStudents, quiz.submitted, quiz.graded, `${quizId}_s`, yearPrefix, dateStr, questions)
 
   // 지각 제출 학생 표시: allowLateSubmit 퀴즈에서 일부 학생을 지각으로 마킹
   if (quiz.allowLateSubmit && quiz.dueDate) {
@@ -2535,6 +2656,9 @@ export function getQuizStudents(quizId) {
       }
     })
   }
+
+  // 마감 경과 시 미제출자 자동 제출 처리
+  students = autoSubmitExpiredStudents(students, quiz)
 
   studentCache[quizId] = students
   return students

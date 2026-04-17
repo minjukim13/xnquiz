@@ -1,11 +1,49 @@
 import { useState, useRef, useLayoutEffect } from 'react'
-import { Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type, Check } from 'lucide-react'
+import { Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type, Check, AlertCircle } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
 import { DropdownSelect } from './DropdownSelect'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import RegradeOptionsModal from './RegradeOptionsModal'
+import { evalFormulaPreview, generateSolutions } from '@/utils/formulaEngine'
+
+// ── 다중 빈칸 / 드롭다운 placeholder 유틸 ─────────────────────────────
+// 본문에 [빈칸N] / [드롭다운N] 형태로 삽입되어 학생 화면에서 inline input/select 으로 렌더링됨.
+const BLANK_RE = /\[빈칸(\d+)\]/g
+const DROPDOWN_RE = /\[드롭다운(\d+)\]/g
+
+function countBlanks(text) {
+  return (String(text || '').match(BLANK_RE) || []).length
+}
+function countDropdowns(text) {
+  return (String(text || '').match(DROPDOWN_RE) || []).length
+}
+function hasAllBlankPlaceholders(text, n) {
+  for (let i = 1; i <= n; i++) if (!String(text || '').includes(`[빈칸${i}]`)) return false
+  return true
+}
+function hasAllDropdownPlaceholders(text, n) {
+  for (let i = 1; i <= n; i++) if (!String(text || '').includes(`[드롭다운${i}]`)) return false
+  return true
+}
+// k번 placeholder를 제거하고 그 이후 번호를 -1 시프트
+function removeAndShiftBlank(text, k) {
+  let next = String(text || '').replace(new RegExp(`\\s*\\[빈칸${k}\\]\\s*`, 'g'), ' ')
+  next = next.replace(BLANK_RE, (m, num) => {
+    const n = Number(num)
+    return n > k ? `[빈칸${n - 1}]` : m
+  })
+  return next.replace(/\s{2,}/g, ' ').trim()
+}
+function removeAndShiftDropdown(text, k) {
+  let next = String(text || '').replace(new RegExp(`\\s*\\[드롭다운${k}\\]\\s*`, 'g'), ' ')
+  next = next.replace(DROPDOWN_RE, (m, num) => {
+    const n = Number(num)
+    return n > k ? `[드롭다운${n - 1}]` : m
+  })
+  return next.replace(/\s{2,}/g, ' ').trim()
+}
 
 // ── 유형별 아이콘 + 설명 메타 ──────────
 const TYPE_META = {
@@ -105,7 +143,7 @@ function TypePreview({ type }) {
     short_answer: (
       <>
         <p className="text-xs font-semibold mb-2 text-neutral-700">Q. 대한민국의 수도는?</p>
-        <div className="rounded px-2 py-1 text-xs mb-1 border border-neutral-200 text-muted-foreground">서울 입력...</div>
+        <div className="rounded px-2 py-1 text-xs mb-1 border border-neutral-200 text-muted-foreground">서울 입력</div>
         <p className="text-xs text-indigo-500">정답: 서울, Seoul (복수 정답 가능)</p>
         <p className="text-xs mt-1 text-muted-foreground">짧은 텍스트, 부분 자동채점</p>
       </>
@@ -113,7 +151,7 @@ function TypePreview({ type }) {
     essay: (
       <>
         <p className="text-xs font-semibold mb-2 text-neutral-700">Q. 기후 변화의 원인과 해결 방안을 서술하시오.</p>
-        <div className="rounded px-2 py-2 text-xs mb-1 border border-neutral-200 text-muted-foreground min-h-9">자유롭게 서술...</div>
+        <div className="rounded px-2 py-2 text-xs mb-1 border border-neutral-200 text-muted-foreground min-h-9">자유롭게 서술</div>
         <p className="text-xs text-muted-foreground">자유 서술형, 교수자 직접 채점</p>
       </>
     ),
@@ -217,7 +255,7 @@ function TypePreview({ type }) {
 
 // ── 폼 초기값 ───────────────────────────────────────────────────────────────
 function initForm(type) {
-  const base = { text: '', points: 5, difficulty: '' }
+  const base = { text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '' }
   switch (type) {
     case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
     case 'true_false':              return { ...base, correctBool: true }
@@ -227,17 +265,26 @@ function initForm(type) {
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
     case 'formula':                 return { ...base, variables: [{ name: '', min: '1', max: '10', decimals: '0' }], formula: '', tolerance: '0', toleranceType: 'absolute', answerDecimals: '2', solutions: [] }
     case 'matching':                return { ...base, pairs: [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }], distractors: [] }
-    case 'fill_in_multiple_blanks': return { ...base, blanks: [[''], ['']] }
-    case 'multiple_dropdowns':      return { ...base, dropdowns: [{ label: '', options: ['', ''], answerIdx: 0 }] }
+    case 'fill_in_multiple_blanks': return { ...base, blanks: [] }
+    case 'multiple_dropdowns':      return { ...base, dropdowns: [] }
     case 'file_upload':             return base
     case 'text':                    return { text: '', points: 0, difficulty: '' }
     default:                        return base
   }
 }
 
+// 코멘트 필드만 추출 (빈 값 제거)
+function pickComments(form) {
+  const c = {}
+  if (form.correct_comments?.trim())   c.correct_comments   = form.correct_comments.trim()
+  if (form.incorrect_comments?.trim()) c.incorrect_comments = form.incorrect_comments.trim()
+  if (form.neutral_comments?.trim())   c.neutral_comments   = form.neutral_comments.trim()
+  return c
+}
+
 // ── 폼 → 문항 객체 ─────────────────────────────────────────────────────────
 function buildQuestion(type, form) {
-  const base = { type, text: form.text.trim(), points: Number(form.points) || 5, difficulty: form.difficulty || '' }
+  const base = { type, text: form.text.trim(), points: Number(form.points) || 5, difficulty: form.difficulty || '', ...pickComments(form) }
   switch (type) {
     case 'multiple_choice': {
       const filtered = form.options.filter(o => o.trim())
@@ -254,97 +301,17 @@ function buildQuestion(type, form) {
     case 'formula':                 return { ...base, variables: form.variables.filter(v => v.name.trim()), formula: form.formula.trim(), tolerance: Number(form.tolerance) || 0, toleranceType: form.toleranceType || 'absolute', answerDecimals: Number(form.answerDecimals) ?? 2, solutions: form.solutions || [] }
     case 'matching':                return { ...base, pairs: form.pairs.filter(p => p.left.trim() && p.right.trim()), distractors: (form.distractors || []).filter(d => d.trim()) }
     case 'fill_in_multiple_blanks': return { ...base, correctAnswer: form.blanks.map(b => b.filter(a => a.trim())).filter(b => b.length > 0) }
-    case 'multiple_dropdowns':      return { ...base, dropdowns: form.dropdowns }
+    case 'multiple_dropdowns':      return { ...base, dropdowns: form.dropdowns.map(d => {
+      const opts = d.options.filter(o => o.trim())
+      const idx = Math.max(0, Math.min(d.answerIdx ?? 0, opts.length - 1))
+      return { options: opts, answerIdx: idx }
+    }) }
     case 'file_upload':             return base
     case 'text':                    return { type, text: form.text.trim(), points: 0, difficulty: '' }
     default:                        return base
   }
 }
 
-// ── 수식 엔진 (Canvas 호환 수학 함수 지원) ──────────────────────────────────
-const FORMULA_FUNCTIONS = {
-  abs: Math.abs, acos: Math.acos, asin: Math.asin, atan: Math.atan,
-  ceil: Math.ceil, cos: Math.cos, floor: Math.floor, ln: Math.log,
-  log: (x, base = 10) => Math.log(x) / Math.log(base),
-  max: Math.max, min: Math.min, round: Math.round,
-  sin: Math.sin, sqrt: Math.sqrt, tan: Math.tan,
-  fact: n => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r },
-  comb: (n, k) => { let r = 1; for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return Math.round(r) },
-  perm: (n, k) => { let r = 1; for (let i = 0; i < k; i++) r *= (n - i); return r },
-  deg_to_rad: d => d * Math.PI / 180,
-  rad_to_deg: r => r * 180 / Math.PI,
-}
-const FORMULA_CONSTANTS = { pi: Math.PI, e: Math.E }
-const FORMULA_FN_NAMES = Object.keys(FORMULA_FUNCTIONS)
-const FORMULA_CONST_NAMES = Object.keys(FORMULA_CONSTANTS)
-
-function evalFormula(formula, varValues) {
-  try {
-    if (!formula.trim()) return null
-    let expr = formula.trim()
-    // 함수 호출을 __fn_name( 으로 치환해서 변수명 충돌 방지
-    for (const fn of FORMULA_FN_NAMES) {
-      expr = expr.replace(new RegExp(`\\b${fn}\\s*\\(`, 'g'), `__fn_${fn}(`)
-    }
-    // 변수 치환 (상수보다 우선 - 변수명이 e나 pi일 경우 변수가 우선)
-    for (const [name, val] of Object.entries(varValues)) {
-      expr = expr.replace(new RegExp(`\\b${name}\\b`, 'g'), String(val))
-    }
-    // 상수 치환 (변수 치환 이후 남은 pi, e만 대체)
-    for (const c of FORMULA_CONST_NAMES) {
-      expr = expr.replace(new RegExp(`\\b${c}\\b`, 'g'), String(FORMULA_CONSTANTS[c]))
-    }
-    // ^ → **
-    expr = expr.replace(/\^/g, '**')
-    // 허용 패턴: 숫자, 연산자, 괄호, 소수점, 공백, 쉼표, __fn_ 접두어
-    const cleaned = expr.replace(/__fn_[a-z_]+/g, '').replace(/\*\*/g, '')
-    if (/[^0-9+\-*/().,\s]/.test(cleaned)) return null
-    // 함수 참조 주입
-    const fnEntries = FORMULA_FN_NAMES.map(fn => `const __fn_${fn} = __fns.${fn};`)
-    // eslint-disable-next-line no-new-func
-    const result = Function('__fns', `"use strict"; ${fnEntries.join(' ')} return (${expr})`)(FORMULA_FUNCTIONS)
-    return isNaN(result) || !isFinite(result) ? null : result
-  } catch { return null }
-}
-
-function evalFormulaPreview(formula, variables) {
-  const validVars = variables.filter(v => v.name.trim())
-  if (!validVars.length || !formula.trim()) return null
-  const varValues = {}
-  for (const v of validVars) {
-    varValues[v.name] = ((Number(v.min) || 1) + (Number(v.max) || 10)) / 2
-  }
-  return evalFormula(formula, varValues)
-}
-
-// 시드 기반 의사 난수 생성 (학생별 고정 값)
-function seededRandom(seed) {
-  let s = seed % 2147483647
-  if (s <= 0) s += 2147483646
-  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646 }
-}
-
-function generateSolutions(variables, formula, count = 10) {
-  const validVars = variables.filter(v => v.name.trim())
-  if (!validVars.length || !formula.trim()) return []
-  const solutions = []
-  for (let i = 0; i < count; i++) {
-    const rng = seededRandom(i * 9973 + 1)
-    const varValues = {}
-    for (const v of validVars) {
-      const min = Number(v.min) || 1
-      const max = Number(v.max) || 10
-      const decimals = Number(v.decimals) || 0
-      const raw = min + rng() * (max - min)
-      varValues[v.name] = Number(raw.toFixed(decimals))
-    }
-    const answer = evalFormula(formula, varValues)
-    if (answer !== null) {
-      solutions.push({ index: i + 1, variables: { ...varValues }, answer })
-    }
-  }
-  return solutions
-}
 
 // ── 유효성 검사 ─────────────────────────────────────────────────────────────
 
@@ -362,7 +329,18 @@ function isValid(type, form) {
       return evalFormulaPreview(form.formula, validVars) !== null
     }
     case 'matching':                return form.pairs.filter(p => p.left.trim() && p.right.trim()).length >= 2
-    case 'fill_in_multiple_blanks': return form.blanks.some(b => b.some(a => a.trim()))
+    case 'fill_in_multiple_blanks': {
+      if (!Array.isArray(form.blanks) || form.blanks.length === 0) return false
+      if (countBlanks(form.text) !== form.blanks.length) return false
+      if (!hasAllBlankPlaceholders(form.text, form.blanks.length)) return false
+      return form.blanks.every(b => b.some(a => a.trim()))
+    }
+    case 'multiple_dropdowns': {
+      if (!Array.isArray(form.dropdowns) || form.dropdowns.length === 0) return false
+      if (countDropdowns(form.text) !== form.dropdowns.length) return false
+      if (!hasAllDropdownPlaceholders(form.text, form.dropdowns.length)) return false
+      return form.dropdowns.every(d => d.options.filter(o => o.trim()).length >= 2)
+    }
     default:                        return true
   }
 }
@@ -389,11 +367,46 @@ function AnswerTextarea({ value, onChange, placeholder, className }) {
 }
 
 // ── 유형별 전용 폼 ──────────────────────────────────────────────────────────
-function TypeForm({ type, form, setForm }) {
+function TypeForm({ type, form, setForm, textareaRef }) {
   const upd = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
   const [showFnRef, setShowFnRef] = useState(false)
 
-  const inputCls = 'flex-1 text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30'
+  const insertAtCursor = (tag) => {
+    const el = textareaRef?.current
+    const current = form.text || ''
+    if (el) {
+      const start = el.selectionStart ?? current.length
+      const end = el.selectionEnd ?? current.length
+      const newText = current.slice(0, start) + tag + current.slice(end)
+      setTimeout(() => {
+        try {
+          el.focus()
+          el.setSelectionRange(start + tag.length, start + tag.length)
+        } catch {}
+      }, 0)
+      return newText
+    }
+    return current + (current.endsWith(' ') || current.length === 0 ? '' : ' ') + tag
+  }
+
+  const insertBlankTag = () => {
+    const num = (form.blanks?.length || 0) + 1
+    const tag = `[빈칸${num}]`
+    const newText = insertAtCursor(tag)
+    setForm(prev => ({ ...prev, text: newText, blanks: [...(prev.blanks || []), ['']] }))
+  }
+  const insertDropdownTag = () => {
+    const num = (form.dropdowns?.length || 0) + 1
+    const tag = `[드롭다운${num}]`
+    const newText = insertAtCursor(tag)
+    setForm(prev => ({
+      ...prev,
+      text: newText,
+      dropdowns: [...(prev.dropdowns || []), { options: ['', ''], answerIdx: 0 }],
+    }))
+  }
+
+  const inputCls = 'flex-1 text-[15px] px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30'
 
   const TrashBtn = ({ onClick }) => (
     <button type="button" onClick={onClick} className="text-muted-foreground shrink-0 hover:text-red-500 transition-colors">
@@ -408,7 +421,7 @@ function TypeForm({ type, form, setForm }) {
   )
 
   const Label = ({ children, required }) => (
-    <label className="text-sm font-medium block mb-1.5 text-foreground">
+    <label className="text-[15px] font-medium block mb-1.5 text-foreground">
       {children}{required && <span className="ml-0.5 text-destructive">*</span>}
     </label>
   )
@@ -424,8 +437,8 @@ function TypeForm({ type, form, setForm }) {
                 <button type="button" onClick={() => upd('correctIdx', i)}
                   title={form.correctIdx === i ? '정답' : '정답으로 지정'}
                   className={cn(
-                    'w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all',
-                    form.correctIdx === i ? 'border-indigo-500 bg-indigo-500' : 'border-neutral-300 bg-white hover:border-indigo-400'
+                    'w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center transition-all',
+                    form.correctIdx === i ? 'bg-indigo-500' : 'border border-neutral-300 bg-white hover:border-indigo-400'
                   )}>
                   {form.correctIdx === i && <Check size={12} strokeWidth={3} className="text-white" />}
                 </button>
@@ -454,7 +467,7 @@ function TypeForm({ type, form, setForm }) {
             {[true, false].map(val => (
               <button key={String(val)} type="button" onClick={() => upd('correctBool', val)}
                 className={cn(
-                  'flex-1 py-2 text-sm font-medium rounded transition-all border',
+                  'flex-1 py-2 text-[15px] font-medium rounded transition-all border',
                   form.correctBool === val
                     ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500'
@@ -524,7 +537,7 @@ function TypeForm({ type, form, setForm }) {
           <textarea value={form.rubric} onChange={e => upd('rubric', e.target.value)}
             placeholder="채점 기준을 입력하세요 (학생에게는 표시되지 않음)"
             rows={3}
-            className="w-full bg-white text-sm px-2.5 py-2 focus:outline-none resize-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
+            className="w-full bg-white text-[15px] px-2.5 py-2 focus:outline-none resize-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
         </div>
       )
 
@@ -536,13 +549,13 @@ function TypeForm({ type, form, setForm }) {
               <Label required>정답 (숫자)</Label>
               <input type="number" value={form.correctNum} placeholder="예: 3.14"
                 onChange={e => upd('correctNum', e.target.value)}
-                className="w-full text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
+                className="w-full text-[15px] px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
             </div>
             <div>
               <Label>허용 오차</Label>
               <input type="number" value={form.tolerance} placeholder="예: 0.01" min="0"
                 onChange={e => upd('tolerance', e.target.value)}
-                className="w-full text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
+                className="w-full text-[15px] px-2.5 py-1.5 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
             </div>
           </div>
           {form.correctNum !== '' && (
@@ -575,7 +588,7 @@ function TypeForm({ type, form, setForm }) {
 
           {/* 오답 보기 */}
           <div className="border-t border-border pt-3">
-            <label className="text-sm font-medium block mb-1 text-foreground">오답 보기</label>
+            <label className="text-[15px] font-medium block mb-1 text-foreground">오답 보기</label>
             <p className="text-xs mb-2 text-muted-foreground">우측에만 표시되는 오답 보기를 추가하면 난이도가 올라갑니다</p>
             <div className="space-y-2">
               {(form.distractors || []).map((d, i) => (
@@ -606,7 +619,7 @@ function TypeForm({ type, form, setForm }) {
       }).join(', ')
       const answerDec = Number(form.answerDecimals) || 0
       const solutions = form.solutions || []
-      const varInputCls = 'text-sm px-2 py-1.5 bg-white text-center focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30'
+      const varInputCls = 'text-[15px] px-2 py-1.5 bg-white text-center focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30'
       return (
         <div className="space-y-5">
           {/* 변수 참조 안내 */}
@@ -694,7 +707,7 @@ function TypeForm({ type, form, setForm }) {
             <input type="text" value={form.formula} placeholder="예: sqrt(a^2 + b^2)"
               onChange={e => upd('formula', e.target.value)}
               className={cn(
-                'w-full text-sm px-3 py-2 bg-white font-mono placeholder:font-sans focus:outline-none border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30',
+                'w-full text-[15px] px-3 py-2 bg-white font-mono placeholder:font-sans focus:outline-none border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30',
                 form.formula && preview === null ? 'border-destructive ring-2 ring-destructive/20' : 'border-border'
               )} />
             {form.formula && preview !== null && exampleLabel && (
@@ -724,7 +737,7 @@ function TypeForm({ type, form, setForm }) {
               <div className="flex gap-2">
                 <input type="number" value={form.tolerance} min="0" placeholder="0"
                   onChange={e => upd('tolerance', e.target.value)}
-                  className="flex-1 text-sm px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30" />
+                  className="flex-1 text-[15px] px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30" />
                 <DropdownSelect size="sm"
                   value={form.toleranceType || 'absolute'}
                   onChange={val => upd('toleranceType', val)}
@@ -789,99 +802,170 @@ function TypeForm({ type, form, setForm }) {
       )
     }
 
-    case 'fill_in_multiple_blanks':
+    case 'fill_in_multiple_blanks': {
+      const bodyCount = countBlanks(form.text)
+      const mismatch = bodyCount !== form.blanks.length || !hasAllBlankPlaceholders(form.text, form.blanks.length)
       return (
-        <div className="space-y-3">
-          <Label required>빈칸 정답</Label>
-          {form.blanks.map((blankAnswers, i) => (
-            <div key={i} className="rounded-lg p-2.5 space-y-2 border border-neutral-300">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">빈칸 {i + 1}</span>
-                {form.blanks.length > 2 && (
-                  <TrashBtn onClick={() => upd('blanks', form.blanks.filter((_, j) => j !== i))} />
-                )}
-              </div>
-              {blankAnswers.map((ans, j) => (
-                <div key={j} className="flex items-center gap-2">
-                  <AnswerTextarea value={ans}
-                    onChange={e => { const n = form.blanks.map(b => [...b]); n[i][j] = e.target.value; upd('blanks', n) }}
-                    placeholder={j === 0 ? `${i + 1}번째 빈칸 정답` : '대체 정답'}
-                    className={inputCls} />
-                  {blankAnswers.length > 1 && (
-                    <TrashBtn onClick={() => { const n = form.blanks.map(b => [...b]); n[i] = n[i].filter((_, k) => k !== j); upd('blanks', n) }} />
-                  )}
-                </div>
-              ))}
-              {blankAnswers.length < 5 && (
-                <button type="button" onClick={() => { const n = form.blanks.map(b => [...b]); n[i] = [...n[i], '']; upd('blanks', n) }}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-indigo-500 px-2 py-1 rounded-md border border-dashed border-indigo-300 hover:bg-indigo-50 transition-colors">
-                  <Plus size={10} /> 대체 정답 추가
-                </button>
-              )}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <Label required>빈칸 정답</Label>
+            <Button type="button" variant="soft" size="sm"
+              onClick={insertBlankTag}
+              disabled={form.blanks.length >= 6}>
+              <Plus /> 본문에 빈칸 삽입
+            </Button>
+          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">본문의 <span className="font-semibold text-primary">[빈칸N]</span> 자리가 학생 화면에서 입력란으로 표시됩니다.</p>
+          {form.blanks.length === 0 && (
+            <div className="flex items-center justify-center gap-1.5 text-xs rounded-md px-3 py-4 bg-secondary/60 border border-dashed border-border text-muted-foreground">
+              아직 추가된 빈칸이 없습니다
             </div>
-          ))}
-          {form.blanks.length < 6 && <AddBtn onClick={() => upd('blanks', [...form.blanks, ['']])} label="빈칸 추가" />}
-        </div>
-      )
-
-    case 'multiple_dropdowns':
-      return (
-        <div className="space-y-3">
-          <Label required>드롭다운 항목</Label>
-          {form.dropdowns.map((dd, i) => (
-            <div key={i} className="rounded p-2.5 space-y-2 border border-neutral-300">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-neutral-500">드롭다운 {i + 1}</span>
-                {form.dropdowns.length > 1 && (
-                  <button type="button" onClick={() => upd('dropdowns', form.dropdowns.filter((_, j) => j !== i))}
-                    className="ml-auto text-muted-foreground hover:text-red-500 transition-colors">
-                    <Trash2 size={12} />
-                  </button>
-                )}
+          )}
+          {mismatch && form.blanks.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md px-3 py-2 bg-orange-50 border border-orange-200">
+              <AlertCircle size={13} className="mt-0.5 shrink-0 text-orange-600" />
+              <p className="text-xs text-orange-700 leading-relaxed">
+                본문에 <span className="font-semibold">[빈칸1]</span> ~ <span className="font-semibold">[빈칸{form.blanks.length}]</span>이 모두 포함되어야 합니다.
+              </p>
+            </div>
+          )}
+          {form.blanks.map((blankAnswers, i) => (
+            <div key={i} className="rounded-lg border border-border overflow-hidden bg-card">
+              <div className="flex items-center justify-between px-3 py-2 bg-secondary/50 border-b border-border">
+                <span className="text-xs font-medium flex items-center gap-1.5 text-secondary-foreground">
+                  <span className="font-semibold text-[11px] px-1.5 py-0.5 rounded bg-accent text-primary">[빈칸{i + 1}]</span>
+                  정답
+                </span>
+                <button type="button" onClick={() => {
+                  setForm(prev => ({
+                    ...prev,
+                    text: removeAndShiftBlank(prev.text, i + 1),
+                    blanks: prev.blanks.filter((_, j) => j !== i),
+                  }))
+                }} className="text-muted-foreground hover:text-destructive transition-colors" title="빈칸 삭제">
+                  <Trash2 size={13} />
+                </button>
               </div>
-              <input type="text" value={dd.label} placeholder="라벨 (예: 계절)"
-                onChange={e => { const n = [...form.dropdowns]; n[i] = { ...n[i], label: e.target.value }; upd('dropdowns', n) }}
-                className="w-full text-sm px-2.5 py-1 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
-              <div className="space-y-1">
-                {dd.options.map((opt, j) => (
-                  <div key={j} className="flex items-center gap-1.5">
-                    <button type="button" onClick={() => { const n = [...form.dropdowns]; n[i] = { ...n[i], answerIdx: j }; upd('dropdowns', n) }}
-                      className={cn(
-                        'w-3 h-3 rounded-full border flex-shrink-0 flex items-center justify-center',
-                        dd.answerIdx === j ? 'border-indigo-500 bg-indigo-500' : 'border-neutral-400 bg-white'
-                      )}>
-                      {dd.answerIdx === j && <div className="w-1 h-1 rounded-full bg-white" />}
-                    </button>
-                    <AnswerTextarea value={opt} placeholder={`선택지 ${j + 1}`}
-                      onChange={e => {
-                        const nd = [...form.dropdowns]; const no = [...nd[i].options]; no[j] = e.target.value
-                        nd[i] = { ...nd[i], options: no }; upd('dropdowns', nd)
-                      }}
-                      className="flex-1 text-xs px-2 py-1 bg-white focus:outline-none border border-neutral-200 rounded text-foreground focus:border-indigo-500" />
-                    {dd.options.length > 2 && (
-                      <button type="button" onClick={() => {
-                        const nd = [...form.dropdowns]; const no = nd[i].options.filter((_, oi) => oi !== j)
-                        nd[i] = { ...nd[i], options: no, answerIdx: Math.min(dd.answerIdx, no.length - 1) }; upd('dropdowns', nd)
-                      }} className="text-muted-foreground shrink-0 hover:text-red-500 transition-colors">
-                        <Trash2 size={11} />
-                      </button>
+              <div className="p-2.5 space-y-1.5">
+                {blankAnswers.map((ans, j) => (
+                  <div key={j} className="flex items-center gap-2">
+                    <AnswerTextarea value={ans}
+                      onChange={e => { const n = form.blanks.map(b => [...b]); n[i][j] = e.target.value; upd('blanks', n) }}
+                      placeholder={j === 0 ? `정답 입력` : '대체 정답 (동의어 등)'}
+                      className={inputCls} />
+                    {blankAnswers.length > 1 && (
+                      <TrashBtn onClick={() => { const n = form.blanks.map(b => [...b]); n[i] = n[i].filter((_, k) => k !== j); upd('blanks', n) }} />
                     )}
                   </div>
                 ))}
+                {blankAnswers.length < 5 && (
+                  <button type="button" onClick={() => { const n = form.blanks.map(b => [...b]); n[i] = [...n[i], '']; upd('blanks', n) }}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary px-2 py-1 rounded-md hover:bg-accent/60 transition-colors">
+                    <Plus size={11} /> 대체 정답 추가
+                  </button>
+                )}
               </div>
-              {dd.options.length < 5 && (
-                <button type="button" onClick={() => { const n = [...form.dropdowns]; n[i] = { ...n[i], options: [...n[i].options, ''] }; upd('dropdowns', n) }}
-                  className="flex items-center gap-1 text-xs text-indigo-500">
-                  <Plus size={10} /> 선택지 추가
-                </button>
-              )}
             </div>
           ))}
-          {form.dropdowns.length < 4 && (
-            <AddBtn onClick={() => upd('dropdowns', [...form.dropdowns, { label: '', options: ['', ''], answerIdx: 0 }])} label="드롭다운 추가" />
-          )}
         </div>
       )
+    }
+
+    case 'multiple_dropdowns': {
+      const bodyDCount = countDropdowns(form.text)
+      const ddMismatch = bodyDCount !== form.dropdowns.length || !hasAllDropdownPlaceholders(form.text, form.dropdowns.length)
+      return (
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <Label required>드롭다운 항목</Label>
+            <Button type="button" variant="soft" size="sm"
+              onClick={insertDropdownTag}
+              disabled={form.dropdowns.length >= 4}>
+              <Plus /> 본문에 드롭다운 삽입
+            </Button>
+          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">본문의 <span className="font-semibold text-primary">[드롭다운N]</span> 자리가 학생 화면에서 선택 목록으로 표시됩니다.</p>
+          {form.dropdowns.length === 0 && (
+            <div className="flex items-center justify-center gap-1.5 text-xs rounded-md px-3 py-4 bg-secondary/60 border border-dashed border-border text-muted-foreground">
+              아직 추가된 드롭다운이 없습니다
+            </div>
+          )}
+          {ddMismatch && form.dropdowns.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md px-3 py-2 bg-orange-50 border border-orange-200">
+              <AlertCircle size={13} className="mt-0.5 shrink-0 text-orange-600" />
+              <p className="text-xs text-orange-700 leading-relaxed">
+                본문에 <span className="font-semibold">[드롭다운1]</span> ~ <span className="font-semibold">[드롭다운{form.dropdowns.length}]</span>이 모두 포함되어야 합니다.
+              </p>
+            </div>
+          )}
+          {form.dropdowns.map((dd, i) => (
+            <div key={i} className="rounded-lg border border-border overflow-hidden bg-card">
+              <div className="flex items-center justify-between px-3 py-2 bg-secondary/50 border-b border-border">
+                <span className="text-xs font-medium flex items-center gap-1.5 text-secondary-foreground">
+                  <span className="font-semibold text-[11px] px-1.5 py-0.5 rounded bg-accent text-primary">[드롭다운{i + 1}]</span>
+                  선택지
+                </span>
+                <button type="button" onClick={() => {
+                  setForm(prev => ({
+                    ...prev,
+                    text: removeAndShiftDropdown(prev.text, i + 1),
+                    dropdowns: prev.dropdowns.filter((_, j) => j !== i),
+                  }))
+                }} className="text-muted-foreground hover:text-destructive transition-colors" title="드롭다운 삭제">
+                  <Trash2 size={13} />
+                </button>
+              </div>
+              <div className="p-2.5 space-y-1">
+                {dd.options.map((opt, j) => {
+                  const isAnswer = dd.answerIdx === j
+                  return (
+                    <div key={j} className={cn(
+                      'flex items-center gap-2 px-2 py-1 rounded-md transition-colors',
+                      isAnswer && 'bg-accent/50'
+                    )}>
+                      <button type="button" onClick={() => { const n = [...form.dropdowns]; n[i] = { ...n[i], answerIdx: j }; upd('dropdowns', n) }}
+                        title={isAnswer ? '정답' : '정답으로 지정'}
+                        className={cn(
+                          'w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center transition-all',
+                          isAnswer ? 'bg-primary' : 'border border-neutral-300 bg-white hover:border-primary/60'
+                        )}>
+                        {isAnswer && <Check size={10} strokeWidth={3} className="text-white" />}
+                      </button>
+                      <AnswerTextarea value={opt} placeholder={`선택지 ${j + 1}`}
+                        onChange={e => {
+                          const nd = [...form.dropdowns]; const no = [...nd[i].options]; no[j] = e.target.value
+                          nd[i] = { ...nd[i], options: no }; upd('dropdowns', nd)
+                        }}
+                        className={cn(
+                          'flex-1 text-[15px] px-2 py-1 focus:outline-none border rounded text-foreground transition-colors',
+                          isAnswer
+                            ? 'bg-white border-primary/30 focus:border-primary'
+                            : 'bg-white border-border focus:border-primary'
+                        )} />
+                      {isAnswer && <span className="text-[10px] font-semibold text-primary px-1 shrink-0">정답</span>}
+                      {dd.options.length > 2 && (
+                        <button type="button" onClick={() => {
+                          const nd = [...form.dropdowns]; const no = nd[i].options.filter((_, oi) => oi !== j)
+                          nd[i] = { ...nd[i], options: no, answerIdx: Math.min(dd.answerIdx, no.length - 1) }; upd('dropdowns', nd)
+                        }} className="text-muted-foreground shrink-0 hover:text-destructive transition-colors">
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+                {dd.options.length < 5 && (
+                  <button type="button" onClick={() => { const n = [...form.dropdowns]; n[i] = { ...n[i], options: [...n[i].options, ''] }; upd('dropdowns', n) }}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary px-2 py-1 rounded-md hover:bg-accent/60 transition-colors">
+                    <Plus size={11} /> 선택지 추가
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    }
 
     case 'text':
       return (
@@ -893,7 +977,7 @@ function TypeForm({ type, form, setForm }) {
     case 'file_upload':
       return (
         <div className="text-center py-3 rounded bg-secondary border border-neutral-200">
-          <p className="text-sm text-muted-foreground">문제 내용과 배점만 입력하면 됩니다.</p>
+          <p className="text-[15px] text-muted-foreground">문제 내용과 배점만 입력하면 됩니다.</p>
           <p className="text-xs mt-1 text-muted-foreground">허용 파일: PDF, DOC, DOCX, HWP, ZIP</p>
           <p className="text-xs mt-0.5 text-muted-foreground">채점은 교수자가 직접 수행합니다.</p>
         </div>
@@ -906,7 +990,14 @@ function TypeForm({ type, form, setForm }) {
 
 // ── 문항 객체 → 폼 상태 변환 ────────────────────────────────────────────────
 function questionToForm(q) {
-  const base = { text: q.text || '', points: q.points ?? 5, difficulty: q.difficulty || '' }
+  const base = {
+    text: q.text || '',
+    points: q.points ?? 5,
+    difficulty: q.difficulty || '',
+    correct_comments: q.correct_comments || '',
+    incorrect_comments: q.incorrect_comments || '',
+    neutral_comments: q.neutral_comments || '',
+  }
   // mock 데이터는 choices 필드를 사용하고, AddQuestionModal은 options를 사용
   const opts = q.options?.length ? [...q.options] : q.choices?.length ? [...q.choices] : ['', '', '', '']
   switch (q.type) {
@@ -942,14 +1033,35 @@ function questionToForm(q) {
     case 'matching':
       return { ...base, pairs: q.pairs?.length ? q.pairs.map(p => ({ ...p })) : [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }], distractors: q.distractors?.length ? [...q.distractors] : [] }
     case 'fill_in_multiple_blanks': {
-      let blanks = [[''], ['']]
+      let blanks = []
       if (Array.isArray(q.correctAnswer) && q.correctAnswer.length) {
         blanks = q.correctAnswer.map(b => Array.isArray(b) ? [...b] : [b])
       }
-      return { ...base, blanks }
+      // 레거시 호환: 본문에 [빈칸N] 표식이 없으면 끝에 자동 추가
+      let text = q.text || ''
+      if (blanks.length > 0 && !hasAllBlankPlaceholders(text, blanks.length)) {
+        const missing = []
+        for (let i = 1; i <= blanks.length; i++) {
+          if (!text.includes(`[빈칸${i}]`)) missing.push(`[빈칸${i}]`)
+        }
+        text = (text + (text ? ' ' : '') + missing.join(' ')).trim()
+      }
+      return { ...base, text, blanks }
     }
-    case 'multiple_dropdowns':
-      return { ...base, dropdowns: q.dropdowns?.length ? q.dropdowns.map(d => ({ ...d, options: [...d.options] })) : [{ label: '', options: ['', ''], answerIdx: 0 }] }
+    case 'multiple_dropdowns': {
+      const dropdowns = q.dropdowns?.length
+        ? q.dropdowns.map(d => ({ options: [...d.options], answerIdx: d.answerIdx ?? 0 }))
+        : []
+      let text = q.text || ''
+      if (dropdowns.length > 0 && !hasAllDropdownPlaceholders(text, dropdowns.length)) {
+        const missing = []
+        for (let i = 1; i <= dropdowns.length; i++) {
+          if (!text.includes(`[드롭다운${i}]`)) missing.push(`[드롭다운${i}]`)
+        }
+        text = (text + (text ? ' ' : '') + missing.join(' ')).trim()
+      }
+      return { ...base, text, dropdowns }
+    }
     case 'file_upload':
       return base
     case 'text':
@@ -1005,6 +1117,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
   const [step, setStep] = useState(isEditMode ? 'form' : 'type')
   const [selectedType, setSelectedType] = useState(isEditMode ? initialQuestion.type : null)
   const [hoveredType, setHoveredType] = useState(null)
+  const bodyTextareaRef = useRef(null)
   const [form, setForm] = useState(() => {
     if (isEditMode) {
       const f = questionToForm(initialQuestion)
@@ -1057,9 +1170,9 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
 
   return (<>
     <Dialog open={true} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-3xl p-0 gap-0">
+      <DialogContent className="max-w-4xl min-h-[600px] flex flex-col p-0 gap-0">
         {/* 헤더 */}
-        <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
+        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border">
           <DialogTitle>{isEditMode ? '문항 편집' : '문항 직접 추가'}</DialogTitle>
           {step === 'form' && typeInfo && (
             <DialogDescription className="flex items-center gap-1">
@@ -1077,9 +1190,9 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
 
         {step === 'type' ? (
           /* 유형 선택 — 좌: 목록, 우: 미리보기 */
-          <div className="flex min-h-[400px]">
-            <div className="flex-1 p-5 border-r border-border">
-              <div className="grid grid-cols-2 gap-2.5 overflow-y-auto scrollbar-thin max-h-[360px]">
+          <div className="flex flex-1 min-h-[400px]">
+            <div className="flex-1 p-6 border-r border-border">
+              <div className="grid grid-cols-2 gap-2.5 overflow-y-auto scrollbar-thin">
                 {Object.entries(QUIZ_TYPES).map(([key, val]) => (
                   <button
                     key={key}
@@ -1105,7 +1218,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                       )
                     })()}
                     <div>
-                      <p className="text-sm font-medium text-foreground">{val.label}</p>
+                      <p className="text-[15px] font-medium text-foreground">{val.label}</p>
                       <p className="text-xs mt-0.5 text-muted-foreground">{TYPE_META[key]?.desc ?? ''}</p>
                     </div>
                   </button>
@@ -1113,13 +1226,13 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
               </div>
             </div>
             {/* 미리보기 패널 (데스크톱만) */}
-            <div className="w-64 p-5 hidden sm:flex flex-col bg-background">
+            <div className="w-64 p-6 hidden sm:flex flex-col bg-background">
               <TypePreview type={hoveredType} />
             </div>
           </div>
         ) : (
           /* 문항 폼 */
-          <div className="px-5 pt-4 pb-5 space-y-5 overflow-y-auto max-h-[70vh]">
+          <div className="flex-1 px-6 pt-5 pb-6 space-y-5 overflow-y-auto max-h-[70vh]">
             {isEditMode && submittedCount > 0 && (
               <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-orange-50/40 border border-orange-200">
                 <p className="text-xs leading-relaxed text-slate-600">
@@ -1129,11 +1242,12 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
             )}
             {/* 문제 내용 */}
             <div>
-              <label className="text-sm font-medium block mb-1.5 text-foreground">
+              <label className="text-[15px] font-medium block mb-1.5 text-foreground">
                 {selectedType === 'text' ? '안내문 내용' : selectedType === 'formula' ? '문제 설명' : '문제 내용'}
                 {' '}<span className="text-destructive">*</span>
               </label>
               <textarea
+                ref={bodyTextareaRef}
                 value={form.text}
                 onChange={e => setForm(prev => ({ ...prev, text: e.target.value }))}
                 placeholder={
@@ -1141,27 +1255,31 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                     ? '학생에게 표시할 안내문을 입력하세요 (예: 이번 시험은 오픈북으로 진행됩니다.)'
                     : selectedType === 'formula'
                     ? '예: a명의 학생이 b권의 책을 가지고 있을 때, 총 책의 수는?  (변수는 아래에서 정의)'
-                    : '문제를 입력하세요...'
+                    : selectedType === 'fill_in_multiple_blanks'
+                    ? '예: 장미는 [빈칸1], 제비꽃은 [빈칸2] 색이다.  (아래 "본문에 빈칸 삽입" 버튼 사용)'
+                    : selectedType === 'multiple_dropdowns'
+                    ? '예: 계절 중 가장 더운 때는 [드롭다운1]이다.  (아래 "본문에 드롭다운 삽입" 버튼 사용)'
+                    : '문제를 입력하세요'
                 }
                 rows={3}
                 autoFocus
-                className="w-full bg-white text-sm px-3 py-2.5 rounded-lg focus:outline-none resize-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                className="w-full bg-white text-[15px] px-3 py-2.5 rounded-lg focus:outline-none resize-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
               />
             </div>
 
             {/* 배점 / 난이도 — text 유형은 숨김 */}
             {selectedType !== 'text' && <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium block mb-1.5 text-foreground">배점 <span className="text-destructive">*</span></label>
+                <label className="text-[15px] font-medium block mb-1.5 text-foreground">배점 <span className="text-destructive">*</span></label>
                 <input type="number" value={form.points} min={0.5} step={0.5}
                   onChange={e => setForm(prev => ({ ...prev, points: e.target.value }))}
-                  className="w-full bg-white text-sm px-3 py-2 rounded-lg focus:outline-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  className="w-full bg-white text-[15px] px-3 py-2 rounded-lg focus:outline-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium block mb-1.5 text-foreground">난이도</label>
+                <label className="text-[15px] font-medium block mb-1.5 text-foreground">난이도</label>
                 {bankDifficulty ? (
-                  <div className="text-sm h-[30px] px-3 flex items-center gap-2 bg-muted border border-border rounded-lg text-foreground">
+                  <div className="text-[15px] h-[30px] px-3 flex items-center gap-2 bg-muted border border-border rounded-lg text-foreground">
                     <span className="font-medium">{bankDifficulty === 'high' ? '상' : bankDifficulty === 'medium' ? '중' : '하'}</span>
                     <span className="text-xs text-muted-foreground">이 문제은행 고정</span>
                   </div>
@@ -1183,20 +1301,63 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
             {selectedType !== 'text' && <div className="border-t border-border" />}
 
             {/* 유형별 전용 폼 */}
-            <TypeForm type={selectedType} form={form} setForm={setForm} />
+            <TypeForm type={selectedType} form={form} setForm={setForm} textareaRef={bodyTextareaRef} />
+
+            {/* 응답 피드백 — text 유형은 숨김 */}
+            {selectedType !== 'text' && (
+              <div className="border-t border-border pt-4">
+                <div className="mb-2.5">
+                  <label className="text-[15px] font-medium text-foreground">응답 피드백 (선택)</label>
+                  <p className="text-xs mt-0.5 text-muted-foreground">
+                    학생에게 결과 공개 시 함께 표시됩니다. 결과 비공개 설정이면 노출되지 않습니다.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[13px] font-medium block mb-1 text-emerald-700">정답 시</label>
+                    <textarea
+                      value={form.correct_comments || ''}
+                      onChange={e => setForm(prev => ({ ...prev, correct_comments: e.target.value }))}
+                      placeholder="예: 잘하셨어요! 핵심 개념을 정확히 이해하고 있습니다."
+                      rows={2}
+                      className="w-full bg-white text-[14px] px-2.5 py-2 rounded-lg focus:outline-none resize-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[13px] font-medium block mb-1 text-destructive">오답 시</label>
+                    <textarea
+                      value={form.incorrect_comments || ''}
+                      onChange={e => setForm(prev => ({ ...prev, incorrect_comments: e.target.value }))}
+                      placeholder="예: 강의 노트 3페이지를 다시 확인해 보세요."
+                      rows={2}
+                      className="w-full bg-white text-[14px] px-2.5 py-2 rounded-lg focus:outline-none resize-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[13px] font-medium block mb-1 text-secondary-foreground">무조건 표시</label>
+                    <textarea
+                      value={form.neutral_comments || ''}
+                      onChange={e => setForm(prev => ({ ...prev, neutral_comments: e.target.value }))}
+                      placeholder="예: 추가 자료는 강의 자료실에서 확인할 수 있습니다."
+                      rows={2}
+                      className="w-full bg-white text-[14px] px-2.5 py-2 rounded-lg focus:outline-none resize-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 하단 버튼 */}
-            <div className="flex items-center justify-between pt-2 border-t border-border">
+            <div className="flex items-center justify-between pt-3 border-t border-border">
               {!isEditMode && (
-                <Button size="sm" variant="ghost" onClick={handleBack} className="text-muted-foreground">
+                <Button variant="ghost" onClick={handleBack} className="text-muted-foreground">
                   ← 유형 변경
                 </Button>
               )}
               {isEditMode && <div />}
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={onClose}>취소</Button>
+                <Button variant="outline" onClick={onClose}>취소</Button>
                 <Button
-                  size="sm"
                   disabled={!isValid(selectedType, form)}
                   onClick={handleAdd}
                 >

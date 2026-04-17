@@ -6,6 +6,25 @@ import TypeBadge from '../../components/TypeBadge'
 import { CheckCircle2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+// 복합 답안(객체/배열)을 표시용 문자열로 변환
+function formatAnswerForDisplay(question, answer) {
+  if (answer === null || answer === undefined || answer === '') return ''
+  if (typeof answer === 'string' || typeof answer === 'number' || typeof answer === 'boolean') return String(answer)
+  if (question.type === 'formula' && typeof answer === 'object') return answer.value ?? ''
+  if (question.type === 'matching' && typeof answer === 'object' && !Array.isArray(answer)) {
+    return Object.entries(answer).map(([l, r]) => `${l} → ${r}`).join(', ')
+  }
+  if (question.type === 'multiple_dropdowns' && Array.isArray(answer)) {
+    return answer.filter(Boolean).join(', ')
+  }
+  if (question.type === 'fill_in_multiple_blanks' && Array.isArray(answer)) {
+    return answer.map((v, i) => `빈칸${i + 1}: ${v || '-'}`).join(', ')
+  }
+  if (question.type === 'file_upload' && typeof answer === 'object') return answer.fileName ?? ''
+  if (Array.isArray(answer)) return answer.join(', ')
+  return JSON.stringify(answer)
+}
+
 function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
   const storageKey = `${quizId}_${student.id}_${question.id}`
   const [score, setScore] = useState(() => {
@@ -22,11 +41,12 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
     return (storageKey in grades) || student.manualScores?.[question.id] != null
   })
 
-  const answer = student.selections?.[question.id] ?? getStudentAnswer(studentIdx, question.id)
-  const autoCorrect = question.autoGrade ? isAnswerCorrect(answer, question.id) : null
+  const rawAnswer = student.selections?.[question.id] ?? getStudentAnswer(studentIdx, question.id)
+  const autoCorrect = question.autoGrade ? isAnswerCorrect(rawAnswer, question.id) : null
+  const answer = formatAnswerForDisplay(question, rawAnswer)
   const [answerExpanded, setAnswerExpanded] = useState(false)
 
-  const correctAnswer = question.correctAnswer ?? ''
+  const correctAnswer = Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : (question.correctAnswer ?? '')
   const isLongAnswer = correctAnswer.length > 30
 
   return (

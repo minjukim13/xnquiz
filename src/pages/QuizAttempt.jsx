@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom'
-import { Clock, ChevronRight, CheckCircle2, AlertCircle, Send, Eye, X, Lock } from 'lucide-react'
+import { Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Send, Eye, X, Lock } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, getQuizQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
 import { useRole } from '../context/RoleContext'
-import { AlertDialog } from '../components/ConfirmDialog'
+import { AlertDialog, ConfirmDialog } from '../components/ConfirmDialog'
+import { getLateThreshold, isLateSubmission } from '../utils/deadlineUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,6 +13,59 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import QuestionAnswer from '../components/QuestionAnswer'
+import { generateStudentVariables } from '@/utils/formulaEngine'
+import {
+  buildAttemptSessionKey,
+  loadAttemptSession,
+  saveAttemptSession,
+  clearAttemptSession,
+  AUTOSAVE_INTERVAL_MS,
+} from '@/utils/autosave'
+import {
+  buildActivityLogKey,
+  appendActivityLog,
+  ACTIVITY_TYPES,
+} from '@/utils/activityLog'
+
+const RESULTS_VIEWED_KEY = 'xnq_results_viewed'
+
+function isResultViewed(attemptId) {
+  if (!attemptId) return false
+  try {
+    const map = JSON.parse(localStorage.getItem(RESULTS_VIEWED_KEY) || '{}')
+    return !!map[attemptId]
+  } catch {
+    return false
+  }
+}
+
+function markResultViewed(attemptId) {
+  if (!attemptId) return
+  try {
+    const map = JSON.parse(localStorage.getItem(RESULTS_VIEWED_KEY) || '{}')
+    if (map[attemptId]) return
+    map[attemptId] = new Date().toISOString()
+    localStorage.setItem(RESULTS_VIEWED_KEY, JSON.stringify(map))
+  } catch { /* ignore */ }
+}
+
+// 본문 placeholder 파싱 ([빈칸N] / [드롭다운N])
+function parseInlineBody(text) {
+  const src = String(text || '')
+  const re = /\[(빈칸|드롭다운)(\d+)\]/g
+  const tokens = []
+  let last = 0, m
+  while ((m = re.exec(src)) !== null) {
+    if (m.index > last) tokens.push({ kind: 'text', content: src.slice(last, m.index) })
+    tokens.push({ kind: m[1] === '빈칸' ? 'blank' : 'dropdown', num: Number(m[2]) })
+    last = m.index + m[0].length
+  }
+  if (last < src.length) tokens.push({ kind: 'text', content: src.slice(last) })
+  return tokens
+}
+function hasInlinePlaceholders(text) {
+  return /\[(빈칸|드롭다운)\d+\]/.test(String(text || ''))
+}
 
 // 응시 여부 판정 (유형별 답안 구조 대응)
 function isQuestionAnswered(q, v) {
@@ -20,6 +74,7 @@ function isQuestionAnswered(q, v) {
   if (Array.isArray(v)) return v.length > 0 && v.some(x => x !== '' && x !== undefined && x !== null)
   if (typeof v === 'object') {
     if (q.type === 'file_upload') return !!v.fileName
+    if (q.type === 'formula') return v.value !== '' && v.value !== undefined && v.value !== null
     return Object.values(v).some(x => x !== '' && x !== undefined && x !== null)
   }
   return true
@@ -36,13 +91,107 @@ export default function QuizAttempt() {
   const questions = getQuizQuestions(id)
 
   const noTimeLimit = quiz?.timeLimit === 0 || isPreview
-  const isLate = !isPreview && !!quiz?.dueDate && new Date() > new Date(quiz.dueDate)
-  const [answers, setAnswers] = useState({})
+  const isLate = !isPreview && isLateSubmission(quiz)
+
+  // 응시 세션 복원 (Canvas 스펙: 새로고침/재접속 시 중단 지점에서 재개)
+  const oneAtATime = !!quiz?.oneQuestionAtATime
+  const lockAfter = oneAtATime && !!quiz?.lockAfterAnswer
+  const sessionKey = !isPreview ? buildAttemptSessionKey(id, currentStudent?.id) : null
+  const activityKey = !isPreview ? buildActivityLogKey(id, currentStudent?.id) : null
+  const restored = loadAttemptSession(sessionKey)
+
+  const [answers, setAnswers] = useState(restored?.answers ?? {})
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
-  const [timeRemaining, setTimeRemaining] = useState(noTimeLimit ? null : (quiz?.timeLimit ?? 30) * 60)
+  const [startedAt] = useState(() => restored?.startedAt ?? Date.now())
+  const computeRemaining = () => {
+    if (noTimeLimit) return null
+    const total = (quiz?.timeLimit ?? 30) * 60
+    const elapsed = Math.floor((Date.now() - startedAt) / 1000)
+    return Math.max(0, total - elapsed)
+  }
+  const [timeRemaining, setTimeRemaining] = useState(computeRemaining)
   const [alertDialog, setAlertDialog] = useState(null)
   const [showAnswerPreview, setShowAnswerPreview] = useState(false)
+  const [lastSavedAt, setLastSavedAt] = useState(restored?.savedAt ?? null)
+  const [saveError, setSaveError] = useState(null) // 'quota' | 'error' | null
+
+  const [currentIndex, setCurrentIndex] = useState(restored?.currentIndex ?? 0)
+  const [lockConfirm, setLockConfirm] = useState(false)
+  const [blankSkipConfirm, setBlankSkipConfirm] = useState(false)
+  const [startNotice, setStartNotice] = useState(() => lockAfter && !restored && !isPreview)
+
+  // Autosave: 30초 주기 + 페이지 이탈 시 즉시 저장 (dirty 변경이 있을 때만)
+  const dirtyRef = useRef(false)
+  const snapshotRef = useRef({ answers, currentIndex, startedAt })
+
+  // 활동 로그: 답변 변경은 문항별 1.5초 디바운스로 집계 (타이핑 폭주 방지)
+  const answerDebounceRef = useRef({})
+  const logAnswerChange = useCallback((qId) => {
+    if (!activityKey) return
+    const timers = answerDebounceRef.current
+    if (timers[qId]) clearTimeout(timers[qId])
+    timers[qId] = setTimeout(() => {
+      appendActivityLog(activityKey, { type: ACTIVITY_TYPES.ANSWER_CHANGE, qId })
+      delete timers[qId]
+    }, 1500)
+  }, [activityKey])
+
+  // 응시 시작 로그: startNotice 대기 중이 아닐 때 1회 기록
+  const startLoggedRef = useRef(false)
+  useEffect(() => {
+    if (!activityKey || submitted || startNotice) return
+    if (startLoggedRef.current) return
+    startLoggedRef.current = true
+    appendActivityLog(activityKey, { type: ACTIVITY_TYPES.START })
+  }, [activityKey, submitted, startNotice])
+
+  // 포커스 이탈 감지
+  useEffect(() => {
+    if (!activityKey || submitted) return
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        appendActivityLog(activityKey, { type: ACTIVITY_TYPES.FOCUS_LOSS })
+      } else if (document.visibilityState === 'visible') {
+        appendActivityLog(activityKey, { type: ACTIVITY_TYPES.FOCUS_GAIN })
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [activityKey, submitted])
+
+  useEffect(() => {
+    snapshotRef.current = { answers, currentIndex, startedAt }
+    dirtyRef.current = true
+  }, [answers, currentIndex, startedAt])
+
+  useEffect(() => {
+    if (!sessionKey || submitted) return
+    const flush = () => {
+      if (!dirtyRef.current) return
+      const res = saveAttemptSession(sessionKey, snapshotRef.current)
+      if (res.ok) {
+        dirtyRef.current = false
+        setLastSavedAt(Date.now())
+        setSaveError(prev => (prev ? null : prev))
+        if (activityKey) appendActivityLog(activityKey, { type: ACTIVITY_TYPES.AUTOSAVE })
+      } else {
+        setSaveError(res.reason ?? 'error')
+      }
+    }
+    const interval = setInterval(flush, AUTOSAVE_INTERVAL_MS)
+    const onUnload = () => {
+      if (dirtyRef.current) saveAttemptSession(sessionKey, snapshotRef.current)
+    }
+    window.addEventListener('beforeunload', onUnload)
+    window.addEventListener('pagehide', onUnload)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('beforeunload', onUnload)
+      window.removeEventListener('pagehide', onUnload)
+      flush()
+    }
+  }, [sessionKey, submitted])
 
   useEffect(() => {
     if (submitted || noTimeLimit || timeRemaining <= 0) return
@@ -112,9 +261,12 @@ export default function QuizAttempt() {
         console.error('[xnquiz] 제출 저장 실패:', err)
         setAlertDialog({ title: '저장 실패', message: '응시 기록 저장에 실패했습니다.\n브라우저 저장 공간을 확인해주세요.', variant: 'error' })
       }
+      clearAttemptSession(sessionKey)
+      dirtyRef.current = false
+      if (activityKey) appendActivityLog(activityKey, { type: ACTIVITY_TYPES.SUBMIT, auto })
     }
     setResult(attempt)
-  }, [answers, questions, id, currentStudent, timeRemaining, submitted, isPreview, isLate])
+  }, [answers, questions, id, currentStudent, timeRemaining, submitted, isPreview, isLate, sessionKey, activityKey])
 
   if (!isPreview && role !== 'student') return <Navigate to="/" replace />
 
@@ -168,8 +320,8 @@ export default function QuizAttempt() {
     )
   }
 
-  // 지각 제출 검증: dueDate 경과 시 allowLateSubmit 정책 확인
-  if (!isPreview && quiz && quiz.status === 'open' && quiz.dueDate && new Date() > new Date(quiz.dueDate)) {
+  // 지각 제출 검증: dueDate + gracePeriod 경과 시 allowLateSubmit 정책 확인
+  if (!isPreview && quiz && quiz.status === 'open' && isLateSubmission(quiz)) {
     const lateDeadlinePassed = quiz.allowLateSubmit && quiz.lateSubmitDeadline && new Date() > new Date(quiz.lateSubmitDeadline)
     if (!quiz.allowLateSubmit || lateDeadlinePassed) {
       return (
@@ -206,6 +358,23 @@ export default function QuizAttempt() {
   return (
     <Layout>
       <div className="max-w-3xl mx-auto pb-6">
+
+        {/* 자동 저장 실패 배너 */}
+        {saveError && !submitted && (
+          <div className="px-4 py-3 rounded-lg mb-5 bg-red-50 border border-red-200">
+            <div className="flex items-start gap-2">
+              <AlertCircle size={15} className="text-red-600 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-red-800">자동 저장 실패</p>
+                <p className="text-xs mt-0.5 text-red-700">
+                  {saveError === 'quota'
+                    ? '브라우저 저장 공간이 부족합니다. 답변 유실을 막으려면 지금 제출하거나 중요한 답변을 별도로 복사해두세요.'
+                    : '답변이 자동 저장되지 않고 있습니다. 답변 유실을 막으려면 지금 제출하거나 중요한 답변을 별도로 복사해두세요.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 지각 제출 배너 */}
         {isLate && !submitted && (
@@ -265,6 +434,12 @@ export default function QuizAttempt() {
                 {quiz.description && (
                   <p className="text-sm mt-1.5 text-slate-500">{quiz.description}</p>
                 )}
+                {!isPreview && !submitted && lastSavedAt && !saveError && (
+                  <p className="text-[11px] mt-2 text-muted-foreground inline-flex items-center gap-1">
+                    <CheckCircle2 size={10} className="text-emerald-500" />
+                    자동 저장됨 · {new Date(lastSavedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <div className="text-center">
@@ -293,33 +468,131 @@ export default function QuizAttempt() {
         </Card>
 
         {/* 문항 목록 */}
-        <div className="space-y-4">
-          {questions.map((q, idx) => (
+        {oneAtATime ? (
+          <>
+            {/* 진행 표시 */}
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold text-muted-foreground">
+                문항 {currentIndex + 1} / {questions.length}
+              </p>
+              {lockAfter && (
+                <span className="inline-flex items-center gap-1 text-xs text-amber-700">
+                  <Lock size={11} />
+                  응답 후에는 이전 문항으로 돌아갈 수 없습니다
+                </span>
+              )}
+            </div>
+            <div className="h-1 rounded-full overflow-hidden bg-slate-100 mb-4">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+              />
+            </div>
+
             <QuestionCard
-              key={q.id}
-              question={q}
-              index={idx}
-              value={answers[q.id]}
-              onChange={val => setAnswers(prev => ({ ...prev, [q.id]: val }))}
+              key={questions[currentIndex].id}
+              question={questions[currentIndex]}
+              index={currentIndex}
+              value={answers[questions[currentIndex].id]}
+              onChange={val => {
+                const qId = questions[currentIndex].id
+                setAnswers(prev => ({ ...prev, [qId]: val }))
+                logAnswerChange(qId)
+              }}
               disabled={submitted}
               showAnswer={isPreview && showAnswerPreview}
+              studentId={currentStudent?.id}
             />
-          ))}
-        </div>
 
-        {/* 제출 버튼 */}
-        {!submitted && (
-          <div className="mt-6 flex items-center justify-between gap-4">
-            <p className="text-xs text-muted-foreground">
-              {questions.length - answeredCount > 0
-                ? `${questions.length - answeredCount}개 문항이 미답변 상태입니다.`
-                : '모든 문항에 답변했습니다.'}
-            </p>
-            <Button onClick={() => handleSubmit(false)}>
-              <Send size={14} />
-              제출하기
-            </Button>
-          </div>
+            {/* 내비게이션 */}
+            {!submitted && (
+              <div className="mt-6 flex items-center justify-between gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setCurrentIndex(i => {
+                      const next = Math.max(0, i - 1)
+                      if (next !== i && activityKey) {
+                        appendActivityLog(activityKey, { type: ACTIVITY_TYPES.NAVIGATE, from: i, to: next })
+                      }
+                      return next
+                    })
+                  }}
+                  disabled={lockAfter || currentIndex === 0}
+                >
+                  <ChevronLeft size={14} />
+                  이전
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  답변 완료 {answeredCount} / {questions.filter(q => q.type !== 'text').length}
+                </p>
+                {currentIndex < questions.length - 1 ? (
+                  <Button
+                    onClick={() => {
+                      const q = questions[currentIndex]
+                      const isBlank = q.type !== 'text' && !isQuestionAnswered(q, answers[q.id])
+                      if (lockAfter && isBlank) {
+                        setBlankSkipConfirm(true)
+                      } else if (lockAfter) {
+                        setLockConfirm(true)
+                      } else {
+                        setCurrentIndex(i => {
+                          const next = Math.min(questions.length - 1, i + 1)
+                          if (next !== i && activityKey) {
+                            appendActivityLog(activityKey, { type: ACTIVITY_TYPES.NAVIGATE, from: i, to: next })
+                          }
+                          return next
+                        })
+                      }
+                    }}
+                  >
+                    다음
+                    <ChevronRight size={14} />
+                  </Button>
+                ) : (
+                  <Button onClick={() => handleSubmit(false)}>
+                    <Send size={14} />
+                    제출하기
+                  </Button>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="space-y-4">
+              {questions.map((q, idx) => (
+                <QuestionCard
+                  key={q.id}
+                  question={q}
+                  index={idx}
+                  value={answers[q.id]}
+                  onChange={val => {
+                    setAnswers(prev => ({ ...prev, [q.id]: val }))
+                    logAnswerChange(q.id)
+                  }}
+                  disabled={submitted}
+                  showAnswer={isPreview && showAnswerPreview}
+                  studentId={currentStudent?.id}
+                />
+              ))}
+            </div>
+
+            {/* 제출 버튼 */}
+            {!submitted && (
+              <div className="mt-6 flex items-center justify-between gap-4">
+                <p className="text-xs text-muted-foreground">
+                  {questions.length - answeredCount > 0
+                    ? `${questions.length - answeredCount}개 문항이 미답변 상태입니다.`
+                    : '모든 문항에 답변했습니다.'}
+                </p>
+                <Button onClick={() => handleSubmit(false)}>
+                  <Send size={14} />
+                  제출하기
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -333,11 +606,57 @@ export default function QuizAttempt() {
           onClose={() => setAlertDialog(null)}
         />
       )}
+      {lockConfirm && (
+        <ConfirmDialog
+          title="다음 문항으로 이동"
+          message={"이 문항으로 돌아올 수 없습니다.\n이대로 다음 문항으로 이동할까요?"}
+          confirmLabel="다음으로 이동"
+          cancelLabel="취소"
+          onConfirm={() => {
+            setLockConfirm(false)
+            setCurrentIndex(i => {
+              const next = Math.min(questions.length - 1, i + 1)
+              if (next !== i && activityKey) {
+                appendActivityLog(activityKey, { type: ACTIVITY_TYPES.NAVIGATE, from: i, to: next })
+              }
+              return next
+            })
+          }}
+          onCancel={() => setLockConfirm(false)}
+        />
+      )}
+      {blankSkipConfirm && (
+        <ConfirmDialog
+          title="답변 없이 이동"
+          message={"답변을 입력하지 않고 다음 문항으로 이동하면,\n이 문항으로 돌아와 답변할 수 없습니다."}
+          confirmLabel="답변 없이 이동"
+          cancelLabel="돌아가기"
+          confirmDanger
+          onConfirm={() => {
+            setBlankSkipConfirm(false)
+            setCurrentIndex(i => {
+              const next = Math.min(questions.length - 1, i + 1)
+              if (next !== i && activityKey) {
+                appendActivityLog(activityKey, { type: ACTIVITY_TYPES.NAVIGATE, from: i, to: next })
+              }
+              return next
+            })
+          }}
+          onCancel={() => setBlankSkipConfirm(false)}
+        />
+      )}
+      {startNotice && (
+        <AlertDialog
+          title="응답 후 문항 잠금"
+          message={"이 퀴즈는 한 문항씩 표시되며, 다음 문항으로 이동하면 이전 문항으로 돌아올 수 없습니다.\n각 문항을 신중히 답변해주세요."}
+          onClose={() => setStartNotice(false)}
+        />
+      )}
     </Layout>
   )
 }
 
-function QuestionCard({ question, index, value, onChange, disabled, showAnswer = false }) {
+function QuestionCard({ question, index, value, onChange, disabled, showAnswer = false, studentId }) {
   const typeLabels = {
     multiple_choice: '객관식', true_false: '참/거짓', short_answer: '단답형',
     essay: '서술형', numerical: '수치형', fill_in_blank: '빈칸 채우기',
@@ -374,7 +693,61 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           </div>
           <span className="text-xs font-semibold shrink-0 text-slate-600">{question.points}점</span>
         </div>
-        <p className="text-sm leading-relaxed mb-4">{question.text}</p>
+        {/* 본문: 다중 빈칸/드롭다운이고 본문에 placeholder가 있으면 inline 렌더 */}
+        {((question.type === 'fill_in_multiple_blanks' || question.type === 'multiple_dropdowns') && hasInlinePlaceholders(question.text)) ? (
+          <p className="text-sm leading-loose mb-4 whitespace-pre-wrap">
+            {parseInlineBody(question.text).map((t, i) => {
+              if (t.kind === 'text') return <span key={i}>{t.content}</span>
+              const idx = t.num - 1
+              const arr = Array.isArray(value) ? value : []
+              if (t.kind === 'blank') {
+                return (
+                  <input
+                    key={i}
+                    type="text"
+                    value={arr[idx] ?? ''}
+                    disabled={disabled}
+                    onChange={e => {
+                      const next = [...arr]
+                      while (next.length < t.num) next.push('')
+                      next[idx] = e.target.value
+                      onChange(next)
+                    }}
+                    placeholder={`빈칸 ${t.num}`}
+                    className="inline-block mx-1 min-w-[90px] max-w-[220px] text-sm px-2 py-0.5 rounded-md border border-primary/40 bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary disabled:bg-muted align-baseline"
+                    style={{ width: `${Math.max(6, (arr[idx]?.length || 6) + 2)}ch` }}
+                  />
+                )
+              }
+              if (t.kind === 'dropdown') {
+                const dd = question.dropdowns?.[idx]
+                if (!dd) return <span key={i} className="text-destructive">[드롭다운{t.num}?]</span>
+                return (
+                  <select
+                    key={i}
+                    value={arr[idx] ?? ''}
+                    disabled={disabled}
+                    onChange={e => {
+                      const next = [...arr]
+                      while (next.length < t.num) next.push('')
+                      next[idx] = e.target.value
+                      onChange(next)
+                    }}
+                    className="inline-block mx-1 text-sm px-2 py-0.5 rounded-md border border-primary/40 bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary disabled:bg-muted align-baseline"
+                  >
+                    <option value="">선택</option>
+                    {dd.options.map((o, j) => (
+                      <option key={j} value={o}>{o}</option>
+                    ))}
+                  </select>
+                )
+              }
+              return null
+            })}
+          </p>
+        ) : (
+          <p className="text-sm leading-relaxed mb-4">{question.text}</p>
+        )}
 
         {/* 객관식 / 참거짓 */}
         {(question.type === 'multiple_choice' || question.type === 'true_false') && (
@@ -457,30 +830,33 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           />
         )}
 
-        {/* 수식형 (학생마다 변수값이 다를 수 있지만 프로토타입에서는 단순 숫자 입력) */}
-        {question.type === 'formula' && (
-          <div className="space-y-2">
-            {Array.isArray(question.variables) && question.variables.length > 0 && (
-              <div className="inline-flex flex-wrap gap-2 text-xs text-muted-foreground px-3 py-2 rounded-md bg-slate-50 border border-slate-100">
-                <span className="font-medium">주어진 값:</span>
-                {question.variables.map((v, i) => {
-                  const example = ((Number(v.min) || 1) + (Number(v.max) || 10)) / 2
-                  return (
-                    <span key={i} className="font-mono text-teal-700">
-                      {v.name} = {Number(example.toFixed(Number(v.decimals) || 0))}
+        {/* 수식형 */}
+        {question.type === 'formula' && (() => {
+          // 학생별 변수값 (studentId 기반 시드 — 같은 학생은 항상 같은 값)
+          const varValues = generateStudentVariables(question.variables || [], `${studentId || 'anon'}_${question.id}`)
+          const storedValue = (value && typeof value === 'object') ? value.value : ''
+          const studentValue = typeof storedValue === 'string' ? storedValue : ''
+          return (
+            <div className="space-y-2">
+              {Object.keys(varValues).length > 0 && (
+                <div className="inline-flex flex-wrap gap-2 text-xs text-muted-foreground px-3 py-2 rounded-md bg-slate-50 border border-slate-100">
+                  <span className="font-medium">주어진 값:</span>
+                  {Object.entries(varValues).map(([name, val]) => (
+                    <span key={name} className="font-mono text-teal-700">
+                      {name} = {val}
                     </span>
-                  )
-                })}
-              </div>
-            )}
-            <input
-              type="number" value={value ?? ''}
-              onChange={e => onChange(e.target.value)}
-              placeholder="계산 결과를 입력하세요" disabled={disabled}
-              className="w-full max-w-[240px] text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all disabled:bg-muted"
-            />
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+              <input
+                type="number" value={studentValue}
+                onChange={e => onChange({ value: e.target.value, variables: varValues })}
+                placeholder="계산 결과를 입력하세요" disabled={disabled}
+                className="w-full max-w-[240px] text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all disabled:bg-muted"
+              />
+            </div>
+          )
+        })()}
 
         {/* 연결형 */}
         {question.type === 'matching' && Array.isArray(question.pairs) && (() => {
@@ -508,8 +884,8 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           )
         })()}
 
-        {/* 드롭다운 선택 */}
-        {question.type === 'multiple_dropdowns' && Array.isArray(question.dropdowns) && (() => {
+        {/* 드롭다운 선택 (레거시 — 본문에 placeholder 없을 때만) */}
+        {question.type === 'multiple_dropdowns' && Array.isArray(question.dropdowns) && !hasInlinePlaceholders(question.text) && (() => {
           const arr = Array.isArray(value) ? value : []
           return (
             <div className="space-y-2">
@@ -536,8 +912,8 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           )
         })()}
 
-        {/* 다중 빈칸 */}
-        {question.type === 'fill_in_multiple_blanks' && Array.isArray(question.correctAnswer) && (() => {
+        {/* 다중 빈칸 (레거시 — 본문에 placeholder 없을 때만) */}
+        {question.type === 'fill_in_multiple_blanks' && Array.isArray(question.correctAnswer) && !hasInlinePlaceholders(question.text) && (() => {
           const arr = Array.isArray(value) ? value : []
           return (
             <div className="space-y-2">
@@ -644,6 +1020,18 @@ function ResultModal({ result, quiz, questions, onClose }) {
   const now = new Date()
   const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null
 
+  // 학생 응답 조회 제어 (one_time_results)
+  const oneTimeResults = !!quiz.oneTimeResults
+  // 마운트 시점의 조회 여부를 고정해 첫 진입 시 정상 공개 보장
+  const [initiallyViewed] = useState(() => isResultViewed(result.id))
+  const responsesHidden = oneTimeResults && initiallyViewed
+
+  useEffect(() => {
+    if (oneTimeResults && !initiallyViewed) {
+      markResultViewed(result.id)
+    }
+  }, [oneTimeResults, initiallyViewed, result.id])
+
   let showScoreNow, showWrongAnswerNow, showAnswerNow
 
   if (quiz.scoreRevealEnabled !== undefined) {
@@ -700,6 +1088,12 @@ function ResultModal({ result, quiz, questions, onClose }) {
     )
   }
 
+  // oneTimeResults: 이미 1회 조회한 상태면 응답/정답 공개 차단 (점수는 별도 정책)
+  if (responsesHidden) {
+    showWrongAnswerNow = false
+    showAnswerNow = false
+  }
+
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent className="max-w-md p-0 overflow-hidden bg-white">
@@ -707,7 +1101,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
         <div className="px-6 pt-6 pb-5 text-center border-b border-gray-200">
           <CheckCircle2 size={30} strokeWidth={1.5} className="mx-auto mb-2.5 text-emerald-600" />
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold tracking-tight text-gray-900 text-center">
+            <DialogTitle className="tracking-tight text-gray-900 text-center">
               {result.autoSubmitted ? '시간 종료 — 자동 제출되었습니다' : '제출 완료!'}
             </DialogTitle>
           </DialogHeader>
@@ -724,15 +1118,15 @@ function ResultModal({ result, quiz, questions, onClose }) {
         <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
           <div className="p-4 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-900">자동채점 결과</p>
+              <p className="text-[15px] font-medium text-gray-900">자동채점 결과</p>
               {!hasAutoGrade ? (
-                <p className="text-sm text-muted-foreground">점수 없음</p>
+                <p className="text-[15px] text-muted-foreground">점수 없음</p>
               ) : showScoreNow ? (
                 <p className="text-xl font-semibold text-gray-900 tracking-tight">
-                  {autoTotal}<span className="text-sm font-normal ml-1 text-muted-foreground">/ {autoMax}점</span>
+                  {autoTotal}<span className="text-[15px] font-normal ml-1 text-muted-foreground">/ {autoMax}점</span>
                 </p>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[15px] text-muted-foreground">
                   {quiz.showScore ? '공개 예정' : '점수 비공개'}
                 </p>
               )}
@@ -755,7 +1149,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
           {result.manualPending > 0 && (
             <div className="flex items-start gap-2.5 p-3 rounded-lg border border-amber-200 bg-amber-50/50">
               <div>
-                <p className="text-xs font-medium mb-0.5 text-gray-900">수동채점 대기 중</p>
+                <p className="text-[15px] font-medium mb-0.5 text-gray-900">수동채점 대기 중</p>
                 <p className="text-xs text-gray-500">
                   서술형 {result.manualPending}개 문항은 교수자 채점 후 최종 점수가 확정됩니다.
                 </p>
@@ -763,9 +1157,19 @@ function ResultModal({ result, quiz, questions, onClose }) {
             </div>
           )}
 
+          {responsesHidden && (
+            <div className="flex items-start gap-2.5 p-3 rounded-lg border border-gray-200 bg-gray-50/70">
+              <Eye size={14} className="shrink-0 mt-0.5 text-muted-foreground" />
+              <div>
+                <p className="text-[15px] font-medium mb-0.5 text-gray-900">응답은 1회만 조회할 수 있습니다</p>
+                <p className="text-xs text-gray-500">이미 결과를 확인하여 더 이상 응답과 정답을 조회할 수 없습니다.</p>
+              </div>
+            </div>
+          )}
+
           {showWrongAnswerNow && (
             <div>
-              <p className="text-sm font-medium mb-2.5 text-gray-900">문항별 채점 결과</p>
+              <p className="text-[15px] font-medium mb-2.5 text-gray-900">문항별 채점 결과</p>
               <div className="space-y-1.5">
                 {questions.map((q, idx) => {
                   const scored = result.autoScores[q.id]
@@ -775,7 +1179,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
                   return (
                     <div
                       key={q.id}
-                      className="p-3 rounded-lg text-sm border border-gray-200 bg-white hover:bg-gray-50/50 transition-colors"
+                      className="p-3 rounded-lg text-[15px] border border-gray-200 bg-white hover:bg-gray-50/50 transition-colors"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
@@ -797,6 +1201,34 @@ function ResultModal({ result, quiz, questions, onClose }) {
                           <QuestionAnswer q={q} />
                         </div>
                       )}
+                      {(() => {
+                        const showCorrect   = isAutoGraded && isCorrect && q.correct_comments
+                        const showIncorrect = isAutoGraded && !isCorrect && q.incorrect_comments
+                        const showNeutral   = !!q.neutral_comments
+                        if (!showCorrect && !showIncorrect && !showNeutral) return null
+                        return (
+                          <div className="mt-2 pt-2 border-t border-gray-100 space-y-1.5">
+                            {showCorrect && (
+                              <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-emerald-50 border border-emerald-200">
+                                <span className="shrink-0 text-[11px] font-semibold text-emerald-700 mt-0.5">정답</span>
+                                <p className="text-[13px] text-emerald-900 leading-relaxed whitespace-pre-wrap">{q.correct_comments}</p>
+                              </div>
+                            )}
+                            {showIncorrect && (
+                              <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-red-50 border border-red-200">
+                                <span className="shrink-0 text-[11px] font-semibold text-red-600 mt-0.5">오답</span>
+                                <p className="text-[13px] text-red-900 leading-relaxed whitespace-pre-wrap">{q.incorrect_comments}</p>
+                              </div>
+                            )}
+                            {showNeutral && (
+                              <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-gray-50 border border-gray-200">
+                                <span className="shrink-0 text-[11px] font-semibold text-gray-600 mt-0.5">코멘트</span>
+                                <p className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">{q.neutral_comments}</p>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })}
