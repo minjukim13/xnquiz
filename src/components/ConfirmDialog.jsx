@@ -11,10 +11,18 @@ import { AlertCircle, X } from 'lucide-react'
 
 // ── Shared ──────────────────────────────────────────────────────────────────
 
-function DialogIcon() {
+function DialogIcon({ tone = 'info' }) {
+  const isDestructive = tone === 'destructive'
   return (
-    <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-primary">
-      <AlertCircle className="size-[18px]" />
+    <div
+      className={cn(
+        'inline-flex size-9 shrink-0 items-center justify-center rounded-full',
+        isDestructive ? 'bg-destructive-soft' : 'bg-accent',
+      )}
+    >
+      <AlertCircle
+        className={cn('size-4', isDestructive ? 'text-destructive' : 'text-primary')}
+      />
     </div>
   )
 }
@@ -38,31 +46,42 @@ export function ConfirmDialog({
 }) {
   return (
     <ShadcnAlertDialog open onOpenChange={(open) => { if (!open) onCancel?.() }}>
-      <AlertDialogContent className="max-w-sm rounded-2xl gap-5">
+      <AlertDialogContent
+        className="w-[400px] max-w-[400px] rounded-2xl px-7 py-8 gap-6 [word-break:keep-all] sm:max-w-[400px]"
+      >
         <div>
-          <div className="flex items-center gap-2.5">
-            <DialogIcon />
-            <AlertDialogTitle>{title}</AlertDialogTitle>
+          <div className="flex items-center gap-3">
+            <DialogIcon tone={confirmDanger ? 'destructive' : 'info'} />
+            <AlertDialogTitle className="text-base font-semibold text-foreground">{title}</AlertDialogTitle>
           </div>
           {message && (
             <AlertDialogDescription asChild>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+              <p className="mt-3 text-[14px] leading-[1.6] text-secondary-foreground whitespace-pre-line">
                 {message}
               </p>
             </AlertDialogDescription>
           )}
         </div>
         <div className="flex justify-end gap-2">
-          <Button size="sm" variant="outline" onClick={onCancel}>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg bg-secondary px-5 py-2.5 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-border"
+          >
             {cancelLabel}
-          </Button>
-          <Button
-            size="sm"
-            variant={confirmDanger ? 'destructive' : 'default'}
+          </button>
+          <button
+            type="button"
             onClick={onConfirm}
+            className={cn(
+              'rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-colors',
+              confirmDanger
+                ? 'bg-destructive hover:bg-destructive-hover'
+                : 'bg-primary hover:bg-primary-hover',
+            )}
           >
             {confirmLabel}
-          </Button>
+          </button>
         </div>
       </AlertDialogContent>
     </ShadcnAlertDialog>
@@ -81,12 +100,12 @@ export function AlertDialog({
 
   return (
     <ShadcnAlertDialog open onOpenChange={(open) => { if (!open) onClose?.() }}>
-      <AlertDialogContent className="max-w-sm rounded-2xl gap-5">
+      <AlertDialogContent className="max-w-sm rounded-2xl">
         <div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-start gap-2">
             <DialogIcon />
             <div>
-              <AlertDialogTitle>{title}</AlertDialogTitle>
+              <AlertDialogTitle className="text-base leading-[1.45]">{title}</AlertDialogTitle>
               {isList && (
                 <p className="text-[13px] text-muted-foreground mt-0.5">
                   아래 항목을 확인해주세요
@@ -97,9 +116,9 @@ export function AlertDialog({
 
           {message && (
             <AlertDialogDescription asChild>
-              <div className="mt-4">
+              <div className="mt-3 pl-6">
                 {isList ? (
-                  <div className="rounded-[10px] bg-[#F2F8FF] border border-[#D1E8FF] px-4 py-3.5 space-y-2.5">
+                  <div className="rounded-[10px] bg-accent border border-primary/15 px-4 py-3.5 space-y-2.5">
                     {lines.map((line, i) => (
                       <div key={i} className="flex items-start gap-2.5">
                         <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-primary" />
@@ -110,7 +129,7 @@ export function AlertDialog({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                  <p className="text-[13px] leading-[1.6] text-muted-foreground whitespace-pre-line">
                     {text}
                   </p>
                 )}

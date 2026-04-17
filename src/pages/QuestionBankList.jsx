@@ -10,6 +10,7 @@ import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
@@ -59,7 +60,7 @@ export default function QuestionBankList() {
       id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       bankId: newId,
     })))
-    showToast(`"${newName}" 문제은행이 생성되었습니다`, newId)
+    showToast(`'${newName}' 문제은행이 생성되었습니다`, newId)
   }
 
   return (
@@ -217,29 +218,14 @@ export default function QuestionBankList() {
       )}
 
       {deleteTarget && (
-        <Dialog open onOpenChange={open => !open && setDeleteTarget(null)}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>문제은행 삭제</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-slate-700">
-              <span className="font-semibold">{deleteTarget.name}</span>을(를) 삭제할까요?
-            </p>
-            <p className="text-xs text-muted-foreground">
-              은행에 포함된 문항 {getQuestionCount(deleteTarget.id)}개가 함께 삭제되며 복구할 수 없습니다.
-            </p>
-            <div className="flex justify-end gap-2 mt-2">
-              <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>취소</Button>
-              <Button
-                size="sm"
-                className="bg-red-600 hover:bg-red-700 text-white"
-                onClick={() => { deleteBank(deleteTarget.id); setDeleteTarget(null) }}
-              >
-                삭제
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <ConfirmDialog
+          title={`'${deleteTarget.name}' 문제은행을 삭제할까요?`}
+          message={`은행에 포함된 문항 ${getQuestionCount(deleteTarget.id)}개가 함께 삭제되며 복구할 수 없습니다.`}
+          confirmLabel="삭제"
+          confirmDanger
+          onConfirm={() => { deleteBank(deleteTarget.id); setDeleteTarget(null) }}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
 
       {showCopyModal && (
@@ -269,7 +255,7 @@ export default function QuestionBankList() {
               bankId,
             })))
             setShowCopyModal(false)
-            showToast(`"${toastName}" 문제은행에 ${selectedQs.length}개 문항 가져오기 완료`, bankId)
+            showToast(`'${toastName}' 문제은행에 ${selectedQs.length}개 문항 가져오기 완료`, bankId)
           }}
         />
       )}
@@ -300,7 +286,7 @@ export default function QuestionBankList() {
               bankId,
             })))
             setShowExportModal(false)
-            showToast(`"${bankName}" 문제은행에 ${questions.length}개 문항을 내보냈습니다`, bankId)
+            showToast(`'${bankName}' 문제은행에 ${questions.length}개 문항을 내보냈습니다`, bankId)
           }}
         />
       )}
@@ -329,12 +315,12 @@ function AddBankModal({ onClose, onAdd }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>새 문제은행 만들기</DialogTitle>
         </DialogHeader>
-        <div className="mb-3">
-          <label className="text-xs font-medium block mb-1 text-slate-500">이름</label>
+        <div>
+          <label className="text-xs font-medium block mb-1.5 text-slate-500">이름</label>
           <input
             type="text"
             value={name}
@@ -342,10 +328,10 @@ function AddBankModal({ onClose, onAdd }) {
             onKeyDown={e => e.key === 'Enter' && name.trim() && onAdd(name.trim(), difficulty)}
             placeholder="문제은행 이름 (예: 기말고사 문제은행)"
             autoFocus
-            className="w-full text-sm px-3 py-2 border border-slate-200 rounded focus:outline-none focus:border-blue-400 text-slate-900"
+            className="w-full text-[15px] px-3 py-2 border border-slate-200 rounded focus:outline-none focus:border-blue-400 text-slate-900"
           />
         </div>
-        <div className="mb-5">
+        <div>
           <label className="text-xs font-medium block mb-1.5 text-slate-500">난이도</label>
           <div className="flex gap-2">
             {diffOptions.map(opt => (
@@ -371,7 +357,7 @@ function AddBankModal({ onClose, onAdd }) {
             ))}
           </div>
           {difficulty && (
-            <p className="text-xs mt-1.5 text-muted-foreground">
+            <p className="text-xs mt-3 text-muted-foreground">
               난이도 '{DIFF_LABEL[difficulty]}'인 문항만 추가할 수 있습니다
             </p>
           )}
@@ -602,7 +588,7 @@ function WizardStep1({ courseSearch, setCourseSearch, availableCourses, courseGr
         </div>
         {selectedSourceIds.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">좌측에서 소스 문제은행을 선택하세요</p>
+            <p className="text-[15px] text-muted-foreground">좌측에서 소스 문제은행을 선택하세요</p>
           </div>
         ) : (
           <>
@@ -623,7 +609,7 @@ function WizardStep1({ courseSearch, setCourseSearch, availableCourses, courseGr
             )}
             <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
               {filtered.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">해당하는 문항이 없습니다</p>
+                <p className="py-8 text-center text-[15px] text-muted-foreground">해당하는 문항이 없습니다</p>
               ) : (
                 filtered.map(q => (
                   <QuestionRow
@@ -787,9 +773,9 @@ function ExportToBankModal({ onClose, onExport }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden" style={{ minHeight: 500 }}>
+      <DialogContent className="max-w-5xl min-h-[640px] max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
         {/* 헤더 */}
-        <div className="px-5 py-4 border-b border-border shrink-0">
+        <div className="px-6 py-5 border-b border-border shrink-0">
           <div className="flex items-center justify-between mb-3">
             <DialogHeader className="p-0 space-y-0">
               <DialogTitle>내보내기</DialogTitle>
@@ -821,9 +807,9 @@ function ExportToBankModal({ onClose, onExport }) {
         ) : (
           <div className="flex-1 overflow-y-auto">
             {/* 선택한 문항 검토 */}
-            <div className="px-5 py-4 border-b border-border">
+            <div className="px-6 py-5 border-b border-border">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground">선택한 문항</h3>
+                <h3 className="text-[15px] font-semibold text-foreground">선택한 문항</h3>
                 <span className="text-xs text-muted-foreground">{selectedQuestions.length}개</span>
               </div>
               <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
@@ -837,8 +823,8 @@ function ExportToBankModal({ onClose, onExport }) {
             </div>
 
             {/* 내보낼 위치 설정 */}
-            <div className="px-5 py-4">
-              <h3 className="text-sm font-semibold text-foreground mb-1">내보낼 위치</h3>
+            <div className="px-6 py-5">
+              <h3 className="text-[15px] font-semibold text-foreground mb-1">내보낼 위치</h3>
               <p className="text-xs text-muted-foreground mb-4">내보낼 과목과 문제은행을 선택하세요</p>
 
               <div className="mb-4">
@@ -860,7 +846,7 @@ function ExportToBankModal({ onClose, onExport }) {
                   )}
                 >
                   <div className="px-4 py-3">
-                    <p className={cn('text-sm', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제은행 만들기</p>
+                    <p className={cn('text-[15px]', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제은행 만들기</p>
                     <p className="text-xs text-muted-foreground mt-0.5">선택한 과목에 새 문제은행을 생성합니다</p>
                   </div>
                   {targetMode === 'new' && (
@@ -872,7 +858,7 @@ function ExportToBankModal({ onClose, onExport }) {
                         onChange={e => setNewBankName(e.target.value)}
                         placeholder="문제은행 이름"
                         autoFocus
-                        className="w-full max-w-xs text-sm px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground bg-white"
+                        className="w-full max-w-xs text-[15px] px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground bg-white"
                       />
                       {selectedQuestions.length > 0 && (
                         <div onClick={e => e.stopPropagation()}>
@@ -896,7 +882,7 @@ function ExportToBankModal({ onClose, onExport }) {
                   )}
                 >
                   <div className="px-4 py-3">
-                    <p className={cn('text-sm', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제은행에 추가</p>
+                    <p className={cn('text-[15px]', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제은행에 추가</p>
                     <p className="text-xs text-muted-foreground mt-0.5">이미 있는 문제은행에 문항을 추가합니다</p>
                   </div>
                   {targetMode === 'existing' && (
@@ -933,10 +919,10 @@ function ExportToBankModal({ onClose, onExport }) {
         )}
 
         {/* 푸터 */}
-        <div className="px-5 py-3 border-t border-border shrink-0 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-border shrink-0 flex items-center justify-between">
           {step === 1 ? (
             <>
-              <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground transition-colors">취소</button>
+              <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>
               <div className="flex items-center gap-3">
                 {selectedQuestionIds.length > 0 && (
                   <span className="text-xs bg-accent text-primary px-2.5 py-1 rounded-full font-medium">{selectedQuestionIds.length}개 선택됨</span>
@@ -1114,9 +1100,9 @@ function ImportModal({ onClose, onImport }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden" style={{ minHeight: 500 }}>
+      <DialogContent className="max-w-5xl min-h-[640px] max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
         {/* 헤더 */}
-        <div className="px-5 py-4 border-b border-border shrink-0">
+        <div className="px-6 py-5 border-b border-border shrink-0">
           <div className="flex items-center justify-between mb-3">
             <DialogHeader className="p-0 space-y-0">
               <DialogTitle>가져오기</DialogTitle>
@@ -1148,9 +1134,9 @@ function ImportModal({ onClose, onImport }) {
         ) : (
           <div className="flex-1 overflow-y-auto">
             {/* 선택한 문항 검토 */}
-            <div className="px-5 py-4 border-b border-border">
+            <div className="px-6 py-5 border-b border-border">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground">선택한 문항</h3>
+                <h3 className="text-[15px] font-semibold text-foreground">선택한 문항</h3>
                 <span className="text-xs text-muted-foreground">{selectedQuestions.length}개</span>
               </div>
               <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
@@ -1164,8 +1150,8 @@ function ImportModal({ onClose, onImport }) {
             </div>
 
             {/* 가져올 위치 설정 */}
-            <div className="px-5 py-4">
-              <h3 className="text-sm font-semibold text-foreground mb-1">가져올 위치</h3>
+            <div className="px-6 py-5">
+              <h3 className="text-[15px] font-semibold text-foreground mb-1">가져올 위치</h3>
               <p className="text-xs text-muted-foreground mb-4">가져올 문제은행을 선택하세요</p>
 
               <div className="space-y-3">
@@ -1178,7 +1164,7 @@ function ImportModal({ onClose, onImport }) {
                   )}
                 >
                   <div className="px-4 py-3">
-                    <p className={cn('text-sm', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제은행 만들기</p>
+                    <p className={cn('text-[15px]', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제은행 만들기</p>
                     <p className="text-xs text-muted-foreground mt-0.5">새로운 문제은행을 생성하여 문항을 추가합니다</p>
                   </div>
                   {targetMode === 'new' && (
@@ -1190,7 +1176,7 @@ function ImportModal({ onClose, onImport }) {
                         onChange={e => setNewBankName(e.target.value)}
                         placeholder="문제은행 이름"
                         autoFocus
-                        className="w-full max-w-xs text-sm px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground bg-white"
+                        className="w-full max-w-xs text-[15px] px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground bg-white"
                       />
                       {selectedQuestions.length > 0 && (
                         <div onClick={e => e.stopPropagation()}>
@@ -1214,7 +1200,7 @@ function ImportModal({ onClose, onImport }) {
                   )}
                 >
                   <div className="px-4 py-3">
-                    <p className={cn('text-sm', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제은행에 추가</p>
+                    <p className={cn('text-[15px]', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제은행에 추가</p>
                     <p className="text-xs text-muted-foreground mt-0.5">이미 있는 문제은행에 문항을 추가합니다</p>
                   </div>
                   {targetMode === 'existing' && (
@@ -1251,10 +1237,10 @@ function ImportModal({ onClose, onImport }) {
         )}
 
         {/* 푸터 */}
-        <div className="px-5 py-3 border-t border-border shrink-0 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-border shrink-0 flex items-center justify-between">
           {step === 1 ? (
             <>
-              <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground transition-colors">취소</button>
+              <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>
               <div className="flex items-center gap-3">
                 {selectedQuestionIds.length > 0 && (
                   <span className="text-xs bg-accent text-primary px-2.5 py-1 rounded-full font-medium">{selectedQuestionIds.length}개 선택됨</span>

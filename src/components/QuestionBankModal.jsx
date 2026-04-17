@@ -5,13 +5,14 @@ import { useQuestionBank } from '../context/QuestionBankContext'
 import { DropdownSelect } from './DropdownSelect'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 import TypeBadge from './TypeBadge'
 
 const DIFFICULTY_LABELS = { high: '상', medium: '중', low: '하' }
 const DIFFICULTY_COLORS = {
-  high:   { bg: '#FFF0EF', text: '#B91C1C' },
-  medium: { bg: '#FFFBEB', text: '#92400E' },
-  low:    { bg: '#F0FDF4', text: '#166534' },
+  high:   'bg-red-50 text-red-700',
+  medium: 'bg-amber-50 text-amber-800',
+  low:    'bg-green-50 text-green-800',
 }
 
 export default function QuestionBankModal({ open, onOpenChange, onAdd, added, currentCourse }) {
@@ -103,17 +104,17 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="max-w-4xl min-h-[600px] max-h-[85vh] overflow-hidden flex flex-col p-0">
 
         {/* 헤더 */}
-        <DialogHeader className="p-4 pb-3 shrink-0">
+        <DialogHeader className="px-6 pt-5 pb-4 shrink-0">
           <div className="flex items-center gap-2">
             {selectedBankId && (
               <Button variant="ghost" size="icon-xs" onClick={handleBack}>
                 <ChevronLeft size={16} />
               </Button>
             )}
-            <div>
+            <div className="flex flex-col gap-2.5">
               <DialogTitle>
                 {selectedBank ? selectedBank.name : '문제은행에서 추가'}
               </DialogTitle>
@@ -128,16 +129,19 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
 
         {/* Step 1: 은행 선택 */}
         {!selectedBankId ? (
-          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+          <div className="flex-1 overflow-y-auto px-6 pb-5 space-y-4">
             {/* 현재 과목 은행 */}
             {(() => {
               const currentBanks = currentCourse
                 ? banks.filter(b => b.course === currentCourse)
                 : banks
               return (
-                <div className="space-y-2">
+                <div>
                   {currentCourse && (
-                    <p className="text-xs font-medium text-secondary-foreground">{currentCourse}</p>
+                    <div className="flex items-center gap-2 mb-2 px-4">
+                      <span className="text-[11px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded font-medium">{currentCourse.split(' ')[0]}</span>
+                      <span className="text-[13px] font-semibold text-foreground">{currentCourse.split(' ').slice(1).join(' ')}</span>
+                    </div>
                   )}
                   {currentBanks.length === 0 ? (
                     <p className="text-xs py-3 text-center text-muted-foreground">이 과목에 등록된 문제은행이 없습니다</p>
@@ -148,13 +152,13 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                         <button
                           key={b.id}
                           onClick={() => setSelectedBankId(b.id)}
-                          className="w-full flex items-center justify-between p-3 text-left transition-colors border border-border rounded-lg hover:border-primary hover:bg-muted/50"
+                          className="w-full flex items-center justify-between py-3 px-4 text-left rounded-lg transition-colors hover:bg-muted"
                         >
                           <div className="flex items-center gap-2">
                             <BookOpen size={14} className="text-muted-foreground" />
-                            <span className="text-sm font-medium text-foreground">{b.name}</span>
+                            <span className="text-[15px] font-medium text-foreground">{b.name}</span>
                           </div>
-                          <span className="text-xs text-muted-foreground">{count}개 문항</span>
+                          <span className="text-[15px] text-muted-foreground">{count}개 문항</span>
                         </button>
                       )
                     })
@@ -168,7 +172,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
               <div>
                 <button
                   onClick={() => setShowOtherCourses(v => !v)}
-                  className="flex items-center gap-1.5 text-xs mb-2 transition-colors text-muted-foreground hover:text-foreground"
+                  className="w-full flex items-center gap-1.5 py-3 px-4 mb-2 rounded-lg transition-colors text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   <ChevronLeft
                     size={13}
@@ -187,21 +191,24 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                   return (
                     <div className="space-y-3">
                       {Object.entries(grouped).map(([course, courseBanks]) => (
-                        <div key={course} className="space-y-2">
-                          <p className="text-xs font-medium text-secondary-foreground">{course}</p>
+                        <div key={course}>
+                          <div className="flex items-center gap-2 mb-2 px-4">
+                            <span className="text-[11px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded font-medium">{course.split(' ')[0]}</span>
+                            <span className="text-[13px] font-semibold text-foreground">{course.split(' ').slice(1).join(' ')}</span>
+                          </div>
                           {courseBanks.map(b => {
                             const count = getBankQuestions(b.id).length
                             return (
                               <button
                                 key={b.id}
                                 onClick={() => setSelectedBankId(b.id)}
-                                className="w-full flex items-center justify-between p-3 text-left transition-colors border border-border rounded-lg hover:border-primary hover:bg-muted/50"
+                                className="w-full flex items-center justify-between py-3 px-4 text-left rounded-lg transition-colors hover:bg-muted"
                               >
                                 <div className="flex items-center gap-2">
                                   <BookOpen size={14} className="text-muted-foreground" />
-                                  <span className="text-sm font-medium text-foreground">{b.name}</span>
+                                  <span className="text-[15px] font-medium text-foreground">{b.name}</span>
                                 </div>
-                                <span className="text-xs text-muted-foreground">{count}개 문항</span>
+                                <span className="text-[15px] text-muted-foreground">{count}개 문항</span>
                               </button>
                             )
                           })}
@@ -216,7 +223,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
         ) : (
           <>
             {/* 필터 영역 */}
-            <div className="px-4 pb-3 space-y-2 shrink-0 border-b border-border">
+            <div className="px-6 pb-4 space-y-2 shrink-0 border-b border-border">
               <div className="relative">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -224,7 +231,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                   value={search}
                   onChange={e => { setSearch(e.target.value); setVisibleCount(15) }}
                   placeholder="문항 내용 검색"
-                  className="w-full text-sm pl-9 pr-3 py-2 focus:outline-none bg-secondary border border-border rounded text-foreground"
+                  className="w-full text-[15px] pl-9 pr-3 py-2 focus:outline-none bg-secondary border border-border rounded text-foreground"
                 />
               </div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -267,7 +274,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
             </div>
 
             {/* 문항 목록 */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2" onScroll={handleScroll}>
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2" onScroll={handleScroll}>
               {visible.map(q => {
                 const isAdded = added.includes(q.id)
                 const isChecked = checked.has(q.id)
@@ -292,7 +299,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                         <TypeBadge type={q.type} small />
                         <span className="text-xs text-muted-foreground">{q.points}점</span>
                         {q.difficulty && (
-                          <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: diff?.bg, color: diff?.text }}>
+                          <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', diff)}>
                             {DIFFICULTY_LABELS[q.difficulty]}
                           </span>
                         )}
@@ -300,21 +307,20 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                           <span className="text-xs px-1.5 py-0.5 rounded bg-accent text-primary">추가됨</span>
                         )}
                       </div>
-                      <p className="text-sm leading-relaxed text-foreground">{q.text}</p>
+                      <p className="text-[15px] leading-relaxed text-foreground">{q.text}</p>
                     </div>
                   </label>
                 )
               })}
               {hasMore && <div className="py-4 text-center text-xs text-muted-foreground">스크롤하면 더 불러옵니다</div>}
               {!hasMore && filtered.length > 0 && <div className="py-4 text-center text-xs text-muted-foreground/50">모든 문항을 불러왔습니다</div>}
-              {filtered.length === 0 && <div className="py-10 text-center text-sm text-muted-foreground/50">검색 결과가 없습니다</div>}
+              {filtered.length === 0 && <div className="py-10 text-center text-[15px] text-muted-foreground/50">검색 결과가 없습니다</div>}
             </div>
 
             {/* 하단 확인 버튼 */}
-            <div className="p-3 flex items-center justify-end gap-2 shrink-0 border-t border-border">
-                <Button size="sm" variant="ghost" onClick={handleClose}>닫기</Button>
+            <div className="px-6 py-4 flex items-center justify-end gap-2 shrink-0 border-t border-border">
+                <Button variant="ghost" onClick={handleClose}>닫기</Button>
                 <Button
-                  size="sm"
                   onClick={handleConfirmAdd}
                   disabled={checked.size === 0}
                 >

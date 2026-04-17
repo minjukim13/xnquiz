@@ -72,8 +72,8 @@ export default function ExcelModal({ question, students: allStudents, quizId, on
           {step !== 'success' && (
             <>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
-                <p className="text-xs font-semibold mb-2 text-slate-800">일괄 채점 가이드</p>
-                <ol className="space-y-1 text-xs text-slate-500">
+                <p className="text-[15px] font-semibold mb-2 text-slate-800">일괄 채점 가이드</p>
+                <ol className="space-y-1 text-[15px] text-slate-500">
                   <li>① 제공된 양식을 다운로드하여 점수를 입력해 주세요.</li>
                   <li>② 파일을 저장한 뒤 업로드하면 완료됩니다.</li>
                 </ol>
@@ -87,7 +87,7 @@ export default function ExcelModal({ question, students: allStudents, quizId, on
                 </Button>
                 <label
                   className={cn(
-                    'flex items-center justify-center gap-2 py-3 text-sm cursor-pointer transition-colors rounded',
+                    'flex items-center justify-center gap-2 py-3 text-[15px] cursor-pointer transition-colors rounded',
                     step === 'uploading'
                       ? 'border border-blue-200 text-primary bg-accent'
                       : 'border border-slate-200 text-slate-700 bg-white hover:bg-slate-50'
@@ -128,7 +128,7 @@ export default function ExcelModal({ question, students: allStudents, quizId, on
           {step === 'preview' && (
             <div className="rounded border border-slate-200">
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-slate-50">
-                <span className="text-xs font-semibold text-slate-800">업로드 내용 확인</span>
+                <span className="text-[15px] font-semibold text-slate-800">업로드 내용 확인</span>
                 <span className="text-xs text-muted-foreground">{previewRows.length}명 · {fileName}</span>
               </div>
               {/* 표 헤더 */}
