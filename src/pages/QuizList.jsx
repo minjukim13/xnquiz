@@ -654,7 +654,7 @@ function QuizImportModal({ onClose, onImport }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-[660px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-[720px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-5 py-4 border-b border-slate-100 shrink-0">
           <DialogTitle className="text-sm font-semibold">타 과목 퀴즈 가져오기</DialogTitle>
           <p className="text-xs text-muted-foreground">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>

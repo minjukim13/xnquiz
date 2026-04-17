@@ -1040,7 +1040,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
 
   return (<>
     <Dialog open={true} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-2xl p-0">
+      <DialogContent className="max-w-3xl p-0">
         {/* 헤더 */}
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
           <DialogTitle>{isEditMode ? '문항 편집' : '문항 직접 추가'}</DialogTitle>
@@ -1060,10 +1060,10 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
 
         {step === 'type' ? (
           /* 유형 선택 — 좌: 목록, 우: 미리보기 */
-          <div className="flex min-h-[360px]">
-            <div className="flex-1 p-4 border-r border-border">
+          <div className="flex min-h-[400px]">
+            <div className="flex-1 p-5 border-r border-border">
               <p className="text-sm mb-3 text-neutral-500">추가할 문항 유형을 선택하세요</p>
-              <div className="grid grid-cols-2 gap-2 overflow-y-auto scrollbar-thin max-h-80">
+              <div className="grid grid-cols-2 gap-2.5 overflow-y-auto scrollbar-thin max-h-[360px]">
                 {Object.entries(QUIZ_TYPES).map(([key, val]) => (
                   <button
                     key={key}
@@ -1097,7 +1097,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
               </div>
             </div>
             {/* 미리보기 패널 (데스크톱만) */}
-            <div className="w-56 p-4 hidden sm:flex flex-col bg-background">
+            <div className="w-64 p-5 hidden sm:flex flex-col bg-background">
               <TypePreview type={hoveredType} />
             </div>
           </div>

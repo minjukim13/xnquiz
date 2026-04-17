@@ -6,6 +6,14 @@ function _getGlobalSettings() {
   } catch { return {} }
 }
 
+// 정답 비교용 문자열 정규화 (대소문자/띄어쓰기 전역 설정 반영)
+function _normalizeAnswer(str, gs) {
+  let s = String(str ?? '').trim()
+  if (!gs.caseSensitive) s = s.toLowerCase()
+  if (!gs.whitespaceSensitive) s = s.replace(/\s+/g, '')
+  return s
+}
+
 // QUIZ_TYPES: Canvas LMS 전체 퀴즈 유형 (Classic + New Quizzes)
 export const QUIZ_TYPES = {
   multiple_choice:        { label: '객관식',          autoGrade: true      },
@@ -1678,14 +1686,16 @@ function gradeByQuestion(question, answer) {
   if (!answer && answer !== 0) return 0
   const ca = question.correctAnswer
   const pts = question.points ?? 0
+  const gs = _getGlobalSettings()
+  const norm = (s) => _normalizeAnswer(s, gs)
 
   switch (question.type) {
     case 'multiple_choice':
     case 'true_false':
-      return String(answer).trim().toLowerCase() === String(ca).trim().toLowerCase() ? pts : 0
+      return norm(answer) === norm(ca) ? pts : 0
     case 'short_answer': {
       const accepted = Array.isArray(ca) ? ca : [ca]
-      return accepted.some(a => String(answer).trim().toLowerCase() === String(a).trim().toLowerCase()) ? pts : 0
+      return accepted.some(a => norm(answer) === norm(a)) ? pts : 0
     }
     case 'numerical': {
       const num = parseFloat(answer)
@@ -1704,13 +1714,12 @@ function gradeByQuestion(question, answer) {
       if (correctTexts.length === 0) return 0
 
       const studentSelected = String(answer).split(',').map(s => s.trim()).filter(Boolean)
-      const correctSet = new Set(correctTexts.map(s => s.toLowerCase()))
-      const gs = _getGlobalSettings()
+      const correctSet = new Set(correctTexts.map(norm))
       const scoringMode = gs.multipleAnswersScoringMode || question.scoringMode || 'all_correct'
 
       if (scoringMode === 'partial') {
-        const correctCount = studentSelected.filter(s => correctSet.has(s.toLowerCase())).length
-        const wrongCount = studentSelected.filter(s => !correctSet.has(s.toLowerCase())).length
+        const correctCount = studentSelected.filter(s => correctSet.has(norm(s))).length
+        const wrongCount = studentSelected.filter(s => !correctSet.has(norm(s))).length
         const penaltyMethod = gs.penaltyMethod || 'none'
         if (penaltyMethod === 'right_minus_wrong') {
           return Math.max(0, Math.round(((correctCount - wrongCount) / correctTexts.length) * pts * 2) / 2)
@@ -1722,9 +1731,9 @@ function gradeByQuestion(question, answer) {
         return Math.round((correctCount / correctTexts.length) * pts * 2) / 2
       }
       // all_correct
-      const studentSet = new Set(studentSelected.map(s => s.toLowerCase()))
-      const allCorrect = correctTexts.every(c => studentSet.has(c.toLowerCase()))
-      const noWrong = studentSelected.every(s => correctSet.has(s.toLowerCase()))
+      const studentSet = new Set(studentSelected.map(norm))
+      const allCorrect = correctTexts.every(c => studentSet.has(norm(c)))
+      const noWrong = studentSelected.every(s => correctSet.has(norm(s)))
       return (allCorrect && noWrong) ? pts : 0
     }
     case 'fill_in_multiple_blanks': {
@@ -1734,7 +1743,7 @@ function gradeByQuestion(question, answer) {
         const studentAns = answers[i]
         if (!studentAns) return false
         const accepted = Array.isArray(b) ? b : [b]
-        return accepted.some(a => String(studentAns).trim().toLowerCase() === String(a).trim().toLowerCase())
+        return accepted.some(a => norm(studentAns) === norm(a))
       })
       return correct ? pts : 0
     }
@@ -1750,9 +1759,7 @@ function gradeByQuestion(question, answer) {
           if (l && r) answerMap[l] = r
         })
       } else { return 0 }
-      const correct = pairs.every(p =>
-        String(answerMap[p.left] || '').trim().toLowerCase() === String(p.right).trim().toLowerCase()
-      )
+      const correct = pairs.every(p => norm(answerMap[p.left] || '') === norm(p.right))
       return correct ? pts : 0
     }
     default:
@@ -1855,9 +1862,8 @@ export function gradeQuiz3Answer(questionId, answer) {
   const question = mockQuiz3Questions.find(q => q.id === questionId)
   const points = question?.points ?? 2
   const gs = _getGlobalSettings()
-  const isCorrect = gs.caseSensitive
-    ? correct.some(c => answer.trim() === c.trim())
-    : correct.some(c => answer.trim().toLowerCase() === c.toLowerCase().trim())
+  const a = _normalizeAnswer(answer, gs)
+  const isCorrect = correct.some(c => a === _normalizeAnswer(c, gs))
   return isCorrect ? points : 0
 }
 
@@ -1881,13 +1887,14 @@ export function autoGradeAnswer(question, answer, options = {}) {
     if (correctTexts.length === 0) return null
 
     const studentSelected = String(answer).split(',').map(s => s.trim()).filter(Boolean)
-    const correctSet = new Set(correctTexts.map(s => s.toLowerCase()))
     const gs = _getGlobalSettings()
+    const norm = (s) => _normalizeAnswer(s, gs)
+    const correctSet = new Set(correctTexts.map(norm))
     const scoringMode = gs.multipleAnswersScoringMode || question.scoringMode || 'all_correct'
 
     if (scoringMode === 'partial') {
-      const correctCount = studentSelected.filter(s => correctSet.has(s.toLowerCase())).length
-      const wrongCount = studentSelected.filter(s => !correctSet.has(s.toLowerCase())).length
+      const correctCount = studentSelected.filter(s => correctSet.has(norm(s))).length
+      const wrongCount = studentSelected.filter(s => !correctSet.has(norm(s))).length
       const totalChoices = opts.length || 4 // 선택지 총 수 (formula_scoring용)
       const penaltyMethod = gs.penaltyMethod || 'none'
 
@@ -1906,9 +1913,9 @@ export function autoGradeAnswer(question, answer, options = {}) {
       return Math.round((correctCount / correctTexts.length) * question.points * 2) / 2
     } else {
       // all_correct: 정답 전체 선택 + 오답 미포함 시 만점, 그 외 0점
-      const studentSet = new Set(studentSelected.map(s => s.toLowerCase()))
-      const allCorrect = correctTexts.every(c => studentSet.has(c.toLowerCase()))
-      const noWrong   = studentSelected.every(s => correctSet.has(s.toLowerCase()))
+      const studentSet = new Set(studentSelected.map(norm))
+      const allCorrect = correctTexts.every(c => studentSet.has(norm(c)))
+      const noWrong   = studentSelected.every(s => correctSet.has(norm(s)))
       return (allCorrect && noWrong) ? question.points : 0
     }
   }
@@ -1936,9 +1943,8 @@ export function autoGradeAnswer(question, answer, options = {}) {
   const correct = correctMap?.[question.id]
   if (!correct) return null // 수동채점 필요
   const gs = _getGlobalSettings()
-  const isCorrect = gs.caseSensitive
-    ? correct.some(c => String(answer).trim() === c.trim())
-    : correct.some(c => String(answer).trim().toLowerCase() === c.toLowerCase().trim())
+  const a = _normalizeAnswer(answer, gs)
+  const isCorrect = correct.some(c => a === _normalizeAnswer(c, gs))
   return isCorrect ? question.points : 0
 }
 
@@ -1984,9 +1990,8 @@ export function isAnswerCorrect(answer, questionId) {
   const correct = correctMap?.[questionId]
   if (!correct) return null
   const gs = _getGlobalSettings()
-  return gs.caseSensitive
-    ? correct.some(c => String(answer).includes(c))
-    : correct.some(c => String(answer).toLowerCase().includes(c.toLowerCase()))
+  const a = _normalizeAnswer(answer, gs)
+  return correct.some(c => a.includes(_normalizeAnswer(c, gs)))
 }
 
 // ── 문제은행 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──

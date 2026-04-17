@@ -103,7 +103,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col p-0">
 
         {/* 헤더 */}
         <DialogHeader className="p-4 pb-3 shrink-0">

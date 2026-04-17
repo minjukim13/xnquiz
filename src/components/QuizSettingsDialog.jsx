@@ -12,6 +12,7 @@ const DEFAULTS = {
   multipleAnswersScoringMode: 'all_correct',
   penaltyMethod: 'none',
   caseSensitive: false,
+  whitespaceSensitive: false,
 }
 
 export function getGlobalSettings() {
@@ -79,7 +80,7 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>퀴즈 전역 설정</DialogTitle>
           <p className="text-xs text-muted-foreground">이 설정은 모든 퀴즈에 공통으로 적용됩니다.</p>
@@ -144,6 +145,25 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
                 <span>"Answer"와 "answer"를 다른 답으로 처리합니다. 학생 혼란 방지를 위해 퀴즈 안내사항에 명시를 권장합니다.</span>
               </div>
             )}
+
+            <div className="pt-3 mt-1 border-t border-slate-100">
+              <SettingsToggle
+                checked={local.whitespaceSensitive}
+                onChange={v => set('whitespaceSensitive', v)}
+                label="띄어쓰기 구분"
+                description="단답형/빈칸 채우기 등 자동채점 시 띄어쓰기를 구분하여 정답을 판정합니다"
+              />
+              {!local.whitespaceSensitive && (
+                <p className="text-xs text-muted-foreground pl-1 mt-2">
+                  현재: "key word"와 "keyword"를 동일한 정답으로 처리합니다.
+                </p>
+              )}
+              {local.whitespaceSensitive && (
+                <div className="flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600 mt-2">
+                  <span>"key word"와 "keyword"를 다른 답으로 처리합니다. 학생 혼란 방지를 위해 퀴즈 안내사항에 명시를 권장합니다.</span>
+                </div>
+              )}
+            </div>
           </SettingsSection>
         </div>
 
