@@ -535,11 +535,12 @@ function DraftSpecs({ quiz }) {
 
 
 function ActiveStats({ quiz }) {
-  const newAttempts = getStudentAttempts(quiz.id)
-  const quizStudents = getQuizStudents(quiz.id)
-  const submitted = getEffectiveSubmittedCount(quiz, quizStudents) + newAttempts.length
-  const submitRate = quiz.totalStudents > 0 ? Math.round((submitted / quiz.totalStudents) * 100) : 0
-  const unsubmitted = Math.max(0, quiz.totalStudents - submitted)
+  // 집계값(submitted · totalStudents · avgScore) 은 listQuizzes 응답에서 서버/mock 이 제공
+  // — 프론트에서 재계산하면 mock 학생 배열(120명 등) 과 api totalStudents(45) 가 섞여 왜곡됨
+  const submitted = quiz.submitted ?? 0
+  const totalStudents = quiz.totalStudents ?? 0
+  const submitRate = totalStudents > 0 ? Math.round((submitted / totalStudents) * 100) : 0
+  const unsubmitted = Math.max(0, totalStudents - submitted)
   const isClosed = quiz.status === 'closed' || quiz.status === 'grading'
 
   const cols = [
@@ -618,7 +619,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
             />
           </div>
           {filteredCourses.length === 0 && (
-            <p className="text-xs text-center py-4 text-muted-foreground">검색 결과가 없습니다</p>
+            <p className="text-sm text-center py-4 text-muted-foreground">검색 결과가 없습니다</p>
           )}
           {filteredCourses.map(course => {
             const isCurrent = course.name === CURRENT_COURSE
@@ -837,7 +838,18 @@ function StudentQuizList() {
   const [filterSession, setFilterSession] = useState('all')
   const [sortKey, setSortKey] = useState('recent')
 
-  const allQuizzes = mockQuizzes.filter(q => q.status !== 'draft' && q.visible !== false)
+  // 데이터 레이어 경유 — api 모드에선 서버가 visible + 수강 과목 필터링까지 수행
+  const [allQuizzes, setAllQuizzes] = useState([])
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      const rows = await listQuizzes().catch(() => [])
+      if (!mounted) return
+      // 학생 뷰는 draft 제외 + visible !== false (api 모드는 서버에서 이미 처리되지만 mock 모드 호환)
+      setAllQuizzes(rows.filter(q => q.status !== 'draft' && q.visible !== false))
+    })()
+    return () => { mounted = false }
+  }, [])
 
   const filteredAll = useMemo(
     () => sortQuizzes(applyWeekSessionFilter(allQuizzes, filterWeek, filterSession), sortKey),

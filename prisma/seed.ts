@@ -13,7 +13,7 @@
 
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
-import { PrismaNeon } from '@prisma/adapter-neon'
+import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
 
 const connectionString = process.env.DATABASE_URL
@@ -21,7 +21,7 @@ if (!connectionString) {
   throw new Error('[seed] DATABASE_URL is not set — .env 확인')
 }
 
-const adapter = new PrismaNeon({ connectionString })
+const adapter = new PrismaPg({ connectionString })
 const prisma = new PrismaClient({ adapter })
 const PASSWORD_PLAIN = 'xnquiz1234!'
 

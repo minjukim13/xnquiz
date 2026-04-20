@@ -2,7 +2,7 @@
 // Prisma 7 + Neon 어댑터 — Vercel Serverless 환경 최적화
 // 핫-리로드 시 connection pool 폭증 방지
 import { PrismaClient } from '@prisma/client'
-import { PrismaNeon } from '@prisma/adapter-neon'
+import { PrismaPg } from '@prisma/adapter-pg'
 
 declare global {
   // eslint-disable-next-line no-var
@@ -15,7 +15,7 @@ function createPrismaClient() {
     throw new Error('[prisma] DATABASE_URL is not set')
   }
 
-  const adapter = new PrismaNeon({ connectionString })
+  const adapter = new PrismaPg({ connectionString })
 
   return new PrismaClient({
     adapter,
