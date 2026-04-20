@@ -2,8 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Send, Eye, X, Lock } from 'lucide-react'
 import Layout from '../components/Layout'
-import { mockQuizzes, getQuizQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
+import { mockQuizzes, getQuizQuestions as mockGetQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
+import { getQuiz, getQuizQuestions, startAttempt, saveAnswers, submitAttempt } from '@/lib/data'
 import { useRole } from '../context/role'
+
+const DATA_MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 import { AlertDialog, ConfirmDialog } from '../components/ConfirmDialog'
 import { isLateSubmission } from '../utils/deadlineUtils'
 import { cn } from '@/lib/utils'
@@ -87,8 +90,27 @@ export default function QuizAttempt() {
   const isPreview = searchParams.get('preview') === 'true'
   const { role, currentStudent } = useRole()
 
-  const quiz = mockQuizzes.find(q => q.id === id)
-  const questions = getQuizQuestions(id)
+  const [quiz, setQuiz] = useState(() => mockQuizzes.find(q => q.id === id) ?? null)
+  const [questions, setQuestions] = useState(() => DATA_MODE === 'mock' ? mockGetQuestions(id) : [])
+  const [loaded, setLoaded] = useState(DATA_MODE === 'mock')
+  const [apiAttemptId, setApiAttemptId] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const [q, qs] = await Promise.all([getQuiz(id), getQuizQuestions(id)])
+        if (!mounted) return
+        if (q) setQuiz(q)
+        setQuestions(qs)
+      } catch (err) {
+        console.error('[QuizAttempt] load 실패', err)
+      } finally {
+        if (mounted) setLoaded(true)
+      }
+    })()
+    return () => { mounted = false }
+  }, [id])
 
   const noTimeLimit = quiz?.timeLimit === 0 || isPreview
   const isLate = !isPreview && isLateSubmission(quiz)
@@ -255,18 +277,64 @@ export default function QuizAttempt() {
     }
 
     if (!isPreview) {
-      try {
-        saveStudentAttempt(id, attempt)
-      } catch (err) {
-        console.error('[xnquiz] 제출 저장 실패:', err)
-        setAlertDialog({ title: '저장 실패', message: '응시 기록 저장에 실패했습니다.\n브라우저 저장 공간을 확인해주세요.', variant: 'error' })
+      if (DATA_MODE === 'api') {
+        ;(async () => {
+          try {
+            let attemptId = apiAttemptId
+            if (!attemptId) {
+              const created = await startAttempt(id)
+              attemptId = created.id
+              setApiAttemptId(attemptId)
+            }
+            const answerArr = Object.entries(answers)
+              .filter(([, v]) => v !== undefined)
+              .map(([questionId, response]) => ({ questionId, response }))
+            if (answerArr.length > 0) {
+              await saveAnswers(attemptId, answerArr)
+            }
+            const server = await submitAttempt(attemptId)
+            // 서버 채점 결과로 결과 화면 재동기화 (DB 권위값 반영)
+            const serverAutoScores = {}
+            let serverManualPending = 0
+            for (const a of server.answers ?? []) {
+              if (a.autoScore !== null && a.autoScore !== undefined) {
+                serverAutoScores[a.questionId] = a.autoScore
+              } else {
+                serverManualPending++
+              }
+            }
+            setResult(prev => ({
+              ...prev,
+              id: server.id,
+              autoScores: serverAutoScores,
+              totalAutoScore: server.autoScore ?? 0,
+              manualPending: serverManualPending,
+              submittedAt: server.submittedAt
+                ? new Date(server.submittedAt).toLocaleString('ko-KR')
+                : prev.submittedAt,
+              isLate: !!server.isLate,
+              graded: !!server.graded,
+              totalScore: server.totalScore ?? null,
+            }))
+          } catch (err) {
+            console.error('[QuizAttempt] api 제출 실패:', err)
+            setAlertDialog({ title: '제출 실패', message: err?.message ?? '서버에 제출하지 못했습니다.', variant: 'error' })
+          }
+        })()
+      } else {
+        try {
+          saveStudentAttempt(id, attempt)
+        } catch (err) {
+          console.error('[xnquiz] 제출 저장 실패:', err)
+          setAlertDialog({ title: '저장 실패', message: '응시 기록 저장에 실패했습니다.\n브라우저 저장 공간을 확인해주세요.', variant: 'error' })
+        }
       }
       clearAttemptSession(sessionKey)
       dirtyRef.current = false
       if (activityKey) appendActivityLog(activityKey, { type: ACTIVITY_TYPES.SUBMIT, auto })
     }
     setResult(attempt)
-  }, [answers, questions, id, currentStudent, timeRemaining, submitted, isPreview, isLate, sessionKey, activityKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [answers, questions, id, currentStudent, timeRemaining, submitted, isPreview, isLate, sessionKey, activityKey, apiAttemptId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isPreview && role !== 'student') return <Navigate to="/" replace />
 
@@ -343,6 +411,16 @@ export default function QuizAttempt() {
         </Layout>
       )
     }
+  }
+
+  if (!loaded) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto py-16 text-center">
+          <p className="text-sm text-muted-foreground">불러오는 중</p>
+        </div>
+      </Layout>
+    )
   }
 
   if (!quiz || questions.length === 0) {

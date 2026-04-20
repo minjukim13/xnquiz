@@ -43,25 +43,34 @@ export default function QuestionBankList() {
 
   const getQuestionCount = (bankId) => getBankQuestions(bankId).length
 
-  const executeCopyBank = (bank) => {
-    // eslint-disable-next-line react-hooks/purity -- event-handler-only ID generation
-    const newId = `bank_copy_${Date.now()}`
+  const executeCopyBank = async (bank) => {
     const newName = `${bank.name}-사본`
-    addBank({
-      id: newId,
-      name: newName,
-      difficulty: bank.difficulty,
-      course: bank.course,
-      updatedAt: new Date().toISOString().split('T')[0],
-      usedInQuizIds: [],
-    })
-    const bankQs = getBankQuestions(bank.id)
-    addQuestions(bankQs.map(q => ({
-      ...q,
-      id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      bankId: newId,
-    })))
-    showToast(`'${newName}' 문제은행이 생성되었습니다`, newId)
+    try {
+      const created = await addBank({
+        // eslint-disable-next-line react-hooks/purity -- event-handler-only ID generation
+        id: `bank_copy_${Date.now()}`,
+        name: newName,
+        difficulty: bank.difficulty,
+        course: bank.course,
+        courseCode: bank.courseCode,
+        updatedAt: new Date().toISOString().split('T')[0],
+        usedInQuizIds: [],
+      })
+      const bankId = created?.id
+      if (!bankId) throw new Error('생성된 은행 id 를 받지 못했습니다')
+      const bankQs = getBankQuestions(bank.id)
+      if (bankQs.length > 0) {
+        await addQuestions(bankQs.map(q => ({
+          ...q,
+          id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          bankId,
+        })))
+      }
+      showToast(`'${newName}' 문제은행이 생성되었습니다`, bankId)
+    } catch (err) {
+      console.error('[QuestionBankList] 복사 실패', err)
+      showToast('복사 중 오류가 발생했습니다')
+    }
   }
 
   return (
@@ -204,16 +213,21 @@ export default function QuestionBankList() {
       {showAddModal && (
         <AddBankModal
           onClose={() => setShowAddModal(false)}
-          onAdd={(name, difficulty) => {
-            addBank({
-              id: `bank_custom_${Date.now()}`,
-              name,
-              difficulty,
-              course: CURRENT_COURSE,
-              updatedAt: new Date().toISOString().split('T')[0],
-              usedInQuizIds: [],
-            })
-            setShowAddModal(false)
+          onAdd={async (name, difficulty) => {
+            try {
+              await addBank({
+                id: `bank_custom_${Date.now()}`,
+                name,
+                difficulty,
+                course: CURRENT_COURSE,
+                updatedAt: new Date().toISOString().split('T')[0],
+                usedInQuizIds: [],
+              })
+              setShowAddModal(false)
+            } catch (err) {
+              console.error('[QuestionBankList] 은행 생성 실패', err)
+              showToast('생성 중 오류가 발생했습니다')
+            }
           }}
         />
       )}
@@ -224,7 +238,16 @@ export default function QuestionBankList() {
           message={`은행에 포함된 문항 ${getQuestionCount(deleteTarget.id)}개가 함께 삭제되며 복구할 수 없습니다.`}
           confirmLabel="삭제"
           confirmDanger
-          onConfirm={() => { deleteBank(deleteTarget.id); setDeleteTarget(null) }}
+          onConfirm={async () => {
+            const target = deleteTarget
+            setDeleteTarget(null)
+            try {
+              await deleteBank(target.id)
+            } catch (err) {
+              console.error('[QuestionBankList] 삭제 실패', err)
+              showToast('삭제 중 오류가 발생했습니다')
+            }
+          }}
           onCancel={() => setDeleteTarget(null)}
         />
       )}
@@ -232,31 +255,37 @@ export default function QuestionBankList() {
       {showCopyModal && (
         <ImportModal
           onClose={() => setShowCopyModal(false)}
-          onImport={(selectedQs, bankName, difficulty, existingBankId) => {
-            let bankId, toastName
-            if (existingBankId) {
-              bankId = existingBankId
-              toastName = banks.find(b => b.id === existingBankId)?.name || '문제은행'
-            } else {
-              bankId = `bank_import_${Date.now()}`
-              toastName = bankName
-              addBank({
-                id: bankId,
-                name: bankName,
-                difficulty: difficulty || '',
-                course: CURRENT_COURSE,
-                updatedAt: new Date().toISOString().split('T')[0],
-                usedInQuizIds: [],
-              })
+          onImport={async (selectedQs, bankName, difficulty, existingBankId) => {
+            try {
+              let bankId, toastName
+              if (existingBankId) {
+                bankId = existingBankId
+                toastName = banks.find(b => b.id === existingBankId)?.name || '문제은행'
+              } else {
+                const created = await addBank({
+                  id: `bank_import_${Date.now()}`,
+                  name: bankName,
+                  difficulty: difficulty || '',
+                  course: CURRENT_COURSE,
+                  updatedAt: new Date().toISOString().split('T')[0],
+                  usedInQuizIds: [],
+                })
+                bankId = created?.id
+                toastName = bankName
+                if (!bankId) throw new Error('생성된 은행 id 를 받지 못했습니다')
+              }
+              await addQuestions(selectedQs.map(q => ({
+                ...q,
+                _sourceBankName: undefined,
+                id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                bankId,
+              })))
+              setShowCopyModal(false)
+              showToast(`'${toastName}' 문제은행에 ${selectedQs.length}개 문항 가져오기 완료`, bankId)
+            } catch (err) {
+              console.error('[QuestionBankList] 가져오기 실패', err)
+              showToast('가져오기 중 오류가 발생했습니다')
             }
-            addQuestions(selectedQs.map(q => ({
-              ...q,
-              _sourceBankName: undefined,
-              id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-              bankId,
-            })))
-            setShowCopyModal(false)
-            showToast(`'${toastName}' 문제은행에 ${selectedQs.length}개 문항 가져오기 완료`, bankId)
           }}
         />
       )}
@@ -264,30 +293,36 @@ export default function QuestionBankList() {
       {showExportModal && (
         <ExportToBankModal
           onClose={() => setShowExportModal(false)}
-          onExport={(questions, targetCourse, targetBankId, newBankName, difficulty) => {
-            let bankId = targetBankId
-            let bankName = newBankName
-            if (targetBankId === '__new__') {
-              bankId = `bank_export_${Date.now()}`
-              addBank({
-                id: bankId,
-                name: bankName,
-                difficulty: difficulty || '',
-                course: targetCourse,
-                updatedAt: new Date().toISOString().split('T')[0],
-                usedInQuizIds: [],
-              })
-            } else {
-              bankName = banks.find(b => b.id === bankId)?.name || bankName
+          onExport={async (questions, targetCourse, targetBankId, newBankName, difficulty) => {
+            try {
+              let bankId = targetBankId
+              let bankName = newBankName
+              if (targetBankId === '__new__') {
+                const created = await addBank({
+                  id: `bank_export_${Date.now()}`,
+                  name: bankName,
+                  difficulty: difficulty || '',
+                  course: targetCourse,
+                  updatedAt: new Date().toISOString().split('T')[0],
+                  usedInQuizIds: [],
+                })
+                bankId = created?.id
+                if (!bankId) throw new Error('생성된 은행 id 를 받지 못했습니다')
+              } else {
+                bankName = banks.find(b => b.id === bankId)?.name || bankName
+              }
+              await addQuestions(questions.map(q => ({
+                ...q,
+                _sourceBankName: undefined,
+                id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                bankId,
+              })))
+              setShowExportModal(false)
+              showToast(`'${bankName}' 문제은행에 ${questions.length}개 문항을 내보냈습니다`, bankId)
+            } catch (err) {
+              console.error('[QuestionBankList] 내보내기 실패', err)
+              showToast('내보내기 중 오류가 발생했습니다')
             }
-            addQuestions(questions.map(q => ({
-              ...q,
-              _sourceBankName: undefined,
-              id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-              bankId,
-            })))
-            setShowExportModal(false)
-            showToast(`'${bankName}' 문제은행에 ${questions.length}개 문항을 내보냈습니다`, bankId)
           }}
         />
       )}

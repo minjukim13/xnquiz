@@ -43,6 +43,7 @@ export async function api(path, options = {}) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.error || `HTTP ${res.status}`)
   }
+  if (res.status === 204) return null
   return res.json()
 }
 

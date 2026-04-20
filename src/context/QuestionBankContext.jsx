@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react'
 import { MOCK_BANKS, MOCK_BANK_QUESTIONS, QUIZ_TYPES } from '../data/mockData'
 import { QuestionBankContext } from './questionBank'
-import { listBanks, getBankQuestions as apiGetBankQuestions } from '@/lib/data'
+import {
+  listBanks,
+  getBankQuestions as apiGetBankQuestions,
+  createBank as apiCreateBank,
+  updateBank as apiUpdateBank,
+  deleteBank as apiDeleteBank,
+  createBankQuestion as apiCreateBankQuestion,
+  updateBankQuestion as apiUpdateBankQuestion,
+  deleteBankQuestion as apiDeleteBankQuestion,
+} from '@/lib/data'
 
 const LS_BANKS_KEY = 'xnq_banks_v3'
 const LS_QUESTIONS_KEY = 'xnq_bank_questions_v4'
@@ -59,24 +68,72 @@ export function QuestionBankProvider({ children }) {
     localStorage.setItem(LS_QUESTIONS_KEY, JSON.stringify(questions))
   }, [questions])
 
-  const addBank = (bank) => setBanks(prev => [...prev, bank])
+  const addBank = async (bank) => {
+    if (MODE === 'api') {
+      const created = await apiCreateBank({
+        name: bank.name,
+        courseCode: bank.courseCode || (bank.course ? String(bank.course).split(/\s+/)[0].toUpperCase() : ''),
+        difficulty: bank.difficulty || null,
+      })
+      setBanks(prev => [...prev, created])
+      return created
+    }
+    setBanks(prev => [...prev, bank])
+    return bank
+  }
 
-  const updateBank = (id, updated) =>
+  const updateBank = async (id, updated) => {
+    if (MODE === 'api') {
+      const patched = await apiUpdateBank(id, {
+        ...(updated.name !== undefined ? { name: updated.name } : {}),
+        ...(updated.difficulty !== undefined ? { difficulty: updated.difficulty || null } : {}),
+        ...(updated.courseCode ? { courseCode: updated.courseCode } : {}),
+      })
+      setBanks(prev => prev.map(b => b.id === id ? { ...b, ...patched } : b))
+      return patched
+    }
     setBanks(prev => prev.map(b => b.id === id ? { ...b, ...updated } : b))
+  }
 
-  const deleteBank = (bankId) => {
+  const deleteBank = async (bankId) => {
+    if (MODE === 'api') {
+      await apiDeleteBank(bankId)
+    }
     setBanks(prev => prev.filter(b => b.id !== bankId))
     setQuestions(prev => prev.filter(q => q.bankId !== bankId))
   }
 
-  const addQuestions = (newQuestions) =>
+  const addQuestions = async (newQuestions) => {
+    if (MODE === 'api') {
+      const created = []
+      for (const q of newQuestions) {
+        const { id: _id, bankId, ...rest } = q  // eslint-disable-line no-unused-vars
+        const saved = await apiCreateBankQuestion(bankId, rest)
+        created.push({ ...saved, bankId })
+      }
+      setQuestions(prev => [...prev, ...created])
+      return created
+    }
     setQuestions(prev => [...prev, ...newQuestions])
+    return newQuestions
+  }
 
-  const updateQuestion = (id, updated) =>
+  const updateQuestion = async (id, updated) => {
+    if (MODE === 'api') {
+      const { bankId: _b, id: _id, ...body } = updated  // eslint-disable-line no-unused-vars
+      const patched = await apiUpdateBankQuestion(id, body)
+      setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...patched } : q))
+      return patched
+    }
     setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...updated } : q))
+  }
 
-  const deleteQuestion = (id) =>
+  const deleteQuestion = async (id) => {
+    if (MODE === 'api') {
+      await apiDeleteBankQuestion(id)
+    }
     setQuestions(prev => prev.filter(q => q.id !== id))
+  }
 
   const reorderQuestions = (bankId, fromIndex, toIndex) => {
     setQuestions(prev => {

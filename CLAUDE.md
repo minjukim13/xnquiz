@@ -15,6 +15,39 @@
 - 페이지 단위 lazy loading + Suspense 유지
 - Tailwind v4: `@apply`는 `@layer utilities` 안에서만 사용
 
+## 데이터 소스 전환 (VITE_DATA_SOURCE)
+
+프론트는 `mock`과 `api` 두 모드를 지원. 데이터 레이어(`src/lib/data/*.js`)가 자동 분기.
+
+### mock → api 전환
+
+1. `.env.local` 에 `VITE_DATA_SOURCE=api` 설정
+2. `vercel dev` 가 `http://localhost:3000` 에서 API 제공 중인지 확인 (`curl /api/health`)
+3. Vite 재시작 (`npm run dev`)
+4. `RoleToggle` 로 교수자/학생 전환 시 자동으로 `dev-login` 호출 → 토큰 교체
+5. 회귀 체크리스트:
+   - 퀴즈 생성/편집/삭제/복사/가져오기
+   - 문항 추가/수정/삭제 (setQuizQuestions 는 전체 삭제 후 재생성 방식)
+   - 문제은행 생성/수정/삭제, 은행 문항 CRUD
+   - 학생 응시: 시작 → 답안 저장 → 제출 (서버 채점 결과로 결과 화면 재동기화됨)
+   - 채점 대시보드 조회
+
+### api → mock 롤백
+
+1. `.env.local` 에서 `VITE_DATA_SOURCE` 를 `mock` 으로 변경 (또는 키 삭제)
+2. **브라우저 localStorage 초기화 필수**: mock 모드는 아래 키를 로컬 스토리지에 영속화하므로 기존 api 모드에서 쌓인 데이터와 섞이면 UI 가 비정상 동작할 수 있음
+   - `xnq_banks_v3` / `xnq_bank_questions_v4` (문제은행)
+   - `xnq_toast` / `xnq_questions_modified` / `xnq_regrade_log` / `xnq_results_viewed`
+   - `xnq_attempt_session_*` / `xnq_activity_log_*` (응시 자동저장)
+   - DevTools → Application → Local Storage 에서 `xnq_` 로 시작하는 키 일괄 삭제
+3. Vite 재시작
+
+### 제약 사항 (api 모드)
+
+- `recalculateScorePolicy` / `regradeQuestionWithOption` 은 mock 전용. api 모드에서는 무시됨 (서버 재채점 엔드포인트는 추후 구현)
+- `saveStudentAttempt` 기반 로컬 응시 이력은 mock 전용. api 모드에서는 `POST /api/attempts` → `PUT /answers` → `POST /submit` 플로우로 서버에 기록
+- 실데이터 금지 원칙은 mock/api 모두 공통 (시드의 `DEMO_NAMES`, `*@xn.test` 이메일)
+
 ## Design System (Toss Style)
 
 ### 색상: 반드시 시맨틱 Tailwind 클래스 사용, hex 하드코딩 금지
