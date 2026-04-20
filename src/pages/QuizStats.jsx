@@ -381,7 +381,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             </span>
           </div>
           {graded.length === 0 ? (
-            <div className="flex items-center justify-center h-40 text-xs text-muted-foreground/40">채점 완료된 학생이 없습니다</div>
+            <div className="flex items-center justify-center h-40 text-sm text-muted-foreground/40">채점 완료된 학생이 없습니다</div>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={distData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>

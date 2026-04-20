@@ -47,7 +47,7 @@ function StatsTab({ question, students }) {
         </div>
         {scoredStudents.length === 0 ? (
           <div className="flex items-center justify-center h-28 rounded bg-slate-50 border border-dashed border-slate-200">
-            <span className="text-xs text-muted-foreground">채점 완료된 학생이 없습니다</span>
+            <span className="text-sm text-muted-foreground">채점 완료된 학생이 없습니다</span>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={150}>

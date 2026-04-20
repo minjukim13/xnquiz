@@ -1151,6 +1151,10 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
 
   const [showRegradeOptions, setShowRegradeOptions] = useState(false)
   const [pendingQuestion, setPendingQuestion] = useState(null)
+  const [feedbackOpen, setFeedbackOpen] = useState(() => {
+    if (!isEditMode) return false
+    return !!(initialQuestion?.correct_comments || initialQuestion?.incorrect_comments || initialQuestion?.neutral_comments)
+  })
 
   const handleAdd = () => {
     if (!isValid(selectedType, form)) return
@@ -1313,13 +1317,23 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
             {/* 응답 피드백 — text 유형은 숨김 */}
             {selectedType !== 'text' && (
               <div className="border-t border-border pt-4">
-                <div className="mb-2.5">
-                  <label className="text-[15px] font-medium text-foreground">응답 피드백 (선택)</label>
-                  <p className="text-xs mt-0.5 text-muted-foreground">
-                    학생에게 결과 공개 시 함께 표시됩니다. 결과 비공개 설정이면 노출되지 않습니다.
-                  </p>
-                </div>
-                <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setFeedbackOpen(prev => !prev)}
+                  className="w-full flex items-center justify-between text-left"
+                  aria-expanded={feedbackOpen}
+                >
+                  <div>
+                    <span className="text-[15px] font-medium text-foreground">응답 피드백</span>
+                    <p className="text-xs mt-0.5 text-muted-foreground">
+                      학생에게 결과 공개 시 함께 표시됩니다. 결과 비공개 설정이면 노출되지 않습니다.
+                    </p>
+                  </div>
+                  <ChevronDown
+                    className={cn('w-4 h-4 text-muted-foreground transition-transform shrink-0 ml-3', feedbackOpen && 'rotate-180')}
+                  />
+                </button>
+                {feedbackOpen && <div className="space-y-3 mt-3">
                   <div>
                     <label className="text-[13px] font-medium block mb-1 text-emerald-700">정답 시</label>
                     <textarea
@@ -1350,7 +1364,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                       className="w-full bg-white text-[14px] px-2.5 py-2 rounded-lg focus:outline-none resize-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
                     />
                   </div>
-                </div>
+                </div>}
               </div>
             )}
 

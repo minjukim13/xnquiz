@@ -233,7 +233,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                 </div>
 
                 {currentBanks.length === 0 ? (
-                  <p className="text-xs py-3 text-center text-muted-foreground">이 과목에 등록된 문제은행이 없습니다</p>
+                  <p className="text-sm py-6 text-center text-muted-foreground">이 과목에 등록된 문제은행이 없습니다</p>
                 ) : (
                   <div>
                     {currentBanks.map((b, idx) => {

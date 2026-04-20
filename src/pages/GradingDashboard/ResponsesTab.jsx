@@ -204,7 +204,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
       {/* 행 목록 */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {visible.length === 0 ? (
-          <div className="flex items-center justify-center h-24 text-xs text-muted-foreground">검색 결과가 없습니다</div>
+          <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">검색 결과가 없습니다</div>
         ) : (
           visible.map(s => (
             <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} isChanged={changedStudentIds?.has(s.id)} />
