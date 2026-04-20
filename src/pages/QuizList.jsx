@@ -6,6 +6,7 @@ import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions, addQuiz, removeQuiz } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts, getQuizStudents } from '../data/mockData'
+import { listQuizzes } from '@/lib/data'
 import { getEffectiveSubmittedCount } from '@/utils/deadlineUtils'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
@@ -158,7 +159,27 @@ export default function QuizList() {
 
 // ─────────────────────────────── 교수자 뷰 ───────────────────────────────
 function InstructorQuizList() {
-  const [quizzes, setQuizzes] = useState(() => mockQuizzes.filter(q => q.course === CURRENT_COURSE))
+  const [quizzes, setQuizzes] = useState([])
+
+  // 데이터 레이어 경유 — mock/api 모드 자동 분기
+  const reload = async () => {
+    try {
+      const all = await listQuizzes()
+      setQuizzes(all.filter(q => q.course === CURRENT_COURSE))
+    } catch (err) {
+      console.error('[QuizList] listQuizzes 실패', err)
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      const all = await listQuizzes().catch(() => [])
+      if (mounted) setQuizzes(all.filter(q => q.course === CURRENT_COURSE))
+    })()
+    return () => { mounted = false }
+  }, [])
+
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
   const [sortKey, setSortKey] = useState('recent')
@@ -235,7 +256,7 @@ function InstructorQuizList() {
       cloneQuestions(q.id, newId)
       return copy
     })
-    setQuizzes(prev => [...imported, ...prev])
+    reload()
     setShowImportModal(false)
     const msg = imported.length === 1
       ? `'${imported[0].title}' 가져오기 완료 — 목록에서 편집하세요`
@@ -250,7 +271,7 @@ function InstructorQuizList() {
   const confirmDeleteQuiz = () => {
     if (!deleteConfirm) return
     removeQuiz(deleteConfirm.id)
-    setQuizzes(prev => prev.filter(q => q.id !== deleteConfirm.id))
+    reload()
     showToast(`'${deleteConfirm.title}' 퀴즈가 삭제되었습니다`)
     setDeleteConfirm(null)
   }
