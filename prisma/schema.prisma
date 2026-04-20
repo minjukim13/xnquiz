@@ -1,6 +1,7 @@
 // XN Quizzes — Prisma schema
 // 데이터 소스: Neon PostgreSQL
 // 프론트엔드 mockData.js(src/data/mockData.js) 기준 모델 반영
+// 과목 식별자 원칙: 과목코드(code)가 단독 PK/FK. 과목명(name)은 중복 가능.
 
 generator client {
   provider      = "prisma-client-js"
@@ -116,9 +117,8 @@ model User {
 // ─────────────────────────────────────────────────────────────
 
 model Course {
-  id        String   @id @default(cuid())
-  code      String   @unique // 예: "CS301"
-  name      String // "CS301 데이터베이스"
+  code      String   @id // PK = 과목코드, 예: "CS301"
+  name      String       // 과목명 (중복 허용), 예: "데이터베이스"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -128,17 +128,17 @@ model Course {
 }
 
 model Enrollment {
-  id       String         @id @default(cuid())
-  userId   String
-  courseId String
-  role     EnrollmentRole @default(STUDENT)
-  joinedAt DateTime       @default(now())
+  id         String         @id @default(cuid())
+  userId     String
+  courseCode String
+  role       EnrollmentRole @default(STUDENT)
+  joinedAt   DateTime       @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseCode], references: [code], onDelete: Cascade)
 
-  @@unique([userId, courseId])
-  @@index([courseId])
+  @@unique([userId, courseCode])
+  @@index([courseCode])
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ model Quiz {
   id          String     @id @default(cuid())
   title       String
   description String?
-  courseId    String
+  courseCode  String
   createdById String
 
   status  QuizStatus @default(draft)
@@ -187,12 +187,12 @@ model Quiz {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course    Course    @relation(fields: [courseCode], references: [code], onDelete: Cascade)
   createdBy User      @relation("QuizCreatedBy", fields: [createdById], references: [id])
   questions Question[]
   attempts  Attempt[]
 
-  @@index([courseId])
+  @@index([courseCode])
   @@index([status])
   @@index([createdById])
 }
@@ -250,18 +250,18 @@ model Question {
 model QuestionBank {
   id          String          @id @default(cuid())
   name        String
-  courseId    String
+  courseCode  String
   createdById String
   difficulty  BankDifficulty? // null = 혼합
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course    Course         @relation(fields: [courseCode], references: [code], onDelete: Cascade)
   createdBy User           @relation("BankCreatedBy", fields: [createdById], references: [id])
   questions BankQuestion[]
 
-  @@index([courseId])
+  @@index([courseCode])
 }
 
 model BankQuestion {

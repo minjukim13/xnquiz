@@ -43,20 +43,19 @@ CREATE TABLE "User" (
 
 -- CreateTable
 CREATE TABLE "Course" (
-    "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Course_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Course_pkey" PRIMARY KEY ("code")
 );
 
 -- CreateTable
 CREATE TABLE "Enrollment" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "courseId" TEXT NOT NULL,
+    "courseCode" TEXT NOT NULL,
     "role" "EnrollmentRole" NOT NULL DEFAULT 'STUDENT',
     "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -68,7 +67,7 @@ CREATE TABLE "Quiz" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT,
-    "courseId" TEXT NOT NULL,
+    "courseCode" TEXT NOT NULL,
     "createdById" TEXT NOT NULL,
     "status" "QuizStatus" NOT NULL DEFAULT 'draft',
     "visible" BOOLEAN NOT NULL DEFAULT false,
@@ -122,7 +121,7 @@ CREATE TABLE "Question" (
 CREATE TABLE "QuestionBank" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "courseId" TEXT NOT NULL,
+    "courseCode" TEXT NOT NULL,
     "createdById" TEXT NOT NULL,
     "difficulty" "BankDifficulty",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -198,16 +197,13 @@ CREATE UNIQUE INDEX "User_studentId_key" ON "User"("studentId");
 CREATE INDEX "User_role_idx" ON "User"("role");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Course_code_key" ON "Course"("code");
+CREATE INDEX "Enrollment_courseCode_idx" ON "Enrollment"("courseCode");
 
 -- CreateIndex
-CREATE INDEX "Enrollment_courseId_idx" ON "Enrollment"("courseId");
+CREATE UNIQUE INDEX "Enrollment_userId_courseCode_key" ON "Enrollment"("userId", "courseCode");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Enrollment_userId_courseId_key" ON "Enrollment"("userId", "courseId");
-
--- CreateIndex
-CREATE INDEX "Quiz_courseId_idx" ON "Quiz"("courseId");
+CREATE INDEX "Quiz_courseCode_idx" ON "Quiz"("courseCode");
 
 -- CreateIndex
 CREATE INDEX "Quiz_status_idx" ON "Quiz"("status");
@@ -222,7 +218,7 @@ CREATE INDEX "Question_quizId_idx" ON "Question"("quizId");
 CREATE UNIQUE INDEX "Question_quizId_order_key" ON "Question"("quizId", "order");
 
 -- CreateIndex
-CREATE INDEX "QuestionBank_courseId_idx" ON "QuestionBank"("courseId");
+CREATE INDEX "QuestionBank_courseCode_idx" ON "QuestionBank"("courseCode");
 
 -- CreateIndex
 CREATE INDEX "BankQuestion_bankId_idx" ON "BankQuestion"("bankId");
@@ -249,10 +245,10 @@ CREATE UNIQUE INDEX "Answer_attemptId_questionId_key" ON "Answer"("attemptId", "
 ALTER TABLE "Enrollment" ADD CONSTRAINT "Enrollment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Enrollment" ADD CONSTRAINT "Enrollment_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Enrollment" ADD CONSTRAINT "Enrollment_courseCode_fkey" FOREIGN KEY ("courseCode") REFERENCES "Course"("code") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Quiz" ADD CONSTRAINT "Quiz_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Quiz" ADD CONSTRAINT "Quiz_courseCode_fkey" FOREIGN KEY ("courseCode") REFERENCES "Course"("code") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Quiz" ADD CONSTRAINT "Quiz_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -261,7 +257,7 @@ ALTER TABLE "Quiz" ADD CONSTRAINT "Quiz_createdById_fkey" FOREIGN KEY ("createdB
 ALTER TABLE "Question" ADD CONSTRAINT "Question_quizId_fkey" FOREIGN KEY ("quizId") REFERENCES "Quiz"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "QuestionBank" ADD CONSTRAINT "QuestionBank_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "QuestionBank" ADD CONSTRAINT "QuestionBank_courseCode_fkey" FOREIGN KEY ("courseCode") REFERENCES "Course"("code") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "QuestionBank" ADD CONSTRAINT "QuestionBank_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -45,10 +45,10 @@ const DEMO_DEPARTMENTS = [
 const DEMO_YEARS = ['2021', '2022', '2023', '2024']
 
 const COURSES = [
-  { id: 'cs301', code: 'CS301', name: 'CS301 데이터베이스' },
-  { id: 'cs201', code: 'CS201', name: 'CS201 운영체제' },
-  { id: 'cs401', code: 'CS401', name: 'CS401 알고리즘' },
-  { id: 'cs102', code: 'CS102', name: 'CS102 자료구조' },
+  { code: 'CS301', name: '데이터베이스' },
+  { code: 'CS201', name: '운영체제' },
+  { code: 'CS401', name: '알고리즘' },
+  { code: 'CS102', name: '자료구조' },
 ]
 
 // ─────────────────────────────────────────────
@@ -179,15 +179,15 @@ async function createUsers() {
 
 async function createCoursesAndEnrollments() {
   for (const c of COURSES) {
-    await prisma.course.create({ data: { id: c.id, code: c.code, name: c.name } })
+    await prisma.course.create({ data: { code: c.code, name: c.name } })
     // 교수자 등록
     await prisma.enrollment.create({
-      data: { userId: 'prof1', courseId: c.id, role: 'PROFESSOR' },
+      data: { userId: 'prof1', courseCode: c.code, role: 'PROFESSOR' },
     })
     // 학생 45명 등록
     for (let i = 0; i < 45; i++) {
       await prisma.enrollment.create({
-        data: { userId: `s${i + 1}`, courseId: c.id, role: 'STUDENT' },
+        data: { userId: `s${i + 1}`, courseCode: c.code, role: 'STUDENT' },
       })
     }
   }
@@ -199,7 +199,7 @@ async function createCoursesAndEnrollments() {
 
 type QuizSeed = {
   id: string
-  courseId: string
+  courseCode: string
   title: string
   description?: string
   status: 'draft' | 'open' | 'closed' | 'grading'
@@ -225,7 +225,7 @@ type QuizSeed = {
 
 const QUIZZES: QuizSeed[] = [
   {
-    id: '1', courseId: 'cs301', title: '중간고사 - 데이터베이스 설계 및 SQL',
+    id: '1', courseCode: 'CS301', title: '중간고사 - 데이터베이스 설계 및 SQL',
     description: 'ERD 설계, SQL 쿼리 작성, 정규화 전 범위를 다룹니다. 오픈북 불가, 제한 시간 내 제출하세요.',
     status: 'grading', visible: true, hasFileUpload: true,
     startDate: '2026-04-03 09:00', dueDate: '2026-04-03 18:00', lockDate: '2026-04-30 23:59',
@@ -233,7 +233,7 @@ const QUIZZES: QuizSeed[] = [
     scoreRevealEnabled: false, scoreRevealScope: null, scoreRevealTiming: null,
   },
   {
-    id: '2', courseId: 'cs301', title: '1차 형성평가 - SQL 기초',
+    id: '2', courseCode: 'CS301', title: '1차 형성평가 - SQL 기초',
     description: 'SELECT, WHERE, JOIN 등 SQL 기초 구문을 다룹니다. 강의 3~4주차 내용 기반으로 출제됩니다.',
     status: 'closed', visible: true,
     startDate: '2026-03-24 09:00', dueDate: '2026-03-24 23:59', lockDate: '2026-04-30 23:59',
@@ -242,7 +242,7 @@ const QUIZZES: QuizSeed[] = [
     avgScore: 38.2,
   },
   {
-    id: '3', courseId: 'cs301', title: '주차별 퀴즈 4 - 인덱스와 쿼리 최적화',
+    id: '3', courseCode: 'CS301', title: '주차별 퀴즈 4 - 인덱스와 쿼리 최적화',
     status: 'open', visible: true,
     startDate: '2026-04-06 09:00', dueDate: '2026-04-09 23:59', lockDate: '2026-04-30 23:59',
     week: 4, session: 1, scorePolicy: '최고 점수 유지', allowAttempts: 3,
@@ -250,14 +250,14 @@ const QUIZZES: QuizSeed[] = [
     allowLateSubmit: true, lateSubmitDeadline: '2026-04-20 23:59',
   },
   {
-    id: '4', courseId: 'cs301', title: '기말고사 - 데이터베이스 심화',
+    id: '4', courseCode: 'CS301', title: '기말고사 - 데이터베이스 심화',
     status: 'draft', visible: false,
     startDate: '2026-06-15 09:00', dueDate: '2026-06-15 18:00', lockDate: '2026-07-15 23:59',
     week: 16, session: 1, timeLimit: 120, scorePolicy: '최고 점수 유지', allowAttempts: 1,
     scoreRevealEnabled: false, scoreRevealScope: null, scoreRevealTiming: null,
   },
   {
-    id: '5', courseId: 'cs301', title: '주차별 퀴즈 5-1 - ER 다이어그램',
+    id: '5', courseCode: 'CS301', title: '주차별 퀴즈 5-1 - ER 다이어그램',
     status: 'closed', visible: true,
     startDate: '2026-03-17 09:00', dueDate: '2026-03-17 23:59', lockDate: '2026-03-31 23:59',
     week: 5, session: 1, scorePolicy: '최고 점수 유지', allowAttempts: 2,
@@ -265,7 +265,7 @@ const QUIZZES: QuizSeed[] = [
     avgScore: 15.4,
   },
   {
-    id: '6', courseId: 'cs301', title: '5주차 형성평가 - 관계 대수',
+    id: '6', courseCode: 'CS301', title: '5주차 형성평가 - 관계 대수',
     status: 'closed', visible: true,
     startDate: '2026-03-17 10:00', dueDate: '2026-03-17 23:59', lockDate: '2026-03-31 23:59',
     week: 5, session: 1, scorePolicy: '최고 점수 유지', allowAttempts: 1,
@@ -273,14 +273,14 @@ const QUIZZES: QuizSeed[] = [
     avgScore: 7.8,
   },
   {
-    id: '7', courseId: 'cs301', title: '5주차 서술형 과제 - 정규화 단계 분석',
+    id: '7', courseCode: 'CS301', title: '5주차 서술형 과제 - 정규화 단계 분석',
     status: 'grading', visible: true,
     startDate: '2026-03-17 09:00', dueDate: '2026-03-21 23:59', lockDate: '2026-04-30 23:59',
     week: 5, session: 1, timeLimit: null, scorePolicy: '최고 점수 유지', allowAttempts: 1,
     scoreRevealEnabled: true, scoreRevealScope: 'with_answer', scoreRevealTiming: 'after_due',
   },
   {
-    id: '8', courseId: 'cs301', title: '2차 형성평가 - 데이터베이스 설계 & 정규화',
+    id: '8', courseCode: 'CS301', title: '2차 형성평가 - 데이터베이스 설계 & 정규화',
     description: '관계형 데이터베이스 설계 원칙과 1NF~3NF 정규화 과정을 평가합니다. 강의 6~7주차 내용 기반으로 출제됩니다.',
     status: 'closed', visible: true,
     startDate: '2026-03-31 09:00', dueDate: '2026-03-31 23:59', lockDate: '2026-04-30 23:59',
@@ -290,7 +290,7 @@ const QUIZZES: QuizSeed[] = [
     avgScore: 34.9,
   },
   {
-    id: '9', courseId: 'cs301', title: '주차별 퀴즈 5 - 트랜잭션과 동시성 제어',
+    id: '9', courseCode: 'CS301', title: '주차별 퀴즈 5 - 트랜잭션과 동시성 제어',
     description: '트랜잭션 ACID 속성, 동시성 제어 기법(Lock, MVCC), 교착상태 처리를 다룹니다.',
     status: 'open', visible: true,
     startDate: '2026-04-21 09:00', dueDate: '2026-04-23 23:59', lockDate: '2026-05-21 23:59',
@@ -298,7 +298,7 @@ const QUIZZES: QuizSeed[] = [
     scoreRevealEnabled: true, scoreRevealScope: 'wrong_only', scoreRevealTiming: 'after_due',
   },
   {
-    id: 'cs201_1', courseId: 'cs201', title: '중간고사 - 프로세스 및 스레드',
+    id: 'cs201_1', courseCode: 'CS201', title: '중간고사 - 프로세스 및 스레드',
     description: '프로세스 생명주기, 스레드 모델, 동기화 문제를 다룹니다.',
     status: 'closed', visible: true,
     startDate: '2026-03-18 09:00', dueDate: '2026-03-18 11:00', lockDate: '2026-04-30 23:59',
@@ -307,7 +307,7 @@ const QUIZZES: QuizSeed[] = [
     avgScore: 72.3,
   },
   {
-    id: 'cs201_2', courseId: 'cs201', title: '1차 형성평가 - 프로세스 스케줄링',
+    id: 'cs201_2', courseCode: 'CS201', title: '1차 형성평가 - 프로세스 스케줄링',
     description: 'CPU 스케줄링 알고리즘(FCFS, SJF, Round Robin)을 평가합니다.',
     status: 'closed', visible: true,
     startDate: '2026-03-10 09:00', dueDate: '2026-03-10 23:59', lockDate: '2026-04-30 23:59',
@@ -316,7 +316,7 @@ const QUIZZES: QuizSeed[] = [
     avgScore: 22.1,
   },
   {
-    id: 'cs201_3', courseId: 'cs201', title: '주차별 퀴즈 - 메모리 관리',
+    id: 'cs201_3', courseCode: 'CS201', title: '주차별 퀴즈 - 메모리 관리',
     description: '페이징, 세그멘테이션, 가상 메모리 기초 개념을 다룹니다.',
     status: 'draft', visible: false,
     startDate: '2026-04-14 09:00', dueDate: '2026-04-14 23:59', lockDate: '2026-05-14 23:59',
@@ -324,7 +324,7 @@ const QUIZZES: QuizSeed[] = [
     scoreRevealEnabled: true, scoreRevealScope: 'with_answer', scoreRevealTiming: 'after_due',
   },
   {
-    id: 'cs401_1', courseId: 'cs401', title: '중간고사 - 정렬 알고리즘',
+    id: 'cs401_1', courseCode: 'CS401', title: '중간고사 - 정렬 알고리즘',
     description: '버블 정렬부터 퀵 정렬까지 시간복잡도 및 동작 원리를 평가합니다.',
     status: 'closed', visible: true,
     startDate: '2026-03-20 09:00', dueDate: '2026-03-20 11:00', lockDate: '2026-04-20 23:59',
@@ -333,7 +333,7 @@ const QUIZZES: QuizSeed[] = [
     avgScore: 42.5,
   },
   {
-    id: 'cs401_2', courseId: 'cs401', title: '1차 형성평가 - 탐색 알고리즘',
+    id: 'cs401_2', courseCode: 'CS401', title: '1차 형성평가 - 탐색 알고리즘',
     description: '이진 탐색, BFS, DFS의 시간복잡도와 활용 사례를 다룹니다.',
     status: 'draft', visible: false,
     startDate: '2026-04-17 09:00', dueDate: '2026-04-17 23:59', lockDate: '2026-05-17 23:59',
@@ -347,7 +347,7 @@ async function createQuizzes() {
     await prisma.quiz.create({
       data: {
         id: q.id,
-        courseId: q.courseId,
+        courseCode: q.courseCode,
         createdById: 'prof1',
         title: q.title,
         description: q.description,
@@ -552,12 +552,12 @@ async function createQuestions() {
 // ─────────────────────────────────────────────
 
 const BANKS = [
-  { id: 'bank1', courseId: 'cs301', name: 'DB 종합 문제집', difficulty: null },
-  { id: 'bank2', courseId: 'cs301', name: 'SQL 심화', difficulty: 'high' as const },
-  { id: 'bank3', courseId: 'cs301', name: 'SQL 기초', difficulty: 'medium' as const },
-  { id: 'bank4', courseId: 'cs301', name: 'DB 입문', difficulty: 'low' as const },
-  { id: 'bank5', courseId: 'cs201', name: '운영체제 종합', difficulty: null },
-  { id: 'bank6', courseId: 'cs401', name: '알고리즘 심화', difficulty: 'high' as const },
+  { id: 'bank1', courseCode: 'CS301', name: 'DB 종합 문제집', difficulty: null },
+  { id: 'bank2', courseCode: 'CS301', name: 'SQL 심화', difficulty: 'high' as const },
+  { id: 'bank3', courseCode: 'CS301', name: 'SQL 기초', difficulty: 'medium' as const },
+  { id: 'bank4', courseCode: 'CS301', name: 'DB 입문', difficulty: 'low' as const },
+  { id: 'bank5', courseCode: 'CS201', name: '운영체제 종합', difficulty: null },
+  { id: 'bank6', courseCode: 'CS401', name: '알고리즘 심화', difficulty: 'high' as const },
 ]
 
 type BQ = {
@@ -692,7 +692,7 @@ async function createBanks() {
     await prisma.questionBank.create({
       data: {
         id: b.id,
-        courseId: b.courseId,
+        courseCode: b.courseCode,
         createdById: 'prof1',
         name: b.name,
         difficulty: b.difficulty,
