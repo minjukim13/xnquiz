@@ -11,6 +11,13 @@ export function scorePolicyLabel(policy: ScorePolicy): string {
   }
 }
 
+/** mockData 한글 라벨 → enum (쓰기 API 용) */
+export function scorePolicyFromLabel(label?: string | null): ScorePolicy {
+  if (label === '최신 점수 유지') return 'KEEP_LATEST'
+  if (label === '평균 점수')       return 'KEEP_AVERAGE'
+  return 'KEEP_HIGHEST' // 기본값
+}
+
 export type QuizStats = {
   totalStudents: number
   submitted: number
