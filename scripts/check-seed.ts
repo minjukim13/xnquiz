@@ -22,6 +22,11 @@ async function main() {
     답안: await prisma.answer.count(),
   }
   console.log(stats)
+
+  const courses = await prisma.course.findMany({ orderBy: { code: 'asc' } })
+  console.log('\n과목 (code → name):')
+  courses.forEach((c) => console.log(`  ${c.code} → ${c.name}`))
+
   await prisma.$disconnect()
 }
 
