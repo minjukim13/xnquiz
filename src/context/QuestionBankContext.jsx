@@ -1,25 +1,27 @@
 import { useState, useEffect } from 'react'
 import { MOCK_BANKS, MOCK_BANK_QUESTIONS, QUIZ_TYPES } from '../data/mockData'
 import { QuestionBankContext } from './questionBank'
+import { listBanks, getBankQuestions as apiGetBankQuestions } from '@/lib/data'
 
 const LS_BANKS_KEY = 'xnq_banks_v3'
 const LS_QUESTIONS_KEY = 'xnq_bank_questions_v4'
+const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
 export function QuestionBankProvider({ children }) {
   const [banks, setBanks] = useState(() => {
+    if (MODE === 'api') return []
     try {
       const raw = localStorage.getItem(LS_BANKS_KEY)
       const loaded = raw ? JSON.parse(raw) : MOCK_BANKS
-      // migration: difficulty 필드 없는 기존 bank 데이터에 기본값 주입
       return loaded.map(b => ({ difficulty: '', ...b }))
     } catch { return MOCK_BANKS }
   })
 
   const [questions, setQuestions] = useState(() => {
+    if (MODE === 'api') return []
     try {
       const raw = localStorage.getItem(LS_QUESTIONS_KEY)
       const loaded = raw ? JSON.parse(raw) : MOCK_BANK_QUESTIONS
-      // migration: type 유효성 검증, difficulty 기본값 주입
       return loaded.map(q => {
         const mockQ = MOCK_BANK_QUESTIONS.find(m => m.id === q.id)
         const type = (q.type && QUIZ_TYPES[q.type]) ? q.type : (mockQ?.type || 'multiple_choice')
@@ -28,11 +30,32 @@ export function QuestionBankProvider({ children }) {
     } catch { return MOCK_BANK_QUESTIONS }
   })
 
+  // api 모드: 서버에서 banks + 각 bank 의 questions 일괄 로드
   useEffect(() => {
+    if (MODE !== 'api') return
+    let mounted = true
+    ;(async () => {
+      try {
+        const apiBanks = await listBanks()
+        if (!mounted) return
+        setBanks(apiBanks)
+        const perBank = await Promise.all(apiBanks.map(b => apiGetBankQuestions(b.id)))
+        if (mounted) setQuestions(perBank.flat())
+      } catch (err) {
+        console.error('[QuestionBankContext] api 로드 실패', err)
+      }
+    })()
+    return () => { mounted = false }
+  }, [])
+
+  // localStorage 싱크 — mock 모드만 (api 모드는 서버 권위)
+  useEffect(() => {
+    if (MODE === 'api') return
     localStorage.setItem(LS_BANKS_KEY, JSON.stringify(banks))
   }, [banks])
 
   useEffect(() => {
+    if (MODE === 'api') return
     localStorage.setItem(LS_QUESTIONS_KEY, JSON.stringify(questions))
   }, [questions])
 
