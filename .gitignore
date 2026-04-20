@@ -34,3 +34,8 @@ dist-ssr
 /prisma/migrations/**/migration_lock.toml.local
 /prisma/*.db
 /prisma/*.db-journal
+
+# Claude Code 개인/도구 파일
+.claude/settings.local.json
+.agents/
+skills-lock.json
