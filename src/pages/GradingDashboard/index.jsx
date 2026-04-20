@@ -7,7 +7,8 @@ import {
 } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../../components/Layout'
-import { getQuizStudents, mockQuizzes, getQuizQuestions, getStudentAnswer } from '../../data/mockData'
+import { getStudentAnswer } from '../../data/mockData'
+import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
 import { useRole } from '../../context/role'
 import { downloadAnswerSheetsXlsx } from '../../utils/excelUtils'
 import { cn } from '@/lib/utils'
@@ -30,7 +31,8 @@ import EmptyState from './EmptyState'
 export default function GradingDashboard() {
   const { id } = useParams()
   const { role } = useRole()
-  const QUIZ_INFO = mockQuizzes.find(q => q.id === id)
+  const [QUIZ_INFO, setQUIZ_INFO] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   // 채점 모드: 'question' = 문항 중심, 'student' = 학생 중심
   const [gradingMode, setGradingMode] = useState('question')
@@ -79,8 +81,32 @@ export default function GradingDashboard() {
     }
   }, [showToast])
 
-  const quizQuestions = getQuizQuestions(id)
-  const quizStudents = getQuizStudents(id)
+  const [quizQuestions, setQuizQuestions] = useState([])
+  const [quizStudents, setQuizStudents] = useState([])
+
+  // 데이터 레이어 경유 — mock/api 분기 자동
+  useEffect(() => {
+    let mounted = true
+    setLoading(true)
+    ;(async () => {
+      try {
+        const [qi, qq, qs] = await Promise.all([
+          getQuiz(id),
+          getQuizQuestions(id),
+          listAttempts({ quizId: id }),
+        ])
+        if (!mounted) return
+        setQUIZ_INFO(qi)
+        setQuizQuestions(qq ?? [])
+        setQuizStudents(qs ?? [])
+      } catch (err) {
+        console.error('[GradingDashboard] 로드 실패', err)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [id])
 
   // localStorage 채점 기록을 반영한 실시간 gradedCount 계산
   const questionsWithLiveCounts = useMemo(() => {
@@ -162,6 +188,17 @@ export default function GradingDashboard() {
   }, [gradingMode, submittedStudents, allStudents]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (role !== 'instructor') return <Navigate to="/" replace />
+
+  // ── 로딩 중 ──
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <p className="text-sm text-muted-foreground">불러오는 중</p>
+        </div>
+      </Layout>
+    )
+  }
 
   // ── 유효하지 않은 quiz id ──
   if (!QUIZ_INFO) {
