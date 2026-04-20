@@ -761,7 +761,6 @@ async function createAttemptsForQuiz1() {
 
     // 제출된 학생 — 자동/수동 점수 계산
     for (const q of Q1_QUESTIONS) {
-      const pool = ANSWER_POOL[q.id] ?? ['답안']
       const isAuto = q.autoGrade === true
       if (isAuto) {
         const rate = AUTO_RATE[q.id] ?? 70
