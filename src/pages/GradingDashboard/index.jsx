@@ -8,7 +8,7 @@ import {
 import { Toast } from '@/components/ui/toast'
 import Layout from '../../components/Layout'
 import { getQuizStudents, mockQuizzes, getQuizQuestions, getStudentAnswer } from '../../data/mockData'
-import { useRole } from '../../context/RoleContext'
+import { useRole } from '../../context/role'
 import { downloadAnswerSheetsXlsx } from '../../utils/excelUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'

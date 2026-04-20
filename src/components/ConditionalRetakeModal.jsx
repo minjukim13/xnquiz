@@ -21,11 +21,6 @@ function saveRetakeRecords(records) {
   } catch { /* ignore */ }
 }
 
-export function getRetakeGrants(quizId) {
-  const records = getRetakeRecords()
-  return records[quizId] || []
-}
-
 export default function ConditionalRetakeModal({ open, onOpenChange, quizId, quizInfo, students, onComplete }) {
   const [step, setStep] = useState(1)
 

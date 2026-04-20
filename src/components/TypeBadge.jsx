@@ -48,4 +48,3 @@ export default function TypeBadge({ type, small, className }) {
   )
 }
 
-export { typeBadgeVariants }

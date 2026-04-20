@@ -30,4 +30,12 @@ export default defineConfig([
       }],
     },
   },
+  // shadcn/ui 컴포넌트는 CVA variants(buttonVariants 등)를 컴포넌트와 같이 export 하는 게 원본 스펙.
+  // HMR Fast Refresh 경고를 맞추려 분리하면 upstream 패턴과 어긋나므로 이 경로만 off.
+  {
+    files: ['src/components/ui/**/*.{js,jsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

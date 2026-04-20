@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-
 import { Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Send, Eye, X, Lock } from 'lucide-react'
 import Layout from '../components/Layout'
 import { mockQuizzes, getQuizQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
-import { useRole } from '../context/RoleContext'
+import { useRole } from '../context/role'
 import { AlertDialog, ConfirmDialog } from '../components/ConfirmDialog'
 import { isLateSubmission } from '../utils/deadlineUtils'
 import { cn } from '@/lib/utils'

@@ -7,7 +7,7 @@ import {
 } from 'recharts'
 import Layout from '../components/Layout'
 import { mockQuizzes, getQuizStudents, QUIZ_TYPES, getQuizQuestions } from '../data/mockData'
-import { useRole } from '../context/RoleContext'
+import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'

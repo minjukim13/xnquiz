@@ -15,7 +15,7 @@ const DEFAULTS = {
   whitespaceSensitive: false,
 }
 
-export function getGlobalSettings() {
+function getGlobalSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS }

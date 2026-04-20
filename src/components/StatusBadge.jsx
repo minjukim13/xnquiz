@@ -49,4 +49,3 @@ export default function StatusBadge({ status, showDot = true, className }) {
   )
 }
 
-export { statusBadgeVariants, STATUS_LABELS }
