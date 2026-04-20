@@ -7,7 +7,8 @@ import QuestionAnswer from '../components/QuestionAnswer'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
-import { QUIZ_TYPES, addQuiz } from '../data/mockData'
+import { QUIZ_TYPES } from '../data/mockData'
+import { createQuiz, setQuizQuestions } from '@/lib/data'
 import { useRole } from '../context/role'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import AssignmentOverrides from '../components/AssignmentOverrides'
@@ -89,43 +90,57 @@ export default function QuizCreate() {
     }
   }
 
-  const handleSaveDraft = () => {
+  const buildQuizBody = (status) => ({
+    title: form.title, description: form.description,
+    course: 'CS301 데이터베이스', quizMode: form.quizMode, status, visible: form.visible,
+    startDate: form.startDate || null, dueDate: form.dueDate || null,
+    lockDate: form.lockDate || null,
+    week: form.week ?? null, session: form.session ?? null,
+    timeLimit: form.timeLimit === '' ? 0 : Number(form.timeLimit),
+    allowAttempts: form.unlimitedAttempts ? -1 : form.allowAttempts,
+    scorePolicy: form.allowAttempts >= 2 || form.unlimitedAttempts ? form.scorePolicy : null,
+    shuffleChoices: form.shuffleChoices, shuffleQuestions: form.shuffleQuestions,
+    scoreRevealEnabled: form.scoreRevealEnabled,
+    scoreRevealScope: form.scoreRevealEnabled ? form.scoreRevealScope : null,
+    scoreRevealTiming: form.scoreRevealEnabled ? form.scoreRevealTiming : null,
+    scoreRevealStart: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealStart || null : null,
+    scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
+    oneTimeResults: form.oneTimeResults,
+    accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
+    allowLateSubmit: form.allowLateSubmit,
+    lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
+    gracePeriod: form.dueDate && Number(form.gracePeriod) > 0 ? Number(form.gracePeriod) : 0,
+    oneQuestionAtATime: form.oneQuestionAtATime,
+    lockAfterAnswer: form.oneQuestionAtATime && form.lockAfterAnswer,
+    assignments: sanitizeAssignments(form.assignments),
+    notice: form.notice,
+    totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
+    questions: questions.length, totalPoints,
+  })
+
+  const persistQuiz = async (status) => {
+    const created = await createQuiz(buildQuizBody(status))
+    if (questions.length > 0) {
+      await setQuizQuestions(created.id, questions)
+    }
+    return created
+  }
+
+  const handleSaveDraft = async () => {
     if (!form.title) {
       setAlertDialog({ title: '임시저장 불가', message: '퀴즈 제목을 입력해주세요.', variant: 'error' })
       return
     }
-    addQuiz({
-      // eslint-disable-next-line react-hooks/purity -- event-handler-only ID generation
-      id: String(Date.now()), title: form.title, description: form.description,
-      course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'draft', visible: form.visible,
-      startDate: form.startDate || null, dueDate: form.dueDate || null,
-      lockDate: form.lockDate || null,
-      week: form.week ?? null, session: form.session ?? null,
-      timeLimit: form.timeLimit === '' ? 0 : Number(form.timeLimit),
-      allowAttempts: form.unlimitedAttempts ? -1 : form.allowAttempts,
-      scorePolicy: form.allowAttempts >= 2 || form.unlimitedAttempts ? form.scorePolicy : null,
-      shuffleChoices: form.shuffleChoices, shuffleQuestions: form.shuffleQuestions,
-      scoreRevealEnabled: form.scoreRevealEnabled,
-      scoreRevealScope: form.scoreRevealEnabled ? form.scoreRevealScope : null,
-      scoreRevealTiming: form.scoreRevealEnabled ? form.scoreRevealTiming : null,
-      scoreRevealStart: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealStart || null : null,
-      scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
-      oneTimeResults: form.oneTimeResults,
-      accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
-      allowLateSubmit: form.allowLateSubmit,
-      lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
-      gracePeriod: form.dueDate && Number(form.gracePeriod) > 0 ? Number(form.gracePeriod) : 0,
-      oneQuestionAtATime: form.oneQuestionAtATime,
-      lockAfterAnswer: form.oneQuestionAtATime && form.lockAfterAnswer,
-      assignments: sanitizeAssignments(form.assignments),
-      notice: form.notice,
-      totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
-      questions: questions.length, totalPoints,
-    })
-    setAlertDialog({
-      title: '임시저장 완료',
-      message: '퀴즈가 임시저장되었습니다.',
-    })
+    try {
+      await persistQuiz('draft')
+      setAlertDialog({
+        title: '임시저장 완료',
+        message: '퀴즈가 임시저장되었습니다.',
+      })
+    } catch (err) {
+      console.error('[QuizCreate] 임시저장 실패', err)
+      setAlertDialog({ title: '임시저장 실패', message: err?.message ?? '저장 중 오류가 발생했습니다.', variant: 'error' })
+    }
   }
 
   const addQuestion = useCallback((q) => {
@@ -158,33 +173,14 @@ export default function QuizCreate() {
     }
     const isMultiAttempt = form.allowAttempts >= 2 || form.unlimitedAttempts
     const noRevealPeriod = form.scoreRevealEnabled && form.scoreRevealTiming !== 'period' && form.scoreRevealTiming !== 'after_due'
-    const doPublish = () => {
-      addQuiz({
-        id: String(Date.now()), title: form.title, description: form.description,
-        course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'open', visible: form.visible,
-        startDate: form.startDate || null, dueDate: form.dueDate || null,
-        lockDate: form.lockDate || null,
-        week: form.week ?? null, session: form.session ?? null,
-        timeLimit: form.timeLimit === '' ? 0 : Number(form.timeLimit),
-        allowAttempts: form.unlimitedAttempts ? -1 : form.allowAttempts,
-        scorePolicy: form.allowAttempts >= 2 || form.unlimitedAttempts ? form.scorePolicy : null,
-        shuffleChoices: form.shuffleChoices, shuffleQuestions: form.shuffleQuestions,
-        scoreRevealEnabled: form.scoreRevealEnabled,
-        scoreRevealScope: form.scoreRevealEnabled ? form.scoreRevealScope : null,
-        scoreRevealTiming: form.scoreRevealEnabled ? form.scoreRevealTiming : null,
-        scoreRevealStart: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealStart || null : null,
-        scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
-        accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
-        allowLateSubmit: form.allowLateSubmit,
-        lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
-        oneQuestionAtATime: form.oneQuestionAtATime,
-        lockAfterAnswer: form.oneQuestionAtATime && form.lockAfterAnswer,
-        assignments: sanitizeAssignments(form.assignments),
-        notice: form.notice,
-        totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
-        questions: questions.length, totalPoints,
-      })
-      navigate('/')
+    const doPublish = async () => {
+      try {
+        await persistQuiz('open')
+        navigate('/')
+      } catch (err) {
+        console.error('[QuizCreate] 저장 실패', err)
+        setAlertDialog({ title: '저장 실패', message: err?.message ?? '저장 중 오류가 발생했습니다.', variant: 'error' })
+      }
     }
     if (isMultiAttempt && noRevealPeriod) {
       setConfirmDialog({

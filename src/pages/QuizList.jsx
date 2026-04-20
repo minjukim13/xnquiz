@@ -3,10 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
-import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions, addQuiz, removeQuiz } from '../data/mockData'
+import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts, getQuizStudents } from '../data/mockData'
-import { listQuizzes } from '@/lib/data'
+import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz } from '@/lib/data'
 import { getEffectiveSubmittedCount } from '@/utils/deadlineUtils'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
@@ -201,8 +201,8 @@ function InstructorQuizList() {
     if (msg) { showToast(msg); sessionStorage.removeItem('xnq_toast') }
   }, [])
 
-  const cloneQuestions = (srcId, newId) => {
-    const srcQs = getQuizQuestions(srcId)
+  const cloneQuestions = async (srcId, newId) => {
+    const srcQs = await getQuizQuestions(srcId)
     if (srcQs.length === 0) return
     const cloned = srcQs.map((q, i) => ({
       ...q,
@@ -211,7 +211,7 @@ function InstructorQuizList() {
       totalCount: 0,
       avgScore: undefined,
     }))
-    setQuizQuestions(newId, cloned)
+    await setQuizQuestions(newId, cloned)
   }
 
   const resetFields = (quiz, overrides = {}) => ({
@@ -238,42 +238,60 @@ function InstructorQuizList() {
     ...overrides,
   })
 
-  const handleCopyQuiz = (quiz, targetCourse) => {
-    const newId = `copy_${Date.now()}`
-    const copy = resetFields(quiz, { id: newId, course: targetCourse })
-    addQuiz(copy)
-    cloneQuestions(quiz.id, newId)
-    const label = targetCourse === CURRENT_COURSE ? '현재 과목' : targetCourse
-    showToast(`'${quiz.title}'을(를) ${label}으로 복사했습니다`)
+  const handleCopyQuiz = async (quiz, targetCourse) => {
+    const { id: _srcId, ...rest } = quiz  // eslint-disable-line no-unused-vars
+    const draft = resetFields(rest, { course: targetCourse })
+    try {
+      const created = await createQuiz(draft)
+      await cloneQuestions(quiz.id, created.id)
+      await reload()
+      const label = targetCourse === CURRENT_COURSE ? '현재 과목' : targetCourse
+      showToast(`'${quiz.title}'을(를) ${label}으로 복사했습니다`)
+    } catch (err) {
+      console.error('[QuizList] copy 실패', err)
+      showToast('복사 중 오류가 발생했습니다')
+    }
     setCopySourceQuiz(null)
   }
 
-  const handleImportQuizzes = (selectedQuizzes) => {
-    const imported = selectedQuizzes.map(q => {
-      const newId = `import_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`
-      const copy = resetFields(q, { id: newId, course: CURRENT_COURSE })
-      addQuiz(copy)
-      cloneQuestions(q.id, newId)
-      return copy
-    })
-    reload()
-    setShowImportModal(false)
-    const msg = imported.length === 1
-      ? `'${imported[0].title}' 가져오기 완료 — 목록에서 편집하세요`
-      : `퀴즈 ${imported.length}개 가져오기 완료 — 임시저장 상태로 추가되었습니다`
-    showToast(msg)
+  const handleImportQuizzes = async (selectedQuizzes) => {
+    try {
+      const imported = []
+      for (const q of selectedQuizzes) {
+        const { id: _srcId, ...rest } = q  // eslint-disable-line no-unused-vars
+        const draft = resetFields(rest, { course: CURRENT_COURSE })
+        const created = await createQuiz(draft)
+        await cloneQuestions(q.id, created.id)
+        imported.push(created)
+      }
+      await reload()
+      setShowImportModal(false)
+      const msg = imported.length === 1
+        ? `'${imported[0].title}' 가져오기 완료 — 목록에서 편집하세요`
+        : `퀴즈 ${imported.length}개 가져오기 완료 — 임시저장 상태로 추가되었습니다`
+      showToast(msg)
+    } catch (err) {
+      console.error('[QuizList] import 실패', err)
+      showToast('가져오기 중 오류가 발생했습니다')
+    }
   }
 
   const handleDeleteQuiz = (quiz) => {
     setDeleteConfirm(quiz)
   }
 
-  const confirmDeleteQuiz = () => {
+  const confirmDeleteQuiz = async () => {
     if (!deleteConfirm) return
-    removeQuiz(deleteConfirm.id)
-    reload()
-    showToast(`'${deleteConfirm.title}' 퀴즈가 삭제되었습니다`)
+    const target = deleteConfirm
     setDeleteConfirm(null)
+    try {
+      await deleteQuiz(target.id)
+      await reload()
+      showToast(`'${target.title}' 퀴즈가 삭제되었습니다`)
+    } catch (err) {
+      console.error('[QuizList] delete 실패', err)
+      showToast('삭제 중 오류가 발생했습니다')
+    }
   }
 
   const sortedQuizzes = useMemo(

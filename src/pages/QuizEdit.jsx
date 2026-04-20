@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { Plus, GripVertical, Trash2, Settings2, Pencil, Printer, AlertCircle, RefreshCw, HelpCircle } from 'lucide-react'
 import Layout from '../components/Layout'
@@ -8,8 +8,11 @@ import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { printQuizQuestions } from '../utils/pdfUtils'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
-import { QUIZ_TYPES, mockQuizzes, getQuizQuestions, setQuizQuestions, recalculateScorePolicy, regradeQuestionWithOption, updateQuiz } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes, recalculateScorePolicy, regradeQuestionWithOption } from '../data/mockData'
+import { getQuiz, getQuizQuestions, setQuizQuestions, updateQuiz } from '@/lib/data'
 import { useRole } from '../context/role'
+
+const DATA_MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import AssignmentOverrides from '../components/AssignmentOverrides'
 import { hasDuplicateStudent, sanitizeAssignments } from '../utils/assignments'
@@ -33,12 +36,32 @@ export default function QuizEdit() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { role } = useRole()
-  const quiz = mockQuizzes.find(q => q.id === id)
+  const [quiz, setQuiz] = useState(() => mockQuizzes.find(q => q.id === id) ?? null)
+  const [loaded, setLoaded] = useState(DATA_MODE === 'mock' ? !!quiz : false)
   const [showBankModal, setShowBankModal] = useState(false)
   const [showRandomBankModal, setShowRandomBankModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [questions, setQuestions] = useState(() => quiz ? getQuizQuestions(quiz.id) : [])
-  const [initialQuestionsSnapshot] = useState(() => quiz ? JSON.stringify(getQuizQuestions(quiz.id)) : '[]')
+  const [questions, setQuestions] = useState([])
+  const [initialQuestionsSnapshot, setInitialQuestionsSnapshot] = useState('[]')
+
+  // api 모드: quiz·questions 를 비동기로 로드. mock 모드: 초기 state 로 이미 로드됨.
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const [q, qs] = await Promise.all([getQuiz(id), getQuizQuestions(id)])
+        if (!mounted) return
+        if (q) setQuiz(q)
+        setQuestions(qs)
+        setInitialQuestionsSnapshot(JSON.stringify(qs))
+      } catch (err) {
+        console.error('[QuizEdit] load 실패', err)
+      } finally {
+        if (mounted) setLoaded(true)
+      }
+    })()
+    return () => { mounted = false }
+  }, [id])
   const [title, setTitle] = useState(quiz?.title ?? '')
   const [description, setDescription] = useState(quiz?.description ?? '')
   const [week, setWeek] = useState(quiz?.week ?? null)
@@ -126,7 +149,49 @@ export default function QuizEdit() {
   const [confirmDialog, setConfirmDialog] = useState(null)
   const [alertDialog, setAlertDialog] = useState(null)
 
-  if (role !== 'instructor' || !quiz) return <Navigate to="/" replace />
+  // quiz 가 api 모드에서 비동기 로드될 때 한 번만 form state 재초기화
+  const hydratedRef = useRef(false)
+  useEffect(() => {
+    if (!quiz || hydratedRef.current) return
+    hydratedRef.current = true
+    if (DATA_MODE !== 'api') return
+    setTitle(quiz.title ?? '')
+    setDescription(quiz.description ?? '')
+    setWeek(quiz.week ?? null)
+    setSession(quiz.session ?? null)
+    setAllowLateSubmit(quiz.allowLateSubmit ?? false)
+    setLateSubmitDeadline(quiz.lateSubmitDeadline ?? '')
+    setGracePeriod(quiz.gracePeriod ?? 0)
+    setLockDate(quiz.lockDate ?? '')
+    setTimeLimit(String(quiz.timeLimit ?? 60))
+    setUnlimitedTimeLimit((quiz.timeLimit ?? 60) === 0)
+    setAllowAttempts(quiz.allowAttempts === -1 ? 1 : (quiz.allowAttempts ?? 1))
+    setUnlimitedAttempts(quiz.allowAttempts === -1)
+    setScorePolicy(quiz.scorePolicy ?? '최고 점수 유지')
+    setScoreRevealEnabled(quiz.scoreRevealEnabled ?? false)
+    setScoreRevealScope(quiz.scoreRevealScope ?? 'wrong_only')
+    setScoreRevealTiming(quiz.scoreRevealTiming ?? 'immediately')
+    setScoreRevealStart(quiz.scoreRevealStart ?? '')
+    setScoreRevealEnd(quiz.scoreRevealEnd ?? '')
+    setOneTimeResults(quiz.oneTimeResults ?? false)
+    setOneQuestionAtATime(quiz.oneQuestionAtATime ?? false)
+    setLockAfterAnswer(quiz.lockAfterAnswer ?? false)
+    setVisible(quiz.visible !== false)
+    const saved = quiz.assignments
+    if (Array.isArray(saved)) {
+      setAssignments(saved.map(a => ({
+        id: a.id || `a${Math.random().toString(36).slice(2, 8)}`,
+        assignTo: Array.isArray(a.assignTo) ? a.assignTo : [],
+        dueDate: a.dueDate || '',
+        availableFrom: a.availableFrom || '',
+        availableUntil: a.availableUntil || '',
+      })))
+    }
+  }, [quiz])
+
+  if (role !== 'instructor') return <Navigate to="/" replace />
+  if (!loaded) return <Layout><div className="p-8 text-muted-foreground text-sm">불러오는 중</div></Layout>
+  if (!quiz) return <Navigate to="/" replace />
 
   const handleCancel = () => {
     if (hasUnsavedChanges) {
@@ -140,21 +205,48 @@ export default function QuizEdit() {
     }
   }
 
-  const handleSaveDraft = () => {
+  const buildUpdateBody = () => ({
+    title, description, week: week ?? null, session: session ?? null,
+    courseCode: quiz.courseCode ?? undefined,
+    course: quiz.course,
+    status: quiz.status, visible,
+    questions: questions.length, totalPoints,
+    timeLimit: timeLimit === '' ? 0 : Number(timeLimit),
+    allowAttempts: unlimitedAttempts ? -1 : allowAttempts,
+    scorePolicy, allowLateSubmit,
+    lateSubmitDeadline: allowLateSubmit && lateSubmitDeadline ? lateSubmitDeadline : null,
+    gracePeriod: quiz.dueDate && Number(gracePeriod) > 0 ? Number(gracePeriod) : 0,
+    lockDate: lockDate || null,
+    scoreRevealEnabled,
+    scoreRevealScope: scoreRevealEnabled ? scoreRevealScope : null,
+    scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null,
+    scoreRevealStart: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null,
+    scoreRevealEnd: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd || null : null,
+    oneTimeResults, oneQuestionAtATime,
+    lockAfterAnswer: oneQuestionAtATime && lockAfterAnswer,
+    assignments: sanitizeAssignments(assignments),
+  })
+
+  const handleSaveDraft = async () => {
     if (!title.trim()) {
       setAlertDialog({ title: '임시저장 불가', message: '퀴즈 제목을 입력해주세요.' })
       return
     }
-    if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
-    updateQuiz(quiz.id, { title, description, week: week ?? null, session: session ?? null, status: quiz.status, visible, questions: questions.length, totalPoints, timeLimit: timeLimit === '' ? 0 : Number(timeLimit), allowAttempts: unlimitedAttempts ? -1 : allowAttempts, scorePolicy, allowLateSubmit, lateSubmitDeadline: allowLateSubmit && lateSubmitDeadline ? lateSubmitDeadline : null, gracePeriod: quiz.dueDate && Number(gracePeriod) > 0 ? Number(gracePeriod) : 0, lockDate: lockDate || null, scoreRevealEnabled, scoreRevealScope: scoreRevealEnabled ? scoreRevealScope : null, scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null, scoreRevealStart: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null, scoreRevealEnd: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd || null : null, oneTimeResults, oneQuestionAtATime, lockAfterAnswer: oneQuestionAtATime && lockAfterAnswer, assignments: sanitizeAssignments(assignments) })
-    setQuizQuestions(quiz.id, questions)
-    setAlertDialog({
-      title: '임시저장 완료',
-      message: '변경사항이 임시저장되었습니다.',
-    })
+    try {
+      if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
+      await updateQuiz(quiz.id, buildUpdateBody())
+      await setQuizQuestions(quiz.id, questions)
+      setAlertDialog({
+        title: '임시저장 완료',
+        message: '변경사항이 임시저장되었습니다.',
+      })
+    } catch (err) {
+      console.error('[QuizEdit] 임시저장 실패', err)
+      setAlertDialog({ title: '임시저장 실패', message: err?.message ?? '저장 중 오류가 발생했습니다.' })
+    }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const errors = []
     if (!title.trim()) errors.push('퀴즈 제목을 입력해주세요')
     if (!quiz.dueDate && allowLateSubmit && lateSubmitDeadline) errors.push('지각 제출 마감 일시는 마감 일시가 설정되어 있을 때만 사용할 수 있습니다')
@@ -164,9 +256,15 @@ export default function QuizEdit() {
       setAlertDialog({ title: '필수 항목 미입력', message: errors.map(e => `- ${e}`).join('\n') })
       return
     }
-    if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
-    updateQuiz(quiz.id, { title, description, week: week ?? null, session: session ?? null, status: quiz.status, visible, questions: questions.length, totalPoints, timeLimit: timeLimit === '' ? 0 : Number(timeLimit), allowAttempts: unlimitedAttempts ? -1 : allowAttempts, scorePolicy, allowLateSubmit, lateSubmitDeadline: allowLateSubmit && lateSubmitDeadline ? lateSubmitDeadline : null, gracePeriod: quiz.dueDate && Number(gracePeriod) > 0 ? Number(gracePeriod) : 0, lockDate: lockDate || null, scoreRevealEnabled, scoreRevealScope: scoreRevealEnabled ? scoreRevealScope : null, scoreRevealTiming: scoreRevealEnabled ? scoreRevealTiming : null, scoreRevealStart: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealStart || null : null, scoreRevealEnd: (scoreRevealEnabled && scoreRevealTiming === 'period') ? scoreRevealEnd || null : null, oneTimeResults, oneQuestionAtATime, lockAfterAnswer: oneQuestionAtATime && lockAfterAnswer, assignments: sanitizeAssignments(assignments) })
-    setQuizQuestions(quiz.id, questions)
+    try {
+      if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
+      await updateQuiz(quiz.id, buildUpdateBody())
+      await setQuizQuestions(quiz.id, questions)
+    } catch (err) {
+      console.error('[QuizEdit] 저장 실패', err)
+      setAlertDialog({ title: '저장 실패', message: err?.message ?? '저장 중 오류가 발생했습니다.' })
+      return
+    }
     // 문항이 변경되었으면 수정 타임스탬프 기록 (수정 전 제출 학생 필터용)
     if (JSON.stringify(questions) !== initialQuestionsSnapshot) {
       try {

@@ -3,8 +3,6 @@
  *
  * VITE_DATA_SOURCE=mock  → mockData.js 함수 호출 (동기를 Promise 로 감쌈)
  * VITE_DATA_SOURCE=api   → fetch('/api/quizzes/...')
- *
- * 전환 완료 후에는 mockData 의존성 제거 가능.
  */
 import { api } from '@/lib/api'
 import {
@@ -17,6 +15,47 @@ import {
 } from '@/data/mockData'
 
 const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
+
+// "CS301 데이터베이스" 같은 라벨에서 코드만 추출 ("CS301")
+function extractCourseCode(raw) {
+  if (!raw) return ''
+  const s = String(raw).trim()
+  const first = s.split(/\s+/)[0]
+  return first.toUpperCase()
+}
+
+// mock-shape quiz body → api createQuiz body 로 변환
+function toApiQuizBody(body) {
+  return {
+    title: body.title,
+    courseCode: body.courseCode || extractCourseCode(body.course),
+    description: body.description ?? undefined,
+    status: body.status ?? 'draft',
+    visible: body.visible ?? true,
+    hasFileUpload: body.hasFileUpload ?? false,
+    startDate: body.startDate || null,
+    dueDate: body.dueDate || null,
+    lockDate: body.lockDate || null,
+    week: body.week ?? null,
+    session: body.session ?? null,
+    timeLimit: typeof body.timeLimit === 'number' ? body.timeLimit : null,
+    allowAttempts: typeof body.allowAttempts === 'number' ? body.allowAttempts : 1,
+    scorePolicy: body.scorePolicy ?? null,
+    scoreRevealEnabled: !!body.scoreRevealEnabled,
+    scoreRevealScope: body.scoreRevealScope ?? null,
+    scoreRevealTiming: body.scoreRevealTiming ?? null,
+    scoreRevealStart: body.scoreRevealStart || null,
+    scoreRevealEnd: body.scoreRevealEnd || null,
+    allowLateSubmit: !!body.allowLateSubmit,
+    lateSubmitDeadline: body.lateSubmitDeadline || null,
+  }
+}
+
+// 문항 body 에서 api 전송 전 정리 (mock 에만 있는 집계 필드 제거)
+function toApiQuestionBody(q) {
+  const { id: _id, gradedCount: _g, totalCount: _t, avgScore: _a, bankId: _b, ...rest } = q  // eslint-disable-line no-unused-vars
+  return rest
+}
 
 export async function listQuizzes(params = {}) {
   if (MODE === 'api') {
@@ -38,16 +77,20 @@ export async function getQuizQuestions(id) {
 
 export async function createQuiz(body) {
   if (MODE === 'api') {
-    return await api('/api/quizzes', { method: 'POST', body: JSON.stringify(body) })
+    return await api('/api/quizzes', {
+      method: 'POST', body: JSON.stringify(toApiQuizBody(body)),
+    })
   }
-  const newQuiz = { id: 'new_' + Date.now(), ...body }
+  const newQuiz = { id: body.id ?? 'new_' + Date.now(), ...body }
   mockAdd(newQuiz)
   return newQuiz
 }
 
 export async function updateQuiz(id, body) {
   if (MODE === 'api') {
-    return await api(`/api/quizzes/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+    return await api(`/api/quizzes/${id}`, {
+      method: 'PATCH', body: JSON.stringify(toApiQuizBody(body)),
+    })
   }
   return mockUpdate(id, body)
 }
@@ -60,11 +103,41 @@ export async function deleteQuiz(id) {
   return mockRemove(id)
 }
 
+// 개별 문항 CRUD (api 모드 전용 — mock 은 setQuizQuestions 로 일괄 처리)
+export async function createQuizQuestion(quizId, body) {
+  if (MODE === 'api') {
+    return await api(`/api/quizzes/${quizId}/questions`, {
+      method: 'POST', body: JSON.stringify(toApiQuestionBody(body)),
+    })
+  }
+  throw new Error('createQuizQuestion: mock 모드에서는 setQuizQuestions 를 사용하세요')
+}
+
+export async function updateQuestion(id, body) {
+  if (MODE === 'api') {
+    return await api(`/api/questions/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+  }
+  throw new Error('updateQuestion: mock 모드에서는 setQuizQuestions 를 사용하세요')
+}
+
+export async function deleteQuestion(id) {
+  if (MODE === 'api') {
+    await api(`/api/questions/${id}`, { method: 'DELETE' })
+    return true
+  }
+  throw new Error('deleteQuestion: mock 모드에서는 setQuizQuestions 를 사용하세요')
+}
+
 export async function setQuizQuestions(id, questions) {
   if (MODE === 'api') {
-    // 전체 교체는 단일 엔드포인트로 없어 — 개별 PATCH/DELETE/POST 조합은 별도 유틸 필요
-    // 현재는 mock 전용 (쓰기 전환은 다음 스텝)
-    throw new Error('setQuizQuestions: api 모드는 아직 미지원')
+    // api 모드: 기존 문항 전체 삭제 후 순서대로 재생성 (단순·안전)
+    const existing = await getQuizQuestions(id)
+    await Promise.all(existing.map(q => deleteQuestion(q.id)))
+    const created = []
+    for (const q of questions) {
+      created.push(await createQuizQuestion(id, q))
+    }
+    return created
   }
   return mockSetQuestions(id, questions)
 }
