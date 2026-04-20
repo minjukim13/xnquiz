@@ -52,11 +52,11 @@ export function ConfirmDialog({
         <div>
           <div className="flex items-center gap-3">
             <DialogIcon tone={confirmDanger ? 'destructive' : 'info'} />
-            <AlertDialogTitle className="text-base font-semibold text-foreground">{title}</AlertDialogTitle>
+            <AlertDialogTitle className="text-[17px] font-semibold text-foreground">{title}</AlertDialogTitle>
           </div>
           {message && (
             <AlertDialogDescription asChild>
-              <p className="mt-3 text-[14px] leading-[1.6] text-secondary-foreground whitespace-pre-line">
+              <p className="mt-2 text-[14px] leading-[1.6] text-secondary-foreground whitespace-pre-line">
                 {message}
               </p>
             </AlertDialogDescription>
@@ -106,7 +106,7 @@ export function AlertDialog({
           <div className="flex items-start gap-2">
             <DialogIcon tone={tone} />
             <div>
-              <AlertDialogTitle className="text-base leading-[1.45]">{title}</AlertDialogTitle>
+              <AlertDialogTitle className="text-[17px] font-semibold leading-[1.45]">{title}</AlertDialogTitle>
               {isList && (
                 <p className="text-[13px] text-muted-foreground mt-0.5">
                   아래 항목을 확인해주세요
@@ -117,7 +117,7 @@ export function AlertDialog({
 
           {message && (
             <AlertDialogDescription asChild>
-              <div className="mt-3 pl-6">
+              <div className="mt-2 pl-6">
                 {isList ? (
                   <div className="rounded-[10px] bg-accent border border-primary/15 px-4 py-3.5 space-y-2.5">
                     {lines.map((line, i) => (

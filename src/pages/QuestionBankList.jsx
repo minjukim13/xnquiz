@@ -924,7 +924,7 @@ function ExportToBankModal({ onClose, onExport }) {
                   {targetMode === 'existing' && (
                     <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-primary/15" onClick={e => e.stopPropagation()}>
                       {courseBanks.length === 0 ? (
-                        <p className="text-xs text-muted-foreground py-2">선택한 과목에 사용 가능한 문제은행이 없습니다</p>
+                        <p className="text-sm text-muted-foreground py-3">선택한 과목에 사용 가능한 문제은행이 없습니다</p>
                       ) : (
                         courseBanks.map(b => (
                           <button
@@ -1245,7 +1245,7 @@ function ImportModal({ onClose, onImport }) {
                   {targetMode === 'existing' && (
                     <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-primary/15" onClick={e => e.stopPropagation()}>
                       {existingTargetBanks.length === 0 ? (
-                        <p className="text-xs text-muted-foreground py-2">선택 가능한 문제은행이 없습니다</p>
+                        <p className="text-sm text-muted-foreground py-3">선택 가능한 문제은행이 없습니다</p>
                       ) : (
                         existingTargetBanks.map(b => (
                           <button
