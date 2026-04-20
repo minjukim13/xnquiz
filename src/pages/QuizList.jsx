@@ -4,7 +4,7 @@ import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions, addQuiz, removeQuiz } from '../data/mockData'
-import { useRole } from '../context/RoleContext'
+import { useRole } from '../context/role'
 import { getStudentAttempts, getQuizStudents } from '../data/mockData'
 import { getEffectiveSubmittedCount } from '@/utils/deadlineUtils'
 import { DropdownSelect } from '../components/DropdownSelect'

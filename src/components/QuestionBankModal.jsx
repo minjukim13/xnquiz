@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { BookOpen, Search, ChevronLeft } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
-import { useQuestionBank } from '../context/QuestionBankContext'
+import { useQuestionBank } from '../context/questionBank'
 import { DropdownSelect } from './DropdownSelect'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'

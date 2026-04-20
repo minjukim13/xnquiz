@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { ChevronRight, ChevronLeft, Check, Eye } from 'lucide-react'
-import { useQuestionBank } from '../context/QuestionBankContext'
+import { useQuestionBank } from '../context/questionBank'
 import { QUIZ_TYPES } from '../data/mockData'
 
 const DIFFICULTY_LABELS = { high: '상', medium: '중', low: '하' }
