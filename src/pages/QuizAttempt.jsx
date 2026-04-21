@@ -200,6 +200,21 @@ export default function QuizAttempt() {
     if (timeRemaining === 0) handleSubmit(true)
   }, [loaded, submitted, noTimeLimit, isPreview, timeRemaining]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Canvas 정책: lockDate(lock_at) 도래 시 열려있는 attempt 자동 제출
+  // 응시 중 lockDate 가 지나면 답안을 날리지 않고 즉시 제출 처리
+  useEffect(() => {
+    if (!loaded || submitted || isPreview || !quiz?.lockDate) return
+    const lockTime = new Date(quiz.lockDate).getTime()
+    const now = Date.now()
+    if (now >= lockTime) {
+      // 응시 중이던 세션만 자동 제출 (진입 전이라면 아래 차단 화면이 표시됨)
+      if (restored) handleSubmit(true)
+      return
+    }
+    const timer = setTimeout(() => handleSubmit(true), lockTime - now)
+    return () => clearTimeout(timer)
+  }, [loaded, submitted, isPreview, quiz, restored]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60)
     const s = secs % 60
@@ -312,7 +327,9 @@ export default function QuizAttempt() {
 
   if (!isPreview && role !== 'student') return <Navigate to="/" replace />
 
-  if (!isPreview && quiz && quiz.lockDate && new Date() > new Date(quiz.lockDate)) {
+  // 응시 중 lockDate 가 지나면 위 useEffect 가 자동 제출 → submitted=true 이후
+  // 결과 모달이 뜸. 아래 차단 화면은 '첫 진입인데 이미 만료' 케이스 전용.
+  if (!isPreview && !submitted && quiz && quiz.lockDate && new Date() > new Date(quiz.lockDate) && !restored) {
     return (
       <Layout>
         <div className="max-w-2xl mx-auto py-16 text-center">
