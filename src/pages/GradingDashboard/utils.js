@@ -27,7 +27,22 @@ export function getLocalComments() {
 export function setLocalComments(comments) {
   try {
     localStorage.setItem('xnq_student_comments', JSON.stringify(comments))
-  } catch {}
+  } catch { /* quota exceeded 등 무시 */ }
+}
+
+export function getLocalFudgePoints() {
+  try {
+    const raw = localStorage.getItem('xnq_fudge_points')
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+export function setLocalFudgePoints(fudge) {
+  try {
+    localStorage.setItem('xnq_fudge_points', JSON.stringify(fudge))
+  } catch { /* quota exceeded 등 무시 */ }
 }
 
 export const SORT_OPTIONS = [

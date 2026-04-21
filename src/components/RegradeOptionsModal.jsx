@@ -38,12 +38,12 @@ const REGRADE_OPTIONS = [
   },
 ]
 
-export default function RegradeOptionsModal({ question, submittedCount, onConfirm, onCancel }) {
+export default function RegradeOptionsModal({ submittedCount, onConfirm, onCancel }) {
   const [selected, setSelected] = useState('award_both')
 
   return (
     <Dialog open onOpenChange={open => { if (!open) onCancel() }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>재채점 옵션 선택</DialogTitle>
           <DialogDescription>
@@ -86,7 +86,7 @@ export default function RegradeOptionsModal({ question, submittedCount, onConfir
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={cn(
-                      'text-sm font-semibold',
+                      'text-[15px] font-semibold',
                       isActive ? opt.color : 'text-foreground'
                     )}>
                       {opt.title}

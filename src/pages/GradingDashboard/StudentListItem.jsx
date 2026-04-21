@@ -30,6 +30,12 @@ export default function StudentListItem({ student, selected, onClick }) {
             {!isSubmitted && (
               <span className="shrink-0 text-[11px] font-medium text-muted-foreground bg-secondary px-1.5 py-px rounded">미제출</span>
             )}
+            {isSubmitted && student.isLate && (
+              <span className="shrink-0 text-[11px] font-medium text-amber-700 bg-amber-50 px-1.5 py-px rounded">지각</span>
+            )}
+            {isSubmitted && student.autoSubmitted && (
+              <span className="shrink-0 text-[11px] font-medium text-slate-600 bg-slate-100 px-1.5 py-px rounded">자동 제출</span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-px">{student.studentId} · {student.department}</p>
         </div>

@@ -17,6 +17,12 @@ dist
 dist-ssr
 *.local
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -29,3 +35,13 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Prisma — 생성된 클라이언트(node_modules 내부 재생성용) 및 로컬 DB 스냅샷
+/prisma/migrations/**/migration_lock.toml.local
+/prisma/*.db
+/prisma/*.db-journal
+
+# Claude Code 개인/도구 파일
+.claude/settings.local.json
+.agents/
+skills-lock.json

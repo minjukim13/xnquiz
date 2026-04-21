@@ -1,26 +1,39 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { MOCK_BANKS, MOCK_BANK_QUESTIONS, QUIZ_TYPES } from '../data/mockData'
+import { QuestionBankContext } from './questionBank'
+import { useRole } from './role'
+import {
+  listBanks,
+  getBankQuestions as apiGetBankQuestions,
+  createBank as apiCreateBank,
+  updateBank as apiUpdateBank,
+  deleteBank as apiDeleteBank,
+  createBankQuestion as apiCreateBankQuestion,
+  updateBankQuestion as apiUpdateBankQuestion,
+  deleteBankQuestion as apiDeleteBankQuestion,
+} from '@/lib/data'
 
 const LS_BANKS_KEY = 'xnq_banks_v3'
 const LS_QUESTIONS_KEY = 'xnq_bank_questions_v4'
-
-const QuestionBankContext = createContext(null)
+const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
 export function QuestionBankProvider({ children }) {
+  const { role } = useRole()
+
   const [banks, setBanks] = useState(() => {
+    if (MODE === 'api') return []
     try {
       const raw = localStorage.getItem(LS_BANKS_KEY)
       const loaded = raw ? JSON.parse(raw) : MOCK_BANKS
-      // migration: difficulty 필드 없는 기존 bank 데이터에 기본값 주입
       return loaded.map(b => ({ difficulty: '', ...b }))
     } catch { return MOCK_BANKS }
   })
 
   const [questions, setQuestions] = useState(() => {
+    if (MODE === 'api') return []
     try {
       const raw = localStorage.getItem(LS_QUESTIONS_KEY)
       const loaded = raw ? JSON.parse(raw) : MOCK_BANK_QUESTIONS
-      // migration: type 유효성 검증, difficulty 기본값 주입
       return loaded.map(q => {
         const mockQ = MOCK_BANK_QUESTIONS.find(m => m.id === q.id)
         const type = (q.type && QUIZ_TYPES[q.type]) ? q.type : (mockQ?.type || 'multiple_choice')
@@ -29,32 +42,107 @@ export function QuestionBankProvider({ children }) {
     } catch { return MOCK_BANK_QUESTIONS }
   })
 
+  // api 모드: 서버에서 banks + 각 bank 의 questions 일괄 로드
+  // 문제은행은 교수자 전용 (학생은 /api/banks 403). role 전환 시 재실행.
   useEffect(() => {
+    if (MODE !== 'api') return
+    if (role !== 'instructor') {
+      setBanks([])
+      setQuestions([])
+      return
+    }
+    let mounted = true
+    ;(async () => {
+      try {
+        const apiBanks = await listBanks()
+        if (!mounted) return
+        setBanks(apiBanks)
+        const perBank = await Promise.all(apiBanks.map(b => apiGetBankQuestions(b.id)))
+        if (mounted) setQuestions(perBank.flat())
+      } catch (err) {
+        console.error('[QuestionBankContext] api 로드 실패', err)
+      }
+    })()
+    return () => { mounted = false }
+  }, [role])
+
+  // localStorage 싱크 — mock 모드만 (api 모드는 서버 권위)
+  useEffect(() => {
+    if (MODE === 'api') return
     localStorage.setItem(LS_BANKS_KEY, JSON.stringify(banks))
   }, [banks])
 
   useEffect(() => {
+    if (MODE === 'api') return
     localStorage.setItem(LS_QUESTIONS_KEY, JSON.stringify(questions))
   }, [questions])
 
-  const addBank = (bank) => setBanks(prev => [...prev, bank])
+  const addBank = async (bank) => {
+    if (MODE === 'api') {
+      const created = await apiCreateBank({
+        name: bank.name,
+        courseCode: bank.courseCode || (bank.course ? String(bank.course).split(/\s+/)[0].toUpperCase() : ''),
+        difficulty: bank.difficulty || null,
+      })
+      setBanks(prev => [...prev, created])
+      return created
+    }
+    setBanks(prev => [...prev, bank])
+    return bank
+  }
 
-  const updateBank = (id, updated) =>
+  const updateBank = async (id, updated) => {
+    if (MODE === 'api') {
+      const patched = await apiUpdateBank(id, {
+        ...(updated.name !== undefined ? { name: updated.name } : {}),
+        ...(updated.difficulty !== undefined ? { difficulty: updated.difficulty || null } : {}),
+        ...(updated.courseCode ? { courseCode: updated.courseCode } : {}),
+      })
+      setBanks(prev => prev.map(b => b.id === id ? { ...b, ...patched } : b))
+      return patched
+    }
     setBanks(prev => prev.map(b => b.id === id ? { ...b, ...updated } : b))
+  }
 
-  const deleteBank = (bankId) => {
+  const deleteBank = async (bankId) => {
+    if (MODE === 'api') {
+      await apiDeleteBank(bankId)
+    }
     setBanks(prev => prev.filter(b => b.id !== bankId))
     setQuestions(prev => prev.filter(q => q.bankId !== bankId))
   }
 
-  const addQuestions = (newQuestions) =>
+  const addQuestions = async (newQuestions) => {
+    if (MODE === 'api') {
+      const created = []
+      for (const q of newQuestions) {
+        const { id: _id, bankId, ...rest } = q   
+        const saved = await apiCreateBankQuestion(bankId, rest)
+        created.push({ ...saved, bankId })
+      }
+      setQuestions(prev => [...prev, ...created])
+      return created
+    }
     setQuestions(prev => [...prev, ...newQuestions])
+    return newQuestions
+  }
 
-  const updateQuestion = (id, updated) =>
+  const updateQuestion = async (id, updated) => {
+    if (MODE === 'api') {
+      const { bankId: _b, id: _id, ...body } = updated   
+      const patched = await apiUpdateBankQuestion(id, body)
+      setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...patched } : q))
+      return patched
+    }
     setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...updated } : q))
+  }
 
-  const deleteQuestion = (id) =>
+  const deleteQuestion = async (id) => {
+    if (MODE === 'api') {
+      await apiDeleteBankQuestion(id)
+    }
     setQuestions(prev => prev.filter(q => q.id !== id))
+  }
 
   const reorderQuestions = (bankId, fromIndex, toIndex) => {
     setQuestions(prev => {
@@ -90,8 +178,4 @@ export function QuestionBankProvider({ children }) {
       {children}
     </QuestionBankContext.Provider>
   )
-}
-
-export function useQuestionBank() {
-  return useContext(QuestionBankContext)
 }

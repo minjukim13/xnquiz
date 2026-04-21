@@ -3,7 +3,6 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import TypeBadge from '../../components/TypeBadge'
 import { Download, FolderDown, ChevronDown, RefreshCw } from 'lucide-react'
-import { getStudentAnswer } from '../../data/mockData'
 import ResponsesTab from './ResponsesTab'
 import StatsTab from './StatsTab'
 
@@ -28,8 +27,11 @@ export default function QuestionDetailPanel({ question, students, search, onSear
     } catch { return null }
   }, [quizId, question.id])
 
-  // 문항 전환 시 초기화
-  useEffect(() => { setChangedStudentIds(new Set()); setShowChoices(false) }, [question?.id])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on question switch
+    setChangedStudentIds(new Set())
+    setShowChoices(false)
+  }, [question?.id])
 
 
   return (
@@ -119,7 +121,7 @@ export default function QuestionDetailPanel({ question, students, search, onSear
       )}
 
       {/* 탭 + 엑셀 */}
-      <div className="flex items-center justify-between mb-3 gap-2">
+      <div className="flex items-center justify-between mb-3 gap-2 border-b border-border">
         <div className="flex items-center gap-1">
           {[
             { key: 'responses', label: '응시 현황' },
@@ -129,10 +131,10 @@ export default function QuestionDetailPanel({ question, students, search, onSear
               key={key}
               onClick={() => onTabChange(key)}
               className={cn(
-                'px-3 py-1.5 text-sm rounded transition-colors border',
+                'px-3 py-2 text-sm border-b-2 -mb-px transition-colors',
                 activeTab === key
-                  ? 'bg-accent text-primary font-medium border-primary/15'
-                  : 'text-gray-500 border-transparent hover:bg-gray-50'
+                  ? 'border-primary text-primary font-medium'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               )}
             >
               {label}

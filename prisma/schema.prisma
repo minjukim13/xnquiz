@@ -1,0 +1,351 @@
+// XN Quizzes — Prisma schema
+// 데이터 소스: Neon PostgreSQL
+// 프론트엔드 mockData.js(src/data/mockData.js) 기준 모델 반영
+// 과목 식별자 원칙: 과목코드(code)가 단독 PK/FK. 과목명(name)은 중복 가능.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  PROFESSOR
+  TA
+  STUDENT
+}
+
+enum QuizStatus {
+  draft
+  open
+  closed
+  grading
+}
+
+enum QuestionType {
+  multiple_choice
+  true_false
+  multiple_answers
+  short_answer
+  essay
+  numerical
+  formula
+  matching
+  fill_in_multiple_blanks
+  multiple_dropdowns
+  file_upload
+  text
+}
+
+// autoGrade: true / false / 'partial' / null(text 타입) 을 enum으로 표현
+enum AutoGradeMode {
+  AUTO
+  MANUAL
+  PARTIAL
+  NONE
+}
+
+enum ScorePolicy {
+  KEEP_HIGHEST
+  KEEP_LATEST
+  KEEP_AVERAGE
+}
+
+// scoreRevealScope
+enum ScoreRevealScope {
+  wrong_only
+  with_answer
+}
+
+// scoreRevealTiming
+enum ScoreRevealTiming {
+  immediately
+  after_due
+  period
+}
+
+enum BankDifficulty {
+  low
+  medium
+  high
+}
+
+enum EnrollmentRole {
+  PROFESSOR
+  TA
+  STUDENT
+}
+
+// ─────────────────────────────────────────────────────────────
+// USER / AUTH
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole @default(STUDENT)
+
+  // 학생 전용 속성 (nullable — 교수자/운영자는 null)
+  studentId  String? @unique // 학번
+  department String?
+  year       String? // 입학년도
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enrollments    Enrollment[]
+  createdQuizzes Quiz[]        @relation("QuizCreatedBy")
+  createdBanks   QuestionBank[] @relation("BankCreatedBy")
+  attempts       Attempt[]
+  gradedAnswers  Answer[]      @relation("AnswerGradedBy")
+
+  @@index([role])
+}
+
+// ─────────────────────────────────────────────────────────────
+// COURSE / ENROLLMENT
+// ─────────────────────────────────────────────────────────────
+
+model Course {
+  code      String   @id // PK = 과목코드, 예: "CS301"
+  name      String       // 과목명 (중복 허용), 예: "데이터베이스"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quizzes     Quiz[]
+  banks       QuestionBank[]
+  enrollments Enrollment[]
+}
+
+model Enrollment {
+  id         String         @id @default(cuid())
+  userId     String
+  courseCode String
+  role       EnrollmentRole @default(STUDENT)
+  joinedAt   DateTime       @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseCode], references: [code], onDelete: Cascade)
+
+  @@unique([userId, courseCode])
+  @@index([courseCode])
+}
+
+// ─────────────────────────────────────────────────────────────
+// QUIZ
+// ─────────────────────────────────────────────────────────────
+
+model Quiz {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  courseCode  String
+  createdById String
+
+  status  QuizStatus @default(draft)
+  visible Boolean    @default(false)
+
+  // 일정
+  startDate DateTime?
+  dueDate   DateTime?
+  lockDate  DateTime?
+
+  // 주차 / 회차
+  week    Int?
+  session Int?
+
+  // 설정
+  timeLimit     Int? // 분 단위
+  hasFileUpload Boolean     @default(false)
+  scorePolicy   ScorePolicy @default(KEEP_HIGHEST)
+  allowAttempts Int         @default(1)
+
+  // 점수 공개 정책
+  scoreRevealEnabled Boolean            @default(false)
+  scoreRevealScope   ScoreRevealScope?
+  scoreRevealTiming  ScoreRevealTiming?
+  scoreRevealStart   DateTime?
+  scoreRevealEnd     DateTime?
+
+  // 지각 제출
+  allowLateSubmit    Boolean   @default(false)
+  lateSubmitDeadline DateTime?
+
+  // 집계 캐시 (선택) — 실운영에서는 쿼리 시 계산 권장
+  avgScore Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course    Course    @relation(fields: [courseCode], references: [code], onDelete: Cascade)
+  createdBy User      @relation("QuizCreatedBy", fields: [createdById], references: [id])
+  questions Question[]
+  attempts  Attempt[]
+
+  @@index([courseCode])
+  @@index([status])
+  @@index([createdById])
+}
+
+// ─────────────────────────────────────────────────────────────
+// QUESTION
+// ─────────────────────────────────────────────────────────────
+
+model Question {
+  id      String       @id @default(cuid())
+  quizId  String
+  order   Int
+  type    QuestionType
+  text    String       @db.Text
+  points  Float        @default(0)
+
+  autoGrade AutoGradeMode @default(MANUAL)
+
+  // 정답 / 보기 — 유형별로 구조가 달라 JSON 저장
+  // 예: multiple_choice  → { correctAnswer: "SELECT", choices: [...] }
+  //     multiple_answers → { correctAnswer: [0,2,3], choices: [...], scoringMode: "partial" }
+  //     numerical        → { correctAnswer: "15", tolerance: 0.01 }
+  //     formula          → { formula: "...", variables: {...} }
+  //     matching         → { pairs: [{left,right}] }
+  //     fill_in_multiple_blanks → { blanks: { blank1: [...] } }
+  correctAnswer Json?
+  choices       Json?
+
+  // 코멘트
+  correctComment   String? @db.Text
+  incorrectComment String? @db.Text
+  neutralComment   String? @db.Text
+
+  // 서술형 루브릭
+  rubric String? @db.Text
+
+  // 파일 업로드 제약
+  allowedFileTypes Json? // string[]
+  maxFileSize      String? // "10MB"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quiz    Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@unique([quizId, order])
+  @@index([quizId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// QUESTION BANK (문제은행)
+// ─────────────────────────────────────────────────────────────
+
+model QuestionBank {
+  id          String          @id @default(cuid())
+  name        String
+  courseCode  String
+  createdById String
+  difficulty  BankDifficulty? // null = 혼합
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course    Course         @relation(fields: [courseCode], references: [code], onDelete: Cascade)
+  createdBy User           @relation("BankCreatedBy", fields: [createdById], references: [id])
+  questions BankQuestion[]
+
+  @@index([courseCode])
+}
+
+model BankQuestion {
+  id         String          @id @default(cuid())
+  bankId     String
+  type       QuestionType
+  difficulty BankDifficulty?
+  points     Float           @default(0)
+  usageCount Int             @default(0)
+
+  text          String @db.Text
+  options       Json? // Question.choices와 별도 — 문제은행 스키마 유지
+  correctAnswer Json?
+  scoringMode   String? // "partial" 등
+  rubric        String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bank QuestionBank @relation(fields: [bankId], references: [id], onDelete: Cascade)
+
+  @@index([bankId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// ATTEMPT / ANSWER (응시 · 채점)
+// ─────────────────────────────────────────────────────────────
+
+model Attempt {
+  id            String    @id @default(cuid())
+  quizId        String
+  userId        String
+  attemptNumber Int       @default(1)
+
+  startTime   DateTime?
+  endTime     DateTime?
+  submitted   Boolean   @default(false)
+  submittedAt DateTime?
+  isLate      Boolean   @default(false)
+
+  autoScore   Float?
+  manualScore Float?
+  totalScore  Float?
+  graded      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quiz    Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@unique([quizId, userId, attemptNumber])
+  @@index([quizId])
+  @@index([userId])
+}
+
+model Answer {
+  id         String @id @default(cuid())
+  attemptId  String
+  questionId String
+
+  // 응답 — 유형별로 구조가 달라 JSON 저장
+  // 예: multiple_choice → "SELECT"
+  //     multiple_answers → [0, 2, 3]
+  //     matching → { q1: "a", q2: "c" }
+  //     fill_in_multiple_blanks → { blank1: "...", blank2: "..." }
+  //     file_upload → { url, filename, size }
+  response Json?
+
+  autoScore   Float?
+  manualScore Float?
+  gradedById  String?
+  gradedAt    DateTime?
+  feedback    String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attempt  Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  gradedBy User?    @relation("AnswerGradedBy", fields: [gradedById], references: [id])
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+}

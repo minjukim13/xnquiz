@@ -200,7 +200,7 @@ async function createIframeAndCapture(htmlContent) {
 /**
  * canvas를 A4 PDF 페이지들로 분할하여 저장
  */
-function canvasToPdf(canvas, filename) {
+function canvasToPdf(canvas, _filename) {
   const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
 
   const imgWidth = CONTENT_WIDTH_MM
