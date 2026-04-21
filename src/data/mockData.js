@@ -1345,6 +1345,7 @@ export function setQuizQuestions(quizId, questions) {
     map[quizId] = questions
     localStorage.setItem('xnq_quiz_questions', JSON.stringify(map))
   } catch { /* ignore */ }
+  return questions
 }
 
 // CS201 운영체제 — 중간고사 문항
@@ -1902,17 +1903,6 @@ export function recalculateScorePolicy(quizId, newPolicy) {
     console.error('[xnquiz] scorePolicy 소급 재계산 실패:', err)
     return 0
   }
-}
-
-export function gradeQuiz3Answer(questionId, answer) {
-  const correct = AUTO_CORRECT_Q3[questionId]
-  if (!correct || !answer) return 0
-  const question = mockQuiz3Questions.find(q => q.id === questionId)
-  const points = question?.points ?? 2
-  const gs = _getGlobalSettings()
-  const a = _normalizeAnswer(answer, gs)
-  const isCorrect = correct.some(c => a === _normalizeAnswer(c, gs))
-  return isCorrect ? points : 0
 }
 
 export function autoGradeAnswer(question, answer) {
