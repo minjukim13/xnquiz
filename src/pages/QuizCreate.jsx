@@ -281,6 +281,13 @@ function InfoTab({ form, set }) {
           <Field label={<span className="inline-flex items-center gap-1">마감 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">미설정 시 응시 기간 제한 없이 학생이 언제든 응시할 수 있습니다.</p>
+        <Field label={<span className="inline-flex items-center gap-1">유예 시간<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>마감 직후 네트워크 지연 등으로 늦게 제출될 수 있는 경우를<br />대비한 버퍼 시간입니다. 이 시간 이내 제출은 지각으로 처리하지 않습니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
+          <div className={cn('flex items-center gap-2', !form.dueDate && 'opacity-40 pointer-events-none')}>
+            <input type="number" value={form.gracePeriod} onChange={e => set('gracePeriod', e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} min={0} placeholder="0" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
+            <span className="text-sm shrink-0 text-muted-foreground">분</span>
+          </div>
+          <p className="text-xs mt-1.5 text-muted-foreground">{form.dueDate ? '0분 또는 미설정 시 유예 없이 마감 일시에 지각 처리됩니다.' : '마감 일시가 설정되어야 사용할 수 있습니다.'}</p>
+        </Field>
         <Field label={<span className="inline-flex items-center gap-1">이용 종료 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>퀴즈 페이지 자체에 접근할 수 없게 되는 시점입니다.<br />마감 이후에도 학생이 결과를 확인할 수 있도록<br />종료 일시는 마감 일시 이후로 설정하는 것을 권장합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
           <input type="datetime-local" value={form.lockDate} onChange={e => set('lockDate', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
           <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
@@ -338,13 +345,6 @@ function InfoTab({ form, set }) {
         {(form.allowAttempts >= 2 || form.unlimitedAttempts) && (
           <Field label="복수 응시 시 채점 방식"><CustomSelect value={form.scorePolicy} onChange={v => set('scorePolicy', v)} options={SCORE_POLICIES} /></Field>
         )}
-        <Field label={<span className="inline-flex items-center gap-1">유예 시간<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>마감 직후 네트워크 지연 등으로 늦게 제출될 수 있는 경우를<br />대비한 버퍼 시간입니다. 이 시간 이내 제출은 지각으로 처리하지 않습니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
-          <div className={cn('flex items-center gap-2', !form.dueDate && 'opacity-40 pointer-events-none')}>
-            <input type="number" value={form.gracePeriod} onChange={e => set('gracePeriod', e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} min={0} placeholder="0" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
-            <span className="text-sm shrink-0 text-muted-foreground">분</span>
-          </div>
-          <p className="text-xs mt-1.5 text-muted-foreground">{form.dueDate ? '0분 또는 미설정 시 유예 없이 마감 일시에 지각 처리됩니다.' : '마감 일시가 설정되어야 사용할 수 있습니다.'}</p>
-        </Field>
       </Section>
 
       <Section title="문항 표시 설정">
@@ -537,7 +537,6 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
                     <Badge variant="secondary" className="bg-slate-100 text-slate-600">{QUIZ_TYPES[q.type]?.label}</Badge>
                     <span className="text-xs text-muted-foreground">{q.points}점</span>
                     {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-orange-50 text-orange-700">수동채점</Badge>}
-                    {q.bankName && <Badge variant="secondary" className="bg-sky-50 text-sky-700">{q.bankName}</Badge>}
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
