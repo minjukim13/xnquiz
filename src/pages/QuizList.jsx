@@ -6,7 +6,7 @@ import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts } from '../data/mockData'
-import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz } from '@/lib/data'
+import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz, listAttempts, isApiMode } from '@/lib/data'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -135,6 +135,10 @@ function sortQuizzes(quizzes, sortKey) {
     case 'recent':
     default:
       return sorted.sort((a, b) => {
+        // createdAt 우선 (api 모드). 없으면 id 내림차순 (mock 모드 숫자 id 호환).
+        if (a.createdAt && b.createdAt) {
+          return new Date(b.createdAt) - new Date(a.createdAt)
+        }
         const aNum = Number(a.id)
         const bNum = Number(b.id)
         if (!isNaN(aNum) && !isNaN(bNum)) return bNum - aNum
@@ -514,10 +518,12 @@ function QuizCard({ quiz, onCopy, onDelete }) {
 
 
 function DraftSpecs({ quiz }) {
+  // quiz.questions / quiz.totalPoints 는 API 응답에서 서버가 실시간 집계해 내려주는 요약 필드(스탬프가 아님).
+  // 목록 화면에서는 개별 문항 배열을 로드하지 않으므로 이 집계값을 사용한다.
   const cols = [
     { label: '문항 수',   value: `${quiz.questions}개` },
     { label: '총점',       value: `${quiz.totalPoints}점` },
-    { label: '제한시간',   value: quiz.timeLimit === 0 ? '없음' : `${quiz.timeLimit}분` },
+    { label: '제한시간',   value: !quiz.timeLimit ? '없음' : `${quiz.timeLimit}분` },
   ]
 
   return (
@@ -839,6 +845,9 @@ function StudentQuizList() {
 
   // 데이터 레이어 경유 — api 모드에선 서버가 visible + 수강 과목 필터링까지 수행
   const [allQuizzes, setAllQuizzes] = useState([])
+  // api 모드용 — 학생 본인 attempt 전체 (quiz.id 별 그룹핑용)
+  // null = mock 모드 (StudentQuizCard 가 getStudentAttempts 로 직접 로드)
+  const [apiAttempts, setApiAttempts] = useState(null)
   useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -847,6 +856,23 @@ function StudentQuizList() {
       // 학생 뷰는 draft 제외 + visible !== false (api 모드는 서버에서 이미 처리되지만 mock 모드 호환)
       setAllQuizzes(rows.filter(q => q.status !== 'draft' && q.visible !== false))
     })()
+    if (isApiMode()) {
+      ;(async () => {
+        // 학생은 서버에서 본인 attempt 만 반환됨 — quizId 없이 호출
+        const rows = await listAttempts({}).catch(() => [])
+        if (!mounted) return
+        setApiAttempts(rows.map(a => ({
+          id: a.id,
+          quizId: a.quizId,
+          studentId: a.userId,
+          submitted: a.submitted,
+          submittedAt: a.submittedAt,
+          totalScore: a.totalScore,
+          autoScore: a.autoScore,
+          manualScore: a.manualScore,
+        })))
+      })()
+    }
     return () => { mounted = false }
   }, [])
 
@@ -900,6 +926,7 @@ function StudentQuizList() {
                     quiz={quiz}
                     studentId={currentStudent.id}
                     scheduled={isScheduled(quiz)}
+                    apiAttempts={apiAttempts ? apiAttempts.filter(a => a.quizId === quiz.id) : null}
                   />
             ))}
           </div>
@@ -919,8 +946,9 @@ function StudentQuizList() {
   )
 }
 
-function StudentQuizCard({ quiz, studentId, scheduled = false }) {
-  const attempts = getStudentAttempts(quiz.id)
+function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = null }) {
+  // api 모드면 부모가 내려준 실제 응시 기록, 아니면 mock localStorage 에서 조회
+  const attempts = apiAttempts ?? getStudentAttempts(quiz.id)
   const myAttempts = attempts.filter(a => a.studentId === studentId)
   const myAttempt = myAttempts[myAttempts.length - 1] ?? null
   const attemptCount = myAttempts.length
@@ -930,14 +958,11 @@ function StudentQuizCard({ quiz, studentId, scheduled = false }) {
   const isOpen = quiz.status === 'open' && !scheduled
   const ddayBadge = getDdayBadge(quiz)
 
-  const myBadge = (() => {
-    if (!myAttempt) {
-      if (isOpen) return null
-      return { label: '미제출', cls: 'text-muted-foreground bg-slate-100', icon: false }
-    }
-    if (myAttempt.manualPending > 0) return { label: '채점 대기', cls: 'text-amber-700 bg-amber-50', icon: false }
-    return { label: '채점 완료', cls: 'text-primary bg-accent', icon: true }
-  })()
+  // 학생 혼란 방지 — 채점 상태(대기/완료)는 학생 목록 배지에 표시하지 않음.
+  // 응시 여부만 표시: 미응시(마감) = 미제출, 그 외(응시중 / 응시 완료)는 배지 없음.
+  const myBadge = (!myAttempt && !isOpen)
+    ? { label: '미제출', cls: 'text-muted-foreground bg-slate-100' }
+    : null
 
   return (
     <Card className="overflow-hidden">
@@ -946,8 +971,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false }) {
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <StatusBadge status={scheduled ? 'scheduled' : quiz.status} />
             {myBadge && (
-              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-md flex items-center gap-1', myBadge.cls)}>
-                {myBadge.icon && <CheckCircle2 size={11} />}
+              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-md', myBadge.cls)}>
                 {myBadge.label}
               </span>
             )}
@@ -1012,7 +1036,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false }) {
             {[
               { label: '문항 수', value: `${quiz.questions}개` },
               { label: '총점', value: `${quiz.totalPoints}점` },
-              { label: '제한시간', value: quiz.timeLimit === 0 ? '없음' : `${quiz.timeLimit ?? 30}분` },
+              { label: '제한시간', value: !quiz.timeLimit ? '없음' : `${quiz.timeLimit}분` },
             ].map((item, idx) => (
               <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < 2 && 'border-r border-slate-100')}>
                 <p className="text-lg font-bold leading-none text-slate-900">{item.value}</p>

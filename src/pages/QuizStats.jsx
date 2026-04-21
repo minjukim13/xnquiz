@@ -115,11 +115,12 @@ function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
   )
 }
 
-function GradesTab({ quiz, students: allStudents }) {
+function GradesTab({ quiz, quizQuestions, students: allStudents }) {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('desc')
+  const totalPoints = quizQuestions.reduce((s, q) => s + (q.points || 0), 0)
 
   const submitted = allStudents.filter(s => s.submitted)
   const unsubmitted = allStudents.filter(s => !s.submitted)
@@ -166,7 +167,7 @@ function GradesTab({ quiz, students: allStudents }) {
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  const downloadCSV = () => downloadGradesXlsx(quiz, submitted)
+  const downloadCSV = () => downloadGradesXlsx(quiz, submitted, quizQuestions)
 
   return (
     <div>
@@ -224,7 +225,7 @@ function GradesTab({ quiz, students: allStudents }) {
                   { key: 'department', label: '학과', align: 'left' },
                   { key: 'elapsed', label: '소요 시간', align: 'center' },
                   { key: 'submittedAt', label: '제출 일시', align: 'center' },
-                  { key: 'score', label: `점수 / ${quiz.totalPoints}점`, align: 'center' },
+                  { key: 'score', label: `점수 / ${totalPoints}점`, align: 'center' },
                   { key: 'status', label: '상태', align: 'center' },
                   { key: null, label: '답안', align: 'center' },
                 ].map(({ key, label, align }) => (
@@ -248,7 +249,7 @@ function GradesTab({ quiz, students: allStudents }) {
             </thead>
             <tbody>
               {filtered.map((s) => {
-                const scorePct = s.score !== null ? Math.round((s.score / quiz.totalPoints) * 100) : null
+                const scorePct = s.score !== null ? Math.round((s.score / totalPoints) * 100) : null
                 const elapsed = calcElapsed(s.startTime, s.submittedAt)
                 return (
                   <tr key={s.id} className="border-b border-slate-100 hover:bg-accent/30 transition-colors">
@@ -294,6 +295,7 @@ function GradesTab({ quiz, students: allStudents }) {
 }
 
 function StatsTab({ quiz, quizQuestions, students: allStudents }) {
+  const totalPoints = quizQuestions.reduce((s, q) => s + (q.points || 0), 0)
   const submitted = allStudents.filter(s => s.submitted)
   const graded    = submitted.filter(s => s.score !== null)
   const scores    = graded.map(s => s.score)
@@ -354,7 +356,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
       {/* 요약 지표 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: '평균 점수', value: avg.toFixed(1), unit: `/ ${quiz.totalPoints}점`, accent: true },
+          { label: '평균 점수', value: avg.toFixed(1), unit: `/ ${totalPoints}점`, accent: true },
           { label: '최고 점수', value: maxScore, unit: '점' },
           { label: '최저 점수', value: minScore, unit: '점' },
           { label: '표준편차', value: `±${stdev.toFixed(1)}`, unit: '점' },
@@ -477,7 +479,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
           <div className="min-w-0">
             <h3 className="text-base font-semibold">문항별 상세 통계</h3>
-            <span className="block text-xs text-muted-foreground mt-0.5">총 {quizQuestions.length}문항 · {quiz.totalPoints}점 만점</span>
+            <span className="block text-xs text-muted-foreground mt-0.5">총 {quizQuestions.length}문항 · {totalPoints}점 만점</span>
           </div>
           <Button variant="outline" size="sm" onClick={() => downloadItemAnalysisXlsx(quiz, quizQuestions, allStudents)}>
             <Download size={12} />

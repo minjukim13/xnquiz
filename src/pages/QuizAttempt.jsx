@@ -469,7 +469,7 @@ export default function QuizAttempt() {
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs mb-0.5 text-muted-foreground">{quiz.week}주차 {quiz.session}차시 · {quiz.totalPoints}점</p>
+                <p className="text-xs mb-0.5 text-muted-foreground">{quiz.week}주차 {quiz.session}차시 · {questions.reduce((s, q) => s + (q.points || 0), 0)}점</p>
                 <h1 className="text-base font-bold">{quiz.title}</h1>
                 {quiz.description && (
                   <p className="text-sm mt-1.5 text-slate-500">{quiz.description}</p>
@@ -1052,9 +1052,9 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
 
 function ResultModal({ result, quiz, questions, onClose }) {
   const autoTotal = result.totalAutoScore
-  const totalPoints = quiz.totalPoints || questions.reduce((s, q) => s + q.points, 0)
+  const totalPoints = questions.reduce((s, q) => s + (q.points || 0), 0)
   const autoMax = totalPoints > 0 ? totalPoints : result.totalPossibleAuto
-  const hasAutoGrade = (quiz.totalPoints || questions.reduce((s, q) => s + q.points, 0)) > 0
+  const hasAutoGrade = totalPoints > 0
   const scorePercent = hasAutoGrade ? Math.round((autoTotal / autoMax) * 100) : null
 
   const now = new Date()
