@@ -91,8 +91,25 @@ async function patchQuiz(req: VercelRequest, res: VercelResponse, auth: AuthPayl
   if ('hasFileUpload' in body) data.hasFileUpload = !!body.hasFileUpload
   if ('week' in body)        data.week        = body.week
   if ('session' in body)     data.session     = body.session
-  if ('timeLimit' in body)   data.timeLimit   = body.timeLimit
-  if ('allowAttempts' in body) data.allowAttempts = body.allowAttempts
+  if ('timeLimit' in body) {
+    const t = body.timeLimit
+    if (t === null || t === undefined) {
+      data.timeLimit = null
+    } else if (typeof t === 'number' && Number.isInteger(t) && t > 0) {
+      data.timeLimit = t
+    } else {
+      return res.status(400).json({ error: 'timeLimit 은 양의 정수(분) 또는 null 이어야 합니다' })
+    }
+  }
+  if ('allowAttempts' in body) {
+    const a = body.allowAttempts
+    // -1 = 무제한 (클라 규약)
+    if (typeof a === 'number' && Number.isInteger(a) && (a >= 1 || a === -1)) {
+      data.allowAttempts = a
+    } else {
+      return res.status(400).json({ error: 'allowAttempts 는 1 이상 정수 또는 -1(무제한) 이어야 합니다' })
+    }
+  }
   if ('scoreRevealEnabled' in body) data.scoreRevealEnabled = !!body.scoreRevealEnabled
   if ('scoreRevealScope'  in body) data.scoreRevealScope   = body.scoreRevealScope
   if ('scoreRevealTiming' in body) data.scoreRevealTiming  = body.scoreRevealTiming
