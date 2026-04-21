@@ -54,7 +54,7 @@ export async function api(path, options = {}) {
  * @returns {Promise<object>} 토큰 주인의 사용자 정보
  */
 export async function devLogin(email) {
-  const data = await api('/api/auth/dev-login', {
+  const data = await api('/api/session/dev-login', {
     method: 'POST',
     body: JSON.stringify({ email }),
   })
