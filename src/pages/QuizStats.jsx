@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { AlertCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { downloadGradesXlsx, downloadItemAnalysisXlsx } from '../utils/excelUtils'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
 import Layout from '../components/Layout'
-import { mockQuizzes, getQuizStudents, QUIZ_TYPES, getQuizQuestions } from '../data/mockData'
+import { QUIZ_TYPES } from '../data/mockData'
+import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
 import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -28,14 +29,90 @@ function variance(arr) {
   return arr.reduce((a, b) => a + (b - mean) ** 2, 0) / arr.length
 }
 
+// 문항 배열에 mock 의 avgScore / gradedCount / totalCount 필드가 없는 경우 (api 모드)
+// attempts 에서 실시간 집계해 덧붙인다. mock 모드는 이미 포함된 값을 유지.
+function enrichQuestions(questions, students) {
+  const submittedStudents = students.filter(s => s.submitted)
+  const totalCount = submittedStudents.length
+  return questions.map(q => {
+    if (q.avgScore != null || q.gradedCount != null) return q // mock
+    let sum = 0
+    let cnt = 0
+    for (const s of submittedStudents) {
+      const auto = s.autoScores?.[q.id]
+      const manual = s.manualScores?.[q.id]
+      if (auto == null && manual == null) continue
+      sum += (auto ?? 0) + (manual ?? 0)
+      cnt++
+    }
+    return {
+      ...q,
+      totalCount,
+      gradedCount: cnt,
+      avgScore: cnt > 0 ? Math.round((sum / cnt) * 10) / 10 : null,
+    }
+  })
+}
+
 export default function QuizStats() {
   const { id } = useParams()
   const { role } = useRole()
-  const quiz = mockQuizzes.find(q => q.id === id)
-  const quizQuestions = getQuizQuestions(id)
-  const quizStudents = getQuizStudents(id)
+  const [quiz, setQuiz] = useState(null)
+  const [quizQuestions, setQuizQuestions] = useState([])
+  const [quizStudents, setQuizStudents] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  if (role !== 'instructor' || !quiz) return <Navigate to="/" replace />
+  useEffect(() => {
+    let mounted = true
+    setLoading(true)
+    ;(async () => {
+      try {
+        const [q, qq, qs] = await Promise.all([
+          getQuiz(id),
+          getQuizQuestions(id),
+          listAttempts({ quizId: id }),
+        ])
+        if (!mounted) return
+        setQuiz(q)
+        setQuizQuestions(qq ?? [])
+        setQuizStudents(qs ?? [])
+      } catch (err) {
+        console.error('[QuizStats] 로드 실패', err)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [id])
+
+  const enrichedQuestions = useMemo(
+    () => enrichQuestions(quizQuestions, quizStudents),
+    [quizQuestions, quizStudents]
+  )
+
+  if (role !== 'instructor') return <Navigate to="/" replace />
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <p className="text-sm text-muted-foreground">불러오는 중</p>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (!quiz) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <AlertCircle size={32} className="mx-auto mb-3 text-red-700" />
+          <p className="text-sm font-medium mb-1 text-slate-900">퀴즈를 찾을 수 없습니다</p>
+          <Link to="/" className="text-xs text-primary hover:underline">퀴즈 목록으로 돌아가기</Link>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout>
@@ -60,7 +137,7 @@ export default function QuizStats() {
         </div>
 
         {/* 탭 */}
-        <StatsPageTabs quiz={quiz} quizQuestions={quizQuestions} quizStudents={quizStudents} />
+        <StatsPageTabs quiz={quiz} quizQuestions={enrichedQuestions} quizStudents={quizStudents} />
       </div>
     </Layout>
   )

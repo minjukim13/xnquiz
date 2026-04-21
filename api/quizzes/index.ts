@@ -31,6 +31,8 @@ async function listQuizzes(req: VercelRequest, res: VercelResponse, auth: AuthPa
       })
       where.courseCode = { in: enrolled.map(e => e.courseCode) }
       where.visible = true
+      // 학생에게는 응시 가능한 상태만 노출 (draft=작성중, grading=채점중 숨김)
+      where.status = { in: ['open', 'closed'] }
     }
 
     if (courseCode) {
@@ -45,7 +47,26 @@ async function listQuizzes(req: VercelRequest, res: VercelResponse, auth: AuthPa
       orderBy: { createdAt: 'desc' },
     })
 
+    const isStudent = auth.role === 'STUDENT'
+
     const results = await Promise.all(quizzes.map(async (q) => {
+      // 학생 시점: 응시에 필요한 최소 집계만 계산 (다른 수강생 평균·제출현황 비노출)
+      if (isStudent) {
+        const questions = await prisma.question.findMany({
+          where: { quizId: q.id }, select: { points: true },
+        })
+        const stats: QuizStats = {
+          totalStudents: null,
+          submitted: null,
+          graded: null,
+          pendingGrade: null,
+          questions: questions.length,
+          totalPoints: questions.reduce((acc, x) => acc + x.points, 0),
+          avgScore: null,
+        }
+        return toQuizResponse(q, stats)
+      }
+
       const [totalStudents, submitted, graded, questions, avg] = await Promise.all([
         prisma.enrollment.count({ where: { courseCode: q.courseCode, role: 'STUDENT' } }),
         prisma.attempt.count({ where: { quizId: q.id, submitted: true } }),
