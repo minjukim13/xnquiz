@@ -5,9 +5,8 @@ import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
-import { getStudentAttempts, getQuizStudents } from '../data/mockData'
+import { getStudentAttempts } from '../data/mockData'
 import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz } from '@/lib/data'
-import { getEffectiveSubmittedCount } from '@/utils/deadlineUtils'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -239,7 +238,7 @@ function InstructorQuizList() {
   })
 
   const handleCopyQuiz = async (quiz, targetCourse) => {
-    const { id: _srcId, ...rest } = quiz  // eslint-disable-line no-unused-vars
+    const { id: _srcId, ...rest } = quiz   
     const draft = resetFields(rest, { course: targetCourse })
     try {
       const created = await createQuiz(draft)
@@ -258,7 +257,7 @@ function InstructorQuizList() {
     try {
       const imported = []
       for (const q of selectedQuizzes) {
-        const { id: _srcId, ...rest } = q  // eslint-disable-line no-unused-vars
+        const { id: _srcId, ...rest } = q   
         const draft = resetFields(rest, { course: CURRENT_COURSE })
         const created = await createQuiz(draft)
         await cloneQuestions(q.id, created.id)

@@ -11,7 +11,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import AddBankModal from '../components/AddBankModal'
 import ExportBankModal from '../components/ExportBankModal'
 import ImportBankModal from '../components/ImportBankModal'
-import { DIFFICULTY_META, DIFF_LABEL } from '../components/BankWizardShared'
+import { DIFFICULTY_META, DIFF_LABEL } from '../components/bankDifficulty'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
@@ -40,7 +40,7 @@ export default function QuestionBankList() {
     const newName = `${bank.name}-사본`
     try {
       const created = await addBank({
-        // eslint-disable-next-line react-hooks/purity -- event-handler-only ID generation
+         
         id: `bank_copy_${Date.now()}`,
         name: newName,
         difficulty: bank.difficulty,
