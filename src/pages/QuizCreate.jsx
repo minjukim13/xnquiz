@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { GripVertical, Pencil, Trash2, HelpCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
@@ -7,8 +7,12 @@ import QuestionAnswer from '../components/QuestionAnswer'
 import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
-import { QUIZ_TYPES, mockQuizzes } from '../data/mockData'
+import { QUIZ_TYPES } from '../data/mockData'
+import { createQuiz, setQuizQuestions } from '@/lib/data'
+import { useRole } from '../context/role'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
+import AssignmentOverrides from '../components/AssignmentOverrides'
+import { hasDuplicateStudent, sanitizeAssignments } from '../utils/assignments'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -36,6 +40,7 @@ const DEFAULT_NOTICE = `- 제출 후에는 답안을 수정할 수 없습니다.
 
 export default function QuizCreate() {
   const navigate = useNavigate()
+  const { role } = useRole()
   const [tab, setTab] = useState('info')
   const [form, setForm] = useState({
     title: '', description: '', week: null, session: null,
@@ -44,8 +49,11 @@ export default function QuizCreate() {
     shuffleChoices: false, shuffleQuestions: false,
     scoreRevealEnabled: false, scoreRevealScope: 'wrong_only',
     scoreRevealTiming: 'immediately', scoreRevealStart: '', scoreRevealEnd: '',
+    oneTimeResults: false,
     quizMode: 'graded', accessCode: '', ipRestriction: '',
-    allowLateSubmit: false, lateSubmitDeadline: '',
+    allowLateSubmit: false, lateSubmitDeadline: '', gracePeriod: 0,
+    oneQuestionAtATime: false, lockAfterAnswer: false,
+    assignments: [],
     notice: DEFAULT_NOTICE, visible: true,
   })
   const [questions, setQuestions] = useState([])
@@ -62,10 +70,11 @@ export default function QuizCreate() {
   const getValidationErrors = () => {
     const errors = []
     if (!form.title) errors.push('퀴즈 제목을 입력해주세요')
-    if (!form.startDate) errors.push('시작 일시를 설정해주세요')
-    if (!form.dueDate) errors.push('마감 일시를 설정해주세요')
     if (form.startDate && form.dueDate && new Date(form.dueDate) <= new Date(form.startDate)) errors.push('마감 일시는 시작 일시 이후여야 합니다')
+    if (!form.dueDate && form.allowLateSubmit && form.lateSubmitDeadline) errors.push('지각 제출 마감 일시는 마감 일시가 설정되어 있을 때만 사용할 수 있습니다')
+    if (!form.unlimitedTimeLimit && (form.timeLimit === '' || Number(form.timeLimit) <= 0)) errors.push('제한 시간을 입력하거나 무제한으로 설정해주세요')
     if (questions.length === 0) errors.push('최소 1개 이상의 문항을 추가해주세요')
+    if (hasDuplicateStudent(form.assignments)) errors.push('동일한 학생이 여러 추가 기간 설정에 포함되어 있습니다')
     return errors
   }
 
@@ -81,40 +90,57 @@ export default function QuizCreate() {
     }
   }
 
-  const handleSaveDraft = () => {
+  const buildQuizBody = (status) => ({
+    title: form.title, description: form.description,
+    course: 'CS301 데이터베이스', quizMode: form.quizMode, status, visible: form.visible,
+    startDate: form.startDate || null, dueDate: form.dueDate || null,
+    lockDate: form.lockDate || null,
+    week: form.week ?? null, session: form.session ?? null,
+    timeLimit: form.timeLimit === '' ? 0 : Number(form.timeLimit),
+    allowAttempts: form.unlimitedAttempts ? -1 : form.allowAttempts,
+    scorePolicy: form.allowAttempts >= 2 || form.unlimitedAttempts ? form.scorePolicy : null,
+    shuffleChoices: form.shuffleChoices, shuffleQuestions: form.shuffleQuestions,
+    scoreRevealEnabled: form.scoreRevealEnabled,
+    scoreRevealScope: form.scoreRevealEnabled ? form.scoreRevealScope : null,
+    scoreRevealTiming: form.scoreRevealEnabled ? form.scoreRevealTiming : null,
+    scoreRevealStart: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealStart || null : null,
+    scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
+    oneTimeResults: form.oneTimeResults,
+    accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
+    allowLateSubmit: form.allowLateSubmit,
+    lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
+    gracePeriod: form.dueDate && Number(form.gracePeriod) > 0 ? Number(form.gracePeriod) : 0,
+    oneQuestionAtATime: form.oneQuestionAtATime,
+    lockAfterAnswer: form.oneQuestionAtATime && form.lockAfterAnswer,
+    assignments: sanitizeAssignments(form.assignments),
+    notice: form.notice,
+    totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
+    questions: questions.length, totalPoints,
+  })
+
+  const persistQuiz = async (status) => {
+    const created = await createQuiz(buildQuizBody(status))
+    if (questions.length > 0) {
+      await setQuizQuestions(created.id, questions)
+    }
+    return created
+  }
+
+  const handleSaveDraft = async () => {
     if (!form.title) {
       setAlertDialog({ title: '임시저장 불가', message: '퀴즈 제목을 입력해주세요.', variant: 'error' })
       return
     }
-    mockQuizzes.push({
-      id: String(Date.now()), title: form.title, description: form.description,
-      course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'draft', visible: form.visible,
-      startDate: form.startDate || null, dueDate: form.dueDate || null,
-      lockDate: form.lockDate || null,
-      week: form.week ?? null, session: form.session ?? null,
-      timeLimit: form.timeLimit === '' ? 0 : Number(form.timeLimit),
-      allowAttempts: form.unlimitedAttempts ? -1 : form.allowAttempts,
-      scorePolicy: form.allowAttempts >= 2 || form.unlimitedAttempts ? form.scorePolicy : null,
-      shuffleChoices: form.shuffleChoices, shuffleQuestions: form.shuffleQuestions,
-      scoreRevealEnabled: form.scoreRevealEnabled,
-      scoreRevealScope: form.scoreRevealEnabled ? form.scoreRevealScope : null,
-      scoreRevealTiming: form.scoreRevealEnabled ? form.scoreRevealTiming : null,
-      scoreRevealStart: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealStart || null : null,
-      scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
-      accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
-      allowLateSubmit: form.allowLateSubmit,
-      lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
-      notice: form.notice,
-      totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
-      questions: questions.length, totalPoints,
-    })
-    setConfirmDialog({
-      title: '임시저장 완료',
-      message: '퀴즈가 임시저장되었습니다. 퀴즈 목록으로 이동하시겠습니까?',
-      confirmLabel: '목록으로 이동',
-      cancelLabel: '계속 편집',
-      onConfirm: () => navigate('/'),
-    })
+    try {
+      await persistQuiz('draft')
+      setAlertDialog({
+        title: '임시저장 완료',
+        message: '퀴즈가 임시저장되었습니다.',
+      })
+    } catch (err) {
+      console.error('[QuizCreate] 임시저장 실패', err)
+      setAlertDialog({ title: '임시저장 실패', message: err?.message ?? '저장 중 오류가 발생했습니다.', variant: 'error' })
+    }
   }
 
   const addQuestion = useCallback((q) => {
@@ -134,6 +160,8 @@ export default function QuizCreate() {
   }, [])
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
 
+  if (role !== 'instructor') return <Navigate to="/" replace />
+
   const handlePublish = () => {
     const errors = getValidationErrors()
     if (errors.length > 0) {
@@ -145,30 +173,14 @@ export default function QuizCreate() {
     }
     const isMultiAttempt = form.allowAttempts >= 2 || form.unlimitedAttempts
     const noRevealPeriod = form.scoreRevealEnabled && form.scoreRevealTiming !== 'period' && form.scoreRevealTiming !== 'after_due'
-    const doPublish = () => {
-      mockQuizzes.push({
-        id: String(Date.now()), title: form.title, description: form.description,
-        course: 'CS301 데이터베이스', quizMode: form.quizMode, status: 'open', visible: form.visible,
-        startDate: form.startDate, dueDate: form.dueDate,
-        lockDate: form.lockDate || null,
-        week: form.week ?? null, session: form.session ?? null,
-        timeLimit: form.timeLimit === '' ? 0 : Number(form.timeLimit),
-        allowAttempts: form.unlimitedAttempts ? -1 : form.allowAttempts,
-        scorePolicy: form.allowAttempts >= 2 || form.unlimitedAttempts ? form.scorePolicy : null,
-        shuffleChoices: form.shuffleChoices, shuffleQuestions: form.shuffleQuestions,
-        scoreRevealEnabled: form.scoreRevealEnabled,
-        scoreRevealScope: form.scoreRevealEnabled ? form.scoreRevealScope : null,
-        scoreRevealTiming: form.scoreRevealEnabled ? form.scoreRevealTiming : null,
-        scoreRevealStart: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealStart || null : null,
-        scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
-        accessCode: form.accessCode || null, ipRestriction: form.ipRestriction || null,
-        allowLateSubmit: form.allowLateSubmit,
-        lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
-        notice: form.notice,
-        totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
-        questions: questions.length, totalPoints,
-      })
-      navigate('/')
+    const doPublish = async () => {
+      try {
+        await persistQuiz('open')
+        navigate('/')
+      } catch (err) {
+        console.error('[QuizCreate] 저장 실패', err)
+        setAlertDialog({ title: '저장 실패', message: err?.message ?? '저장 중 오류가 발생했습니다.', variant: 'error' })
+      }
     }
     if (isMultiAttempt && noRevealPeriod) {
       setConfirmDialog({
@@ -265,9 +277,17 @@ function InfoTab({ form, set }) {
 
       <Section title="응시 기간">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="시작 일시" required><input type="datetime-local" value={form.startDate} onChange={e => set('startDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
-          <Field label={<span className="inline-flex items-center gap-1">마감 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>} required><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
+          <Field label="시작 일시"><input type="datetime-local" value={form.startDate} onChange={e => set('startDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
+          <Field label={<span className="inline-flex items-center gap-1">마감 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
         </div>
+        <p className="text-xs text-muted-foreground -mt-2">미설정 시 응시 기간 제한 없이 학생이 언제든 응시할 수 있습니다.</p>
+        <Field label={<span className="inline-flex items-center gap-1">유예 시간<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>마감 직후 네트워크 지연 등으로 늦게 제출될 수 있는 경우를<br />대비한 버퍼 시간입니다. 이 시간 이내 제출은 지각으로 처리하지 않습니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
+          <div className={cn('flex items-center gap-2', !form.dueDate && 'opacity-40 pointer-events-none')}>
+            <input type="number" value={form.gracePeriod} onChange={e => set('gracePeriod', e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} min={0} placeholder="0" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
+            <span className="text-sm shrink-0 text-muted-foreground">분</span>
+          </div>
+          <p className="text-xs mt-1.5 text-muted-foreground">{form.dueDate ? '0분 또는 미설정 시 유예 없이 마감 일시에 지각 처리됩니다.' : '마감 일시가 설정되어야 사용할 수 있습니다.'}</p>
+        </Field>
         <Field label={<span className="inline-flex items-center gap-1">이용 종료 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>퀴즈 페이지 자체에 접근할 수 없게 되는 시점입니다.<br />마감 이후에도 학생이 결과를 확인할 수 있도록<br />종료 일시는 마감 일시 이후로 설정하는 것을 권장합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
           <input type="datetime-local" value={form.lockDate} onChange={e => set('lockDate', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
           <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
@@ -292,12 +312,20 @@ function InfoTab({ form, set }) {
         </div>
       </Section>
 
+      <Section title="추가 기간 설정">
+        <AssignmentOverrides
+          assignments={form.assignments}
+          onChange={val => set('assignments', val)}
+          baseDueDate={form.dueDate}
+        />
+      </Section>
+
       <Section title="응시 설정">
         <div className="grid grid-cols-2 gap-4">
           <Field label="응시 시간 제한">
             <div className="flex items-center gap-2">
               <div className={cn('flex items-center gap-2 flex-1 transition-opacity', form.unlimitedTimeLimit && 'opacity-40 pointer-events-none')}>
-                <input type="number" value={form.timeLimit} onChange={e => set('timeLimit', e.target.value)} placeholder="60" min={1} disabled={form.unlimitedTimeLimit} className={cn('w-full text-sm px-3.5 py-2.5 rounded-md border transition-all', form.unlimitedTimeLimit ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed' : 'border-gray-200 bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary')} />
+                <input type="number" value={form.timeLimit} onChange={e => set('timeLimit', e.target.value)} placeholder="60" min={1} disabled={form.unlimitedTimeLimit} className={cn('w-full text-sm px-3.5 py-2.5 rounded-md border transition-all', form.unlimitedTimeLimit ? 'border-gray-200 bg-gray-50 text-muted-foreground cursor-not-allowed' : 'border-gray-200 bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary')} />
                 <span className="text-sm shrink-0 text-muted-foreground">분</span>
               </div>
               <button type="button" onClick={() => set('unlimitedTimeLimit', !form.unlimitedTimeLimit)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', form.unlimitedTimeLimit ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700')}>무제한</button>
@@ -307,7 +335,7 @@ function InfoTab({ form, set }) {
             <div className="flex items-center gap-2">
               <div className={cn('flex items-center border rounded-md overflow-hidden transition-opacity', form.unlimitedAttempts ? 'border-gray-200 opacity-40 pointer-events-none' : 'border-gray-200')}>
                 <button type="button" onClick={() => set('allowAttempts', Math.max(ATTEMPT_MIN, form.allowAttempts - 1))} disabled={form.allowAttempts <= ATTEMPT_MIN || form.unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', form.unlimitedAttempts ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed')}>-</button>
-                <span className={cn('px-4 py-2.5 text-sm font-medium min-w-[48px] text-center border-x', form.unlimitedAttempts ? 'border-gray-200 bg-gray-50 text-gray-400' : 'border-gray-200 bg-white text-foreground')}>{form.allowAttempts}회</span>
+                <span className={cn('px-4 py-2.5 text-sm font-medium min-w-[48px] text-center border-x', form.unlimitedAttempts ? 'border-gray-200 bg-gray-50 text-muted-foreground' : 'border-gray-200 bg-white text-foreground')}>{form.allowAttempts}회</span>
                 <button type="button" onClick={() => set('allowAttempts', Math.min(ATTEMPT_MAX, form.allowAttempts + 1))} disabled={form.allowAttempts >= ATTEMPT_MAX || form.unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', form.unlimitedAttempts ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed')}>+</button>
               </div>
               <button type="button" onClick={() => set('unlimitedAttempts', !form.unlimitedAttempts)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', form.unlimitedAttempts ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700')}>무제한</button>
@@ -323,6 +351,25 @@ function InfoTab({ form, set }) {
         <div className="space-y-3">
           <Toggle checked={form.shuffleChoices} onChange={v => set('shuffleChoices', v)} label="선택지 무작위 배열" description="학생마다 선택지 순서가 달라집니다" />
           <Toggle checked={form.shuffleQuestions} onChange={v => set('shuffleQuestions', v)} label="문항 순서 무작위" description="학생마다 문항 순서가 달라집니다" />
+          <Toggle
+            checked={form.oneQuestionAtATime}
+            onChange={v => {
+              set('oneQuestionAtATime', v)
+              if (!v) set('lockAfterAnswer', false)
+            }}
+            label="한 번에 한 문항씩 표시"
+            description="학생에게 문항을 1개씩만 보여주고 이전/다음 버튼으로 이동합니다"
+          />
+          {form.oneQuestionAtATime && (
+            <div className="border-l-2 border-gray-200 pl-4 ml-0.5 space-y-2">
+              <Toggle
+                checked={form.lockAfterAnswer}
+                onChange={v => set('lockAfterAnswer', v)}
+                label="응답 후 문항 잠금"
+                description="다음으로 이동하면 이전 문항으로 돌아갈 수 없습니다"
+              />
+            </div>
+          )}
         </div>
       </Section>
 
@@ -380,6 +427,14 @@ function InfoTab({ form, set }) {
                     </div>
                   </div>
                 )}
+              </div>
+              <div>
+                <Toggle
+                  checked={form.oneTimeResults}
+                  onChange={v => set('oneTimeResults', v)}
+                  label="응답 1회만 조회 허용"
+                  description="제출 직후 1회만 응답과 정답을 보여주고 이후 재접근 시 비공개 처리합니다"
+                />
               </div>
             </div>
           )}
@@ -482,7 +537,6 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
                     <Badge variant="secondary" className="bg-slate-100 text-slate-600">{QUIZ_TYPES[q.type]?.label}</Badge>
                     <span className="text-xs text-muted-foreground">{q.points}점</span>
                     {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-orange-50 text-orange-700">수동채점</Badge>}
-                    {q.bankName && <Badge variant="secondary" className="bg-sky-50 text-sky-700">{q.bankName}</Badge>}
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">

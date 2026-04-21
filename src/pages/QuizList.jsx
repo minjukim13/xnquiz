@@ -3,9 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
-import { mockQuizzes, MOCK_COURSES, getQuizQuestions, setQuizQuestions } from '../data/mockData'
-import { useRole } from '../context/RoleContext'
+import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
+import { useRole } from '../context/role'
 import { getStudentAttempts } from '../data/mockData'
+import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz, listAttempts, isApiMode } from '@/lib/data'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -134,12 +135,22 @@ function sortQuizzes(quizzes, sortKey) {
     case 'recent':
     default:
       return sorted.sort((a, b) => {
+        // createdAt 우선 (api 모드). 없으면 id 내림차순 (mock 모드 숫자 id 호환).
+        if (a.createdAt && b.createdAt) {
+          return new Date(b.createdAt) - new Date(a.createdAt)
+        }
         const aNum = Number(a.id)
         const bNum = Number(b.id)
         if (!isNaN(aNum) && !isNaN(bNum)) return bNum - aNum
         return String(b.id).localeCompare(String(a.id))
       })
   }
+}
+
+// startDate 기반 예약 발행 판별 — status를 바꾸지 않고 조건 분기로 처리
+function isScheduled(quiz) {
+  if (quiz.status !== 'open' || !quiz.startDate) return false
+  return new Date() < new Date(quiz.startDate)
 }
 
 // STATUS_CONFIG 제거 → StatusBadge 컴포넌트로 통합
@@ -151,7 +162,27 @@ export default function QuizList() {
 
 // ─────────────────────────────── 교수자 뷰 ───────────────────────────────
 function InstructorQuizList() {
-  const [quizzes, setQuizzes] = useState(() => mockQuizzes.filter(q => q.course === CURRENT_COURSE))
+  const [quizzes, setQuizzes] = useState([])
+
+  // 데이터 레이어 경유 — mock/api 모드 자동 분기
+  const reload = async () => {
+    try {
+      const all = await listQuizzes()
+      setQuizzes(all.filter(q => q.course === CURRENT_COURSE))
+    } catch (err) {
+      console.error('[QuizList] listQuizzes 실패', err)
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      const all = await listQuizzes().catch(() => [])
+      if (mounted) setQuizzes(all.filter(q => q.course === CURRENT_COURSE))
+    })()
+    return () => { mounted = false }
+  }, [])
+
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
   const [sortKey, setSortKey] = useState('recent')
@@ -169,11 +200,12 @@ function InstructorQuizList() {
   // 다른 페이지에서 전달된 토스트 표시
   useEffect(() => {
     const msg = sessionStorage.getItem('xnq_toast')
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot toast on mount
     if (msg) { showToast(msg); sessionStorage.removeItem('xnq_toast') }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
-  const cloneQuestions = (srcId, newId) => {
-    const srcQs = getQuizQuestions(srcId)
+  const cloneQuestions = async (srcId, newId) => {
+    const srcQs = await getQuizQuestions(srcId)
     if (srcQs.length === 0) return
     const cloned = srcQs.map((q, i) => ({
       ...q,
@@ -182,7 +214,7 @@ function InstructorQuizList() {
       totalCount: 0,
       avgScore: undefined,
     }))
-    setQuizQuestions(newId, cloned)
+    await setQuizQuestions(newId, cloned)
   }
 
   const resetFields = (quiz, overrides = {}) => ({
@@ -209,43 +241,60 @@ function InstructorQuizList() {
     ...overrides,
   })
 
-  const handleCopyQuiz = (quiz, targetCourse) => {
-    const newId = `copy_${Date.now()}`
-    const copy = resetFields(quiz, { id: newId, course: targetCourse })
-    mockQuizzes.push(copy)
-    cloneQuestions(quiz.id, newId)
-    const label = targetCourse === CURRENT_COURSE ? '현재 과목' : targetCourse
-    showToast(`"${quiz.title}"을(를) ${label}으로 복사했습니다`)
+  const handleCopyQuiz = async (quiz, targetCourse) => {
+    const { id: _srcId, ...rest } = quiz   
+    const draft = resetFields(rest, { course: targetCourse })
+    try {
+      const created = await createQuiz(draft)
+      await cloneQuestions(quiz.id, created.id)
+      await reload()
+      const label = targetCourse === CURRENT_COURSE ? '현재 과목' : targetCourse
+      showToast(`'${quiz.title}'을(를) ${label}으로 복사했습니다`)
+    } catch (err) {
+      console.error('[QuizList] copy 실패', err)
+      showToast('복사 중 오류가 발생했습니다')
+    }
     setCopySourceQuiz(null)
   }
 
-  const handleImportQuizzes = (selectedQuizzes) => {
-    const imported = selectedQuizzes.map(q => {
-      const newId = `import_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`
-      const copy = resetFields(q, { id: newId, course: CURRENT_COURSE })
-      mockQuizzes.push(copy)
-      cloneQuestions(q.id, newId)
-      return copy
-    })
-    setQuizzes(prev => [...imported, ...prev])
-    setShowImportModal(false)
-    const msg = imported.length === 1
-      ? `"${imported[0].title}" 가져오기 완료 — 목록에서 편집하세요`
-      : `퀴즈 ${imported.length}개 가져오기 완료 — 임시저장 상태로 추가되었습니다`
-    showToast(msg)
+  const handleImportQuizzes = async (selectedQuizzes) => {
+    try {
+      const imported = []
+      for (const q of selectedQuizzes) {
+        const { id: _srcId, ...rest } = q   
+        const draft = resetFields(rest, { course: CURRENT_COURSE })
+        const created = await createQuiz(draft)
+        await cloneQuestions(q.id, created.id)
+        imported.push(created)
+      }
+      await reload()
+      setShowImportModal(false)
+      const msg = imported.length === 1
+        ? `'${imported[0].title}' 가져오기 완료 — 목록에서 편집하세요`
+        : `퀴즈 ${imported.length}개 가져오기 완료 — 임시저장 상태로 추가되었습니다`
+      showToast(msg)
+    } catch (err) {
+      console.error('[QuizList] import 실패', err)
+      showToast('가져오기 중 오류가 발생했습니다')
+    }
   }
 
   const handleDeleteQuiz = (quiz) => {
     setDeleteConfirm(quiz)
   }
 
-  const confirmDeleteQuiz = () => {
+  const confirmDeleteQuiz = async () => {
     if (!deleteConfirm) return
-    const globalIdx = mockQuizzes.findIndex(q => q.id === deleteConfirm.id)
-    if (globalIdx !== -1) mockQuizzes.splice(globalIdx, 1)
-    setQuizzes(prev => prev.filter(q => q.id !== deleteConfirm.id))
-    showToast(`"${deleteConfirm.title}" 퀴즈가 삭제되었습니다`)
+    const target = deleteConfirm
     setDeleteConfirm(null)
+    try {
+      await deleteQuiz(target.id)
+      await reload()
+      showToast(`'${target.title}' 퀴즈가 삭제되었습니다`)
+    } catch (err) {
+      console.error('[QuizList] delete 실패', err)
+      showToast('삭제 중 오류가 발생했습니다')
+    }
   }
 
   const sortedQuizzes = useMemo(
@@ -334,7 +383,7 @@ function InstructorQuizList() {
       {deleteConfirm && (
         <ConfirmDialog
           title="퀴즈 삭제"
-          message={`"${deleteConfirm.title}" 퀴즈를 삭제하시겠습니까?\n삭제된 퀴즈는 복구할 수 없습니다.`}
+          message={`'${deleteConfirm.title}' 퀴즈를 삭제하시겠습니까?\n삭제된 퀴즈는 복구할 수 없습니다.`}
           confirmLabel="삭제"
           confirmDanger
           onConfirm={confirmDeleteQuiz}
@@ -347,9 +396,9 @@ function InstructorQuizList() {
   )
 }
 
-// 응시중일 때만 D-day 배지 반환
+// 응시중일 때만 D-day 배지 반환 (예약 발행 퀴즈는 제외)
 function getDdayBadge(quiz) {
-  if (quiz.status !== 'open') return null
+  if (quiz.status !== 'open' || isScheduled(quiz)) return null
   const now = new Date()
   const due = quiz.dueDate ? new Date(quiz.dueDate) : null
   if (!due) return null
@@ -361,8 +410,9 @@ function getDdayBadge(quiz) {
 function QuizCard({ quiz, onCopy, onDelete }) {
   const ddayBadge = getDdayBadge(quiz)
   const navigate = useNavigate()
+  const scheduled = isScheduled(quiz)
 
-  const cardTarget = (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
+  const cardTarget = (!scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open'))
     ? `/quiz/${quiz.id}/grade`
     : null
 
@@ -378,7 +428,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
       <div className="flex items-start gap-4 px-6 pt-3 pb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <StatusBadge status={quiz.status} />
+            <StatusBadge status={scheduled ? 'scheduled' : quiz.status} />
             {(quiz.week > 0 || quiz.session > 0) && (
               <span className="text-xs text-muted-foreground">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
@@ -388,10 +438,10 @@ function QuizCard({ quiz, onCopy, onDelete }) {
           <h3 className="text-base font-semibold leading-snug mb-1 truncate text-slate-900">{quiz.title}</h3>
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xs text-muted-foreground">
-              {quiz.startDate} ~ {quiz.dueDate}
+              {quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}
               {quiz.lockDate && (
                 <>
-                  <span className="text-gray-400">{' | '}</span>
+                  <span className="text-muted-foreground">{' | '}</span>
                   <span className="text-gray-500">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span>
                 </>
               )}
@@ -408,7 +458,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
           {quiz.allowLateSubmit && quiz.lateSubmitDeadline && (
             <p className="text-xs text-amber-600 mt-0.5">지각 제출: {quiz.lateSubmitDeadline.replace('T', ' ')}까지</p>
           )}
-          {quiz.allowLateSubmit && !quiz.lateSubmitDeadline && (
+          {quiz.allowLateSubmit && !quiz.lateSubmitDeadline && quiz.dueDate && (
             <p className="text-xs text-amber-600 mt-0.5">지각 제출: 무제한 허용</p>
           )}
         </div>
@@ -432,7 +482,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="text-gray-400 hover:text-gray-900">
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-gray-900">
                 <MoreVertical size={16} />
               </Button>
             </DropdownMenuTrigger>
@@ -456,10 +506,8 @@ function QuizCard({ quiz, onCopy, onDelete }) {
       </div>
 
       <div className="px-6 py-4 bg-slate-50 border-t border-slate-100" onClick={e => e.stopPropagation()}>
-        {quiz.status === 'draft' ? (
-          <p className="text-xs text-slate-500">
-            문항 {quiz.questions}개 | 총점 {quiz.totalPoints}점 | 제한시간 {quiz.timeLimit === 0 ? '없음' : `${quiz.timeLimit}분`}
-          </p>
+        {quiz.status === 'draft' || scheduled ? (
+          <DraftSpecs quiz={quiz} />
         ) : (
           <ActiveStats quiz={quiz} />
         )}
@@ -469,11 +517,35 @@ function QuizCard({ quiz, onCopy, onDelete }) {
 }
 
 
+function DraftSpecs({ quiz }) {
+  // quiz.questions / quiz.totalPoints 는 API 응답에서 서버가 실시간 집계해 내려주는 요약 필드(스탬프가 아님).
+  // 목록 화면에서는 개별 문항 배열을 로드하지 않으므로 이 집계값을 사용한다.
+  const cols = [
+    { label: '문항 수',   value: `${quiz.questions}개` },
+    { label: '총점',       value: `${quiz.totalPoints}점` },
+    { label: '제한시간',   value: !quiz.timeLimit ? '없음' : `${quiz.timeLimit}분` },
+  ]
+
+  return (
+    <div className="grid grid-cols-3">
+      {cols.map((item, idx) => (
+        <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < cols.length - 1 && 'border-r border-slate-100')}>
+          <p className="text-base font-semibold leading-none text-slate-700">{item.value}</p>
+          <p className="text-xs mt-1 text-muted-foreground">{item.label}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+
 function ActiveStats({ quiz }) {
-  const newAttempts = getStudentAttempts(quiz.id)
-  const submitted = quiz.submitted + newAttempts.length
-  const submitRate = Math.round((submitted / quiz.totalStudents) * 100)
-  const unsubmitted = Math.max(0, quiz.totalStudents - submitted)
+  // 집계값(submitted · totalStudents · avgScore) 은 listQuizzes 응답에서 서버/mock 이 제공
+  // — 프론트에서 재계산하면 mock 학생 배열(120명 등) 과 api totalStudents(45) 가 섞여 왜곡됨
+  const submitted = quiz.submitted ?? 0
+  const totalStudents = quiz.totalStudents ?? 0
+  const submitRate = totalStudents > 0 ? Math.round((submitted / totalStudents) * 100) : 0
+  const unsubmitted = Math.max(0, totalStudents - submitted)
   const isClosed = quiz.status === 'closed' || quiz.status === 'grading'
 
   const cols = [
@@ -534,9 +606,9 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-sm font-semibold">퀴즈 복사</DialogTitle>
+          <DialogTitle>퀴즈 복사</DialogTitle>
           <p className="text-xs text-muted-foreground truncate">{quiz.title}</p>
         </DialogHeader>
 
@@ -552,7 +624,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
             />
           </div>
           {filteredCourses.length === 0 && (
-            <p className="text-xs text-center py-4 text-muted-foreground">검색 결과가 없습니다</p>
+            <p className="text-sm text-center py-4 text-muted-foreground">검색 결과가 없습니다</p>
           )}
           {filteredCourses.map(course => {
             const isCurrent = course.name === CURRENT_COURSE
@@ -562,7 +634,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
                 key={course.id}
                 onClick={() => setSelected(course.name)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 text-sm text-left rounded-md border transition-colors',
+                  'w-full flex items-center gap-3 px-4 py-3 text-[15px] text-left rounded-md border transition-colors',
                   isSelected
                     ? 'border-blue-400 bg-accent text-primary font-semibold'
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
@@ -630,10 +702,10 @@ function QuizImportModal({ onClose, onImport }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-[660px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-5 py-4 border-b border-slate-100 shrink-0">
-          <DialogTitle className="text-sm font-semibold">타 과목 퀴즈 가져오기</DialogTitle>
-          <p className="text-xs text-muted-foreground">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>
+      <DialogContent className="max-w-4xl min-h-[600px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 py-5 border-b border-slate-100 shrink-0">
+          <DialogTitle>타 과목 퀴즈 가져오기</DialogTitle>
+          <p className="text-[15px] text-muted-foreground">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden min-h-0">
@@ -654,20 +726,29 @@ function QuizImportModal({ onClose, onImport }) {
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {filteredCourses.length === 0 ? (
                 <p className="text-xs text-center py-3 text-muted-foreground">없음</p>
-              ) : filteredCourses.map(course => (
-                <button
-                  key={course.id}
-                  onClick={() => handleSelectCourse(course.name)}
-                  className={cn(
-                    'w-full text-left text-xs px-3 py-2.5 rounded transition-colors',
-                    selectedCourse === course.name
-                      ? 'bg-accent text-primary font-semibold'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  )}
-                >
-                  {course.name}
-                </button>
-              ))}
+              ) : filteredCourses.map(course => {
+                const isSelected = selectedCourse === course.name
+                const code = course.name.split(' ')[0]
+                const label = course.name.split(' ').slice(1).join(' ')
+                return (
+                  <button
+                    key={course.id}
+                    onClick={() => handleSelectCourse(course.name)}
+                    className={cn(
+                      'w-full flex items-center gap-1.5 text-left px-3 py-2.5 rounded transition-colors',
+                      isSelected
+                        ? 'bg-accent text-primary font-semibold'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    )}
+                  >
+                    <span className={cn(
+                      'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0',
+                      isSelected ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
+                    )}>{code}</span>
+                    <span className="text-xs truncate">{label}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -675,11 +756,11 @@ function QuizImportModal({ onClose, onImport }) {
           <div className="flex-1 overflow-y-auto p-4">
             {!selectedCourse ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">
-                <p className="text-sm">좌측에서 과목을 선택하세요</p>
+                <p className="text-[15px]">좌측에서 과목을 선택하세요</p>
               </div>
             ) : courseQuizzes.length === 0 ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">
-                <p className="text-sm">공개된 퀴즈가 없습니다</p>
+                <p className="text-[15px]">공개된 퀴즈가 없습니다</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -703,7 +784,7 @@ function QuizImportModal({ onClose, onImport }) {
                         <div className="flex items-center gap-2 mb-0.5">
                           <StatusBadge status={quiz.status} />
                         </div>
-                        <p className="text-sm font-medium truncate text-slate-900">{quiz.title}</p>
+                        <p className="text-[15px] font-medium truncate text-slate-900">{quiz.title}</p>
                         <p className="text-xs mt-0.5 text-muted-foreground">
                           {quiz.questions}문항 · {quiz.totalPoints}점
                           {quiz.dueDate ? ` · ${quiz.dueDate.split(' ')[0]}` : ''}
@@ -723,14 +804,13 @@ function QuizImportModal({ onClose, onImport }) {
           </div>
         )}
 
-        <div className={cn('flex items-center justify-between px-5 py-3', checkedIds.size === 0 && 'border-t border-slate-100')}>
-          <p className="text-xs text-muted-foreground">
+        <div className={cn('flex items-center justify-between px-6 py-4', checkedIds.size === 0 && 'border-t border-slate-100')}>
+          <p className="text-[15px] text-muted-foreground">
             {checkedIds.size > 0 ? `${checkedIds.size}개 선택됨` : '가져올 퀴즈를 선택하세요'}
           </p>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>
+            <Button variant="ghost" onClick={onClose}>취소</Button>
             <Button
-              size="sm"
               disabled={checkedIds.size === 0}
               onClick={handleImport}
               >
@@ -750,28 +830,67 @@ function isLockDatePassed(quiz) {
   return new Date() > new Date(quiz.lockDate)
 }
 
+const STUDENT_SORT_OPTIONS = [
+  { value: 'recent', label: '최근생성순' },
+  { value: 'week-asc', label: '주차 오름차순' },
+  { value: 'week-desc', label: '주차 내림차순' },
+  { value: 'deadline', label: '마감임박순' },
+]
+
 function StudentQuizList() {
   const { currentStudent } = useRole()
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
+  const [sortKey, setSortKey] = useState('recent')
 
-  const allQuizzes = mockQuizzes.filter(q => q.status !== 'draft' && q.visible !== false)
+  // 데이터 레이어 경유 — api 모드에선 서버가 visible + 수강 과목 필터링까지 수행
+  const [allQuizzes, setAllQuizzes] = useState([])
+  // api 모드용 — 학생 본인 attempt 전체 (quiz.id 별 그룹핑용)
+  // null = mock 모드 (StudentQuizCard 가 getStudentAttempts 로 직접 로드)
+  const [apiAttempts, setApiAttempts] = useState(null)
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      const rows = await listQuizzes().catch(() => [])
+      if (!mounted) return
+      // 학생 뷰는 draft 제외 + visible !== false (api 모드는 서버에서 이미 처리되지만 mock 모드 호환)
+      setAllQuizzes(rows.filter(q => q.status !== 'draft' && q.visible !== false))
+    })()
+    if (isApiMode()) {
+      ;(async () => {
+        // 학생은 서버에서 본인 attempt 만 반환됨 — quizId 없이 호출
+        const rows = await listAttempts({}).catch(() => [])
+        if (!mounted) return
+        setApiAttempts(rows.map(a => ({
+          id: a.id,
+          quizId: a.quizId,
+          studentId: a.userId,
+          submitted: a.submitted,
+          submittedAt: a.submittedAt,
+          totalScore: a.totalScore,
+          autoScore: a.autoScore,
+          manualScore: a.manualScore,
+        })))
+      })()
+    }
+    return () => { mounted = false }
+  }, [])
 
   const filteredAll = useMemo(
-    () => applyWeekSessionFilter(allQuizzes, filterWeek, filterSession),
-    [filterWeek, filterSession]
+    () => sortQuizzes(applyWeekSessionFilter(allQuizzes, filterWeek, filterSession), sortKey),
+    [allQuizzes, filterWeek, filterSession, sortKey]
   )
 
-  const openQuizzes   = filteredAll.filter(q => q.status === 'open' && !isLockDatePassed(q))
-  const closedQuizzes = filteredAll.filter(q => (q.status === 'closed' || q.status === 'grading') && !isLockDatePassed(q))
-  const lockedQuizzes = filteredAll.filter(q => isLockDatePassed(q))
   const hasAny = filteredAll.length > 0
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto py-10">
-        <div className="flex items-end justify-between mb-6 gap-4">
-          <h1 className="text-2xl font-bold text-slate-900">내 퀴즈</h1>
+      <div className="max-w-5xl mx-auto pb-6">
+        <div className="flex items-end justify-between gap-4 pt-8 pb-5">
+          <h1 className="text-[24px] font-bold text-foreground leading-tight">내 퀴즈</h1>
+        </div>
+
+        <div className="flex items-center justify-between mt-1 mb-3">
           <WeekSessionFilter
             quizzes={allQuizzes}
             filterWeek={filterWeek}
@@ -779,52 +898,41 @@ function StudentQuizList() {
             onWeekChange={setFilterWeek}
             onSessionChange={setFilterSession}
           />
+          <DropdownSelect
+            value={sortKey}
+            onChange={setSortKey}
+            options={STUDENT_SORT_OPTIONS}
+            size="md"
+            ghost
+            style={{ width: 140 }}
+          />
         </div>
 
-        {openQuizzes.length > 0 && (
-          <section className="mb-8">
-            <p className="text-xs font-semibold mb-3 text-green-700">응시 가능 ({openQuizzes.length})</p>
-            <div className="space-y-3">
-              {openQuizzes.map(quiz => (
-                <StudentQuizCard key={quiz.id} quiz={quiz} studentId={currentStudent.id} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {closedQuizzes.length > 0 && (
-          <section className="mb-8">
-            <p className="text-xs font-semibold mb-3 text-muted-foreground">종료 ({closedQuizzes.length})</p>
-            <div className="space-y-3">
-              {closedQuizzes.map(quiz => (
-                <StudentQuizCard key={quiz.id} quiz={quiz} studentId={currentStudent.id} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {lockedQuizzes.length > 0 && (
-          <section>
-            <p className="text-xs font-semibold mb-3 text-muted-foreground/60">이용 종료 ({lockedQuizzes.length})</p>
-            <div className="space-y-3">
-              {lockedQuizzes.map(quiz => (
-                <Card key={quiz.id} className="opacity-60">
-                  <div className="px-5 py-4 flex items-center gap-3">
-                    <Lock size={16} className="text-muted-foreground/50 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium text-muted-foreground truncate">{quiz.title}</h3>
-                      <p className="text-xs text-muted-foreground/60 mt-0.5">이용이 종료되어 퀴즈 정보를 확인할 수 없습니다</p>
+        {hasAny ? (
+          <div className="grid gap-3">
+            {filteredAll.map(quiz => (
+              isLockDatePassed(quiz)
+                ? <Card key={quiz.id} className="opacity-60">
+                    <div className="flex items-start gap-4 px-6 pt-3 pb-3">
+                      <Lock size={16} className="text-muted-foreground/50 shrink-0 mt-1" />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-semibold leading-snug mb-1 truncate text-muted-foreground">{quiz.title}</h3>
+                        <p className="text-xs text-muted-foreground/60">이용이 종료되어 퀴즈 정보를 확인할 수 없습니다</p>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {!hasAny && (
-          <div className="text-center py-16 text-muted-foreground">
-            <FileText size={32} className="mx-auto mb-3 opacity-30" />
+                  </Card>
+                : <StudentQuizCard
+                    key={quiz.id}
+                    quiz={quiz}
+                    studentId={currentStudent.id}
+                    scheduled={isScheduled(quiz)}
+                    apiAttempts={apiAttempts ? apiAttempts.filter(a => a.quizId === quiz.id) : null}
+                  />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <FileText size={32} className="mb-3 opacity-40" />
             <p className="text-sm">
               {filterWeek !== 'all' || filterSession !== 'all'
                 ? '해당 조건에 맞는 퀴즈가 없습니다.'
@@ -838,193 +946,202 @@ function StudentQuizList() {
   )
 }
 
-function StudentQuizCard({ quiz, studentId }) {
-  const attempts = getStudentAttempts(quiz.id)
+function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = null }) {
+  // api 모드면 부모가 내려준 실제 응시 기록, 아니면 mock localStorage 에서 조회
+  const attempts = apiAttempts ?? getStudentAttempts(quiz.id)
   const myAttempts = attempts.filter(a => a.studentId === studentId)
   const myAttempt = myAttempts[myAttempts.length - 1] ?? null
   const attemptCount = myAttempts.length
   const [showHistory, setShowHistory] = useState(false)
   const maxAttempts = quiz.allowAttempts ?? 1
   const isAttemptExceeded = maxAttempts !== -1 && attemptCount >= maxAttempts
-  const isOpen   = quiz.status === 'open'
+  const isOpen = quiz.status === 'open' && !scheduled
   const ddayBadge = getDdayBadge(quiz)
 
-  const statusBadge = isOpen
-    ? { label: '응시중', cls: 'text-green-700 bg-green-50' }
-    : { label: '종료', cls: 'text-muted-foreground bg-slate-100' }
-
-  const myBadge = (() => {
-    if (!myAttempt) {
-      if (isOpen) return null
-      return { label: '미제출', cls: 'text-muted-foreground bg-slate-100', icon: false }
-    }
-    if (myAttempt.manualPending > 0) return { label: '채점 대기', cls: 'text-amber-700 bg-amber-50', icon: false }
-    return { label: '채점 완료', cls: 'text-primary bg-accent', icon: true }
-  })()
+  // 학생 혼란 방지 — 채점 상태(대기/완료)는 학생 목록 배지에 표시하지 않음.
+  // 응시 여부만 표시: 미응시(마감) = 미제출, 그 외(응시중 / 응시 완료)는 배지 없음.
+  const myBadge = (!myAttempt && !isOpen)
+    ? { label: '미제출', cls: 'text-muted-foreground bg-slate-100' }
+    : null
 
   return (
     <Card className="overflow-hidden">
-      <div className="px-5 pt-5 pb-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className={cn('text-xs font-semibold px-2 py-0.5 rounded', statusBadge.cls)}>
-                {statusBadge.label}
+      <div className="flex items-start gap-4 px-6 pt-3 pb-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <StatusBadge status={scheduled ? 'scheduled' : quiz.status} />
+            {myBadge && (
+              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-md', myBadge.cls)}>
+                {myBadge.label}
               </span>
-              {myBadge && (
-                <span className={cn('text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1', myBadge.cls)}>
-                  {myBadge.icon && <CheckCircle2 size={11} />}
-                  {myBadge.label}
-                </span>
-              )}
-              {(quiz.week > 0 || quiz.session > 0) && (
-                <span className="text-xs text-muted-foreground">
-                  {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
-                </span>
-              )}
-            </div>
-
-            <h3 className="text-base font-semibold mb-1.5 truncate text-slate-900">{quiz.title}</h3>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-xs text-muted-foreground">
-                {quiz.startDate} ~ {quiz.dueDate}
-                {quiz.lockDate && <><span className="text-gray-400">{' | '}</span><span className="text-gray-500">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span></>}
-              </p>
-              {ddayBadge && (
-                <span className={cn(
-                  'text-xs font-semibold px-1.5 py-0.5 rounded',
-                  ddayBadge.urgent ? 'text-red-700 bg-red-50' : 'text-amber-600 bg-amber-50'
-                )}>
-                  {ddayBadge.label}
-                </span>
-              )}
-            </div>
-
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
-              {quiz.questions}문항 | {quiz.totalPoints}점 | {quiz.timeLimit === 0 ? '시간 제한 없음' : `${quiz.timeLimit ?? 30}분`}
-            </p>
+            )}
+            {(quiz.week > 0 || quiz.session > 0) && (
+              <span className="text-xs text-muted-foreground">
+                {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
+              </span>
+            )}
           </div>
 
-          <div className="shrink-0 mt-0.5">
-            {isOpen && !isAttemptExceeded && (
-              <Button asChild size="xs">
-                <Link to={`/quiz/${quiz.id}/attempt`}>
-                  {attemptCount > 0 ? '재응시' : '응시하기'}
-                </Link>
-              </Button>
-            )}
-            {isOpen && isAttemptExceeded && (
-              <div className="relative group">
-                <button disabled className="text-xs font-semibold px-4 py-2 rounded cursor-not-allowed bg-slate-200 text-muted-foreground">
-                  응시하기
-                </button>
-                <div className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10 bg-slate-700 text-white">
-                  응시 가능 횟수({maxAttempts}회)를 초과했습니다
-                </div>
-              </div>
+          <h3 className="text-base font-semibold leading-snug mb-1 truncate text-slate-900">{quiz.title}</h3>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-xs text-muted-foreground">
+              {quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}
+              {quiz.lockDate && (
+                <>
+                  <span className="text-muted-foreground">{' | '}</span>
+                  <span className="text-gray-500">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span>
+                </>
+              )}
+            </p>
+            {ddayBadge && (
+              <span className={cn(
+                'text-xs font-semibold px-1.5 py-0.5 rounded',
+                ddayBadge.urgent ? 'text-red-700 bg-red-50' : 'text-amber-600 bg-amber-50'
+              )}>
+                {ddayBadge.label}
+              </span>
             )}
           </div>
         </div>
-      </div>
 
-      {myAttempt && (() => {
-        const now = new Date()
-        const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null
-        const inPeriod = (() => {
-          const s = quiz.scoreRevealStart ? new Date(quiz.scoreRevealStart) : null
-          const e = quiz.scoreRevealEnd   ? new Date(quiz.scoreRevealEnd)   : null
-          return (!s || now >= s) && (!e || now <= e)
-        })()
-        let released
-        if (quiz.scoreRevealEnabled !== undefined) {
-          const timingMet = quiz.scoreRevealTiming === 'immediately' ? true
-                          : quiz.scoreRevealTiming === 'after_due'   ? (dueDate && now >= dueDate)
-                          : quiz.scoreRevealTiming === 'period'      ? inPeriod
-                          : false
-          released = quiz.scoreRevealEnabled && timingMet
-        } else if (quiz.scoreReleasePolicy !== undefined) {
-          const p = quiz.scoreReleasePolicy
-          released = p === 'wrong_only' || p === 'with_answer' ? true
-                   : p === 'after_due'  ? (dueDate && now >= dueDate)
-                   : p === 'period'     ? inPeriod
-                   : false
-        } else {
-          released = true
-        }
-
-        const autoScore = myAttempt.totalAutoScore ?? 0
-        const manualScore = myAttempt.manualPending > 0 ? 0 : (myAttempt.totalManualScore ?? 0)
-        const totalScore = autoScore + manualScore
-        const totalPossible = quiz.totalPoints ?? myAttempt.totalPossibleAuto
-
-        return (
-          <div className="border-t border-blue-100">
-            <div className="px-5 py-3 bg-accent/30">
-              <div className="flex items-center gap-4 text-xs flex-wrap">
-                {released ? (
-                  <span className="text-primary font-semibold">
-                    {totalScore}점 / {totalPossible}점
-                    {myAttempt.manualPending > 0 && <span className="text-muted-foreground font-normal"> (수동채점 대기 0점 반영)</span>}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">
-                    {quiz.scoreRevealEnabled === false || quiz.scoreReleasePolicy === null ? '성적 비공개' : '공개 예정'}
-                  </span>
-                )}
-                {myAttempt.manualPending > 0 && released && (
-                  <span className="flex items-center gap-1 text-amber-600">
-                    <AlertCircle size={11} />
-                    수동채점 {myAttempt.manualPending}문항 대기 중
-                  </span>
-                )}
-                <span className="text-muted-foreground">제출 {myAttempt.submittedAt}</span>
-
-                {myAttempts.length > 1 && (
-                  <button
-                    onClick={() => setShowHistory(h => !h)}
-                    className={cn('text-xs ml-auto transition-colors', showHistory ? 'text-primary' : 'text-muted-foreground')}
-                  >
-                    응시 기록 {myAttempts.length}회 {showHistory ? '▲' : '▼'}
-                  </button>
-                )}
+        <div className="flex items-center gap-2 shrink-0 mt-0.5">
+          {scheduled && (
+            <span className="text-xs text-amber-600 font-medium">
+              {quiz.startDate} 시작
+            </span>
+          )}
+          {!scheduled && isOpen && !isAttemptExceeded && (
+            <Button asChild>
+              <Link to={`/quiz/${quiz.id}/attempt`}>
+                {attemptCount > 0 ? '재응시' : '응시하기'}
+              </Link>
+            </Button>
+          )}
+          {!scheduled && isOpen && isAttemptExceeded && (
+            <div className="relative group">
+              <Button disabled>응시하기</Button>
+              <div className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10 bg-slate-700 text-white">
+                응시 가능 횟수({maxAttempts}회)를 초과했습니다
               </div>
             </div>
+          )}
+        </div>
+      </div>
 
-            {showHistory && myAttempts.length > 1 && (
-              <div className="px-5 pb-3 space-y-1.5 bg-accent/30">
-                <div className="border-t border-blue-200 pt-2">
-                  {myAttempts.map((att, idx) => {
-                    const attAuto = att.totalAutoScore ?? 0
-                    const attManual = att.manualPending > 0 ? 0 : (att.totalManualScore ?? 0)
-                    const attTotal = attAuto + attManual
-                    const isLast = idx === myAttempts.length - 1
-                    return (
-                      <div key={idx} className="flex items-center justify-between text-xs py-1">
-                        <span className={cn(isLast ? 'text-primary font-semibold' : 'text-muted-foreground')}>
-                          {idx + 1}회차 {isLast ? '(최근)' : ''}
-                        </span>
-                        <span className="text-muted-foreground">{att.submittedAt}</span>
-                        {released ? (
-                          <span className={cn(isLast ? 'text-primary font-semibold' : 'text-slate-500')}>
-                            {attTotal}점 / {totalPossible}점
-                            {att.manualPending > 0 && <span className="text-muted-foreground"> *</span>}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">비공개</span>
-                        )}
-                      </div>
-                    )
-                  })}
-                  {released && myAttempts.some(a => a.manualPending > 0) && (
-                    <p className="text-xs mt-1 text-muted-foreground">* 수동채점 대기 0점 반영</p>
-                  )}
-                </div>
+      {/* 카드 하단: 퀴즈 메타 정보 or 성적 */}
+      <div className="px-6 py-4 bg-slate-50 border-t border-slate-100">
+        {!myAttempt ? (
+          <div className="grid grid-cols-3">
+            {[
+              { label: '문항 수', value: `${quiz.questions}개` },
+              { label: '총점', value: `${quiz.totalPoints}점` },
+              { label: '제한시간', value: !quiz.timeLimit ? '없음' : `${quiz.timeLimit}분` },
+            ].map((item, idx) => (
+              <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < 2 && 'border-r border-slate-100')}>
+                <p className="text-lg font-bold leading-none text-slate-900">{item.value}</p>
+                <p className="text-xs mt-1 text-muted-foreground">{item.label}</p>
               </div>
-            )}
+            ))}
           </div>
-        )
-      })()}
+        ) : (
+          <StudentScoreFooter quiz={quiz} myAttempt={myAttempt} myAttempts={myAttempts} showHistory={showHistory} setShowHistory={setShowHistory} />
+        )}
+      </div>
     </Card>
+  )
+}
+
+function StudentScoreFooter({ quiz, myAttempt, myAttempts, showHistory, setShowHistory }) {
+  const now = new Date()
+  const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null
+  const inPeriod = (() => {
+    const s = quiz.scoreRevealStart ? new Date(quiz.scoreRevealStart) : null
+    const e = quiz.scoreRevealEnd   ? new Date(quiz.scoreRevealEnd)   : null
+    return (!s || now >= s) && (!e || now <= e)
+  })()
+  let released
+  if (quiz.scoreRevealEnabled !== undefined) {
+    const timingMet = quiz.scoreRevealTiming === 'immediately' ? true
+                    : quiz.scoreRevealTiming === 'after_due'   ? (dueDate && now >= dueDate)
+                    : quiz.scoreRevealTiming === 'period'      ? inPeriod
+                    : false
+    released = quiz.scoreRevealEnabled && timingMet
+  } else if (quiz.scoreReleasePolicy !== undefined) {
+    const p = quiz.scoreReleasePolicy
+    released = p === 'wrong_only' || p === 'with_answer' ? true
+             : p === 'after_due'  ? (dueDate && now >= dueDate)
+             : p === 'period'     ? inPeriod
+             : false
+  } else {
+    released = true
+  }
+
+  const autoScore = myAttempt.totalAutoScore ?? 0
+  const manualScore = myAttempt.manualPending > 0 ? 0 : (myAttempt.totalManualScore ?? 0)
+  const totalScore = autoScore + manualScore
+  const totalPossible = quiz.totalPoints ?? myAttempt.totalPossibleAuto
+
+  return (
+    <div>
+      <div className="flex items-center gap-4 text-xs flex-wrap">
+        {released ? (
+          <span className="text-primary font-semibold">
+            {totalScore}점 / {totalPossible}점
+            {myAttempt.manualPending > 0 && <span className="text-muted-foreground font-normal"> (수동채점 대기 0점 반영)</span>}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">
+            {quiz.scoreRevealEnabled === false || quiz.scoreReleasePolicy === null ? '성적 비공개' : '공개 예정'}
+          </span>
+        )}
+        {myAttempt.manualPending > 0 && released && (
+          <span className="flex items-center gap-1 text-amber-600">
+            <AlertCircle size={11} />
+            수동채점 {myAttempt.manualPending}문항 대기 중
+          </span>
+        )}
+        <span className="text-muted-foreground">제출 {myAttempt.submittedAt}</span>
+
+        {myAttempts.length > 1 && (
+          <button
+            onClick={() => setShowHistory(h => !h)}
+            className={cn('text-xs ml-auto transition-colors', showHistory ? 'text-primary' : 'text-muted-foreground')}
+          >
+            응시 기록 {myAttempts.length}회 {showHistory ? '▲' : '▼'}
+          </button>
+        )}
+      </div>
+
+      {showHistory && myAttempts.length > 1 && (
+        <div className="mt-2.5 pt-2.5 border-t border-slate-200 space-y-1">
+          {myAttempts.map((att, idx) => {
+            const attAuto = att.totalAutoScore ?? 0
+            const attManual = att.manualPending > 0 ? 0 : (att.totalManualScore ?? 0)
+            const attTotal = attAuto + attManual
+            const isLast = idx === myAttempts.length - 1
+            return (
+              <div key={idx} className="flex items-center justify-between text-xs py-1">
+                <span className={cn(isLast ? 'text-primary font-semibold' : 'text-muted-foreground')}>
+                  {idx + 1}회차 {isLast ? '(최근)' : ''}
+                </span>
+                <span className="text-muted-foreground">{att.submittedAt}</span>
+                {released ? (
+                  <span className={cn(isLast ? 'text-primary font-semibold' : 'text-slate-500')}>
+                    {attTotal}점 / {totalPossible}점
+                    {att.manualPending > 0 && <span className="text-muted-foreground"> *</span>}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">비공개</span>
+                )}
+              </div>
+            )
+          })}
+          {released && myAttempts.some(a => a.manualPending > 0) && (
+            <p className="text-xs mt-1 text-muted-foreground">* 수동채점 대기 0점 반영</p>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

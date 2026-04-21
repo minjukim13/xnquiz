@@ -1,32 +1,14 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ChevronDown, GraduationCap, BookOpen, LayoutList, Menu } from 'lucide-react'
-import { useRole, DEMO_STUDENTS } from '../context/RoleContext'
+import { GraduationCap, BookOpen, LayoutList, Menu } from 'lucide-react'
+import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
 
-export default function Layout({ children }) {
-  const { role, setRole, currentStudent, setCurrentStudent } = useRole()
-  const [studentPickerOpen, setStudentPickerOpen] = useState(false)
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const location = useLocation()
-
-  const navItems = role === 'student'
-    ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
-    : [
-        { label: '퀴즈', href: '/', icon: LayoutList },
-        { label: '문제은행', href: '/question-banks', icon: BookOpen },
-      ]
-
-  const isActive = (href) => {
-    if (href === '/') return location.pathname === '/' || location.pathname.startsWith('/quiz')
-    return location.pathname.startsWith(href)
-  }
-
-  const NavLinks = ({ onNavigate } = {}) => (
+function NavLinks({ navItems, isActive, role, onNavigate }) {
+  return (
     <nav className="p-3 space-y-0.5">
       <p className="text-xs font-semibold px-2 pt-2 pb-1.5 text-muted-foreground/60 tracking-wide">
         {role === 'student' ? '학습' : '강의'}
@@ -53,9 +35,11 @@ export default function Layout({ children }) {
       })}
     </nav>
   )
+}
 
-  /* ── 역할 토글 (사이드바/모바일 공용) ── */
-  const RoleToggle = () => (
+/* ── 역할 토글 (사이드바/모바일 공용) ── */
+function RoleToggle({ role, setRole }) {
+  return (
     <div className="flex items-center p-0.5 rounded-lg w-full bg-secondary">
       <button
         onClick={() => setRole('instructor')}
@@ -81,46 +65,25 @@ export default function Layout({ children }) {
       </button>
     </div>
   )
+}
 
-  /* ── 학생 선택기 ── */
-  const StudentPicker = ({ align = 'start' }) => (
-    <Popover open={studentPickerOpen} onOpenChange={setStudentPickerOpen}>
-      <PopoverTrigger asChild>
-        <button
-          className={cn(
-            'w-full flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors',
-            studentPickerOpen ? 'bg-accent text-primary' : 'bg-white text-primary'
-          )}
-        >
-          <span className="flex-1 text-left truncate">{currentStudent.name}</span>
-          <ChevronDown size={11} className={cn('shrink-0 transition-transform', studentPickerOpen && 'rotate-180')} />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align={align} side="top" className="w-[200px] p-0">
-        <div className="px-3 py-2 border-b border-border">
-          <p className="text-xs font-semibold text-muted-foreground">학생 계정 선택 (데모)</p>
-        </div>
-        <div className="py-1">
-          {DEMO_STUDENTS.map(s => (
-            <button
-              key={s.id}
-              onClick={() => { setCurrentStudent(s); setStudentPickerOpen(false) }}
-              className={cn(
-                'w-full text-left px-3 py-2.5 text-xs transition-colors',
-                currentStudent.id === s.id
-                  ? 'bg-accent text-primary'
-                  : 'hover:bg-muted text-foreground'
-              )}
-            >
-              <span className="font-medium">{s.name}</span>
-              <span className="ml-1.5 text-muted-foreground">{s.studentId}</span>
-              <p className="mt-0.5 text-muted-foreground/60">{s.department}</p>
-            </button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
+export default function Layout({ children }) {
+  const { role, setRole, currentStudent } = useRole()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const location = useLocation()
+
+  const navItems = role === 'student'
+    ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
+    : [
+        { label: '퀴즈', href: '/', icon: LayoutList },
+        { label: '문제은행', href: '/question-banks', icon: BookOpen },
+      ]
+
+  const isActive = (href) => {
+    if (href === '/') return location.pathname === '/' || location.pathname.startsWith('/quiz')
+    return location.pathname.startsWith(href)
+  }
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -149,10 +112,9 @@ export default function Layout({ children }) {
                 </Link>
               </div>
               <Separator />
-              <NavLinks onNavigate={() => setMobileNavOpen(false)} />
+              <NavLinks navItems={navItems} isActive={isActive} role={role} onNavigate={() => setMobileNavOpen(false)} />
               <div className="mt-auto p-3 space-y-2">
-                <RoleToggle />
-                {role === 'student' && <StudentPicker align="start" />}
+                <RoleToggle role={role} setRole={setRole} />
               </div>
             </SheetContent>
           </Sheet>
@@ -200,12 +162,11 @@ export default function Layout({ children }) {
           </div>
 
           {/* 네비게이션 */}
-          <NavLinks />
+          <NavLinks navItems={navItems} isActive={isActive} role={role} />
 
           {/* 하단 고정: 역할 토글 */}
           <div className="mt-auto p-3 space-y-2">
-            <RoleToggle />
-            {role === 'student' && <StudentPicker align="start" />}
+            <RoleToggle role={role} setRole={setRole} />
           </div>
         </aside>
 

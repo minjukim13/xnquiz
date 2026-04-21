@@ -1,15 +1,20 @@
 import { useMemo } from 'react'
 import StatusBadge from '../../components/StatusBadge'
+import { getEffectiveSubmittedCount } from '@/utils/deadlineUtils'
 
 // ─── 퀴즈 정보 카드 ─────────────────────────────────────────────────────────
-export default function QuizInfoCard({ quiz }) {
+export default function QuizInfoCard({ quiz, students }) {
+  const effectiveSubmitted = useMemo(
+    () => getEffectiveSubmittedCount(quiz, students),
+    [quiz, students]
+  )
   const submitRate = useMemo(
-    () => Math.round((quiz.submitted / quiz.totalStudents) * 100),
-    [quiz.submitted, quiz.totalStudents]
+    () => quiz.totalStudents > 0 ? Math.round((effectiveSubmitted / quiz.totalStudents) * 100) : 0,
+    [effectiveSubmitted, quiz.totalStudents]
   )
   const gradeProgress = useMemo(
-    () => quiz.submitted > 0 ? Math.round((quiz.graded / quiz.submitted) * 100) : 0,
-    [quiz.graded, quiz.submitted]
+    () => effectiveSubmitted > 0 ? Math.round((quiz.graded / effectiveSubmitted) * 100) : 0,
+    [quiz.graded, effectiveSubmitted]
   )
 
   return (
@@ -24,14 +29,14 @@ export default function QuizInfoCard({ quiz }) {
               <StatusBadge status={quiz.status} className="px-2.5 py-1 rounded-full font-semibold" />
             </div>
             <h2 className="text-xl font-extrabold text-foreground mb-1.5">{quiz.title}</h2>
-            <p className="text-sm text-muted-foreground mb-2">{quiz.startDate} ~ {quiz.dueDate}</p>
+            <p className="text-sm text-muted-foreground mb-2">{quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}</p>
             {(() => {
               if (quiz.scoreRevealEnabled === undefined && quiz.scoreReleasePolicy === undefined) return null
               const enabled = quiz.scoreRevealEnabled ?? (quiz.scoreReleasePolicy !== null)
               if (!enabled) {
                 return (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-gray-400">성적 공개</span>
+                    <span className="text-xs font-medium text-muted-foreground">성적 공개</span>
                     <span className="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-gray-500">비공개</span>
                   </div>
                 )
@@ -45,7 +50,7 @@ export default function QuizInfoCard({ quiz }) {
               const periodEnd = quiz.scoreRevealEnd?.split(' ')[0]
               return (
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-xs font-medium text-gray-400">성적 공개</span>
+                  <span className="text-xs font-medium text-muted-foreground">성적 공개</span>
                   <span className="text-xs px-2 py-0.5 rounded font-medium bg-accent text-primary">
                     {isWithAnswer ? '정답 포함' : '점수만'}
                   </span>
@@ -71,14 +76,14 @@ export default function QuizInfoCard({ quiz }) {
             <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
               <p className="text-xs mb-2 text-muted-foreground">제출 인원</p>
               <p className="text-2xl leading-none font-extrabold text-foreground">
-                {quiz.submitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.totalStudents}명</span>
+                {effectiveSubmitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.totalStudents}명</span>
               </p>
             </div>
             <div className="w-px bg-border" />
             <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
               <p className="text-xs mb-2 text-muted-foreground">채점 완료</p>
               <p className="text-2xl leading-none font-extrabold text-foreground">
-                {quiz.graded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.submitted}명</span>
+                {quiz.graded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {effectiveSubmitted}명</span>
               </p>
             </div>
           </div>

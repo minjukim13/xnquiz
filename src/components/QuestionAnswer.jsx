@@ -52,44 +52,91 @@ export default function QuestionAnswer({ q }) {
     )
   }
 
-  // 연결형: 화살표 아이콘
+  // 연결형: 정답 배지 우측에 라벨→정답 + 오답 보기
   if (t === 'matching' && q.pairs?.length > 0) {
     return (
-      <div className="flex flex-col gap-1 mt-1.5">
-        <span className={cn(BADGE, 'self-start')}>정답</span>
-        <div className="flex flex-wrap gap-1.5">
-          {q.pairs.map((p, i) => (
-            <span key={i} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary">
-              {p.left} <ArrowRight size={10} className="text-muted-foreground" /> {p.right}
-            </span>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+        <span className={BADGE}>정답</span>
+        {q.pairs.map((p, i) => (
+          <span key={i} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary">
+            {p.left} <ArrowRight size={10} className="text-muted-foreground" /> {p.right}
+          </span>
+        ))}
+        {q.distractors?.length > 0 && (
+          <>
+            <span className="text-[11px] text-muted-foreground shrink-0 ml-1">오답 보기</span>
+            {q.distractors.map((d, i) => (
+              <span key={i} className="text-[12px] px-2 py-0.5 rounded-full bg-slate-100 text-muted-foreground">{d}</span>
+            ))}
+          </>
+        )}
       </div>
     )
   }
 
-  // 다중빈칸: 개별 배지
-  if (t === 'fill_in_multiple_blanks' && Array.isArray(ans) && ans.length > 0) {
+  // 드롭다운: 정답 배지 우측에 라벨(또는 [드롭다운N])→정답
+  if (t === 'multiple_dropdowns' && Array.isArray(q.dropdowns) && q.dropdowns.length > 0) {
+    const items = q.dropdowns
+      .map((dd, i) => ({ label: dd.label || `[드롭다운${i + 1}]`, answer: dd.options?.[dd.answerIdx] }))
+      .filter(it => it.answer)
+    if (items.length === 0) return null
     return (
-      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
         <span className={BADGE}>정답</span>
-        {ans.map((item, i) => (
-          <span key={i} className={ITEM_BADGE}>{item}</span>
+        {items.map((it, i) => (
+          <span key={i} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary">
+            <span className="font-semibold">{it.label}</span> <ArrowRight size={10} className="text-muted-foreground" />
+            {it.answer}
+          </span>
         ))}
       </div>
     )
   }
 
-  // 그 외: 텍스트 표시
+  // 수식형: 수식 + 허용 오차 표시 (학생마다 값이 달라 단일 정답 없음)
+  if (t === 'formula' && q.formula) {
+    const tolText = q.tolerance
+      ? ` (±${q.tolerance}${q.toleranceType === 'percent' ? '%' : ''})`
+      : ''
+    return (
+      <div className="flex items-center gap-2 mt-1.5">
+        <span className={BADGE}>정답</span>
+        <span className="text-[13px] font-mono font-medium text-foreground truncate">
+          {q.formula}{tolText}
+        </span>
+      </div>
+    )
+  }
+
+  // 다중빈칸: 개별 배지 (복수 정답 지원)
+  if (t === 'fill_in_multiple_blanks' && Array.isArray(ans) && ans.length > 0) {
+    return (
+      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+        <span className={BADGE}>정답</span>
+        {ans.map((item, i) => {
+          const answers = Array.isArray(item) ? item : [item]
+          return (
+            <span key={i} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary">
+              <span className="font-semibold">[빈칸{i + 1}]</span> <ArrowRight size={10} className="text-muted-foreground" />
+              {answers.join(' / ')}
+            </span>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // 그 외: 텍스트 표시 (알려진 타입만)
   let display = ''
   if (t === 'multiple_choice') {
     display = typeof ans === 'string' ? ans : (q.choices ?? q.options)?.[ans] ?? ''
   } else if (t === 'short_answer') {
     display = Array.isArray(ans) ? ans[0] : String(ans ?? '')
   } else if (t === 'numerical') {
+    if (ans === undefined || ans === null || ans === '') return null
     display = `${ans}` + (q.tolerance ? ` (±${q.tolerance})` : '')
   } else {
-    display = typeof ans === 'string' ? ans : JSON.stringify(ans ?? '')
+    return null
   }
   if (!display) return null
   return (

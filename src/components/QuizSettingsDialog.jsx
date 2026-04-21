@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { ConfirmDialog } from './ConfirmDialog'
+
 
 const STORAGE_KEY = 'xnq_global_settings'
 
@@ -12,9 +12,10 @@ const DEFAULTS = {
   multipleAnswersScoringMode: 'all_correct',
   penaltyMethod: 'none',
   caseSensitive: false,
+  whitespaceSensitive: false,
 }
 
-export function getGlobalSettings() {
+function getGlobalSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS }
@@ -64,9 +65,9 @@ const PENALTY_METHODS = [
 
 export default function QuizSettingsDialog({ open, onOpenChange }) {
   const [local, setLocal] = useState(DEFAULTS)
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync local with global on open
     if (open) setLocal(getGlobalSettings())
   }, [open])
 
@@ -78,12 +79,12 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
     window.dispatchEvent(new CustomEvent('xnq-settings-changed'))
   }
 
-  return (<>
-    <Dialog open={open} onOpenChange={(v) => { if (!v) setShowCancelConfirm(true); else onOpenChange(true) }}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>퀴즈 전역 설정</DialogTitle>
-          <p className="text-xs text-muted-foreground">이 설정은 모든 퀴즈에 공통으로 적용됩니다.</p>
+          <p className="text-[15px] text-muted-foreground">이 설정은 모든 퀴즈에 공통으로 적용됩니다.</p>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -107,7 +108,7 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
             {/* 감점 방식 (partial 선택 시만) */}
             {local.multipleAnswersScoringMode === 'partial' && (
               <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-                <p className="text-xs font-semibold text-slate-600 mb-2">오답 감점 방식</p>
+                <p className="text-[15px] font-semibold text-slate-600 mb-2">오답 감점 방식</p>
                 {PENALTY_METHODS.map(opt => (
                   <RadioOption
                     key={opt.value}
@@ -136,35 +137,44 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
               description="단답형/수치형 등 자동채점 시 대소문자를 구분하여 정답을 판정합니다"
             />
             {!local.caseSensitive && (
-              <p className="text-xs text-muted-foreground pl-1">
+              <p className="text-xs text-muted-foreground pl-11">
                 현재: "Answer"와 "answer"를 동일한 정답으로 처리합니다.
               </p>
             )}
             {local.caseSensitive && (
-              <div className="flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600">
+              <div className="ml-11 flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600">
                 <span>"Answer"와 "answer"를 다른 답으로 처리합니다. 학생 혼란 방지를 위해 퀴즈 안내사항에 명시를 권장합니다.</span>
               </div>
             )}
+
+            <div className="pt-3 mt-1 border-t border-slate-100">
+              <SettingsToggle
+                checked={local.whitespaceSensitive}
+                onChange={v => set('whitespaceSensitive', v)}
+                label="띄어쓰기 구분"
+                description="단답형/빈칸 채우기 등 자동채점 시 띄어쓰기를 구분하여 정답을 판정합니다"
+              />
+              {!local.whitespaceSensitive && (
+                <p className="text-xs text-muted-foreground pl-11 mt-2">
+                  현재: "key word"와 "keyword"를 동일한 정답으로 처리합니다.
+                </p>
+              )}
+              {local.whitespaceSensitive && (
+                <div className="ml-11 flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600 mt-2">
+                  <span>"key word"와 "keyword"를 다른 답으로 처리합니다. 학생 혼란 방지를 위해 퀴즈 안내사항에 명시를 권장합니다.</span>
+                </div>
+              )}
+            </div>
           </SettingsSection>
         </div>
 
         <DialogFooter>
-          <Button size="sm" variant="outline" onClick={() => setShowCancelConfirm(true)}>취소</Button>
-          <Button size="sm" onClick={handleSave}>저장</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>취소</Button>
+          <Button onClick={handleSave}>저장</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    {showCancelConfirm && (
-      <ConfirmDialog
-        title="설정 취소"
-        message="변경한 설정이 저장되지 않습니다. 정말 취소하시겠습니까?"
-        confirmLabel="취소하기"
-        confirmDanger
-        onConfirm={() => { setShowCancelConfirm(false); onOpenChange(false) }}
-        onCancel={() => setShowCancelConfirm(false)}
-      />
-    )}
-  </>)
+  )
 }
 
 function RadioOption({ active, onClick, label, desc, formula }) {
@@ -185,7 +195,7 @@ function RadioOption({ active, onClick, label, desc, formula }) {
           {active && <span className="w-2 h-2 rounded-full bg-primary" />}
         </span>
         <div className="flex-1 min-w-0">
-          <p className={cn('text-sm font-semibold flex items-center gap-1', active ? 'text-primary' : 'text-slate-700')}>
+          <p className={cn('text-[15px] font-semibold flex items-center gap-1', active ? 'text-primary' : 'text-slate-700')}>
             {label}
             {formula && <FormulaTooltip formula={formula} />}
           </p>
@@ -220,7 +230,7 @@ function SettingsSection({ title, children }) {
   return (
     <Card>
       <CardContent className="px-4 py-3 space-y-3">
-        <h3 className="text-xs font-semibold pb-2 border-b border-border text-slate-700">{title}</h3>
+        <h3 className="text-[15px] font-semibold pb-2 border-b border-border text-slate-700">{title}</h3>
         {children}
       </CardContent>
     </Card>
@@ -232,7 +242,7 @@ function SettingsToggle({ checked, onChange, label, description }) {
     <label className="flex items-start gap-3 cursor-pointer">
       <Switch checked={checked} onCheckedChange={onChange} className="mt-0.5 data-[state=checked]:bg-primary" />
       <div>
-        <p className="text-sm font-medium text-slate-700">{label}</p>
+        <p className="text-[15px] font-medium text-slate-700">{label}</p>
         {description && <p className="text-xs mt-0.5 text-muted-foreground">{description}</p>}
       </div>
     </label>
@@ -243,6 +253,7 @@ const SIM_INPUT = "w-14 text-center text-xs px-1.5 py-1 rounded border border-sl
 const CHOICE_LABELS = 'ABCDEFGHIJ'.split('')
 
 function ScoringSimulation({ penaltyMethod }) {
+  const [expanded, setExpanded] = useState(false)
   const [points, setPoints] = useState(10)
   const [totalCorrect, setTotalCorrect] = useState(2)
   const [totalChoices, setTotalChoices] = useState(5)
@@ -253,6 +264,7 @@ function ScoringSimulation({ penaltyMethod }) {
 
   // 조건 변경 시 선택 초기화
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset selection on constraint change
     setSelected(new Set())
   }, [totalChoices, totalCorrect, points])
 
@@ -282,12 +294,23 @@ function ScoringSimulation({ penaltyMethod }) {
     { key: 'formula_scoring', label: '추측 보정' },
   ]
 
-  const currentScore = calc(penaltyMethod)
-
   return (
     <div className="mt-3 pt-3 border-t border-slate-200">
-      <p className="text-xs font-semibold text-slate-600 mb-2.5">채점 시뮬레이션</p>
+      <button
+        type="button"
+        onClick={() => setExpanded(prev => !prev)}
+        className="w-full flex items-center justify-between text-xs font-semibold text-slate-600 hover:text-slate-800 transition-colors"
+      >
+        <span>채점 시뮬레이션</span>
+        <svg
+          className={cn('w-3.5 h-3.5 text-slate-400 transition-transform', expanded && 'rotate-180')}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
 
+      {!expanded ? null : <div className="mt-2.5">
       {/* 조건 입력 */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-3 text-xs text-slate-600">
         <label className="flex items-center gap-1.5">
@@ -367,7 +390,7 @@ function ScoringSimulation({ penaltyMethod }) {
               <div key={m.key} className={cn('py-2 px-2 text-center', isActive && 'bg-blue-50/60')}>
                 <p className={cn('text-[10px] mb-0.5', isActive ? 'text-primary font-semibold' : 'text-muted-foreground')}>{m.label}</p>
                 <p className={cn(
-                  'text-sm tabular-nums font-bold',
+                  'text-[15px] tabular-nums font-bold',
                   isActive
                     ? score === points ? 'text-primary' : score === 0 && selected.size > 0 ? 'text-red-500' : 'text-slate-800'
                     : 'text-muted-foreground'
@@ -379,6 +402,7 @@ function ScoringSimulation({ penaltyMethod }) {
           })}
         </div>
       </div>
+      </div>}
     </div>
   )
 }

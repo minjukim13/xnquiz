@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, Navigate } from 'react-router-dom'
 import {
   AlertCircle, Download, FileDown,
   ChevronDown, ChevronUp, BarChart3,
@@ -7,7 +7,9 @@ import {
 } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../../components/Layout'
-import { getQuizStudents, mockQuizzes, getQuizQuestions, getStudentAnswer } from '../../data/mockData'
+import { getStudentAnswer } from '../../data/mockData'
+import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
+import { useRole } from '../../context/role'
 import { downloadAnswerSheetsXlsx } from '../../utils/excelUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -17,6 +19,7 @@ import StatusBadge from '../../components/StatusBadge'
 import { printQuizQuestions, printBulkAnswerSheets } from '../../utils/pdfUtils'
 import { DropdownSelect } from '../../components/DropdownSelect'
 import { getLocalGrades, SORT_OPTIONS } from './utils'
+import { getEffectiveSubmittedCount } from '@/utils/deadlineUtils'
 import QuestionItem from './QuestionItem'
 import QuestionDetailPanel from './QuestionDetailPanel'
 import StudentListItem from './StudentListItem'
@@ -27,7 +30,9 @@ import EmptyState from './EmptyState'
 
 export default function GradingDashboard() {
   const { id } = useParams()
-  const QUIZ_INFO = mockQuizzes.find(q => q.id === id)
+  const { role } = useRole()
+  const [QUIZ_INFO, setQUIZ_INFO] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   // 채점 모드: 'question' = 문항 중심, 'student' = 학생 중심
   const [gradingMode, setGradingMode] = useState('question')
@@ -76,8 +81,32 @@ export default function GradingDashboard() {
     }
   }, [showToast])
 
-  const quizQuestions = getQuizQuestions(id)
-  const quizStudents = getQuizStudents(id)
+  const [quizQuestions, setQuizQuestions] = useState([])
+  const [quizStudents, setQuizStudents] = useState([])
+
+  // 데이터 레이어 경유 — mock/api 분기 자동
+  useEffect(() => {
+    let mounted = true
+    setLoading(true)
+    ;(async () => {
+      try {
+        const [qi, qq, qs] = await Promise.all([
+          getQuiz(id),
+          getQuizQuestions(id),
+          listAttempts({ quizId: id }),
+        ])
+        if (!mounted) return
+        setQUIZ_INFO(qi)
+        setQuizQuestions(qq ?? [])
+        setQuizStudents(qs ?? [])
+      } catch (err) {
+        console.error('[GradingDashboard] 로드 실패', err)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [id])
 
   // localStorage 채점 기록을 반영한 실시간 gradedCount 계산
   const questionsWithLiveCounts = useMemo(() => {
@@ -158,6 +187,19 @@ export default function GradingDashboard() {
     }
   }, [gradingMode, submittedStudents, allStudents]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (role !== 'instructor') return <Navigate to="/" replace />
+
+  // ── 로딩 중 ──
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <p className="text-sm text-muted-foreground">불러오는 중</p>
+        </div>
+      </Layout>
+    )
+  }
+
   // ── 유효하지 않은 quiz id ──
   if (!QUIZ_INFO) {
     return (
@@ -194,9 +236,11 @@ export default function GradingDashboard() {
     )
   }
 
-  const submitRate = Math.round((QUIZ_INFO.submitted / QUIZ_INFO.totalStudents) * 100)
-  const gradeProgress = QUIZ_INFO.submitted > 0
-    ? Math.round((QUIZ_INFO.graded / QUIZ_INFO.submitted) * 100) : 0
+  const effectiveSubmitted = getEffectiveSubmittedCount(QUIZ_INFO, quizStudents)
+  const submitRate = QUIZ_INFO.totalStudents > 0
+    ? Math.round((effectiveSubmitted / QUIZ_INFO.totalStudents) * 100) : 0
+  const gradeProgress = effectiveSubmitted > 0
+    ? Math.round((QUIZ_INFO.graded / effectiveSubmitted) * 100) : 0
 
   return (
     <Layout>
@@ -214,14 +258,14 @@ export default function GradingDashboard() {
                   <StatusBadge status={QUIZ_INFO.status} className="px-2.5 py-1 rounded-full font-semibold" />
                 </div>
                 <h2 className="text-xl font-extrabold text-foreground mb-1.5">{QUIZ_INFO.title}</h2>
-                <p className="text-sm text-muted-foreground mb-2">{QUIZ_INFO.startDate} ~ {QUIZ_INFO.dueDate}</p>
+                <p className="text-sm text-muted-foreground mb-2">{QUIZ_INFO.startDate || QUIZ_INFO.dueDate ? `${QUIZ_INFO.startDate || '제한 없음'} ~ ${QUIZ_INFO.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}</p>
                 {(() => {
                   if (QUIZ_INFO.scoreRevealEnabled === undefined && QUIZ_INFO.scoreReleasePolicy === undefined) return null
                   const enabled = QUIZ_INFO.scoreRevealEnabled ?? (QUIZ_INFO.scoreReleasePolicy !== null)
                   if (!enabled) {
                     return (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-medium text-gray-400">성적 공개</span>
+                        <span className="text-xs font-medium text-muted-foreground">성적 공개</span>
                         <span className="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-gray-500">비공개</span>
                       </div>
                     )
@@ -235,7 +279,7 @@ export default function GradingDashboard() {
                   const periodEnd = QUIZ_INFO.scoreRevealEnd?.split(' ')[0]
                   return (
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-medium text-gray-400">성적 공개</span>
+                      <span className="text-xs font-medium text-muted-foreground">성적 공개</span>
                       <span className="text-xs px-2 py-0.5 rounded font-medium bg-accent text-primary">
                         {isWithAnswer ? '정답 포함' : '점수만'}
                       </span>
@@ -261,14 +305,14 @@ export default function GradingDashboard() {
                 <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
                   <p className="text-xs mb-2 text-muted-foreground">제출 인원</p>
                   <p className="text-2xl leading-none font-extrabold text-foreground">
-                    {QUIZ_INFO.submitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {QUIZ_INFO.totalStudents}명</span>
+                    {effectiveSubmitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {QUIZ_INFO.totalStudents}명</span>
                   </p>
                 </div>
                 <div className="w-px bg-border" />
                 <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
                   <p className="text-xs mb-2 text-muted-foreground">채점 완료</p>
                   <p className="text-2xl leading-none font-extrabold text-foreground">
-                    {QUIZ_INFO.graded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {QUIZ_INFO.submitted}명</span>
+                    {QUIZ_INFO.graded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {effectiveSubmitted}명</span>
                   </p>
                 </div>
               </div>

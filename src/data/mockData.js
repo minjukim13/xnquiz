@@ -1,9 +1,38 @@
+/**
+ * mockData.js — 프로토타입/로컬 모드 전용 데이터 + 로직
+ *
+ * 구성:
+ *   [L1]   유틸 & 전역 설정 (_getGlobalSettings, _normalizeAnswer)
+ *   [L20]  QUIZ_TYPES (Canvas LMS 퀴즈 유형 정의)
+ *   [L36]  mockQuizzes (퀴즈 seed) + 영속화 (addQuiz, updateQuiz, removeQuiz)
+ *   [L465] 문항 seed (mockQuestions, mockQuiz{2..8}Questions, mockCs*Questions)
+ *   [L697] AUTO_CORRECT_* 채점 매핑 맵 (id→정답)
+ *   [L1311] quizQuestionsMap + getQuizQuestions/setQuizQuestions
+ *   [L1590] 응시 (getStudentAttempts, saveStudentAttempt)
+ *   [L1650] 채점 (regradeQuestion, regradeQuestionWithOption, recalculateScorePolicy, autoGradeAnswer)
+ *   [L1995] 학생 답/파일 조회 (getStudentAnswer, getStudentFileSubmission, isAnswerCorrect)
+ *   [L2044] 문제은행 (MOCK_COURSES, MOCK_BANKS, MOCK_BANK_QUESTIONS)
+ *   [L2196] 학생 seed (mockStudents, mockStudents8) + generateStudents + getQuizStudents
+ *
+ * api 모드에서 사용 안 함 (CLAUDE.md 데이터 소스 섹션 참조)
+ */
+import { evalFormula as _evalFormula } from '@/utils/formulaEngine'
+import { autoSubmitExpiredStudents } from '@/utils/deadlineUtils'
+
 // ── 전역 설정 읽기 (localStorage) ──
 function _getGlobalSettings() {
   try {
     const raw = localStorage.getItem('xnq_global_settings')
     return raw ? JSON.parse(raw) : {}
   } catch { return {} }
+}
+
+// 정답 비교용 문자열 정규화 (대소문자/띄어쓰기 전역 설정 반영)
+function _normalizeAnswer(str, gs) {
+  let s = String(str ?? '').trim()
+  if (!gs.caseSensitive) s = s.toLowerCase()
+  if (!gs.whitespaceSensitive) s = s.replace(/\s+/g, '')
+  return s
 }
 
 // QUIZ_TYPES: Canvas LMS 전체 퀴즈 유형 (Classic + New Quizzes)
@@ -21,6 +50,10 @@ export const QUIZ_TYPES = {
   file_upload:            { label: '파일 첨부',        autoGrade: false     },
   text:                   { label: '텍스트',           autoGrade: null      },
 }
+
+// ── mockQuizzes: 초기 mock 데이터 + localStorage 복원 ──
+const QUIZ_STORAGE_KEY = 'xnq_quizzes'
+const _staticQuizIds = new Set()
 
 export const mockQuizzes = [
   {
@@ -99,6 +132,8 @@ export const mockQuizzes = [
     scoreRevealEnabled: true,
     scoreRevealScope: 'with_answer',
     scoreRevealTiming: 'after_due',
+    allowLateSubmit: true,
+    lateSubmitDeadline: '2026-04-20T23:59',
   },
   {
     // draft / 성적 비공개
@@ -358,7 +393,92 @@ export const mockQuizzes = [
     scoreRevealScope: 'wrong_only',
     scoreRevealTiming: 'immediately',
   },
+  {
+    // 예약 발행: status open이지만 startDate가 미래 → 학생에게 "예정" 표시 + 응시 차단
+    id: '9',
+    title: '주차별 퀴즈 5 - 트랜잭션과 동시성 제어',
+    description: '트랜잭션 ACID 속성, 동시성 제어 기법(Lock, MVCC), 교착상태 처리를 다룹니다.',
+    course: 'CS301 데이터베이스',
+    status: 'open',
+    visible: true,
+    startDate: '2026-04-21 09:00',
+    dueDate: '2026-04-23 23:59',
+    lockDate: '2026-05-21 23:59',
+    week: 9,
+    session: 1,
+    totalStudents: 65,
+    submitted: 0,
+    graded: 0,
+    pendingGrade: 0,
+    questions: 8,
+    totalPoints: 20,
+    timeLimit: 20,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 2,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: 'after_due',
+  },
 ]
+
+// ── mockQuizzes localStorage 동기화 ──
+// 정적 mock ID 기록 (복원 시 중복 방지)
+mockQuizzes.forEach(q => _staticQuizIds.add(q.id))
+
+// localStorage에서 사용자가 추가/수정한 퀴즈 복원
+try {
+  const raw = localStorage.getItem(QUIZ_STORAGE_KEY)
+  if (raw) {
+    const saved = JSON.parse(raw)
+    // 정적 mock 퀴즈의 수정사항 반영
+    saved.forEach(sq => {
+      const idx = mockQuizzes.findIndex(q => q.id === sq.id)
+      if (idx !== -1) {
+        Object.assign(mockQuizzes[idx], sq)
+      } else {
+        mockQuizzes.push(sq)
+      }
+    })
+  }
+} catch { /* localStorage 파싱 실패 시 기본 mock 사용 */ }
+
+function _persistQuizzes() {
+  try {
+    // 정적 mock과 달라진 항목 + 새로 추가된 항목만 저장
+    const toSave = mockQuizzes.filter(q => !_staticQuizIds.has(q.id))
+    // 정적 mock 중 수정된 항목도 저장
+    mockQuizzes.forEach(q => {
+      if (_staticQuizIds.has(q.id)) toSave.push(q)
+    })
+    localStorage.setItem(QUIZ_STORAGE_KEY, JSON.stringify(toSave))
+  } catch { /* quota exceeded 등 무시 */ }
+}
+
+export function addQuiz(quiz) {
+  mockQuizzes.push(quiz)
+  _persistQuizzes()
+  return quiz
+}
+
+export function updateQuiz(id, updates) {
+  const idx = mockQuizzes.findIndex(q => q.id === id)
+  if (idx !== -1) {
+    mockQuizzes[idx] = { ...mockQuizzes[idx], ...updates }
+    _persistQuizzes()
+    return mockQuizzes[idx]
+  }
+  return null
+}
+
+export function removeQuiz(id) {
+  const idx = mockQuizzes.findIndex(q => q.id === id)
+  if (idx !== -1) {
+    mockQuizzes.splice(idx, 1)
+    _persistQuizzes()
+    return true
+  }
+  return false
+}
 
 // 배점 합계: 5+5+10+10+20+5+10+15+10+10+15 = 115점
 export const mockQuestions = [
@@ -367,6 +487,9 @@ export const mockQuestions = [
     text: 'SQL에서 데이터를 검색할 때 사용하는 기본 명령어는?',
     points: 5, autoGrade: true, gradedCount: 82, totalCount: 82, avgScore: 4.0,
     correctAnswer: 'SELECT', choices: ['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
+    correct_comments: 'SELECT는 SQL DML의 핵심 명령어입니다. 잘 알고 계시네요!',
+    incorrect_comments: 'SELECT, INSERT, UPDATE, DELETE 중 "검색"에 해당하는 것은 SELECT입니다. 강의 노트 2장 SQL 기초 절을 다시 확인해 보세요.',
+    neutral_comments: '참고: SELECT 외에도 WHERE, ORDER BY, GROUP BY 등을 함께 활용하면 더 정교한 검색이 가능합니다.',
   },
   {
     id: 'q2', order: 2, type: 'multiple_choice',
@@ -380,6 +503,7 @@ export const mockQuestions = [
     text: '관계형 데이터베이스에서 두 테이블을 연결하는 데 사용되는 키의 이름을 쓰시오.',
     points: 10, autoGrade: false, gradedCount: 45, totalCount: 82, avgScore: 8.0,
     correctAnswer: '외래키(Foreign Key)',
+    incorrect_comments: '두 테이블 간 참조 무결성을 유지하기 위한 키입니다. "외래키" 또는 "Foreign Key"가 정답입니다.',
   },
   {
     id: 'q4', order: 4, type: 'multiple_answers',
@@ -399,6 +523,8 @@ export const mockQuestions = [
     text: 'PRIMARY KEY는 NULL 값을 허용한다.',
     points: 5, autoGrade: true, gradedCount: 82, totalCount: 82, avgScore: 4.0,
     correctAnswer: '거짓',
+    correct_comments: '맞습니다. PRIMARY KEY는 유일성과 NOT NULL 제약을 동시에 가집니다.',
+    incorrect_comments: 'PRIMARY KEY는 행을 고유하게 식별해야 하므로 NULL을 허용하지 않습니다. UNIQUE 제약과의 차이점을 함께 확인해 보세요.',
   },
   {
     id: 'q7', order: 7, type: 'short_answer',
@@ -417,6 +543,7 @@ export const mockQuestions = [
     text: '아래 테이블에 저장된 레코드 수를 구하는 SQL 결과값은? (단, NULL 포함)',
     points: 10, autoGrade: true, gradedCount: 82, totalCount: 82, avgScore: 8.0,
     correctAnswer: '15',
+    neutral_comments: 'COUNT(*)는 NULL을 포함한 전체 행 수를, COUNT(컬럼)은 NULL을 제외한 행 수를 반환합니다.',
   },
   {
     id: 'q10', order: 10, type: 'matching',
@@ -1236,6 +1363,7 @@ export function setQuizQuestions(quizId, questions) {
     map[quizId] = questions
     localStorage.setItem('xnq_quiz_questions', JSON.stringify(map))
   } catch { /* ignore */ }
+  return questions
 }
 
 // CS201 운영체제 — 중간고사 문항
@@ -1557,7 +1685,6 @@ export function regradeQuestion(quizId, updatedQuestion) {
       const manualKey = `${attempt.studentId}_${quizId}_${updatedQuestion.id}`
       if (manualGrades[manualKey] !== undefined) return
 
-      const quiz = mockQuizzes.find(q => q.id === quizId)
       const newScore = autoGradeAnswer(updatedQuestion, answer)
       if (newScore === null) return // 수동채점 필요 유형은 제외
 
@@ -1587,14 +1714,16 @@ function gradeByQuestion(question, answer) {
   if (!answer && answer !== 0) return 0
   const ca = question.correctAnswer
   const pts = question.points ?? 0
+  const gs = _getGlobalSettings()
+  const norm = (s) => _normalizeAnswer(s, gs)
 
   switch (question.type) {
     case 'multiple_choice':
     case 'true_false':
-      return String(answer).trim().toLowerCase() === String(ca).trim().toLowerCase() ? pts : 0
+      return norm(answer) === norm(ca) ? pts : 0
     case 'short_answer': {
       const accepted = Array.isArray(ca) ? ca : [ca]
-      return accepted.some(a => String(answer).trim().toLowerCase() === String(a).trim().toLowerCase()) ? pts : 0
+      return accepted.some(a => norm(answer) === norm(a)) ? pts : 0
     }
     case 'numerical': {
       const num = parseFloat(answer)
@@ -1613,13 +1742,12 @@ function gradeByQuestion(question, answer) {
       if (correctTexts.length === 0) return 0
 
       const studentSelected = String(answer).split(',').map(s => s.trim()).filter(Boolean)
-      const correctSet = new Set(correctTexts.map(s => s.toLowerCase()))
-      const gs = _getGlobalSettings()
+      const correctSet = new Set(correctTexts.map(norm))
       const scoringMode = gs.multipleAnswersScoringMode || question.scoringMode || 'all_correct'
 
       if (scoringMode === 'partial') {
-        const correctCount = studentSelected.filter(s => correctSet.has(s.toLowerCase())).length
-        const wrongCount = studentSelected.filter(s => !correctSet.has(s.toLowerCase())).length
+        const correctCount = studentSelected.filter(s => correctSet.has(norm(s))).length
+        const wrongCount = studentSelected.filter(s => !correctSet.has(norm(s))).length
         const penaltyMethod = gs.penaltyMethod || 'none'
         if (penaltyMethod === 'right_minus_wrong') {
           return Math.max(0, Math.round(((correctCount - wrongCount) / correctTexts.length) * pts * 2) / 2)
@@ -1631,16 +1759,75 @@ function gradeByQuestion(question, answer) {
         return Math.round((correctCount / correctTexts.length) * pts * 2) / 2
       }
       // all_correct
-      const studentSet = new Set(studentSelected.map(s => s.toLowerCase()))
-      const allCorrect = correctTexts.every(c => studentSet.has(c.toLowerCase()))
-      const noWrong = studentSelected.every(s => correctSet.has(s.toLowerCase()))
+      const studentSet = new Set(studentSelected.map(norm))
+      const allCorrect = correctTexts.every(c => studentSet.has(norm(c)))
+      const noWrong = studentSelected.every(s => correctSet.has(norm(s)))
       return (allCorrect && noWrong) ? pts : 0
     }
     case 'fill_in_multiple_blanks': {
       const blanks = Array.isArray(ca) ? ca : []
       const answers = Array.isArray(answer) ? answer : String(answer).split(',').map(s => s.trim())
-      const correct = blanks.length > 0 && blanks.every((b, i) => answers[i] && String(answers[i]).trim().toLowerCase() === String(b).trim().toLowerCase())
+      const correct = blanks.length > 0 && blanks.every((b, i) => {
+        const studentAns = answers[i]
+        if (!studentAns) return false
+        const accepted = Array.isArray(b) ? b : [b]
+        return accepted.some(a => norm(studentAns) === norm(a))
+      })
       return correct ? pts : 0
+    }
+    case 'matching': {
+      const pairs = question.pairs || []
+      if (pairs.length === 0) return 0
+      let answerMap = {}
+      if (typeof answer === 'object' && !Array.isArray(answer)) {
+        answerMap = answer
+      } else if (typeof answer === 'string') {
+        answer.split(',').forEach(pair => {
+          const [l, r] = pair.split(':').map(s => s.trim())
+          if (l && r) answerMap[l] = r
+        })
+      } else { return 0 }
+      const correct = pairs.every(p => norm(answerMap[p.left] || '') === norm(p.right))
+      return correct ? pts : 0
+    }
+    case 'multiple_dropdowns': {
+      const dropdowns = question.dropdowns || []
+      if (dropdowns.length === 0) return 0
+      // 학생 답안: 배열 [opt0, opt1, ...] 또는 객체 {0: opt0, 1: opt1, ...} 지원
+      const getStudentSel = (i) => Array.isArray(answer) ? answer[i] : (answer?.[i] ?? answer?.[String(i)])
+      const correct = dropdowns.every((dd, i) => {
+        const correctOpt = dd.options?.[dd.answerIdx]
+        const studentSel = getStudentSel(i)
+        return correctOpt && studentSel && norm(studentSel) === norm(correctOpt)
+      })
+      return correct ? pts : 0
+    }
+    case 'formula': {
+      // 답안 포맷: { value, variables } 또는 문자열(구 포맷)
+      if (!question.formula) return 0
+      const studentValue = typeof answer === 'object' && answer !== null ? answer.value : answer
+      if (studentValue === '' || studentValue === undefined || studentValue === null) return 0
+      const studentNum = parseFloat(studentValue)
+      if (isNaN(studentNum)) return 0
+      // 학생이 봤던 변수값을 그대로 사용 (답안에 포함). 없으면 중앙값으로 폴백
+      const studentVars = (typeof answer === 'object' && answer?.variables) ? answer.variables : null
+      let varValues = studentVars
+      if (!varValues) {
+        varValues = {}
+        for (const v of (question.variables || [])) {
+          if (!v.name?.trim()) continue
+          varValues[v.name] = ((Number(v.min) || 1) + (Number(v.max) || 10)) / 2
+        }
+      }
+      const correct = _evalFormula(question.formula, varValues)
+      if (correct === null) return 0
+      const tol = Number(question.tolerance) || 0
+      const tolType = question.toleranceType || 'absolute'
+      const diff = Math.abs(studentNum - correct)
+      const pass = tolType === 'percent'
+        ? diff <= Math.abs(correct) * (tol / 100)
+        : diff <= tol
+      return pass ? pts : 0
     }
     default:
       return 0
@@ -1736,19 +1923,7 @@ export function recalculateScorePolicy(quizId, newPolicy) {
   }
 }
 
-export function gradeQuiz3Answer(questionId, answer) {
-  const correct = AUTO_CORRECT_Q3[questionId]
-  if (!correct || !answer) return 0
-  const question = mockQuiz3Questions.find(q => q.id === questionId)
-  const points = question?.points ?? 2
-  const gs = _getGlobalSettings()
-  const isCorrect = gs.caseSensitive
-    ? correct.some(c => answer.trim() === c.trim())
-    : correct.some(c => answer.trim().toLowerCase() === c.toLowerCase().trim())
-  return isCorrect ? points : 0
-}
-
-export function autoGradeAnswer(question, answer, options = {}) {
+export function autoGradeAnswer(question, answer) {
   if (!answer && answer !== 0) return 0
 
   // multiple_answers: 전역 설정(scoringMode + penaltyMethod) 기반 채점
@@ -1768,13 +1943,14 @@ export function autoGradeAnswer(question, answer, options = {}) {
     if (correctTexts.length === 0) return null
 
     const studentSelected = String(answer).split(',').map(s => s.trim()).filter(Boolean)
-    const correctSet = new Set(correctTexts.map(s => s.toLowerCase()))
     const gs = _getGlobalSettings()
+    const norm = (s) => _normalizeAnswer(s, gs)
+    const correctSet = new Set(correctTexts.map(norm))
     const scoringMode = gs.multipleAnswersScoringMode || question.scoringMode || 'all_correct'
 
     if (scoringMode === 'partial') {
-      const correctCount = studentSelected.filter(s => correctSet.has(s.toLowerCase())).length
-      const wrongCount = studentSelected.filter(s => !correctSet.has(s.toLowerCase())).length
+      const correctCount = studentSelected.filter(s => correctSet.has(norm(s))).length
+      const wrongCount = studentSelected.filter(s => !correctSet.has(norm(s))).length
       const totalChoices = opts.length || 4 // 선택지 총 수 (formula_scoring용)
       const penaltyMethod = gs.penaltyMethod || 'none'
 
@@ -1793,11 +1969,26 @@ export function autoGradeAnswer(question, answer, options = {}) {
       return Math.round((correctCount / correctTexts.length) * question.points * 2) / 2
     } else {
       // all_correct: 정답 전체 선택 + 오답 미포함 시 만점, 그 외 0점
-      const studentSet = new Set(studentSelected.map(s => s.toLowerCase()))
-      const allCorrect = correctTexts.every(c => studentSet.has(c.toLowerCase()))
-      const noWrong   = studentSelected.every(s => correctSet.has(s.toLowerCase()))
+      const studentSet = new Set(studentSelected.map(norm))
+      const allCorrect = correctTexts.every(c => studentSet.has(norm(c)))
+      const noWrong   = studentSelected.every(s => correctSet.has(norm(s)))
       return (allCorrect && noWrong) ? question.points : 0
     }
+  }
+
+  // correctAnswer 기반 자동채점 (신규 생성 문항)
+  const _autoTypes = ['multiple_choice', 'true_false', 'short_answer', 'numerical', 'fill_in_multiple_blanks']
+  if (_autoTypes.includes(question.type) && question.correctAnswer !== undefined) {
+    return gradeByQuestion(question, answer)
+  }
+  if (question.type === 'matching' && question.pairs?.length > 0) {
+    return gradeByQuestion(question, answer)
+  }
+  if (question.type === 'multiple_dropdowns' && question.dropdowns?.length > 0) {
+    return gradeByQuestion(question, answer)
+  }
+  if (question.type === 'formula' && question.formula) {
+    return gradeByQuestion(question, answer)
   }
 
   let correctMap
@@ -1814,9 +2005,8 @@ export function autoGradeAnswer(question, answer, options = {}) {
   const correct = correctMap?.[question.id]
   if (!correct) return null // 수동채점 필요
   const gs = _getGlobalSettings()
-  const isCorrect = gs.caseSensitive
-    ? correct.some(c => String(answer).trim() === c.trim())
-    : correct.some(c => String(answer).trim().toLowerCase() === c.toLowerCase().trim())
+  const a = _normalizeAnswer(answer, gs)
+  const isCorrect = correct.some(c => a === _normalizeAnswer(c, gs))
   return isCorrect ? question.points : 0
 }
 
@@ -1862,9 +2052,8 @@ export function isAnswerCorrect(answer, questionId) {
   const correct = correctMap?.[questionId]
   if (!correct) return null
   const gs = _getGlobalSettings()
-  return gs.caseSensitive
-    ? correct.some(c => String(answer).includes(c))
-    : correct.some(c => String(answer).toLowerCase().includes(c.toLowerCase()))
+  const a = _normalizeAnswer(answer, gs)
+  return correct.some(c => a.includes(_normalizeAnswer(c, gs)))
 }
 
 // ── 문제은행 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──
@@ -2047,19 +2236,41 @@ const DEMO_YEARS = ['2021','2022','2023','2024']
 // Quiz 1 학생: 87명 (82명 제출, 5명 미제출)
 export const mockStudents = Array.from({ length: 87 }, (_, i) => {
   // 마지막 5명은 미제출
+  // - i=82,83: 응시 시작 후 이탈(응시 중단) — 부분 답안 보유, 자동 제출 대상
+  // - i=84,85,86: 응시 미시작 — 답안 없음, 자동 제출 대상 아님
   if (i >= 82) {
+    const startedButIncomplete = i < 84
+    if (!startedButIncomplete) {
+      return {
+        id: `s${i + 1}`,
+        studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+        name: DEMO_NAMES[i % DEMO_NAMES.length],
+        department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
+        score: null,
+        startTime: null,
+        endTime: null,
+        submitted: false,
+        submittedAt: null,
+        response: null,
+        autoScores: {},
+        manualScores: null,
+      }
+    }
+    // 응시 시작 후 이탈: 앞쪽 문항만 일부 응답
     return {
       id: `s${i + 1}`,
       studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
       name: DEMO_NAMES[i % DEMO_NAMES.length],
       department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
       score: null,
-      startTime: null,
+      startTime: '2026-04-03 09:05',
       endTime: null,
       submitted: false,
       submittedAt: null,
       response: null,
-      autoScores: {},
+      autoScores: i === 82
+        ? { q1: 5, q2: 5, q4: 10, q6: 0 }
+        : { q1: 5, q2: 0, q4: 5 },
       manualScores: null,
     }
   }
@@ -2267,15 +2478,73 @@ function generateStudents(total, submitted, graded, prefix, _baseYear = '2022', 
     const isSubmitted = i < submitted
     const isGraded = isSubmitted && i < graded
 
-    // 미제출 학생
+    // 미제출 학생 — 응시 시작 여부를 두 경우로 분기 (Canvas 정합)
+    // - 응시 시작 후 미완료(startedButIncomplete): 부분 답안 보유, 자동 제출 대상
+    // - 응시 미시작: 답안 없음, 자동 제출 대상 아님
     if (!isSubmitted) {
+      const startedButIncomplete = (i - submitted) % 2 === 0
+      if (!startedButIncomplete) {
+        return {
+          id: `${prefix}${i + 1}`,
+          studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+          name: DEMO_NAMES[i % DEMO_NAMES.length],
+          department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
+          score: null, startTime: null, endTime: null, submitted: false, submittedAt: null,
+          response: null, autoScores: {}, manualScores: null, selections: {},
+        }
+      }
+
+      // 응시 중 이탈: 앞쪽 문항 약 절반만 답변
+      const partialCount = Math.max(1, Math.ceil(questions.length / 2))
+      const partialAutoScores = {}
+      const partialSelections = {}
+      let firstManualResponse = null
+
+      questions.forEach((q, j) => {
+        if (j >= partialCount) return
+        const rate = difficultyRates[j % difficultyRates.length]
+        const hash = _seedHash(i, j)
+        const isCorrect = hash < rate
+
+        if (q.autoGrade === true || q.autoGrade === 'partial') {
+          partialAutoScores[q.id] = isCorrect ? q.points : 0
+          if (q.choices && q.choices.length > 0) {
+            if (isCorrect) {
+              partialSelections[q.id] = q.correctAnswer
+            } else {
+              const wrongChoices = q.choices.filter(c => c !== q.correctAnswer)
+              partialSelections[q.id] = wrongChoices[(i + j) % wrongChoices.length] || q.choices[0]
+            }
+          } else {
+            const pool = ANSWER_POOL[q.id]
+            if (pool) {
+              partialSelections[q.id] = isCorrect ? pool[0] : pool[(1 + (i + j) % (pool.length - 1)) % pool.length]
+            } else {
+              partialSelections[q.id] = isCorrect ? (q.correctAnswer || '정답') : '오답'
+            }
+          }
+        } else {
+          // 수동채점 문항: 응답만 입력 (채점 전)
+          const pool = ANSWER_POOL[q.id]
+          partialSelections[q.id] = pool ? pool[(i + j) % pool.length] : '답안 내용입니다.'
+          if (firstManualResponse === null) firstManualResponse = partialSelections[q.id]
+        }
+      })
+
       return {
         id: `${prefix}${i + 1}`,
         studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
         name: DEMO_NAMES[i % DEMO_NAMES.length],
         department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
-        score: null, startTime: null, endTime: null, submitted: false, submittedAt: null,
-        response: null, autoScores: {}, manualScores: null, selections: {},
+        score: null,
+        startTime: `${startDate} 09:${String(10 + (i % 40)).padStart(2, '0')}`,
+        endTime: null,
+        submitted: false,
+        submittedAt: null,
+        response: firstManualResponse,
+        autoScores: partialAutoScores,
+        manualScores: null,
+        selections: partialSelections,
       }
     }
 
@@ -2364,18 +2633,40 @@ function generateStudents(total, submitted, graded, prefix, _baseYear = '2022', 
 // 퀴즈 ID별 학생 데이터 반환
 const studentCache = {}
 export function getQuizStudents(quizId) {
-  if (quizId === '1') return mockStudents
-  if (quizId === '8') return mockStudents8
+  const quiz = mockQuizzes.find(q => q.id === quizId)
+
+  if (quizId === '1') return autoSubmitExpiredStudents(mockStudents, quiz)
+  if (quizId === '8') return autoSubmitExpiredStudents(mockStudents8, quiz)
   if (studentCache[quizId]) return studentCache[quizId]
 
-  const quiz = mockQuizzes.find(q => q.id === quizId)
   if (!quiz) return mockStudents
 
   const dateStr = quiz.startDate?.split(' ')[0] || '2026-03-20'
   const yearPrefix = ['cs201_1', 'cs201_2', 'cs201_3'].includes(quizId) ? '2024'
     : ['cs401_1', 'cs401_2'].includes(quizId) ? '2023' : '2022'
   const questions = getQuizQuestions(quizId)
-  const students = generateStudents(quiz.totalStudents, quiz.submitted, quiz.graded, `${quizId}_s`, yearPrefix, dateStr, questions)
+  let students = generateStudents(quiz.totalStudents, quiz.submitted, quiz.graded, `${quizId}_s`, yearPrefix, dateStr, questions)
+
+  // 지각 제출 학생 표시: allowLateSubmit 퀴즈에서 일부 학생을 지각으로 마킹
+  if (quiz.allowLateSubmit && quiz.dueDate) {
+    const due = new Date(quiz.dueDate)
+    students.forEach((s, i) => {
+      if (!s.submitted) return
+      if (i % 5 === 0) {
+        s.isLate = true
+        const lateDate = new Date(due)
+        lateDate.setDate(lateDate.getDate() + 1 + (i % 3))
+        const h = 9 + (i % 12)
+        const m = (i * 7) % 60
+        s.submittedAt = `${lateDate.getFullYear()}-${String(lateDate.getMonth() + 1).padStart(2, '0')}-${String(lateDate.getDate()).padStart(2, '0')} ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+        s.endTime = s.submittedAt.slice(0, 16)
+      }
+    })
+  }
+
+  // 마감 경과 시 미제출자 자동 제출 처리
+  students = autoSubmitExpiredStudents(students, quiz)
+
   studentCache[quizId] = students
   return students
 }

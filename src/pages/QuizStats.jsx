@@ -1,12 +1,14 @@
-import { useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { useMemo, useState, useEffect } from 'react'
+import { useParams, Link, Navigate } from 'react-router-dom'
+import { AlertCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { downloadGradesXlsx, downloadItemAnalysisXlsx } from '../utils/excelUtils'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
 import Layout from '../components/Layout'
-import { mockQuizzes, getQuizStudents, QUIZ_TYPES, getQuizQuestions } from '../data/mockData'
+import { QUIZ_TYPES } from '../data/mockData'
+import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
+import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -27,11 +29,90 @@ function variance(arr) {
   return arr.reduce((a, b) => a + (b - mean) ** 2, 0) / arr.length
 }
 
+// 문항 배열에 mock 의 avgScore / gradedCount / totalCount 필드가 없는 경우 (api 모드)
+// attempts 에서 실시간 집계해 덧붙인다. mock 모드는 이미 포함된 값을 유지.
+function enrichQuestions(questions, students) {
+  const submittedStudents = students.filter(s => s.submitted)
+  const totalCount = submittedStudents.length
+  return questions.map(q => {
+    if (q.avgScore != null || q.gradedCount != null) return q // mock
+    let sum = 0
+    let cnt = 0
+    for (const s of submittedStudents) {
+      const auto = s.autoScores?.[q.id]
+      const manual = s.manualScores?.[q.id]
+      if (auto == null && manual == null) continue
+      sum += (auto ?? 0) + (manual ?? 0)
+      cnt++
+    }
+    return {
+      ...q,
+      totalCount,
+      gradedCount: cnt,
+      avgScore: cnt > 0 ? Math.round((sum / cnt) * 10) / 10 : null,
+    }
+  })
+}
+
 export default function QuizStats() {
   const { id } = useParams()
-  const quiz = mockQuizzes.find(q => q.id === id) ?? mockQuizzes[0]
-  const quizQuestions = getQuizQuestions(id)
-  const quizStudents = getQuizStudents(id)
+  const { role } = useRole()
+  const [quiz, setQuiz] = useState(null)
+  const [quizQuestions, setQuizQuestions] = useState([])
+  const [quizStudents, setQuizStudents] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    setLoading(true)
+    ;(async () => {
+      try {
+        const [q, qq, qs] = await Promise.all([
+          getQuiz(id),
+          getQuizQuestions(id),
+          listAttempts({ quizId: id }),
+        ])
+        if (!mounted) return
+        setQuiz(q)
+        setQuizQuestions(qq ?? [])
+        setQuizStudents(qs ?? [])
+      } catch (err) {
+        console.error('[QuizStats] 로드 실패', err)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [id])
+
+  const enrichedQuestions = useMemo(
+    () => enrichQuestions(quizQuestions, quizStudents),
+    [quizQuestions, quizStudents]
+  )
+
+  if (role !== 'instructor') return <Navigate to="/" replace />
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <p className="text-sm text-muted-foreground">불러오는 중</p>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (!quiz) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <AlertCircle size={32} className="mx-auto mb-3 text-red-700" />
+          <p className="text-sm font-medium mb-1 text-slate-900">퀴즈를 찾을 수 없습니다</p>
+          <Link to="/" className="text-xs text-primary hover:underline">퀴즈 목록으로 돌아가기</Link>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout>
@@ -52,11 +133,11 @@ export default function QuizStats() {
           </div>
           <h2 className="text-base font-bold">{quiz.title}</h2>
           {quiz.description && <p className="text-xs mt-1.5 text-slate-500">{quiz.description}</p>}
-          <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate} ~ {quiz.dueDate}</p>
+          <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}</p>
         </div>
 
         {/* 탭 */}
-        <StatsPageTabs quiz={quiz} quizQuestions={quizQuestions} quizStudents={quizStudents} />
+        <StatsPageTabs quiz={quiz} quizQuestions={enrichedQuestions} quizStudents={quizStudents} />
       </div>
     </Layout>
   )
@@ -111,11 +192,12 @@ function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
   )
 }
 
-function GradesTab({ quiz, students: allStudents }) {
+function GradesTab({ quiz, quizQuestions, students: allStudents }) {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('desc')
+  const totalPoints = quizQuestions.reduce((s, q) => s + (q.points || 0), 0)
 
   const submitted = allStudents.filter(s => s.submitted)
   const unsubmitted = allStudents.filter(s => !s.submitted)
@@ -146,6 +228,10 @@ function GradesTab({ quiz, students: allStudents }) {
           av = toSec(a); bv = toSec(b)
         }
         if (sortKey === 'score') { av = a.score ?? -1; bv = b.score ?? -1 }
+        if (sortKey === 'status') {
+          const rank = s => s.score !== null ? 0 : s.submitted ? 1 : 2
+          av = rank(a); bv = rank(b)
+        }
         if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
         return sortDir === 'asc' ? av - bv : bv - av
       })
@@ -158,7 +244,7 @@ function GradesTab({ quiz, students: allStudents }) {
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  const downloadCSV = () => downloadGradesXlsx(quiz, submitted)
+  const downloadCSV = () => downloadGradesXlsx(quiz, submitted, quizQuestions)
 
   return (
     <div>
@@ -182,7 +268,7 @@ function GradesTab({ quiz, students: allStudents }) {
             >
               {dotCls && <span className={cn('w-1.5 h-1.5 rounded-full', dotCls)} />}
               <span className={isActive ? 'text-gray-900 font-medium' : 'text-gray-500'}>{label}</span>
-              <span className={cn('font-bold text-xs', isActive ? 'text-primary' : 'text-gray-400')}>{value}</span>
+              <span className={cn('font-bold text-xs', isActive ? 'text-primary' : 'text-muted-foreground')}>{value}</span>
             </button>
           )
         })}
@@ -216,8 +302,8 @@ function GradesTab({ quiz, students: allStudents }) {
                   { key: 'department', label: '학과', align: 'left' },
                   { key: 'elapsed', label: '소요 시간', align: 'center' },
                   { key: 'submittedAt', label: '제출 일시', align: 'center' },
-                  { key: 'score', label: `점수 / ${quiz.totalPoints}점`, align: 'center' },
-                  { key: null, label: '상태', align: 'center' },
+                  { key: 'score', label: `점수 / ${totalPoints}점`, align: 'center' },
+                  { key: 'status', label: '상태', align: 'center' },
                   { key: null, label: '답안', align: 'center' },
                 ].map(({ key, label, align }) => (
                   <th key={label || '_action'} className={cn('px-4 py-2 whitespace-nowrap', `text-${align}`)}>
@@ -227,7 +313,7 @@ function GradesTab({ quiz, students: allStudents }) {
                         className={cn('group inline-flex items-center gap-1 text-[13px] font-medium transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-primary' : 'text-slate-600')}
                       >
                         {label}
-                        {sortKey !== key && <ArrowUpDown size={12} className="opacity-0 group-hover:opacity-40 transition-opacity" />}
+                        {sortKey !== key && <ArrowUpDown size={12} className="opacity-30 group-hover:opacity-60 transition-opacity" />}
                         {sortKey === key && sortDir === 'desc' && <ArrowDown size={12} />}
                         {sortKey === key && sortDir === 'asc' && <ArrowUp size={12} />}
                       </button>
@@ -240,7 +326,7 @@ function GradesTab({ quiz, students: allStudents }) {
             </thead>
             <tbody>
               {filtered.map((s) => {
-                const scorePct = s.score !== null ? Math.round((s.score / quiz.totalPoints) * 100) : null
+                const scorePct = s.score !== null ? Math.round((s.score / totalPoints) * 100) : null
                 const elapsed = calcElapsed(s.startTime, s.submittedAt)
                 return (
                   <tr key={s.id} className="border-b border-slate-100 hover:bg-accent/30 transition-colors">
@@ -286,6 +372,7 @@ function GradesTab({ quiz, students: allStudents }) {
 }
 
 function StatsTab({ quiz, quizQuestions, students: allStudents }) {
+  const totalPoints = quizQuestions.reduce((s, q) => s + (q.points || 0), 0)
   const submitted = allStudents.filter(s => s.submitted)
   const graded    = submitted.filter(s => s.score !== null)
   const scores    = graded.map(s => s.score)
@@ -293,6 +380,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
   const avg  = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
   const maxScore = scores.length ? Math.max(...scores) : 0
   const minScore = scores.length ? Math.min(...scores) : 0
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- React Compiler optimization miss, 수동 memoization 유지
   const stdev = useMemo(() => Math.sqrt(variance(scores)), [scores])
 
   const submitRate = ((quiz.submitted / quiz.totalStudents) * 100).toFixed(1)
@@ -345,7 +433,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
       {/* 요약 지표 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: '평균 점수', value: avg.toFixed(1), unit: `/ ${quiz.totalPoints}점`, accent: true },
+          { label: '평균 점수', value: avg.toFixed(1), unit: `/ ${totalPoints}점`, accent: true },
           { label: '최고 점수', value: maxScore, unit: '점' },
           { label: '최저 점수', value: minScore, unit: '점' },
           { label: '표준편차', value: `±${stdev.toFixed(1)}`, unit: '점' },
@@ -364,15 +452,15 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
 
       {/* 점수 분포 + 응시 현황 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold">점수 분포</h3>
+        <Card className="lg:col-span-2 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold">점수 분포</h3>
             <span className="text-xs text-muted-foreground">
               제출 {quiz.submitted}명 중 채점 완료 {graded.length}명 기준 (미채점 {quiz.submitted - graded.length}명 제외)
             </span>
           </div>
           {graded.length === 0 ? (
-            <div className="flex items-center justify-center h-40 text-xs text-muted-foreground/40">채점 완료된 학생이 없습니다</div>
+            <div className="flex items-center justify-center h-40 text-sm text-muted-foreground/40">채점 완료된 학생이 없습니다</div>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={distData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
@@ -429,9 +517,9 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
       </div>
 
       {/* 문항별 득점률 */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold">문항별 득점률</h3>
+      <Card className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold">문항별 득점률</h3>
           <span className="text-xs text-muted-foreground">채점된 학생 기준 실시간 집계</span>
         </div>
         <ResponsiveContainer width="100%" height={220}>
@@ -464,16 +552,16 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
       </Card>
 
       {/* 문항별 상세 통계 테이블 */}
-      <Card className="overflow-hidden">
-        <div className="px-4 py-3 flex items-center justify-between border-b border-border">
-          <h3 className="text-sm font-semibold">문항별 상세 통계</h3>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">총 {quizQuestions.length}문항 · {quiz.totalPoints}점 만점</span>
-            <Button variant="outline" size="sm" onClick={() => downloadItemAnalysisXlsx(quiz, quizQuestions, allStudents)}>
-              <Download size={12} />
-              문항 분석 (.xlsx)
-            </Button>
+      <Card className="overflow-hidden py-0 gap-0">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold">문항별 상세 통계</h3>
+            <span className="block text-xs text-muted-foreground mt-0.5">총 {quizQuestions.length}문항 · {totalPoints}점 만점</span>
           </div>
+          <Button variant="outline" size="sm" onClick={() => downloadItemAnalysisXlsx(quiz, quizQuestions, allStudents)}>
+            <Download size={12} />
+            문항 분석 (.xlsx)
+          </Button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
