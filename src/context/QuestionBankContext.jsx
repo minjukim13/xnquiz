@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { MOCK_BANKS, MOCK_BANK_QUESTIONS, QUIZ_TYPES } from '../data/mockData'
 import { QuestionBankContext } from './questionBank'
+import { useRole } from './role'
 import {
   listBanks,
   getBankQuestions as apiGetBankQuestions,
@@ -17,6 +18,8 @@ const LS_QUESTIONS_KEY = 'xnq_bank_questions_v4'
 const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
 export function QuestionBankProvider({ children }) {
+  const { role } = useRole()
+
   const [banks, setBanks] = useState(() => {
     if (MODE === 'api') return []
     try {
@@ -40,8 +43,14 @@ export function QuestionBankProvider({ children }) {
   })
 
   // api 모드: 서버에서 banks + 각 bank 의 questions 일괄 로드
+  // 문제은행은 교수자 전용 (학생은 /api/banks 403). role 전환 시 재실행.
   useEffect(() => {
     if (MODE !== 'api') return
+    if (role !== 'instructor') {
+      setBanks([])
+      setQuestions([])
+      return
+    }
     let mounted = true
     ;(async () => {
       try {
@@ -55,7 +64,7 @@ export function QuestionBankProvider({ children }) {
       }
     })()
     return () => { mounted = false }
-  }, [])
+  }, [role])
 
   // localStorage 싱크 — mock 모드만 (api 모드는 서버 권위)
   useEffect(() => {
@@ -107,7 +116,7 @@ export function QuestionBankProvider({ children }) {
     if (MODE === 'api') {
       const created = []
       for (const q of newQuestions) {
-        const { id: _id, bankId, ...rest } = q  // eslint-disable-line no-unused-vars
+        const { id: _id, bankId, ...rest } = q   
         const saved = await apiCreateBankQuestion(bankId, rest)
         created.push({ ...saved, bankId })
       }
@@ -120,7 +129,7 @@ export function QuestionBankProvider({ children }) {
 
   const updateQuestion = async (id, updated) => {
     if (MODE === 'api') {
-      const { bankId: _b, id: _id, ...body } = updated  // eslint-disable-line no-unused-vars
+      const { bankId: _b, id: _id, ...body } = updated   
       const patched = await apiUpdateBankQuestion(id, body)
       setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...patched } : q))
       return patched
