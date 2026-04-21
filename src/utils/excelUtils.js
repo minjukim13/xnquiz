@@ -109,7 +109,7 @@ export function downloadItemAnalysisXlsx(quiz, quizQuestions, students) {
     ['항목', '값'],
     ['퀴즈명', quiz.title],
     ['과목', quiz.course],
-    ['만점', `${quiz.totalPoints}점`],
+    ['만점', `${quizQuestions.reduce((s, q) => s + (q.points || 0), 0)}점`],
     ['평균 점수', parseFloat(avg.toFixed(2))],
     ['최고 점수', Math.max(...totalScores)],
     ['최저 점수', Math.min(...totalScores)],
@@ -130,8 +130,9 @@ export function downloadItemAnalysisXlsx(quiz, quizQuestions, students) {
 }
 
 // ── 성적 다운로드 (QuizStats) ───────────────────────────────────────────────
-export function downloadGradesXlsx(quiz, students) {
-  const headers = ['이름', '학번', '학과', '제출일시', `점수 (/${quiz.totalPoints}점)`, '자동채점', '수동채점', '채점 상태']
+export function downloadGradesXlsx(quiz, students, quizQuestions = []) {
+  const totalPoints = quizQuestions.reduce((s, q) => s + (q.points || 0), 0)
+  const headers = ['이름', '학번', '학과', '제출일시', `점수 (/${totalPoints}점)`, '자동채점', '수동채점', '채점 상태']
   const rows = students.map(s => {
     const autoTotal = s.autoScores ? Object.values(s.autoScores).reduce((a, b) => a + b, 0) : ''
     const manualTotal = s.manualScores ? Object.values(s.manualScores).reduce((a, b) => a + b, 0) : ''
