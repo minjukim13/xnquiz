@@ -7,9 +7,8 @@
  * 프론트 기존 사용처는 `c.id` (소문자) + `c.name` (합친 문자열). 호환 위해 mock 구조로 표준화.
  */
 import { api } from '@/lib/api'
+import { MODE } from './_common'
 import { MOCK_COURSES } from '@/data/mockData'
-
-const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
 export async function listCourses() {
   if (MODE === 'api') {

@@ -2,8 +2,7 @@
  * Students 데이터 레이어 (교수자 전용)
  */
 import { api } from '@/lib/api'
-
-const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
+import { MODE } from './_common'
 
 export async function listStudents(params = {}) {
   if (MODE === 'api') {
