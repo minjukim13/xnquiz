@@ -336,7 +336,7 @@ function TypeForm({ type, form, setForm, textareaRef }) {
     case 'essay':
       return (
         <div>
-          <Label>채점 루브릭 (선택)</Label>
+          <Label>채점 루브릭</Label>
           <textarea value={form.rubric} onChange={e => upd('rubric', e.target.value)}
             placeholder="채점 기준을 입력하세요 (학생에게는 표시되지 않음)"
             rows={3}

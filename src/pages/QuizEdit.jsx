@@ -8,8 +8,8 @@ import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { printQuizQuestions } from '../utils/pdfUtils'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
-import { QUIZ_TYPES, mockQuizzes, recalculateScorePolicy, regradeQuestionWithOption } from '../data/mockData'
-import { getQuiz, getQuizQuestions, setQuizQuestions, updateQuiz } from '@/lib/data'
+import { QUIZ_TYPES, mockQuizzes } from '../data/mockData'
+import { getQuiz, getQuizQuestions, setQuizQuestions, updateQuiz, recalculateScorePolicy, regradeQuestion } from '@/lib/data'
 import { useRole } from '../context/role'
 
 const DATA_MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
@@ -125,12 +125,12 @@ export default function QuizEdit() {
   const [editingQuestion, setEditingQuestion] = useState(null)
   const submittedCount = quiz?.submitted || 0
 
-  /* eslint-disable react-hooks/preserve-manual-memoization -- snapshot for change detection, must be stable across renders */
+   
   const initialAssignmentsSnapshot = useMemo(
     () => JSON.stringify(Array.isArray(quiz?.assignments) ? quiz.assignments : []),
     [quiz?.assignments]
   )
-  /* eslint-enable react-hooks/preserve-manual-memoization */
+   
 
   // 변경사항 감지
   const hasUnsavedChanges = useMemo(() => {
@@ -241,7 +241,7 @@ export default function QuizEdit() {
       return
     }
     try {
-      if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
+      if (scorePolicy !== quiz.scorePolicy) await recalculateScorePolicy(quiz.id, scorePolicy)
       await updateQuiz(quiz.id, buildUpdateBody())
       await setQuizQuestions(quiz.id, questions)
       setAlertDialog({
@@ -266,10 +266,12 @@ export default function QuizEdit() {
       setAlertDialog({ title: '필수 항목 미입력', message: errors.map(e => `- ${e}`).join('\n') })
       return
     }
+    let savedQuestions = questions
     try {
-      if (scorePolicy !== quiz.scorePolicy) recalculateScorePolicy(quiz.id, scorePolicy)
+      if (scorePolicy !== quiz.scorePolicy) await recalculateScorePolicy(quiz.id, scorePolicy)
       await updateQuiz(quiz.id, buildUpdateBody())
-      await setQuizQuestions(quiz.id, questions)
+      // api 모드: 새 cuid 부여됨, mock: 동일 ID 유지
+      savedQuestions = await setQuizQuestions(quiz.id, questions) ?? questions
     } catch (err) {
       console.error('[QuizEdit] 저장 실패', err)
       setAlertDialog({ title: '저장 실패', message: err?.message ?? '저장 중 오류가 발생했습니다.' })
@@ -284,17 +286,23 @@ export default function QuizEdit() {
         localStorage.setItem('xnq_questions_modified', JSON.stringify(map))
       } catch { /* ignore */ }
     }
-    // 재채점 옵션이 있는 문항 일괄 재채점
+    // 재채점 옵션이 있는 문항 일괄 재채점 (저장 후 새 ID 기준)
     let totalRegraded = 0
     const regradeLog = {}
-    Object.entries(regradeMap).forEach(([qId, { option, oldQuestion }]) => {
-      const q = questions.find(x => x.id === qId)
-      if (q) {
-        const count = regradeQuestionWithOption(quiz.id, q, option, oldQuestion)
+    for (const [oldQId, { option, oldQuestion }] of Object.entries(regradeMap)) {
+      // questions 배열 인덱스로 옛 ID → 새 ID 매핑 (setQuizQuestions 가 입력 순서 보존)
+      const idx = questions.findIndex(x => x.id === oldQId)
+      const target = idx >= 0 ? savedQuestions[idx] : null
+      if (!target) continue
+      try {
+        const result = await regradeQuestion(quiz.id, target, option, oldQuestion)
+        const count = result.regradedStudents ?? 0
         totalRegraded += count
-        regradeLog[qId] = { option, count, timestamp: new Date().toISOString() }
+        regradeLog[oldQId] = { option, count, timestamp: new Date().toISOString() }
+      } catch (err) {
+        console.error('[QuizEdit] 재채점 실패', oldQId, err)
       }
-    })
+    }
     // 재채점 로그 저장 (채점 대시보드에서 안내 표시용)
     if (Object.keys(regradeLog).length > 0) {
       try {
@@ -361,7 +369,6 @@ export default function QuizEdit() {
                         <Badge variant="secondary" className="bg-slate-100 text-slate-600">{QUIZ_TYPES[q.type]?.label}</Badge>
                         <span className="text-xs text-muted-foreground">{q.points}점</span>
                         {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-orange-50 text-orange-700">수동채점</Badge>}
-                        {q.bankName && <Badge variant="secondary" className="bg-sky-50 text-sky-700">{q.bankName}</Badge>}
                         {regradeMap[q.id]?.option && <Badge variant="secondary" className="bg-amber-50 text-amber-700 gap-1"><RefreshCw size={10} />재채점 예정</Badge>}
                       </div>
                       <p className="text-sm line-clamp-2 text-slate-700">{q.text}</p>
@@ -395,10 +402,11 @@ export default function QuizEdit() {
                   <span>마감 일시는 시작 일시 이후여야 합니다.</span>
                 </div>
               )}
+              <SF label={<span className="inline-flex items-center gap-1">유예 시간<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>마감 직후 네트워크 지연 등으로 늦게 제출될 수 있는 경우를<br />대비한 버퍼 시간입니다. 이 시간 이내 제출은 지각으로 처리하지 않습니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><div className={cn('flex items-center gap-2', !dueDate && 'opacity-40 pointer-events-none')}><input type="number" value={gracePeriod} onChange={e => setGracePeriod(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} min={0} placeholder="0" className={INPUT_CLS} /><span className="text-sm shrink-0 text-muted-foreground">분</span></div><p className="text-xs mt-1.5 text-muted-foreground">{dueDate ? '0분 또는 미설정 시 유예 없이 마감 일시에 지각 처리됩니다.' : '마감 일시가 설정되어야 사용할 수 있습니다.'}</p></SF>
               <SF label={<span className="inline-flex items-center gap-1">이용 종료 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>퀴즈 페이지 자체에 접근할 수 없게 되는 시점입니다.<br />마감 이후에도 학생이 결과를 확인할 수 있도록<br />종료 일시는 마감 일시 이후로 설정하는 것을 권장합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><input type="datetime-local" value={lockDate} onChange={e => setLockDate(e.target.value)} min={dueDate || undefined} className={INPUT_CLS} /><p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>{lockDate && dueDate && new Date(lockDate) < new Date(dueDate) && (<div className="flex items-start gap-2 p-2.5 rounded-md text-xs bg-amber-50 border border-amber-300 text-amber-800 mt-2"><AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-600" /><span>이용 종료 일시가 마감 일시보다 앞서 있습니다. 마감 전에 퀴즈 접근이 차단될 수 있습니다.</span></div>)}</SF>
               <div className="space-y-3"><div className="flex items-center justify-between"><span className="text-sm font-medium text-slate-700">마감 후 지각 제출 허용</span><Switch checked={allowLateSubmit} onCheckedChange={setAllowLateSubmit} className="data-[state=checked]:bg-foreground data-[state=unchecked]:bg-gray-200" /></div>{allowLateSubmit && <div className="border-l-2 border-gray-200 pl-4 ml-0.5 space-y-2"><label className="block text-sm font-medium text-slate-700">지각 제출 마감 일시</label><input type="datetime-local" value={lateSubmitDeadline} onChange={e => setLateSubmitDeadline(e.target.value)} min={dueDate || undefined} className="w-full text-sm font-medium text-slate-700 px-3.5 py-2.5 rounded-md border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all" />{!lateSubmitDeadline && <p className="text-xs text-gray-500">미설정 시 무제한 허용</p>}</div>}</div>
             </SC>
-            <SC title="응시 설정"><SF label="응시 시간 제한"><div className="flex items-center gap-2"><div className={cn('flex items-center gap-2 flex-1 transition-opacity', unlimitedTimeLimit && 'opacity-40 pointer-events-none')}><input type="number" value={timeLimit} onChange={e => setTimeLimit(e.target.value)} placeholder="60" min={1} disabled={unlimitedTimeLimit} className={cn('w-full text-sm font-medium px-3.5 py-2.5 rounded-md border transition-all', unlimitedTimeLimit ? 'border-gray-200 bg-gray-50 text-muted-foreground cursor-not-allowed' : 'border-gray-200 bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary')} /><span className="text-sm shrink-0 text-muted-foreground">분</span></div><button type="button" onClick={() => setUnlimitedTimeLimit(!unlimitedTimeLimit)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', unlimitedTimeLimit ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700')}>무제한</button></div></SF><SF label="최대 응시 횟수"><div className="flex items-center gap-2"><div className={cn('flex items-center border rounded-md overflow-hidden transition-opacity', unlimitedAttempts ? 'border-gray-200 opacity-40 pointer-events-none' : 'border-gray-200')}><button type="button" onClick={() => setAllowAttempts(Math.max(ATTEMPT_MIN, allowAttempts - 1))} disabled={allowAttempts <= ATTEMPT_MIN || unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', unlimitedAttempts ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed')}>-</button><span className={cn('px-4 py-2.5 text-sm font-medium min-w-[48px] text-center border-x', unlimitedAttempts ? 'border-gray-200 bg-gray-50 text-muted-foreground' : 'border-gray-200 bg-white text-foreground')}>{allowAttempts}회</span><button type="button" onClick={() => setAllowAttempts(Math.min(ATTEMPT_MAX, allowAttempts + 1))} disabled={allowAttempts >= ATTEMPT_MAX || unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', unlimitedAttempts ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed')}>+</button></div><button type="button" onClick={() => setUnlimitedAttempts(!unlimitedAttempts)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', unlimitedAttempts ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700')}>무제한</button></div></SF>{isMultiAttempt && <SF label="복수 응시 시 채점 방식"><CustomSelect value={scorePolicy} onChange={setScorePolicy} options={SCORE_POLICIES} /></SF>}<SF label={<span className="inline-flex items-center gap-1">유예 시간<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>마감 직후 네트워크 지연 등으로 늦게 제출될 수 있는 경우를<br />대비한 버퍼 시간입니다. 이 시간 이내 제출은 지각으로 처리하지 않습니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><div className={cn('flex items-center gap-2', !dueDate && 'opacity-40 pointer-events-none')}><input type="number" value={gracePeriod} onChange={e => setGracePeriod(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} min={0} placeholder="0" className={INPUT_CLS} /><span className="text-sm shrink-0 text-muted-foreground">분</span></div><p className="text-xs mt-1.5 text-muted-foreground">{dueDate ? '0분 또는 미설정 시 유예 없이 마감 일시에 지각 처리됩니다.' : '마감 일시가 설정되어야 사용할 수 있습니다.'}</p></SF></SC>
+            <SC title="응시 설정"><SF label="응시 시간 제한"><div className="flex items-center gap-2"><div className={cn('flex items-center gap-2 flex-1 transition-opacity', unlimitedTimeLimit && 'opacity-40 pointer-events-none')}><input type="number" value={timeLimit} onChange={e => setTimeLimit(e.target.value)} placeholder="60" min={1} disabled={unlimitedTimeLimit} className={cn('w-full text-sm font-medium px-3.5 py-2.5 rounded-md border transition-all', unlimitedTimeLimit ? 'border-gray-200 bg-gray-50 text-muted-foreground cursor-not-allowed' : 'border-gray-200 bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary')} /><span className="text-sm shrink-0 text-muted-foreground">분</span></div><button type="button" onClick={() => setUnlimitedTimeLimit(!unlimitedTimeLimit)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', unlimitedTimeLimit ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700')}>무제한</button></div></SF><SF label="최대 응시 횟수"><div className="flex items-center gap-2"><div className={cn('flex items-center border rounded-md overflow-hidden transition-opacity', unlimitedAttempts ? 'border-gray-200 opacity-40 pointer-events-none' : 'border-gray-200')}><button type="button" onClick={() => setAllowAttempts(Math.max(ATTEMPT_MIN, allowAttempts - 1))} disabled={allowAttempts <= ATTEMPT_MIN || unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', unlimitedAttempts ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed')}>-</button><span className={cn('px-4 py-2.5 text-sm font-medium min-w-[48px] text-center border-x', unlimitedAttempts ? 'border-gray-200 bg-gray-50 text-muted-foreground' : 'border-gray-200 bg-white text-foreground')}>{allowAttempts}회</span><button type="button" onClick={() => setAllowAttempts(Math.min(ATTEMPT_MAX, allowAttempts + 1))} disabled={allowAttempts >= ATTEMPT_MAX || unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', unlimitedAttempts ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed')}>+</button></div><button type="button" onClick={() => setUnlimitedAttempts(!unlimitedAttempts)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', unlimitedAttempts ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700')}>무제한</button></div></SF>{isMultiAttempt && <SF label="복수 응시 시 채점 방식"><CustomSelect value={scorePolicy} onChange={setScorePolicy} options={SCORE_POLICIES} /></SF>}</SC>
             <SC title="추가 기간 설정"><AssignmentOverrides assignments={assignments} onChange={setAssignments} baseDueDate={dueDate} /></SC>
             <SC title="표시 설정"><div className="space-y-3"><Tgl checked={shuffleChoices} onChange={setShuffleChoices} label="선택지 무작위 배열" /><Tgl checked={shuffleQuestions} onChange={setShuffleQuestions} label="문항 순서 무작위" /><Tgl checked={oneQuestionAtATime} onChange={v => { setOneQuestionAtATime(v); if (!v) setLockAfterAnswer(false) }} label="한 번에 한 문항씩 표시" />{oneQuestionAtATime && (<div className="border-l-2 border-gray-200 pl-4 ml-0.5 space-y-2"><Tgl checked={lockAfterAnswer} onChange={setLockAfterAnswer} label="응답 후 문항 잠금" /></div>)}<Tgl checked={scoreRevealEnabled} onChange={setScoreRevealEnabled} label="성적 공개" />{scoreRevealEnabled && <div className="space-y-3 pl-1"><div><p className="text-sm font-semibold mb-2 text-slate-600">공개 범위</p><div className="grid grid-cols-2 gap-2">{[{ value: 'wrong_only', label: '오답 여부만', desc: '정오답 + 점수' }, { value: 'with_answer', label: '정답까지', desc: '정오답 + 점수 + 정답' }].map(opt => (<button key={opt.value} type="button" onClick={() => setScoreRevealScope(opt.value)} className={cn('flex flex-col items-start gap-0.5 p-2.5 rounded-lg text-left w-full transition-all border-2', scoreRevealScope === opt.value ? 'border-primary bg-accent' : 'border-border bg-white')}><span className={cn('text-sm font-semibold', scoreRevealScope === opt.value ? 'text-primary' : 'text-slate-700')}>{opt.label}</span><span className="text-xs text-muted-foreground">{opt.desc}</span></button>))}</div></div><div><p className="text-sm font-semibold mb-2 text-slate-600">공개 시점</p><div className="space-y-1.5">{[{ value: 'immediately', label: '제출 즉시' }, { value: 'after_due', label: '마감 후' }, { value: 'period', label: '기간 설정' }].map(opt => (<label key={opt.value} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="revealTimingEdit" checked={scoreRevealTiming === opt.value} onChange={() => setScoreRevealTiming(opt.value)} className="accent-primary" /><span className="text-sm font-medium text-slate-700">{opt.label}</span></label>))}</div>{scoreRevealTiming === 'period' && <div className="mt-2 pt-2 space-y-1.5 border-t border-blue-100"><div><label className="block text-sm font-semibold mb-2 text-slate-600">공개 시작일</label><input type="datetime-local" value={scoreRevealStart} onChange={e => setScoreRevealStart(e.target.value)} className={INPUT_CLS} /></div><div><label className="block text-sm font-semibold mb-2 text-slate-600">공개 종료일</label><input type="datetime-local" value={scoreRevealEnd} onChange={e => setScoreRevealEnd(e.target.value)} className={INPUT_CLS} /></div></div>}</div><div className="pt-1"><label className="flex items-start gap-3 cursor-pointer"><Switch checked={oneTimeResults} onCheckedChange={setOneTimeResults} className="mt-0.5 data-[state=checked]:bg-primary" /><div><p className="text-sm font-medium text-slate-700">응답 1회만 조회 허용</p><p className="text-xs mt-0.5 text-muted-foreground">제출 직후 1회만 응답/정답을 보여주고 이후 재접근 시 비공개</p></div></label></div></div>}</div></SC>
             <SC title="접근 제한"><SF label="액세스 코드"><input type="text" value={accessCode} onChange={e => setAccessCode(e.target.value)} placeholder="코드 입력 시 응시 시 코드 필요" className={INPUT_CLS} /></SF><SF label="접근 가능한 IP 주소"><textarea value={ipRestriction} onChange={e => setIpRestriction(e.target.value)} placeholder={'IP 주소를 한 줄에 하나씩\n예) 192.168.1.0/24'} rows={2} className={cn(INPUT_CLS, 'resize-none')} /><p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP 허용. CIDR 지원.</p></SF></SC>
