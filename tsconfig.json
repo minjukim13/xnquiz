@@ -28,6 +28,6 @@
       "@lib/*": ["./lib/*"]
     }
   },
-  "include": ["api/**/*.ts", "lib/**/*.ts", "prisma/**/*.ts"],
+  "include": ["api/**/*.ts", "server/**/*.ts", "lib/**/*.ts", "prisma/**/*.ts"],
   "exclude": ["node_modules", "dist", "src"]
 }
