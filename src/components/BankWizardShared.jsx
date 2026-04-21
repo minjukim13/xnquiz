@@ -2,15 +2,7 @@ import { Search, X } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
 import { DropdownSelect } from './DropdownSelect'
 import { cn } from '@/lib/utils'
-
-// 난이도 표현 공통 — AddBank/Export/Import 모달 공통 사용
-export const DIFFICULTY_META = {
-  high:   { label: '상', cls: 'text-destructive bg-incorrect-bg', textCls: 'text-destructive' },
-  medium: { label: '중', cls: 'text-amber-500 bg-amber-50', textCls: 'text-amber-500' },
-  low:    { label: '하', cls: 'text-correct bg-correct-bg', textCls: 'text-correct' },
-}
-
-export const DIFF_LABEL = { '': '미지정', high: '상', medium: '중', low: '하' }
+import { DIFFICULTY_META, DIFF_LABEL } from './bankDifficulty'
 
 export function DiffBadge({ difficulty, className }) {
   const meta = difficulty && DIFFICULTY_META[difficulty]

@@ -69,7 +69,7 @@ function toApiQuizBody(body) {
 
 // 문항 body 에서 api 전송 전 정리 (mock 에만 있는 집계 필드 제거)
 function toApiQuestionBody(q) {
-  const { id: _id, gradedCount: _g, totalCount: _t, avgScore: _a, bankId: _b, ...rest } = q  // eslint-disable-line no-unused-vars
+  const { id: _id, gradedCount: _g, totalCount: _t, avgScore: _a, bankId: _b, ...rest } = q   
   return rest
 }
 
@@ -198,6 +198,6 @@ export async function setQuizQuestions(id, questions) {
 
 // 기존 toApiQuestionBody 는 id 를 떼는데, UPSERT 는 id 가 있어야 매칭 가능
 function toApiQuestionBodyKeepId(q) {
-  const { gradedCount: _g, totalCount: _t, avgScore: _a, bankId: _b, ...rest } = q  // eslint-disable-line no-unused-vars
+  const { gradedCount: _g, totalCount: _t, avgScore: _a, bankId: _b, ...rest } = q   
   return rest
 }
