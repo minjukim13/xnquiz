@@ -8,14 +8,62 @@
  * listStudentsInQuiz() 는 GradingDashboard 용 구조로 통일. 다음 단계에서 이 둘을 매핑.
  */
 import { api } from '@/lib/api'
+import { MODE, normalizeDate as fmtDate } from './_common'
 import { getQuizStudents as mockGetStudents, getStudentAttempts as mockGetAttempts } from '@/data/mockData'
 
-const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
+// api attempt[] → GradingDashboard 가 기대하는 학생-중심 shape 으로 집계
+// 학생당 1행 — 제출된 것 중 attemptNumber 가장 높은 것 선택, 없으면 가장 최근 미제출 것
+function mapAttemptsToStudents(attempts) {
+  const byUser = new Map()
+  for (const att of attempts) {
+    const uid = att.userId
+    const prev = byUser.get(uid)
+    if (!prev) { byUser.set(uid, att); continue }
+    const preferCurrent =
+      (att.submitted && !prev.submitted) ||
+      (att.submitted === prev.submitted && (att.attemptNumber ?? 0) > (prev.attemptNumber ?? 0))
+    if (preferCurrent) byUser.set(uid, att)
+  }
+
+  return Array.from(byUser.values()).map(att => {
+    const selections = {}
+    const autoScores = {}
+    const manualScores = {}
+    let hasManual = false
+    for (const a of att.answers ?? []) {
+      if (a.response !== undefined) selections[a.questionId] = a.response
+      if (a.autoScore !== null && a.autoScore !== undefined) autoScores[a.questionId] = a.autoScore
+      if (a.manualScore !== null && a.manualScore !== undefined) {
+        manualScores[a.questionId] = a.manualScore
+        hasManual = true
+      }
+    }
+    return {
+      id: att.userId,
+      studentId: att.user?.studentId ?? '',
+      name: att.user?.name ?? '',
+      department: att.user?.department ?? '',
+      score: att.totalScore,
+      submitted: !!att.submitted,
+      submittedAt: fmtDate(att.submittedAt),
+      startTime: fmtDate(att.startTime),
+      endTime: fmtDate(att.submittedAt),
+      response: null,
+      selections,
+      autoScores,
+      manualScores: hasManual ? manualScores : null,
+      attemptId: att.id,
+      attemptNumber: att.attemptNumber,
+    }
+  })
+}
 
 export async function listAttempts(params = {}) {
   if (MODE === 'api') {
     const qs = new URLSearchParams(params).toString()
-    return await api('/api/attempts' + (qs ? '?' + qs : ''))
+    const rows = await api('/api/attempts' + (qs ? '?' + qs : ''))
+    // quizId 조회일 때만 학생-중심 shape 으로 집계 (GradingDashboard 호환)
+    return params.quizId ? mapAttemptsToStudents(rows) : rows
   }
   // mock 모드에선 quizId 필수 — getQuizStudents 재활용
   if (params.quizId) return mockGetStudents(params.quizId)

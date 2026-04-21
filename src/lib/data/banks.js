@@ -2,9 +2,8 @@
  * Banks 데이터 레이어
  */
 import { api } from '@/lib/api'
+import { MODE } from './_common'
 import { MOCK_BANKS, MOCK_BANK_QUESTIONS } from '@/data/mockData'
-
-const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
 export async function listBanks(params = {}) {
   if (MODE === 'api') {
