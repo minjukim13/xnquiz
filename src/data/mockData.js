@@ -1,3 +1,21 @@
+/**
+ * mockData.js — 프로토타입/로컬 모드 전용 데이터 + 로직
+ *
+ * 구성:
+ *   [L1]   유틸 & 전역 설정 (_getGlobalSettings, _normalizeAnswer)
+ *   [L20]  QUIZ_TYPES (Canvas LMS 퀴즈 유형 정의)
+ *   [L36]  mockQuizzes (퀴즈 seed) + 영속화 (addQuiz, updateQuiz, removeQuiz)
+ *   [L465] 문항 seed (mockQuestions, mockQuiz{2..8}Questions, mockCs*Questions)
+ *   [L697] AUTO_CORRECT_* 채점 매핑 맵 (id→정답)
+ *   [L1311] quizQuestionsMap + getQuizQuestions/setQuizQuestions
+ *   [L1590] 응시 (getStudentAttempts, saveStudentAttempt)
+ *   [L1650] 채점 (regradeQuestion, regradeQuestionWithOption, recalculateScorePolicy, autoGradeAnswer)
+ *   [L1995] 학생 답/파일 조회 (getStudentAnswer, getStudentFileSubmission, isAnswerCorrect)
+ *   [L2044] 문제은행 (MOCK_COURSES, MOCK_BANKS, MOCK_BANK_QUESTIONS)
+ *   [L2196] 학생 seed (mockStudents, mockStudents8) + generateStudents + getQuizStudents
+ *
+ * api 모드에서 사용 안 함 (CLAUDE.md 데이터 소스 섹션 참조)
+ */
 import { evalFormula as _evalFormula } from '@/utils/formulaEngine'
 import { autoSubmitExpiredStudents } from '@/utils/deadlineUtils'
 
