@@ -46,6 +46,7 @@ export function toQuizResponse(quiz: QuizWithCourse, stats: QuizStats) {
     hasFileUpload: quiz.hasFileUpload,
 
     // 일정
+    createdAt: quiz.createdAt.toISOString(),
     startDate: quiz.startDate?.toISOString() ?? null,
     dueDate:   quiz.dueDate?.toISOString()   ?? null,
     lockDate:  quiz.lockDate?.toISOString()  ?? null,

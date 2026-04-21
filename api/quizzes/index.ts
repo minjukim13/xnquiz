@@ -94,6 +94,20 @@ async function createQuiz(req: VercelRequest, res: VercelResponse, auth: AuthPay
   const course = await prisma.course.findUnique({ where: { code } })
   if (!course) return res.status(400).json({ error: `존재하지 않는 과목코드: ${code}` })
 
+  if ('timeLimit' in body && body.timeLimit !== null && body.timeLimit !== undefined) {
+    const t = body.timeLimit
+    if (typeof t !== 'number' || !Number.isFinite(t) || !Number.isInteger(t) || t <= 0) {
+      return res.status(400).json({ error: 'timeLimit 은 양의 정수(분) 또는 null 이어야 합니다' })
+    }
+  }
+  if ('allowAttempts' in body && body.allowAttempts !== null && body.allowAttempts !== undefined) {
+    const a = body.allowAttempts
+    // -1 = 무제한 (클라 규약)
+    if (typeof a !== 'number' || !Number.isInteger(a) || (a !== -1 && a < 1)) {
+      return res.status(400).json({ error: 'allowAttempts 는 1 이상 정수 또는 -1(무제한) 이어야 합니다' })
+    }
+  }
+
   try {
     const quiz = await prisma.quiz.create({
       data: {
