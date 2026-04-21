@@ -1,5 +1,7 @@
 {
+  "regions": ["icn1"],
   "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/all" },
     { "source": "/((?!api/|@|src/|node_modules/|.+\\..+).*)", "destination": "/" }
   ]
 }

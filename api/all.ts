@@ -46,6 +46,10 @@ function buildApp() {
 
   app.all('/api/health', vh(health))
 
+  // /api/auth/* 는 Vercel 이 OAuth 용도로 예약 → /api/session/* 로 이동
+  app.all('/api/session/dev-login', vh(authDevLogin))
+  app.all('/api/session/me', vh(authMe))
+  // 로컬 dev-server 호환을 위해 구 경로도 유지
   app.all('/api/auth/dev-login', vh(authDevLogin))
   app.all('/api/auth/me', vh(authMe))
 

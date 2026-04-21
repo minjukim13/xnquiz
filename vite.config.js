@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],
   optimizeDeps: {
     include: ['jspdf', 'html2canvas'],
@@ -18,6 +18,9 @@ export default defineConfig({
       '/api': 'http://localhost:3000',
     },
   },
+  esbuild: {
+    drop: mode === 'production' ? ['debugger'] : [],
+  },
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
@@ -31,4 +34,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

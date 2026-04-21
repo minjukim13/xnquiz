@@ -80,7 +80,7 @@ function pickComments(form) {
 
 // ── 폼 → 문항 객체 ─────────────────────────────────────────────────────────
 function buildQuestion(type, form) {
-  const base = { type, text: form.text.trim(), points: Number(form.points) || 5, difficulty: form.difficulty || '', ...pickComments(form) }
+  const base = { type, text: form.text.trim(), points: Number.isFinite(Number(form.points)) ? Number(form.points) : 0, difficulty: form.difficulty || '', ...pickComments(form) }
   switch (type) {
     case 'multiple_choice': {
       const filtered = form.options.filter(o => o.trim())
@@ -114,6 +114,10 @@ function buildQuestion(type, form) {
 function isValid(type, form) {
   if (type === 'text') return form.text?.trim().length > 0
   if (!form.text?.trim()) return false
+  // 배점: 빈값/비숫자/음수 차단, 0 허용
+  if (form.points === '' || form.points === null || form.points === undefined) return false
+  const pointsNum = Number(form.points)
+  if (!Number.isFinite(pointsNum) || pointsNum < 0) return false
   switch (type) {
     case 'multiple_choice':         return form.options.filter(o => o.trim()).length >= 2
     case 'multiple_answers':        return form.options.filter(o => o.trim()).length >= 2 && form.correctIdxs.length >= 1
@@ -1078,7 +1082,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
             {selectedType !== 'text' && <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-[15px] font-medium block mb-1.5 text-foreground">배점 <span className="text-destructive">*</span></label>
-                <input type="number" value={form.points} min={0.5} step={0.5}
+                <input type="number" value={form.points} min={0} step={0.5}
                   onChange={e => setForm(prev => ({ ...prev, points: e.target.value }))}
                   className="w-full bg-white text-[15px] px-3 py-2 rounded-lg focus:outline-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
                 />
