@@ -29,46 +29,8 @@ import {
   appendActivityLog,
   ACTIVITY_TYPES,
 } from '@/utils/activityLog'
-
-const RESULTS_VIEWED_KEY = 'xnq_results_viewed'
-
-function isResultViewed(attemptId) {
-  if (!attemptId) return false
-  try {
-    const map = JSON.parse(localStorage.getItem(RESULTS_VIEWED_KEY) || '{}')
-    return !!map[attemptId]
-  } catch {
-    return false
-  }
-}
-
-function markResultViewed(attemptId) {
-  if (!attemptId) return
-  try {
-    const map = JSON.parse(localStorage.getItem(RESULTS_VIEWED_KEY) || '{}')
-    if (map[attemptId]) return
-    map[attemptId] = new Date().toISOString()
-    localStorage.setItem(RESULTS_VIEWED_KEY, JSON.stringify(map))
-  } catch { /* ignore */ }
-}
-
-// 본문 placeholder 파싱 ([빈칸N] / [드롭다운N])
-function parseInlineBody(text) {
-  const src = String(text || '')
-  const re = /\[(빈칸|드롭다운)(\d+)\]/g
-  const tokens = []
-  let last = 0, m
-  while ((m = re.exec(src)) !== null) {
-    if (m.index > last) tokens.push({ kind: 'text', content: src.slice(last, m.index) })
-    tokens.push({ kind: m[1] === '빈칸' ? 'blank' : 'dropdown', num: Number(m[2]) })
-    last = m.index + m[0].length
-  }
-  if (last < src.length) tokens.push({ kind: 'text', content: src.slice(last) })
-  return tokens
-}
-function hasInlinePlaceholders(text) {
-  return /\[(빈칸|드롭다운)\d+\]/.test(String(text || ''))
-}
+import { parseInlineBody, hasInlinePlaceholders } from '@/utils/placeholderUtils'
+import { isResultViewed, markResultViewed } from '@/utils/resultsViewedStorage'
 
 // 응시 여부 판정 (유형별 답안 구조 대응)
 function isQuestionAnswered(q, v) {
