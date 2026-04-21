@@ -1,14 +1,15 @@
 // 로컬 개발용 API 서버 — vercel dev 대체
-// Vercel Serverless 핸들러(`api/**/*.ts`) 를 그대로 Express 라우트로 마운트.
+// Vercel Serverless 핸들러(`server/**/*.ts`) 를 그대로 Express 라우트로 마운트.
 // 실행: npm run dev:api → http://localhost:3000
 //
 // 파일 → 라우트 매핑 규칙
-//   api/health.ts                    → /api/health
-//   api/auth/dev-login.ts            → /api/auth/dev-login
-//   api/quizzes/index.ts             → /api/quizzes
-//   api/quizzes/[id].ts              → /api/quizzes/:id
-//   api/quizzes/[id]/questions.ts    → /api/quizzes/:id/questions
+//   server/health.ts                    → /api/health
+//   server/auth/dev-login.ts            → /api/auth/dev-login
+//   server/quizzes/index.ts             → /api/quizzes
+//   server/quizzes/[id].ts              → /api/quizzes/:id
+//   server/quizzes/[id]/questions.ts    → /api/quizzes/:id/questions
 //
+// 프로덕션에서는 api/[[...slug]].ts 가 동일 라우팅을 Express 로 수행 (함수 1개).
 // 재로드: tsx watch 가 파일 변경 시 자동 재시작 (npm run dev:api 스크립트 참고)
 
 import 'dotenv/config'
@@ -18,7 +19,7 @@ import { join, relative, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const PORT = Number(process.env.PORT ?? 3000)
-const API_DIR = join(process.cwd(), 'api')
+const API_DIR = join(process.cwd(), 'server')
 
 function filePathToRoute(absPath: string): string {
   let rel = relative(API_DIR, absPath).split(sep).join('/')
