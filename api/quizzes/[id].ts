@@ -29,10 +29,25 @@ async function getQuiz(_req: VercelRequest, res: VercelResponse, auth: AuthPaylo
 
     if (auth.role === 'STUDENT') {
       if (!quiz.visible) return res.status(404).json({ error: '퀴즈를 찾을 수 없습니다' })
+      if (quiz.status === 'draft' || quiz.status === 'grading') {
+        return res.status(404).json({ error: '퀴즈를 찾을 수 없습니다' })
+      }
       const enr = await prisma.enrollment.findUnique({
         where: { userId_courseCode: { userId: auth.userId, courseCode: quiz.courseCode } },
       })
       if (!enr) return res.status(403).json({ error: '수강하지 않은 과목입니다' })
+
+      // 학생 시점: 다른 수강생 평균·제출현황 비노출 (문항 수/총점만 응시용으로 제공)
+      const questions = await prisma.question.findMany({
+        where: { quizId: id }, select: { points: true },
+      })
+      const stats: QuizStats = {
+        totalStudents: null, submitted: null, graded: null, pendingGrade: null,
+        questions: questions.length,
+        totalPoints: questions.reduce((a, q) => a + q.points, 0),
+        avgScore: null,
+      }
+      return res.status(200).json(toQuizResponse(quiz, stats))
     }
 
     const [totalStudents, submitted, graded, questions, avg] = await Promise.all([

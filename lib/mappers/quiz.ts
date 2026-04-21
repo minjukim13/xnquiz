@@ -19,10 +19,10 @@ export function scorePolicyFromLabel(label?: string | null): ScorePolicy {
 }
 
 export type QuizStats = {
-  totalStudents: number
-  submitted: number
-  graded: number
-  pendingGrade: number
+  totalStudents: number | null
+  submitted: number | null
+  graded: number | null
+  pendingGrade: number | null
   questions: number
   totalPoints: number
   avgScore: number | null

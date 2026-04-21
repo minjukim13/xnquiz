@@ -150,7 +150,7 @@ async function createUsers() {
       id: 'prof1',
       email: 'prof@xn.test',
       passwordHash,
-      name: '김민주',
+      name: '교수자 A',
       role: 'PROFESSOR',
     },
   })
