@@ -74,7 +74,7 @@ export default function QuizAttempt() {
     return () => { mounted = false }
   }, [id])
 
-  const noTimeLimit = quiz?.timeLimit === 0 || isPreview
+  const noTimeLimit = !quiz?.timeLimit || isPreview
   const isLate = !isPreview && isLateSubmission(quiz)
 
   // 응시 세션 복원 (Canvas 스펙: 새로고침/재접속 시 중단 지점에서 재개)
@@ -232,7 +232,7 @@ export default function QuizAttempt() {
       totalPossibleAuto: questions.filter(q => q.autoGrade).reduce((s, q) => s + q.points, 0),
       manualPending,
       submittedAt: new Date().toLocaleString('ko-KR'),
-      timeTaken: noTimeLimit ? null : Math.ceil(((quiz?.timeLimit ?? 30) * 60 - (timeRemaining ?? 0)) / 60),
+      timeTaken: Math.max(1, Math.round((Date.now() - startedAt) / 60000)),
       autoSubmitted: auto,
       isLate: isLate || false,
       scorePolicy: quiz?.scorePolicy ?? '최고 점수 유지',
@@ -1158,7 +1158,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
         <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
           <div className="p-4 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[15px] font-medium text-gray-900">자동채점 결과</p>
+              <p className="text-[15px] font-medium text-gray-900">점수</p>
               {!hasAutoGrade ? (
                 <p className="text-[15px] text-muted-foreground">점수 없음</p>
               ) : showScoreNow ? (
@@ -1184,18 +1184,12 @@ function ResultModal({ result, quiz, questions, onClose }) {
                 <p className="text-xs mt-1.5 text-right text-muted-foreground">{scorePercent}% 정답</p>
               </>
             )}
+            {result.manualPending > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                서술형 {result.manualPending}개 문항은 채점이 완료되면 점수에 반영됩니다.
+              </p>
+            )}
           </div>
-
-          {result.manualPending > 0 && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg border border-amber-200 bg-amber-50/50">
-              <div>
-                <p className="text-[15px] font-medium mb-0.5 text-gray-900">수동채점 대기 중</p>
-                <p className="text-xs text-gray-500">
-                  서술형 {result.manualPending}개 문항은 교수자 채점 후 최종 점수가 확정됩니다.
-                </p>
-              </div>
-            </div>
-          )}
 
           {responsesHidden && (
             <div className="flex items-start gap-2.5 p-3 rounded-lg border border-gray-200 bg-gray-50/70">
@@ -1278,7 +1272,7 @@ function ResultModal({ result, quiz, questions, onClose }) {
 
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
             <span>{result.timeTaken != null ? `응시시간 ${result.timeTaken}분` : '시간 제한 없음'}</span>
-            <span>총 {quiz.questions}문항 · {quiz.totalPoints}점 만점</span>
+            <span>총 {questions.filter(q => q.type !== 'text').length}문항 · {questions.reduce((s, q) => s + (q.points || 0), 0)}점 만점</span>
           </div>
         </div>
 
