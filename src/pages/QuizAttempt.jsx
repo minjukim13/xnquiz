@@ -192,6 +192,14 @@ export default function QuizAttempt() {
     return () => clearInterval(timer)
   }, [submitted]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Canvas 정책: 세션 복원 시 제한시간이 이미 초과됐으면 즉시 자동 제출
+  // (서버 타이머가 브라우저 종료 후에도 계속 진행된다는 Canvas 모델과 동일하게 동작)
+  // 참고: https://canvas.instructure.com/doc/api/quiz_submissions.html
+  useEffect(() => {
+    if (!loaded || submitted || noTimeLimit || isPreview) return
+    if (timeRemaining === 0) handleSubmit(true)
+  }, [loaded, submitted, noTimeLimit, isPreview, timeRemaining]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60)
     const s = secs % 60
@@ -232,7 +240,11 @@ export default function QuizAttempt() {
       totalPossibleAuto: questions.filter(q => q.autoGrade).reduce((s, q) => s + q.points, 0),
       manualPending,
       submittedAt: new Date().toLocaleString('ko-KR'),
-      timeTaken: Math.max(1, Math.round((Date.now() - startedAt) / 60000)),
+      // Canvas 정책: time_spent 는 time_limit 으로 클램프. 무제한 퀴즈는 실제 경과.
+      timeTaken: (() => {
+        const elapsed = Math.max(1, Math.round((Date.now() - startedAt) / 60000))
+        return noTimeLimit ? elapsed : Math.min(quiz?.timeLimit ?? elapsed, elapsed)
+      })(),
       autoSubmitted: auto,
       isLate: isLate || false,
       scorePolicy: quiz?.scorePolicy ?? '최고 점수 유지',
@@ -1156,24 +1168,25 @@ function ResultModal({ result, quiz, questions, onClose }) {
 
         {/* 결과 */}
         <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
-          <div className="p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[15px] font-medium text-gray-900">점수</p>
+          <div className="bg-gray-50 rounded-xl p-5 w-full">
+            {/* 점수 */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">점수</p>
               {!hasAutoGrade ? (
-                <p className="text-[15px] text-muted-foreground">점수 없음</p>
+                <p className="text-sm font-semibold text-gray-900">점수 없음</p>
               ) : showScoreNow ? (
                 <p className="text-xl font-semibold text-gray-900 tracking-tight">
                   {autoTotal}<span className="text-[15px] font-normal ml-1 text-muted-foreground">/ {autoMax}점</span>
                 </p>
               ) : (
-                <p className="text-[15px] text-muted-foreground">
+                <p className="text-sm font-semibold text-gray-900">
                   {quiz.showScore ? '공개 예정' : '점수 비공개'}
                 </p>
               )}
             </div>
             {hasAutoGrade && showScoreNow && (
               <>
-                <div className="h-1.5 rounded-full overflow-hidden bg-gray-100">
+                <div className="h-1.5 rounded-full overflow-hidden bg-gray-200 mt-2">
                   <div
                     className={cn('h-full rounded-full transition-all',
                       scorePercent >= 80 ? 'bg-gray-900' : scorePercent >= 60 ? 'bg-gray-400' : 'bg-red-500'
@@ -1185,10 +1198,29 @@ function ResultModal({ result, quiz, questions, onClose }) {
               </>
             )}
             {result.manualPending > 0 && (
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-gray-500 mt-1">
                 서술형 {result.manualPending}개 문항은 채점이 완료되면 점수에 반영됩니다.
               </p>
             )}
+
+            {/* 구분선 */}
+            <div className="border-b border-gray-200 my-4" />
+
+            {/* 응시 시간 */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">응시 시간</p>
+              <p className="text-sm font-medium text-gray-900">
+                {result.timeTaken != null ? `${result.timeTaken}분` : '시간 제한 없음'}
+              </p>
+            </div>
+
+            {/* 문항 구성 */}
+            <div className="flex items-center justify-between mt-3">
+              <p className="text-sm text-gray-500">문항 구성</p>
+              <p className="text-sm font-medium text-gray-900">
+                총 {questions.filter(q => q.type !== 'text').length}문항 ({questions.reduce((s, q) => s + (q.points || 0), 0)}점 만점)
+              </p>
+            </div>
           </div>
 
           {responsesHidden && (
@@ -1270,10 +1302,6 @@ function ResultModal({ result, quiz, questions, onClose }) {
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-            <span>{result.timeTaken != null ? `응시시간 ${result.timeTaken}분` : '시간 제한 없음'}</span>
-            <span>총 {questions.filter(q => q.type !== 'text').length}문항 · {questions.reduce((s, q) => s + (q.points || 0), 0)}점 만점</span>
-          </div>
         </div>
 
         {/* 버튼 */}
