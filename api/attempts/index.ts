@@ -30,6 +30,9 @@ async function listAttempts(req: VercelRequest, res: VercelResponse, auth: AuthP
         user: {
           select: { id: true, name: true, email: true, studentId: true, department: true, year: true },
         },
+        answers: {
+          select: { questionId: true, response: true, autoScore: true, manualScore: true },
+        },
       },
       orderBy: [{ userId: 'asc' }, { attemptNumber: 'asc' }],
     })
