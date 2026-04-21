@@ -42,3 +42,25 @@ export function removeAndShiftDropdown(text, k) {
   })
   return next.replace(/\s{2,}/g, ' ').trim()
 }
+
+// 본문 placeholder 를 토큰 배열로 파싱 — 학생 화면에서 inline input/select 렌더링용
+const INLINE_RE = /\[(빈칸|드롭다운)(\d+)\]/g
+
+export function parseInlineBody(text) {
+  const src = String(text || '')
+  const tokens = []
+  let last = 0
+  let m
+  INLINE_RE.lastIndex = 0
+  while ((m = INLINE_RE.exec(src)) !== null) {
+    if (m.index > last) tokens.push({ kind: 'text', content: src.slice(last, m.index) })
+    tokens.push({ kind: m[1] === '빈칸' ? 'blank' : 'dropdown', num: Number(m[2]) })
+    last = m.index + m[0].length
+  }
+  if (last < src.length) tokens.push({ kind: 'text', content: src.slice(last) })
+  return tokens
+}
+
+export function hasInlinePlaceholders(text) {
+  return /\[(빈칸|드롭다운)\d+\]/.test(String(text || ''))
+}
