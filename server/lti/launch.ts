@@ -151,10 +151,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     `xnq_session=${sessionToken}; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=None`,
   ])
 
+  // LTI 키를 2개 운영: target_link_uri 의 ?section 으로 진입 메뉴 구분
+  // section=banks → 문제은행 탭으로 진입. 그 외 (quizzes/미지정) → 퀴즈(기본)
+  const targetLinkClaim = claims['https://purl.imsglobal.org/spec/lti/claim/target_link_uri']
+  let section: string | null = null
+  if (typeof targetLinkClaim === 'string') {
+    try { section = new URL(targetLinkClaim).searchParams.get('section') } catch { /* ignore */ }
+  }
+
   // 기존 SPA 가 localStorage Bearer 방식이라 URL 해시로도 토큰 전달 (POC 호환용)
   // Phase B 에서 API 미들웨어가 쿠키를 읽게 되면 해시 전달은 폐기
   const publicUrl = process.env.XNQUIZ_PUBLIC_URL || `https://${req.headers.host}`
-  const hashPayload = new URLSearchParams({ token: sessionToken, role, lti: '1' }).toString()
-  res.setHeader('Location', `${publicUrl}/?lti=1#${hashPayload}`)
+  const hashParams: Record<string, string> = { token: sessionToken, role, lti: '1' }
+  if (section) hashParams.section = section
+  const hashPayload = new URLSearchParams(hashParams).toString()
+
+  const redirectPath = section === 'banks' ? '/question-banks' : '/'
+  res.setHeader('Location', `${publicUrl}${redirectPath}?lti=1#${hashPayload}`)
   return res.status(302).end()
 }
