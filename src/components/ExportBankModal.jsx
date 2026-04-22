@@ -203,7 +203,7 @@ export default function ExportBankModal({ onClose, onExport }) {
 
             <div className="px-6 py-5">
               <h3 className="text-[15px] font-semibold text-foreground mb-1">내보낼 위치</h3>
-              <p className="text-xs text-muted-foreground mb-4">내보낼 과목과 문제은행을 선택하세요</p>
+              <p className="text-xs text-muted-foreground mb-4">내보낼 과목과 문제모음을 선택하세요</p>
 
               <div className="mb-4">
                 <label className="text-xs font-medium text-secondary-foreground block mb-1.5">대상 과목</label>
@@ -223,8 +223,8 @@ export default function ExportBankModal({ onClose, onExport }) {
                   )}
                 >
                   <div className="px-4 py-3">
-                    <p className={cn('text-[15px]', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제은행 만들기</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">선택한 과목에 새 문제은행을 생성합니다</p>
+                    <p className={cn('text-[15px]', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제모음 만들기</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">선택한 과목에 새 문제모음을 생성합니다</p>
                   </div>
                   {targetMode === 'new' && (
                     <div className="px-4 pb-3 pt-1 space-y-2 border-t border-primary/15">
@@ -233,7 +233,7 @@ export default function ExportBankModal({ onClose, onExport }) {
                         value={newBankName}
                         onClick={e => e.stopPropagation()}
                         onChange={e => setNewBankName(e.target.value)}
-                        placeholder="문제은행 이름"
+                        placeholder="문제모음 이름"
                         autoFocus
                         className="w-full max-w-xs text-[15px] px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground bg-white"
                       />
@@ -258,13 +258,13 @@ export default function ExportBankModal({ onClose, onExport }) {
                   )}
                 >
                   <div className="px-4 py-3">
-                    <p className={cn('text-[15px]', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제은행에 추가</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">이미 있는 문제은행에 문항을 추가합니다</p>
+                    <p className={cn('text-[15px]', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제모음에 추가</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">이미 있는 문제모음에 문항을 추가합니다</p>
                   </div>
                   {targetMode === 'existing' && (
                     <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-primary/15" onClick={e => e.stopPropagation()}>
                       {courseBanks.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-3">선택한 과목에 사용 가능한 문제은행이 없습니다</p>
+                        <p className="text-sm text-muted-foreground py-3">선택한 과목에 사용 가능한 문제모음이 없습니다</p>
                       ) : (
                         courseBanks.map(b => (
                           <button

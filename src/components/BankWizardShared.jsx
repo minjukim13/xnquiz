@@ -159,7 +159,7 @@ export function WizardStep1({ courseSearch, setCourseSearch, availableCourses, c
       {/* 사이드바 */}
       <div className="flex flex-col shrink-0 w-[200px] border-r border-border">
         <div className="px-3 pt-3 pb-2 shrink-0">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">소스 문제은행</p>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">소스 문제모음</p>
           <div className="relative">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -210,7 +210,7 @@ export function WizardStep1({ courseSearch, setCourseSearch, availableCourses, c
         </div>
         {selectedSourceIds.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-[15px] text-muted-foreground">좌측에서 소스 문제은행을 선택하세요</p>
+            <p className="text-[15px] text-muted-foreground">좌측에서 소스 문제모음을 선택하세요</p>
           </div>
         ) : (
           <>

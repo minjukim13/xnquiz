@@ -1092,7 +1092,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                 {bankDifficulty ? (
                   <div className="text-[15px] h-[30px] px-3 flex items-center gap-2 bg-muted border border-border rounded-lg text-foreground">
                     <span className="font-medium">{bankDifficulty === 'high' ? '상' : bankDifficulty === 'medium' ? '중' : '하'}</span>
-                    <span className="text-xs text-muted-foreground">이 문제은행 고정</span>
+                    <span className="text-xs text-muted-foreground">이 문제모음 고정</span>
                   </div>
                 ) : (
                   <DropdownSelect

@@ -114,7 +114,7 @@ export default function QuestionBank() {
             className="flex items-center gap-1 text-xs mb-3 text-muted-foreground hover:text-secondary-foreground transition-colors"
           >
             <ChevronLeft size={13} />
-            문제은행 목록
+            문제모음 목록
           </button>
           <div className="flex items-center justify-between gap-4">
             <div>
