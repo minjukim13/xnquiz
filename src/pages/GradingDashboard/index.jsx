@@ -162,8 +162,9 @@ export default function GradingDashboard() {
     })
   }, [studentSearch, quizStudents])
 
-  const submittedStudents = allStudents.filter(s => s.submitted)
-  const unsubmittedStudents = allStudents.filter(s => !s.submitted)
+  // 응시 시작 여부 기준 분류 (자동 0점 처리된 미시작자도 '미제출' 로 유지)
+  const submittedStudents = allStudents.filter(s => !!s.startTime)
+  const unsubmittedStudents = allStudents.filter(s => !s.startTime)
   const gradedStudentList = submittedStudents.filter(s => s.score !== null)
   const ungradedStudentList = submittedStudents.filter(s => s.score === null)
 
