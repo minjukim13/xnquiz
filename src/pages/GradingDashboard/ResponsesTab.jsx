@@ -4,7 +4,7 @@ import { getLocalGrades, setLocalGrades, getInitScore, hasActualScoreChange, PAG
 import { isAnswerCorrect, getStudentAnswer } from '../../data/mockData'
 import StudentRow from './StudentRow'
 import { Button } from '@/components/ui/button'
-import { Search, ArrowUpDown } from 'lucide-react'
+import { Search, ArrowUpDown, Check } from 'lucide-react'
 import { DropdownSelect } from '../../components/DropdownSelect'
 
 function SortTh({ col, children, className = '', sortBy, sortDir, onSort }) {
@@ -27,13 +27,14 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const [saveStatus, setSaveStatus] = useState('idle')
   const [sortBy, setSortBy] = useState('name')
   const [sortDir, setSortDir] = useState('asc')
-  const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'graded' | 'ungraded' | 'unsubmitted'
+  const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'submitted' | 'unsubmitted'
+  const [showUngradedOnly, setShowUngradedOnly] = useState(false)
   const isFirstRender = useRef(true)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset page on filter change
     setPage(1)
-  }, [search, pageSize, sortBy, sortDir, filterStatus])
+  }, [search, pageSize, sortBy, sortDir, filterStatus, showUngradedOnly])
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- reset per question change */
@@ -42,6 +43,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     setSortBy('name')
     setSortDir('asc')
     setFilterStatus('all')
+    setShowUngradedOnly(false)
     isFirstRender.current = true
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [question?.id])
@@ -78,11 +80,14 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   }, [students, sortBy, sortDir])
 
   const filtered = useMemo(() => {
-    if (filterStatus === 'graded') return sorted.filter(s => s.submitted && s.score !== null)
-    if (filterStatus === 'ungraded') return sorted.filter(s => s.submitted && s.score === null)
-    if (filterStatus === 'unsubmitted') return sorted.filter(s => !s.submitted)
-    return sorted
-  }, [sorted, filterStatus])
+    let list = sorted
+    // 탭 필터: 응시 시작 여부 기준 (자동 0점 처리된 미시작자도 "미제출" 로 유지)
+    if (filterStatus === 'submitted') list = list.filter(s => !!s.startTime)
+    else if (filterStatus === 'unsubmitted') list = list.filter(s => !s.startTime)
+    // 미채점만 보기 토글 (score === null): 수동채점 대기 상태 학생만
+    if (showUngradedOnly) list = list.filter(s => s.score === null)
+    return list
+  }, [sorted, filterStatus, showUngradedOnly])
 
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(filtered.length / pageSize)
   const visible = pageSize === 'all' ? filtered : filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -164,9 +169,9 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     onStudentChanged?.(studentId)
   }, [pendingScores, students, question, quizId, computeAutoCorrect, persistScore, onGradeSaved, onStudentChanged])
 
-  const gradedCount = students.filter(s => s.submitted && s.score !== null).length
-  const ungradedCount = students.filter(s => s.submitted && s.score === null).length
-  const unsubmittedCount = students.filter(s => !s.submitted).length
+  const submittedCount = students.filter(s => !!s.startTime).length
+  const unsubmittedCount = students.filter(s => !s.startTime).length
+  const ungradedCount = students.filter(s => s.score === null).length
 
   return (
     <div className="flex-1 bg-white overflow-hidden flex flex-col border border-slate-200 rounded-lg">
@@ -201,12 +206,11 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
       </div>
 
       {/* 필터 */}
-      <div className="px-3 py-2 border-b border-slate-100 bg-white">
+      <div className="px-3 py-2 border-b border-slate-100 bg-white flex items-center justify-between gap-2">
         <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 inline-flex">
           {[
             { key: 'all',          label: '전체',    count: students.length,  dotCls: null },
-            { key: 'graded',       label: '채점완료', count: gradedCount,      dotCls: 'bg-emerald-500' },
-            { key: 'ungraded',     label: '미채점',   count: ungradedCount,    dotCls: 'bg-amber-500' },
+            { key: 'submitted',    label: '제출완료', count: submittedCount,   dotCls: 'bg-emerald-500' },
             { key: 'unsubmitted',  label: '미제출',   count: unsubmittedCount, dotCls: 'bg-gray-300' },
           ].map(({ key, label, count, dotCls }) => {
             const isActive = filterStatus === key
@@ -230,6 +234,24 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
             )
           })}
         </div>
+        <button
+          type="button"
+          onClick={() => setShowUngradedOnly(v => !v)}
+          aria-pressed={showUngradedOnly}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
+            showUngradedOnly
+              ? 'bg-accent text-primary border-primary/30'
+              : 'bg-white text-gray-600 border-slate-200 hover:bg-slate-50'
+          )}
+        >
+          <Check
+            size={13}
+            strokeWidth={3}
+            className={showUngradedOnly ? 'text-primary' : 'text-slate-300'}
+          />
+          미채점만 보기
+        </button>
       </div>
 
       {/* 테이블 헤더 */}

@@ -8,13 +8,20 @@ export default function QuizInfoCard({ quiz, students }) {
     () => getEffectiveSubmittedCount(quiz, students),
     [quiz, students]
   )
+  // 마감 후 자동 0점 처리된 학생도 채점 완료로 집계하기 위해 students 기반 동적 계산
+  const effectiveGraded = useMemo(() => {
+    if (Array.isArray(students) && students.length > 0) {
+      return students.filter(s => s.submitted && s.score !== null).length
+    }
+    return quiz.graded ?? 0
+  }, [students, quiz.graded])
   const submitRate = useMemo(
     () => quiz.totalStudents > 0 ? Math.round((effectiveSubmitted / quiz.totalStudents) * 100) : 0,
     [effectiveSubmitted, quiz.totalStudents]
   )
   const gradeProgress = useMemo(
-    () => effectiveSubmitted > 0 ? Math.round((quiz.graded / effectiveSubmitted) * 100) : 0,
-    [quiz.graded, effectiveSubmitted]
+    () => quiz.totalStudents > 0 ? Math.round((effectiveGraded / quiz.totalStudents) * 100) : 0,
+    [effectiveGraded, quiz.totalStudents]
   )
 
   return (
@@ -83,7 +90,7 @@ export default function QuizInfoCard({ quiz, students }) {
             <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
               <p className="text-xs mb-2 text-muted-foreground">채점 완료</p>
               <p className="text-2xl leading-none font-extrabold text-foreground">
-                {quiz.graded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {effectiveSubmitted}명</span>
+                {effectiveGraded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.totalStudents}명</span>
               </p>
             </div>
           </div>

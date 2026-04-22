@@ -76,12 +76,10 @@ function formatDateTime(date) {
 }
 
 /**
- * 마감 경과 시 미제출 학생 중 "응시 시작 후 미완료" 상태의 학생만
- * 자동 제출 처리하여 새 배열로 반환한다. (Canvas 동작 기준)
- * - 자동 제출 학생: 보유한 partial selections/autoScores를 그대로 제출,
- *   자동채점 점수는 입력된 답안 기준으로 집계, 수동채점은 미채점 상태로 대기
- * - `startTime`이 null인(응시 미시작) 학생은 그대로 미제출 유지
- *   → 교수자가 수동으로 일괄 제출 처리해야 0점으로 확정됨
+ * 마감 경과 시 미제출 학생 전원을 자동 제출 처리하여 새 배열로 반환한다.
+ * - 응시 시작 O + 미완료: 보유한 partial selections/autoScores 기준으로 제출,
+ *   수동채점 문항이 있으면 최종 점수는 미채점(null) 상태로 대기
+ * - 응시 미시작자: 자동 제출 + score 0 확정 (= 자동 0점 처리)
  * - 이미 제출한 학생은 그대로 유지
  * - 마감 미경과 또는 마감 없음: 원본 배열 그대로 반환
  * @param {Array} students
@@ -98,8 +96,20 @@ export function autoSubmitExpiredStudents(students, quiz, now = new Date()) {
 
   return students.map(s => {
     if (s.submitted) return s
-    if (!s.startTime) return s // 응시 미시작자는 자동 제출 대상 아님
 
+    // 응시 미시작자: 자동 0점 확정
+    if (!s.startTime) {
+      return {
+        ...s,
+        submitted: true,
+        submittedAt,
+        endTime: submittedAt.slice(0, 16),
+        autoSubmitted: true,
+        score: 0,
+      }
+    }
+
+    // 응시 시작 O + 미제출: partial 답안 기준 자동 제출
     const autoTotal = Object.values(s.autoScores || {}).reduce((a, b) => a + (Number(b) || 0), 0)
     const hasManualPending = Object.keys(s.manualScores || {}).length === 0
 
