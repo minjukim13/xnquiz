@@ -43,5 +43,9 @@ blob-report/
 
 # Claude Code 개인/도구 파일
 .claude/settings.local.json
+.claude/*.lock
 .agents/
 skills-lock.json
+
+# 개인 세션 핸드오프 메모 (메모리 시스템에 내용 보존)
+SESSION_HANDOFF_*.md
