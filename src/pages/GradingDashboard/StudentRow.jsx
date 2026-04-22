@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { getLocalGrades, getLocalFudgePoints } from './utils'
+import { getLocalFudgePoints, getInitScore, hasActualScoreChange } from './utils'
 import { getStudentAnswer, isAnswerCorrect, getStudentFileSubmission } from '../../data/mockData'
 import { Paperclip, ChevronDown, ChevronUp, Download, Sparkles } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 // 복합 답안(객체/배열)을 표시용 문자열로 변환
 function formatAnswerForDisplay(question, answer) {
@@ -23,11 +24,10 @@ function formatAnswerForDisplay(question, answer) {
   return JSON.stringify(answer)
 }
 
-function UnsubmittedRow({ student, question, quizId, onScoreChange, pendingScore }) {
-  const unsubStorageKey = `${quizId}_${student.id}_${question.id}`
-  const grades = getLocalGrades()
-  const unsubInitScore = unsubStorageKey in grades ? grades[unsubStorageKey] : ''
+function UnsubmittedRow({ student, question, quizId, onScoreChange, pendingScore, onRowSave }) {
+  const unsubInitScore = getInitScore(student, question, quizId, null)
   const unsubDisplayScore = pendingScore !== undefined ? pendingScore : unsubInitScore
+  const isChanged = hasActualScoreChange(pendingScore, unsubInitScore)
   return (
     <div className="flex items-center gap-2 px-3 py-3 border-b border-slate-100 bg-slate-50">
       <div className="w-28 shrink-0">
@@ -50,29 +50,33 @@ function UnsubmittedRow({ student, question, quizId, onScoreChange, pendingScore
           type="number"
           value={unsubDisplayScore}
           onChange={e => onScoreChange(student.id, e.target.value)}
-          placeholder="—"
+          placeholder="-"
           min={0}
           max={question.points}
           step={0.5}
           className={cn(
             'w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-blue-200 text-center border text-slate-900',
-            pendingScore !== undefined ? 'border-primary' : 'border-slate-200'
+            isChanged ? 'border-primary' : 'border-slate-200'
           )}
         />
         <span className="text-sm shrink-0 text-muted-foreground">/ {question.points}</span>
+        {isChanged && (
+          <Button size="xs" onClick={() => onRowSave?.(student.id)}>
+            저장
+          </Button>
+        )}
       </div>
     </div>
   )
 }
 
-function StudentRow({ student, question, quizId, onScoreChange, pendingScore, isChanged }) {
+function StudentRow({ student, question, quizId, onScoreChange, pendingScore, isChanged, onRowSave }) {
   const [expanded, setExpanded] = useState(false)
 
   if (!student.submitted) {
-    return <UnsubmittedRow student={student} question={question} quizId={quizId} onScoreChange={onScoreChange} pendingScore={pendingScore} />
+    return <UnsubmittedRow student={student} question={question} quizId={quizId} onScoreChange={onScoreChange} pendingScore={pendingScore} onRowSave={onRowSave} />
   }
 
-  const storageKey = `${quizId}_${student.id}_${question.id}`
   const studentIdx = parseInt(student.id.replace('s', ''))
   const rawAnswer = student.selections?.[question.id] ??
     (question.autoGrade
@@ -90,16 +94,11 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
 
   const autoCorrect = question.autoGrade ? isAnswerCorrect(rawAnswer, question.id) : null
 
-  const initScore = (() => {
-    const grades = getLocalGrades()
-    if (storageKey in grades) return grades[storageKey]
-    if (student.manualScores?.[question.id] != null) return student.manualScores[question.id]
-    if (question.autoGrade) return student.autoScores?.[question.id] ?? (autoCorrect ? question.points : 0)
-    return ''
-  })()
+  const initScore = getInitScore(student, question, quizId, autoCorrect)
   const displayScore = pendingScore !== undefined ? pendingScore : initScore
+  const isRowChanged = hasActualScoreChange(pendingScore, initScore)
 
-  const isUngraded = student.score === null
+  const isUngraded = initScore === '' || initScore === null
   const studentFudge = getLocalFudgePoints()[`${quizId}_${student.id}`] || 0
 
   return (
@@ -181,7 +180,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
 
         {/* 채점여부 + 점수 */}
         <div className="flex items-center gap-1.5 w-40 shrink-0 justify-center">
-          {isUngraded && (
+          {isUngraded && !isRowChanged && (
             <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0 text-amber-600 bg-amber-50">
               미채점
             </span>
@@ -190,16 +189,21 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
             type="number"
             value={displayScore}
             onChange={e => onScoreChange(student.id, e.target.value)}
-            placeholder="—"
+            placeholder="-"
             min={0}
             max={question.points}
             step={0.5}
             className={cn(
               'w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-blue-200 text-center border text-slate-900',
-              pendingScore !== undefined ? 'border-primary' : 'border-slate-200'
+              isRowChanged ? 'border-primary' : 'border-slate-200'
             )}
           />
           <span className="text-sm shrink-0 text-muted-foreground">/ {question.points}</span>
+          {isRowChanged && (
+            <Button size="xs" onClick={() => onRowSave?.(student.id)}>
+              저장
+            </Button>
+          )}
         </div>
       </div>
 
