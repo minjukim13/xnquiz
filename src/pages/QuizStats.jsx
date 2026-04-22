@@ -245,7 +245,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  const downloadCSV = () => downloadGradesXlsx(quiz, submitted, quizQuestions)
+  const downloadCSV = () => downloadGradesXlsx(quiz, allStudents.filter(s => s.submitted), quizQuestions)
 
   return (
     <div>
