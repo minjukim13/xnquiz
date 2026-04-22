@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { cn } from '@/lib/utils'
-import { getLocalGrades, setLocalGrades, PAGE_SIZE_OPTIONS } from './utils'
+import { getLocalGrades, setLocalGrades, getInitScore, hasActualScoreChange, PAGE_SIZE_OPTIONS } from './utils'
+import { isAnswerCorrect, getStudentAnswer } from '../../data/mockData'
 import StudentRow from './StudentRow'
 import { Button } from '@/components/ui/button'
 import { Search, ArrowUpDown } from 'lucide-react'
@@ -96,31 +97,72 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     setSaveStatus('idle')
   }, [])
 
-  const pendingCount = Object.values(pendingScores).filter(v => v !== '' && !isNaN(Number(v)) && Number(v) >= 0).length
+  const computeAutoCorrect = useCallback((student) => {
+    if (!student.submitted || !question.autoGrade) return null
+    const studentIdx = parseInt(student.id.replace('s', ''))
+    const rawAnswer = student.selections?.[question.id] ?? getStudentAnswer(studentIdx, question.id)
+    return isAnswerCorrect(rawAnswer, question.id)
+  }, [question])
+
+  const changedIds = useMemo(() => {
+    return Object.entries(pendingScores)
+      .filter(([studentId, score]) => {
+        const student = students.find(s => s.id === studentId)
+        if (!student) return false
+        const autoCorrect = computeAutoCorrect(student)
+        const initScore = getInitScore(student, question, quizId, autoCorrect)
+        return hasActualScoreChange(score, initScore)
+      })
+      .map(([id]) => id)
+  }, [pendingScores, students, question, quizId, computeAutoCorrect])
+
+  const pendingCount = changedIds.length
+
+  const persistScore = useCallback((student, score) => {
+    const grades = getLocalGrades()
+    const storageKey = `${quizId}_${student.id}_${question.id}`
+    grades[storageKey] = Number(score)
+    setLocalGrades(grades)
+    if (!student.manualScores) student.manualScores = {}
+    student.manualScores[question.id] = Number(score)
+    const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
+    const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
+    student.score = autoTotal + manualTotal
+  }, [quizId, question])
 
   const handleBulkSave = () => {
-    const grades = getLocalGrades()
     const savedIds = []
-    for (const [studentId, score] of Object.entries(pendingScores)) {
-      if (score === '' || isNaN(Number(score)) || Number(score) < 0) continue
+    for (const studentId of changedIds) {
       const student = students.find(s => s.id === studentId)
       if (!student) continue
-      const storageKey = `${quizId}_${studentId}_${question.id}`
-      grades[storageKey] = Number(score)
-      if (!student.manualScores) student.manualScores = {}
-      student.manualScores[question.id] = Number(score)
-      const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
-      const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
-      student.score = autoTotal + manualTotal
+      persistScore(student, pendingScores[studentId])
       savedIds.push(studentId)
     }
-    setLocalGrades(grades)
     setPendingScores({})
     setSaveStatus('saved')
     setTimeout(() => setSaveStatus('idle'), 3000)
     onGradeSaved?.()
     savedIds.forEach(id => onStudentChanged?.(id))
   }
+
+  const handleRowSave = useCallback((studentId) => {
+    const score = pendingScores[studentId]
+    const student = students.find(s => s.id === studentId)
+    if (!student || score === undefined) return
+    const autoCorrect = computeAutoCorrect(student)
+    const initScore = getInitScore(student, question, quizId, autoCorrect)
+    if (!hasActualScoreChange(score, initScore)) return
+    persistScore(student, score)
+    setPendingScores(prev => {
+      const next = { ...prev }
+      delete next[studentId]
+      return next
+    })
+    setSaveStatus('saved')
+    setTimeout(() => setSaveStatus('idle'), 3000)
+    onGradeSaved?.()
+    onStudentChanged?.(studentId)
+  }, [pendingScores, students, question, quizId, computeAutoCorrect, persistScore, onGradeSaved, onStudentChanged])
 
   const gradedCount = students.filter(s => s.submitted && s.score !== null).length
   const ungradedCount = students.filter(s => s.submitted && s.score === null).length
@@ -207,7 +249,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
           <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">검색 결과가 없습니다</div>
         ) : (
           visible.map(s => (
-            <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} isChanged={changedStudentIds?.has(s.id)} />
+            <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} isChanged={changedStudentIds?.has(s.id)} onRowSave={handleRowSave} />
           ))
         )}
       </div>
