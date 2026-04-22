@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
-import { AlertCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { AlertCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Check } from 'lucide-react'
 import { downloadGradesXlsx, downloadItemAnalysisXlsx } from '../utils/excelUtils'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
@@ -195,20 +195,21 @@ function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
 function GradesTab({ quiz, quizQuestions, students: allStudents }) {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [showUngradedOnly, setShowUngradedOnly] = useState(false)
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('desc')
   const totalPoints = quizQuestions.reduce((s, q) => s + (q.points || 0), 0)
 
-  const submitted = allStudents.filter(s => s.submitted)
-  const unsubmitted = allStudents.filter(s => !s.submitted)
-  const gradedCount = submitted.filter(s => s.score !== null).length
-  const ungradedCount = submitted.length - gradedCount
+  // 응시 시작 여부 기준 분류 (자동 0점 처리된 미시작자도 '미제출' 로 유지)
+  const submittedStarted = allStudents.filter(s => !!s.startTime)
+  const unsubmitted = allStudents.filter(s => !s.startTime)
+  const ungradedCount = allStudents.filter(s => s.score === null).length
 
   const filtered = useMemo(() => {
     let base = filterStatus === 'unsubmitted' ? unsubmitted
-      : filterStatus === 'graded' ? submitted.filter(s => s.score !== null)
-      : filterStatus === 'ungraded' ? submitted.filter(s => s.score === null)
+      : filterStatus === 'submitted' ? submittedStarted
       : allStudents
+    if (showUngradedOnly) base = base.filter(s => s.score === null)
     let list = base.filter(s => {
       if (search !== '' && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.studentId.includes(search)) return false
       return true
@@ -237,7 +238,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
       })
     }
     return list
-  }, [allStudents, submitted, unsubmitted, search, filterStatus, sortKey, sortDir])
+  }, [allStudents, submittedStarted, unsubmitted, search, filterStatus, showUngradedOnly, sortKey, sortDir])
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
@@ -249,29 +250,48 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
   return (
     <div>
       {/* 요약 필터 */}
-      <div className="inline-flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 mb-5">
-        {[
-          { key: 'all', label: '전체', value: allStudents.length, dotCls: null },
-          { key: 'graded', label: '채점완료', value: gradedCount, dotCls: 'bg-emerald-500' },
-          { key: 'ungraded', label: '미채점', value: ungradedCount, dotCls: 'bg-amber-500' },
-          { key: 'unsubmitted', label: '미제출', value: unsubmitted.length, dotCls: 'bg-gray-300' },
-        ].map(({ key, label, value, dotCls }) => {
-          const isActive = filterStatus === key
-          return (
-            <button
-              key={key}
-              onClick={() => setFilterStatus(key)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-all',
-                isActive ? 'bg-white shadow-sm' : 'bg-transparent'
-              )}
-            >
-              {dotCls && <span className={cn('w-1.5 h-1.5 rounded-full', dotCls)} />}
-              <span className={isActive ? 'text-gray-900 font-medium' : 'text-gray-500'}>{label}</span>
-              <span className={cn('font-bold text-xs', isActive ? 'text-primary' : 'text-muted-foreground')}>{value}</span>
-            </button>
-          )
-        })}
+      <div className="flex items-center justify-between gap-2 mb-5">
+        <div className="inline-flex items-center gap-1 p-0.5 rounded-lg bg-slate-100">
+          {[
+            { key: 'all', label: '전체', value: allStudents.length, dotCls: null },
+            { key: 'submitted', label: '제출완료', value: submittedStarted.length, dotCls: 'bg-emerald-500' },
+            { key: 'unsubmitted', label: '미제출', value: unsubmitted.length, dotCls: 'bg-gray-300' },
+          ].map(({ key, label, value, dotCls }) => {
+            const isActive = filterStatus === key
+            return (
+              <button
+                key={key}
+                onClick={() => setFilterStatus(key)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-all',
+                  isActive ? 'bg-white shadow-sm' : 'bg-transparent'
+                )}
+              >
+                {dotCls && <span className={cn('w-1.5 h-1.5 rounded-full', dotCls)} />}
+                <span className={isActive ? 'text-gray-900 font-medium' : 'text-gray-500'}>{label}</span>
+                <span className={cn('font-bold text-xs', isActive ? 'text-primary' : 'text-muted-foreground')}>{value}</span>
+              </button>
+            )
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowUngradedOnly(v => !v)}
+          aria-pressed={showUngradedOnly}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
+            showUngradedOnly
+              ? 'bg-accent text-primary border-primary/30'
+              : 'bg-white text-gray-600 border-slate-200 hover:bg-slate-50'
+          )}
+        >
+          <Check
+            size={13}
+            strokeWidth={3}
+            className={showUngradedOnly ? 'text-primary' : 'text-slate-300'}
+          />
+          미채점만 보기
+        </button>
       </div>
 
       {/* 검색 + 다운로드 */}
@@ -384,7 +404,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
   const stdev = useMemo(() => Math.sqrt(variance(scores)), [scores])
 
   const submitRate = ((quiz.submitted / quiz.totalStudents) * 100).toFixed(1)
-  const gradeRate  = quiz.submitted > 0 ? ((quiz.graded / quiz.submitted) * 100).toFixed(1) : 0
+  const gradeRate  = quiz.totalStudents > 0 ? ((quiz.graded / quiz.totalStudents) * 100).toFixed(1) : 0
 
   const durations = submitted
     .filter(s => s.endTime)
