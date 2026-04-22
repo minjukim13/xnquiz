@@ -393,9 +393,12 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
 
 function StatsTab({ quiz, quizQuestions, students: allStudents }) {
   const totalPoints = quizQuestions.reduce((s, q) => s + (q.points || 0), 0)
-  const submitted = allStudents.filter(s => s.submitted)
-  const graded    = submitted.filter(s => s.score !== null)
-  const scores    = graded.map(s => s.score)
+  // 응시 시작 여부 기준 분류 (자동 0점 처리된 미시작자도 '미제출' 로 유지)
+  const submittedStarted = allStudents.filter(s => !!s.startTime)
+  const unsubmittedList  = allStudents.filter(s => !s.startTime)
+  const graded           = allStudents.filter(s => s.submitted && s.score !== null)
+  const pendingGrade     = submittedStarted.filter(s => s.score === null)
+  const scores           = graded.map(s => s.score)
 
   const avg  = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
   const maxScore = scores.length ? Math.max(...scores) : 0
@@ -403,10 +406,10 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
   // eslint-disable-next-line react-hooks/preserve-manual-memoization -- React Compiler optimization miss, 수동 memoization 유지
   const stdev = useMemo(() => Math.sqrt(variance(scores)), [scores])
 
-  const submitRate = ((quiz.submitted / quiz.totalStudents) * 100).toFixed(1)
-  const gradeRate  = quiz.totalStudents > 0 ? ((quiz.graded / quiz.totalStudents) * 100).toFixed(1) : 0
+  const submitRate = quiz.totalStudents > 0 ? ((submittedStarted.length / quiz.totalStudents) * 100).toFixed(1) : 0
+  const gradeRate  = quiz.totalStudents > 0 ? ((graded.length / quiz.totalStudents) * 100).toFixed(1) : 0
 
-  const durations = submitted
+  const durations = submittedStarted
     .filter(s => s.endTime)
     .map(s => {
       const [sh, sm] = s.startTime.split(' ')[1].split(':').map(Number)
@@ -476,7 +479,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold">점수 분포</h3>
             <span className="text-xs text-muted-foreground">
-              제출 {quiz.submitted}명 중 채점 완료 {graded.length}명 기준 (미채점 {quiz.submitted - graded.length}명 제외)
+              응시 {submittedStarted.length}명 중 채점 완료 {graded.length}명 기준 (미채점 {pendingGrade.length}명 제외)
             </span>
           </div>
           {graded.length === 0 ? (
@@ -503,10 +506,10 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           <div className="space-y-3">
             {[
               { label: '수강 인원', value: quiz.totalStudents, barColor: '#B0B8C1' },
-              { label: '제출 완료', value: quiz.submitted, barColor: 'var(--primary)', rate: submitRate },
-              { label: '미제출', value: quiz.totalStudents - quiz.submitted, barColor: '#FDA4AF', rate: (100 - parseFloat(submitRate)).toFixed(1) },
-              { label: '채점 완료', value: quiz.graded, barColor: '#93C5FD', rate: gradeRate },
-              { label: '채점 대기', value: quiz.pendingGrade, barColor: '#FDA4AF' },
+              { label: '응시 완료', value: submittedStarted.length, barColor: 'var(--primary)', rate: submitRate },
+              { label: '미제출', value: unsubmittedList.length, barColor: '#FDA4AF', rate: quiz.totalStudents > 0 ? ((unsubmittedList.length / quiz.totalStudents) * 100).toFixed(1) : 0 },
+              { label: '채점 완료', value: graded.length, barColor: '#93C5FD', rate: gradeRate },
+              { label: '채점 대기', value: pendingGrade.length, barColor: '#FDA4AF' },
             ].map(item => (
               <div key={item.label}>
                 <div className="flex justify-between text-xs mb-1">

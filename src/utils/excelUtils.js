@@ -82,11 +82,12 @@ export function downloadItemAnalysisXlsx(quiz, quizQuestions, students) {
     }
   }
 
-  // 퀴즈 요약 지표
+  // 퀴즈 요약 지표 — students 기반 동적 계산 (자동 0점 반영)
+  const submittedStartedCount = students.filter(s => !!s.startTime).length
   const avg = totalScores.reduce((a, b) => a + b, 0) / totalScores.length
   const stdev = Math.sqrt(totalScores.reduce((a, b) => a + (b - avg) ** 2, 0) / totalScores.length)
-  const submitRate = ((quiz.submitted / quiz.totalStudents) * 100).toFixed(1)
-  const gradeRate = quiz.totalStudents > 0 ? ((quiz.graded / quiz.totalStudents) * 100).toFixed(1) : 0
+  const submitRate = quiz.totalStudents > 0 ? ((submittedStartedCount / quiz.totalStudents) * 100).toFixed(1) : 0
+  const gradeRate = quiz.totalStudents > 0 ? ((graded.length / quiz.totalStudents) * 100).toFixed(1) : 0
 
   // Sheet 1: 문항 분석
   const headers1 = ['문항', '유형', '배점(점)', '평균점수', '득점률(%)', '난이도', '정답학생수', '정답률', '변별도 D', '이분상관계수 r_pb']
