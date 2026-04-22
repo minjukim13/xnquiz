@@ -21,6 +21,9 @@ import attemptsIndex from '../server/attempts/index.js'
 import attemptsById from '../server/attempts/[id].js'
 import attemptsAnswers from '../server/attempts/[id]/answers.js'
 import attemptsSubmit from '../server/attempts/[id]/submit.js'
+import ltiJwks from '../server/lti/jwks.js'
+import ltiLogin from '../server/lti/login.js'
+import ltiLaunch from '../server/lti/launch.js'
 
 type VercelHandler = (req: VercelRequest, res: VercelResponse) => Promise<unknown> | unknown
 
@@ -72,6 +75,11 @@ function buildApp() {
   app.all('/api/attempts/:id', vh(attemptsById))
   app.all('/api/attempts/:id/answers', vh(attemptsAnswers))
   app.all('/api/attempts/:id/submit', vh(attemptsSubmit))
+
+  // LTI 1.3 엔드포인트
+  app.all('/api/lti/jwks', vh(ltiJwks))
+  app.all('/api/lti/login', vh(ltiLogin))
+  app.all('/api/lti/launch', vh(ltiLaunch))
 
   app.use('/api', (req, res) => {
     res.status(404).json({ error: `Not Found: ${req.method} ${req.originalUrl}` })
