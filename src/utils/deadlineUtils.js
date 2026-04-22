@@ -79,15 +79,18 @@ function formatDateTime(date) {
  * 마감 경과 시 미제출 학생 전원을 자동 제출 처리하여 새 배열로 반환한다.
  * - 응시 시작 O + 미완료: 보유한 partial selections/autoScores 기준으로 제출,
  *   수동채점 문항이 있으면 최종 점수는 미채점(null) 상태로 대기
- * - 응시 미시작자: 자동 제출 + score 0 확정 (= 자동 0점 처리)
+ * - 응시 미시작자: 자동 제출 + score 0 확정 (= 자동 0점 처리). questions 가
+ *   제공되면 각 문항의 autoScores/manualScores 에도 0점을 세팅해 문항 단위
+ *   채점 현황에서도 '채점 완료(0점)' 로 표시되도록 한다.
  * - 이미 제출한 학생은 그대로 유지
  * - 마감 미경과 또는 마감 없음: 원본 배열 그대로 반환
  * @param {Array} students
  * @param {object} quiz
  * @param {Date} [now]
+ * @param {Array} [questions] - quizQuestions 배열 (자동 0점 문항 단위 세팅용)
  * @returns {Array}
  */
-export function autoSubmitExpiredStudents(students, quiz, now = new Date()) {
+export function autoSubmitExpiredStudents(students, quiz, now = new Date(), questions = []) {
   if (!Array.isArray(students) || students.length === 0) return students
   if (!isDeadlinePassed(quiz, now)) return students
 
@@ -97,14 +100,27 @@ export function autoSubmitExpiredStudents(students, quiz, now = new Date()) {
   return students.map(s => {
     if (s.submitted) return s
 
-    // 응시 미시작자: 자동 0점 확정
+    // 응시 미시작자: 자동 0점 확정 (모든 문항 0점)
+    // submittedAt / endTime 은 null 유지 → UI 에 "-" 로 표시되어
+    // 실제 제출자와 시각적으로 구분됨
     if (!s.startTime) {
+      const autoScores = { ...(s.autoScores || {}) }
+      const manualScores = { ...(s.manualScores || {}) }
+      questions.forEach(q => {
+        if (q.autoGrade) {
+          if (autoScores[q.id] === undefined) autoScores[q.id] = 0
+        } else {
+          if (manualScores[q.id] === undefined) manualScores[q.id] = 0
+        }
+      })
       return {
         ...s,
         submitted: true,
-        submittedAt,
-        endTime: submittedAt.slice(0, 16),
+        submittedAt: null,
+        endTime: null,
         autoSubmitted: true,
+        autoScores,
+        manualScores,
         score: 0,
       }
     }

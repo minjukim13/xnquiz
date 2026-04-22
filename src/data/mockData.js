@@ -2635,8 +2635,8 @@ const studentCache = {}
 export function getQuizStudents(quizId) {
   const quiz = mockQuizzes.find(q => q.id === quizId)
 
-  if (quizId === '1') return autoSubmitExpiredStudents(mockStudents, quiz)
-  if (quizId === '8') return autoSubmitExpiredStudents(mockStudents8, quiz)
+  if (quizId === '1') return autoSubmitExpiredStudents(mockStudents, quiz, new Date(), getQuizQuestions('1'))
+  if (quizId === '8') return autoSubmitExpiredStudents(mockStudents8, quiz, new Date(), getQuizQuestions('8'))
   if (studentCache[quizId]) return studentCache[quizId]
 
   if (!quiz) return mockStudents
@@ -2665,7 +2665,7 @@ export function getQuizStudents(quizId) {
   }
 
   // 마감 경과 시 미제출자 자동 제출 처리
-  students = autoSubmitExpiredStudents(students, quiz)
+  students = autoSubmitExpiredStudents(students, quiz, new Date(), questions)
 
   studentCache[quizId] = students
   return students
