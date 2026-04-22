@@ -338,13 +338,13 @@ export default function QuizEdit() {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button size="lg">
-                      문제은행에서 추가
+                      문제모음에서 추가
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-72 p-1.5">
                     <button onClick={() => setShowBankModal(true)} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors">
                       <p className="text-sm font-medium text-foreground">직접 선택</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">문제은행에서 원하는 문항을 골라 추가합니다</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">문제모음에서 원하는 문항을 골라 추가합니다</p>
                     </button>
                     <button onClick={() => setShowRandomBankModal(true)} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors">
                       <p className="text-sm font-medium text-foreground">랜덤 출제</p>

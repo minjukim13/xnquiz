@@ -11,7 +11,7 @@
  *   [L1590] 응시 (getStudentAttempts, saveStudentAttempt)
  *   [L1650] 채점 (regradeQuestion, regradeQuestionWithOption, recalculateScorePolicy, autoGradeAnswer)
  *   [L1995] 학생 답/파일 조회 (getStudentAnswer, getStudentFileSubmission, isAnswerCorrect)
- *   [L2044] 문제은행 (MOCK_COURSES, MOCK_BANKS, MOCK_BANK_QUESTIONS)
+ *   [L2044] 문제모음 (MOCK_COURSES, MOCK_BANKS, MOCK_BANK_QUESTIONS)
  *   [L2196] 학생 seed (mockStudents, mockStudents8) + generateStudents + getQuizStudents
  *
  * api 모드에서 사용 안 함 (CLAUDE.md 데이터 소스 섹션 참조)
@@ -2056,7 +2056,7 @@ export function isAnswerCorrect(answer, questionId) {
   return correct.some(c => a.includes(_normalizeAnswer(c, gs)))
 }
 
-// ── 문제은행 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──
+// ── 문제모음 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──
 
 
 export const MOCK_COURSES = [

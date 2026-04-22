@@ -43,7 +43,7 @@ export function QuestionBankProvider({ children }) {
   })
 
   // api 모드: 서버에서 banks + 각 bank 의 questions 일괄 로드
-  // 문제은행은 교수자 전용 (학생은 /api/banks 403). role 전환 시 재실행.
+  // 문제모음은 교수자 전용 (학생은 /api/banks 403). role 전환 시 재실행.
   useEffect(() => {
     if (MODE !== 'api') return
     if (role !== 'instructor') {

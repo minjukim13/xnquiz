@@ -19,7 +19,7 @@ export default function AddBankModal({ onClose, onAdd }) {
     <Dialog open onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>새 문제은행 만들기</DialogTitle>
+          <DialogTitle>새 문제모음 만들기</DialogTitle>
         </DialogHeader>
         <div>
           <label className="text-xs font-medium block mb-1.5 text-slate-500">이름</label>
@@ -28,7 +28,7 @@ export default function AddBankModal({ onClose, onAdd }) {
             value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && name.trim() && onAdd(name.trim(), difficulty)}
-            placeholder="문제은행 이름 (예: 기말고사 문제은행)"
+            placeholder="문제모음 이름 (예: 기말고사 문제모음)"
             autoFocus
             className="w-full text-[15px] px-3 py-2 border border-slate-200 rounded focus:outline-none focus:border-blue-400 text-slate-900"
           />
