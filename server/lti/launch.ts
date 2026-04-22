@@ -151,7 +151,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     `xnq_session=${sessionToken}; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=None`,
   ])
 
+  // 기존 SPA 가 localStorage Bearer 방식이라 URL 해시로도 토큰 전달 (POC 호환용)
+  // Phase B 에서 API 미들웨어가 쿠키를 읽게 되면 해시 전달은 폐기
   const publicUrl = process.env.XNQUIZ_PUBLIC_URL || `https://${req.headers.host}`
-  res.setHeader('Location', `${publicUrl}/?lti=1`)
+  const hashPayload = new URLSearchParams({ token: sessionToken, role, lti: '1' }).toString()
+  res.setHeader('Location', `${publicUrl}/?lti=1#${hashPayload}`)
   return res.status(302).end()
 }
