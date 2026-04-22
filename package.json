@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:api": "tsx watch --clear-screen=false dev-server.ts",
     "build": "vite build",
+    "build:vercel": "node scripts/vercel-build.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck:api": "tsc --noEmit -p tsconfig.json",
