@@ -98,8 +98,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!sub) return res.status(400).json({ error: 'id_token missing sub' })
 
   // Canvas 가 실제 name/email 을 보냈는지 구분 — fallback 으로 User 를 덮어씌우면 안 되므로
-  const claimName = typeof claims.name === 'string' && claims.name.trim() ? claims.name.trim() : null
-  const claimEmail = typeof claims.email === 'string' && claims.email.trim() ? claims.email.trim() : null
+  // 표준 claims.name 은 Canvas 가 계정/시점에 따라 들쭉날쭉 보내므로 custom variable substitution 을 우선.
+  // Canvas Dev Key 의 "사용자 정의 필드" 에 아래 3줄 등록 전제:
+  //   canvas_user_full_name=$Person.name.full
+  //   canvas_user_email=$Person.email.primary
+  //   canvas_user_login_id=$Canvas.user.loginId
+  const customClaim = claims['https://purl.imsglobal.org/spec/lti/claim/custom']
+  const custom = (customClaim && typeof customClaim === 'object') ? customClaim as Record<string, unknown> : {}
+  const customName = typeof custom.canvas_user_full_name === 'string' && custom.canvas_user_full_name.trim()
+    ? custom.canvas_user_full_name.trim() : null
+  const customEmail = typeof custom.canvas_user_email === 'string' && custom.canvas_user_email.trim()
+    ? custom.canvas_user_email.trim() : null
+  const customLoginId = typeof custom.canvas_user_login_id === 'string' && custom.canvas_user_login_id.trim()
+    ? custom.canvas_user_login_id.trim() : null
+
+  const claimName = customName
+    ?? (typeof claims.name === 'string' && claims.name.trim() ? claims.name.trim() : null)
+  const claimEmail = customEmail
+    ?? (typeof claims.email === 'string' && claims.email.trim() ? claims.email.trim() : null)
   const email = claimEmail ?? `lti-${sub}@xn.lti`
   const name = claimName ?? `LTI User ${sub.slice(0, 8)}`
   const ltiRoles = claims['https://purl.imsglobal.org/spec/lti/claim/roles']
@@ -125,18 +141,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
     // Canvas 가 실제 값을 보낸 경우에만 User 테이블도 최신화 (NRPS 가 익명화돼서 저장된 fallback 을 실값으로 교체)
     // 이메일 unique 충돌 시 name 만이라도 업데이트
-    if (claimName || claimEmail) {
+    const hasIdentityClaim = !!(claimName || claimEmail || customLoginId)
+    if (hasIdentityClaim) {
       try {
         await prisma.user.update({
           where: { id: userId },
           data: {
             ...(claimName ? { name: claimName } : {}),
             ...(claimEmail ? { email: claimEmail } : {}),
+            ...(customLoginId ? { studentId: customLoginId } : {}),
           },
         })
       } catch {
+        // email 또는 studentId unique 충돌 시 개별 필드만이라도 재시도
         if (claimName) {
           await prisma.user.update({ where: { id: userId }, data: { name: claimName } }).catch(() => {})
+        }
+        if (customLoginId) {
+          await prisma.user.update({ where: { id: userId }, data: { studentId: customLoginId } }).catch(() => {})
         }
       }
       // LTI 키 2개(퀴즈/문제모음)로 같은 Canvas sub 이 다른 platform 에 등록된 경우,
@@ -159,7 +181,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
         })
       }
-    } else {
+    }
+    if (!hasIdentityClaim) {
       // 반대 케이스: 이번 launch 는 익명으로 왔지만 동일 sub 의 다른 platform User 에 실명이 이미 있으면
       // 그 실명을 복사해서 채점 대시보드 표기 일관성 유지
       const sibling = await prisma.ltiUserMap.findFirst({
