@@ -5,6 +5,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../../lib/prisma.js'
 import { getAuthFromRequest, type AuthPayload } from '../../lib/auth.js'
 import { toQuizResponse, scorePolicyFromLabel, type QuizStats } from '../../lib/mappers/quiz.js'
+import { syncQuizScoresToCanvas } from '../../lib/lti/ags.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const auth = getAuthFromRequest(req)
@@ -141,12 +142,30 @@ async function patchQuiz(req: VercelRequest, res: VercelResponse, auth: AuthPayl
     data.scorePolicy = scorePolicyFromLabel(body.scorePolicy as string | undefined)
   }
 
+  // AGS 트리거 판단: scoreRevealEnabled 가 false → true 로 바뀌는 순간 Canvas Gradebook 동기화
+  const shouldTriggerAgs =
+    'scoreRevealEnabled' in body &&
+    !!body.scoreRevealEnabled &&
+    existing.scoreRevealEnabled === false &&
+    !!existing.courseCode
+
   try {
     const updated = await prisma.quiz.update({
       where: { id },
       data,
       include: { course: true },
     })
+
+    // Canvas 로 점수 전송 (LTI 과목이어야만 동작 — ltiLineItemsUrl null 이면 함수가 에러 던짐)
+    if (shouldTriggerAgs && updated.course.ltiLineItemsUrl && updated.course.ltiPlatformId) {
+      try {
+        const agsResult = await syncQuizScoresToCanvas(updated.id)
+        console.log('[ags] sync ok', { quizId: updated.id, ...agsResult })
+      } catch (err) {
+        // AGS 실패해도 점수 공개 설정 자체는 성공으로 처리 (학생 UI 노출은 별도 이슈)
+        console.error('[ags] sync failed', { quizId: updated.id, err: String(err) })
+      }
+    }
 
     const [totalStudents, submitted, graded, questions, avg] = await Promise.all([
       prisma.enrollment.count({ where: { courseCode: updated.courseCode, role: 'STUDENT' } }),
