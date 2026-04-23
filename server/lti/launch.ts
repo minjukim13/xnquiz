@@ -209,14 +209,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
   } else {
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash: 'LTI_NO_PASSWORD',
-        name,
-        role,
-      },
+    // LTI 키 2개(퀴즈/문제모음) 환경에서 같은 Canvas 사용자가 두 번째 키로 처음 들어오면
+    // platform+sub 매핑은 없지만 email 은 이미 첫 키에서 만든 User 가 선점하고 있음.
+    // email unique 충돌을 피하려고, 동일 sub 의 sibling User → 동일 email User 순서로 재사용.
+    const siblingMap = await prisma.ltiUserMap.findFirst({
+      where: { ltiSub: sub, platformId: { not: platform.id } },
     })
+    let user = siblingMap
+      ? await prisma.user.findUnique({ where: { id: siblingMap.userId } })
+      : null
+    if (!user) {
+      user = await prisma.user.findUnique({ where: { email } })
+    }
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash: 'LTI_NO_PASSWORD',
+          name,
+          role,
+        },
+      })
+    }
     await prisma.ltiUserMap.create({
       data: {
         platformId: platform.id,
