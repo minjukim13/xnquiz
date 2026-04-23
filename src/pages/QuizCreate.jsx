@@ -40,8 +40,22 @@ export default function QuizCreate() {
   const navigate = useNavigate()
   const { role } = useRole()
   const [tab, setTab] = useState('info')
+  // LTI 모드에서 LearningX 가 주입한 주차/차시 값을 초기값으로 프리필
+  // 범위 검증은 서버에서 수행, 여기서는 파싱만
+  const ltiPrefill = (() => {
+    try {
+      if (typeof window === 'undefined') return { week: null, session: null }
+      if (localStorage.getItem('xnq_lti_active') !== '1') return { week: null, session: null }
+      const w = parseInt(localStorage.getItem('xnq_lti_week') || '', 10)
+      const s = parseInt(localStorage.getItem('xnq_lti_session') || '', 10)
+      return {
+        week: Number.isInteger(w) && w >= 1 && w <= 16 ? w : null,
+        session: Number.isInteger(s) && s >= 1 && s <= 4 ? s : null,
+      }
+    } catch { return { week: null, session: null } }
+  })()
   const [form, setForm] = useState({
-    title: '', description: '', week: null, session: null,
+    title: '', description: '', week: ltiPrefill.week, session: ltiPrefill.session,
     startDate: '', dueDate: '', lockDate: '', timeLimit: '60', unlimitedTimeLimit: false,
     allowAttempts: 1, unlimitedAttempts: false, scorePolicy: '최고 점수 유지',
     shuffleChoices: false, shuffleQuestions: false,
