@@ -128,6 +128,7 @@ model Course {
   ltiContextId       String? // Canvas context.id (course_id 원문)
   ltiDeploymentId    String? // LTI deployment_id (NRPS/AGS 토큰 요청용)
   ltiNrpsUrl         String? // context_memberships_url (NRPS endpoint)
+  ltiLineItemsUrl    String? // AGS lineitems 컬렉션 URL (Canvas 과목의 성적열 관리 엔드포인트)
   ltiLastSyncedAt    DateTime? // 마지막 NRPS 동기화 시각
 
   quizzes     Quiz[]
@@ -194,6 +195,10 @@ model Quiz {
 
   // 집계 캐시 (선택) — 실운영에서는 쿼리 시 계산 권장
   avgScore Float?
+
+  // LTI AGS — Canvas Gradebook lineitem 연동
+  ltiLineItemUrl     String?   // 이 퀴즈에 대응하는 Canvas lineitem URL (최초 점수 전송 시 생성)
+  ltiLastScoreSentAt DateTime? // 마지막으로 AGS score 를 Canvas 에 전송한 시각
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

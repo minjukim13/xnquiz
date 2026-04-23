@@ -18,6 +18,12 @@ import path from 'node:path'
 
 export const NRPS_SCOPE = 'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly'
 
+// AGS scopes — Canvas Gradebook lineitem 관리 + 점수 전송용
+export const AGS_SCOPE_LINEITEM = 'https://purl.imsglobal.org/spec/lti-ags/scope/lineitem'
+export const AGS_SCOPE_LINEITEM_READONLY = 'https://purl.imsglobal.org/spec/lti-ags/scope/lineitem.readonly'
+export const AGS_SCOPE_SCORE = 'https://purl.imsglobal.org/spec/lti-ags/scope/score'
+export const AGS_SCOPE_RESULT_READONLY = 'https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly'
+
 const KID = process.env.LTI_KID || 'xnquiz-2026-04-22'
 
 // 메모리 캐시 — (clientId, scope) 별 token 재사용 (만료 30초 여유)

@@ -147,9 +147,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // 앞으로 퀴즈 목록/생성이 canvas_{id} courseCode 로 격리됨
   const ctxClaim = claims['https://purl.imsglobal.org/spec/lti/claim/context']
   const nrpsClaim = claims['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice']
+  const agsClaim = claims['https://purl.imsglobal.org/spec/lti-ags/claim/endpoint']
   const deploymentIdClaim = claims['https://purl.imsglobal.org/spec/lti/claim/deployment_id']
   let canvasCourseCode: string | null = null
   let nrpsUrl: string | null = null
+  let agsLineItemsUrl: string | null = null
   let deploymentId: string | null = null
 
   if (typeof deploymentIdClaim === 'string' && deploymentIdClaim) {
@@ -159,6 +161,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const nrps = nrpsClaim as { context_memberships_url?: unknown }
     if (typeof nrps.context_memberships_url === 'string') {
       nrpsUrl = nrps.context_memberships_url
+    }
+  }
+  if (agsClaim && typeof agsClaim === 'object') {
+    const ags = agsClaim as { lineitems?: unknown }
+    if (typeof ags.lineitems === 'string') {
+      agsLineItemsUrl = ags.lineitems
     }
   }
 
@@ -178,6 +186,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ltiContextId: ctx.id,
           ltiDeploymentId: deploymentId,
           ltiNrpsUrl: nrpsUrl,
+          ltiLineItemsUrl: agsLineItemsUrl,
         },
         create: {
           code,
@@ -186,6 +195,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ltiContextId: ctx.id,
           ltiDeploymentId: deploymentId,
           ltiNrpsUrl: nrpsUrl,
+          ltiLineItemsUrl: agsLineItemsUrl,
         },
       })
       canvasCourseCode = code
