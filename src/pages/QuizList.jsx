@@ -7,6 +7,7 @@ import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts } from '../data/mockData'
 import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz, listAttempts, isApiMode } from '@/lib/data'
+import { currentLtiCourseCode } from '@/lib/data/_common'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -165,10 +166,12 @@ function InstructorQuizList() {
   const [quizzes, setQuizzes] = useState([])
 
   // 데이터 레이어 경유 — mock/api 모드 자동 분기
+  // LTI 모드: 서버가 이미 Canvas courseCode 로 필터링하므로 클라이언트 필터 skip
   const reload = async () => {
     try {
       const all = await listQuizzes()
-      setQuizzes(all.filter(q => q.course === CURRENT_COURSE))
+      const ltiCode = currentLtiCourseCode()
+      setQuizzes(ltiCode ? all : all.filter(q => q.course === CURRENT_COURSE))
     } catch (err) {
       console.error('[QuizList] listQuizzes 실패', err)
     }
@@ -178,7 +181,9 @@ function InstructorQuizList() {
     let mounted = true
     ;(async () => {
       const all = await listQuizzes().catch(() => [])
-      if (mounted) setQuizzes(all.filter(q => q.course === CURRENT_COURSE))
+      if (!mounted) return
+      const ltiCode = currentLtiCourseCode()
+      setQuizzes(ltiCode ? all : all.filter(q => q.course === CURRENT_COURSE))
     })()
     return () => { mounted = false }
   }, [])

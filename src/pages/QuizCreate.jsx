@@ -26,10 +26,8 @@ const WEEK_OPTIONS = [
   { value: null, label: '선택 안함' },
   ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` })),
 ]
-const SESSION_OPTIONS = [
-  { value: null, label: '선택 안함' },
-  ...[1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` })),
-]
+const SESSION_BASE = [1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` }))
+const SESSION_OPTIONS_WITH_NONE = [{ value: null, label: '선택 안함' }, ...SESSION_BASE]
 const ATTEMPT_MIN = 1
 const ATTEMPT_MAX = 99
 const SCORE_POLICIES = ['최고 점수 유지', '최신 점수 유지', '평균 점수'].map(v => ({ value: v, label: v }))
@@ -271,7 +269,7 @@ function InfoTab({ form, set }) {
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="주차"><CustomSelect value={form.week} onChange={v => { set('week', v); if (v !== null && !form.session) set('session', 1); if (v === null) set('session', null) }} options={WEEK_OPTIONS} placeholder="주차 선택" /></Field>
-          <Field label="차시"><CustomSelect value={form.session} onChange={v => set('session', v)} options={SESSION_OPTIONS} placeholder="차시 선택" /></Field>
+          <Field label="차시"><CustomSelect value={form.session} onChange={v => set('session', v)} options={form.week !== null ? SESSION_BASE : SESSION_OPTIONS_WITH_NONE} placeholder="차시 선택" /></Field>
         </div>
       </Section>
 
