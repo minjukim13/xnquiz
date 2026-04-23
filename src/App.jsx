@@ -13,12 +13,14 @@ if (typeof window !== 'undefined') {
     const token = hashParams.get('token')
     const role = hashParams.get('role')
     const section = hashParams.get('section')
+    const courseCode = hashParams.get('courseCode')
     if (token) {
       try {
         localStorage.setItem('xnq_token', token)
         localStorage.setItem('xnq_lti_active', '1')
         if (role) localStorage.setItem('xnq_lti_role', role)
         if (section) localStorage.setItem('xnq_lti_section', section)
+        if (courseCode) localStorage.setItem('xnq_lti_course_code', courseCode)
       } catch { /* private mode / quota */ }
     }
     // URL 정리: ?lti=1 과 해시 제거, 경로는 그대로 유지

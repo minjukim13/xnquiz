@@ -134,6 +134,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     userId = user.id
   }
 
+  // Canvas 과목(context) 정보 추출 → Course 레코드 upsert
+  // 앞으로 퀴즈 목록/생성이 canvas_{id} courseCode 로 격리됨
+  const ctxClaim = claims['https://purl.imsglobal.org/spec/lti/claim/context']
+  let canvasCourseCode: string | null = null
+  if (ctxClaim && typeof ctxClaim === 'object' && ctxClaim !== null) {
+    const ctx = ctxClaim as { id?: unknown; label?: unknown; title?: unknown }
+    if (typeof ctx.id === 'string' && ctx.id) {
+      const code = `CANVAS_${ctx.id}`.toUpperCase()
+      const courseName =
+        (typeof ctx.title === 'string' && ctx.title) ||
+        (typeof ctx.label === 'string' && ctx.label) ||
+        `Canvas Course ${ctx.id}`
+      await prisma.course.upsert({
+        where: { code },
+        update: { name: courseName },
+        create: { code, name: courseName },
+      })
+      canvasCourseCode = code
+    }
+  }
+
   // state 재사용 방지
   await prisma.ltiSession.delete({ where: { state } })
 
@@ -164,6 +185,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const publicUrl = process.env.XNQUIZ_PUBLIC_URL || `https://${req.headers.host}`
   const hashParams: Record<string, string> = { token: sessionToken, role, lti: '1' }
   if (section) hashParams.section = section
+  if (canvasCourseCode) hashParams.courseCode = canvasCourseCode
   const hashPayload = new URLSearchParams(hashParams).toString()
 
   const redirectPath = section === 'banks' ? '/question-banks' : '/'
