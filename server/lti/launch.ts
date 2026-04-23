@@ -139,6 +139,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           await prisma.user.update({ where: { id: userId }, data: { name: claimName } }).catch(() => {})
         }
       }
+      // LTI 키 2개(퀴즈/문제모음)로 같은 Canvas sub 이 다른 platform 에 등록된 경우,
+      // Canvas 가 한쪽 launch 에만 name/email 을 보내줘 익명/실명이 섞인다.
+      // 실명이 들어온 launch 를 기준으로 동일 sub 의 다른 platform User 도 일괄 동기화.
+      const siblings = await prisma.ltiUserMap.findMany({
+        where: { ltiSub: sub, platformId: { not: platform.id } },
+      })
+      for (const s of siblings) {
+        if (s.userId === userId) continue
+        await prisma.user.update({
+          where: { id: s.userId },
+          data: {
+            ...(claimName ? { name: claimName } : {}),
+            ...(claimEmail ? { email: claimEmail } : {}),
+          },
+        }).catch(async () => {
+          if (claimName) {
+            await prisma.user.update({ where: { id: s.userId }, data: { name: claimName } }).catch(() => {})
+          }
+        })
+      }
+    } else {
+      // 반대 케이스: 이번 launch 는 익명으로 왔지만 동일 sub 의 다른 platform User 에 실명이 이미 있으면
+      // 그 실명을 복사해서 채점 대시보드 표기 일관성 유지
+      const sibling = await prisma.ltiUserMap.findFirst({
+        where: {
+          ltiSub: sub,
+          platformId: { not: platform.id },
+          user: { NOT: { name: { startsWith: 'LTI ' } } },
+        },
+        include: { user: true },
+      })
+      if (sibling?.user) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            name: sibling.user.name,
+            email: sibling.user.email,
+          },
+        }).catch(async () => {
+          await prisma.user.update({
+            where: { id: userId },
+            data: { name: sibling.user.name },
+          }).catch(() => {})
+        })
+      }
     }
   } else {
     const user = await prisma.user.create({
