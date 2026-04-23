@@ -5,6 +5,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createPublicKey } from 'node:crypto'
 import jwt from 'jsonwebtoken'
 import { prisma } from '../../lib/prisma.js'
+import { syncRosterFromNrps } from '../../lib/lti/nrps.js'
 
 const LTI_ROLE_INSTRUCTOR = 'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor'
 const LTI_ROLE_ADMIN = 'http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator'
@@ -137,7 +138,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Canvas 과목(context) 정보 추출 → Course 레코드 upsert
   // 앞으로 퀴즈 목록/생성이 canvas_{id} courseCode 로 격리됨
   const ctxClaim = claims['https://purl.imsglobal.org/spec/lti/claim/context']
+  const nrpsClaim = claims['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice']
+  const deploymentIdClaim = claims['https://purl.imsglobal.org/spec/lti/claim/deployment_id']
   let canvasCourseCode: string | null = null
+  let nrpsUrl: string | null = null
+  let deploymentId: string | null = null
+
+  if (typeof deploymentIdClaim === 'string' && deploymentIdClaim) {
+    deploymentId = deploymentIdClaim
+  }
+  if (nrpsClaim && typeof nrpsClaim === 'object') {
+    const nrps = nrpsClaim as { context_memberships_url?: unknown }
+    if (typeof nrps.context_memberships_url === 'string') {
+      nrpsUrl = nrps.context_memberships_url
+    }
+  }
+
   if (ctxClaim && typeof ctxClaim === 'object' && ctxClaim !== null) {
     const ctx = ctxClaim as { id?: unknown; label?: unknown; title?: unknown }
     if (typeof ctx.id === 'string' && ctx.id) {
@@ -148,10 +164,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `Canvas Course ${ctx.id}`
       await prisma.course.upsert({
         where: { code },
-        update: { name: courseName },
-        create: { code, name: courseName },
+        update: {
+          name: courseName,
+          ltiPlatformId: platform.id,
+          ltiContextId: ctx.id,
+          ltiDeploymentId: deploymentId,
+          ltiNrpsUrl: nrpsUrl,
+        },
+        create: {
+          code,
+          name: courseName,
+          ltiPlatformId: platform.id,
+          ltiContextId: ctx.id,
+          ltiDeploymentId: deploymentId,
+          ltiNrpsUrl: nrpsUrl,
+        },
       })
       canvasCourseCode = code
+    }
+  }
+
+  // 교수자 launch 시 NRPS 자동 동기화 (실패해도 launch 는 계속)
+  // POC 단계: 블로킹 동기식 — 수강생 수 많아지면 비동기 전환 검토
+  if (role === 'PROFESSOR' && canvasCourseCode && nrpsUrl) {
+    try {
+      const syncResult = await syncRosterFromNrps({
+        courseCode: canvasCourseCode,
+        nrpsUrl,
+        platformId: platform.id,
+        clientId: platform.clientId,
+        tokenEndpoint: platform.authTokenUrl,
+      })
+      console.log('[lti:launch] NRPS sync ok', { courseCode: canvasCourseCode, ...syncResult })
+    } catch (err) {
+      console.error('[lti:launch] NRPS sync failed', { courseCode: canvasCourseCode, err: String(err) })
     }
   }
 

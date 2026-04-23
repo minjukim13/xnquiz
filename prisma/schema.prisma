@@ -123,9 +123,19 @@ model Course {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // LTI 1.3 연동 메타데이터 (Canvas 과목에서 launch 된 경우만 채워짐)
+  ltiPlatformId      String? // FK → LtiPlatform.id
+  ltiContextId       String? // Canvas context.id (course_id 원문)
+  ltiDeploymentId    String? // LTI deployment_id (NRPS/AGS 토큰 요청용)
+  ltiNrpsUrl         String? // context_memberships_url (NRPS endpoint)
+  ltiLastSyncedAt    DateTime? // 마지막 NRPS 동기화 시각
+
   quizzes     Quiz[]
   banks       QuestionBank[]
   enrollments Enrollment[]
+  ltiPlatform LtiPlatform? @relation(fields: [ltiPlatformId], references: [id])
+
+  @@index([ltiPlatformId, ltiContextId])
 }
 
 model Enrollment {
@@ -372,6 +382,7 @@ model LtiPlatform {
   updatedAt DateTime @updatedAt
 
   userMappings LtiUserMap[]
+  courses      Course[]
 
   @@unique([issuer, clientId])
   @@map("lti_platform")
