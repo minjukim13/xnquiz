@@ -34,8 +34,8 @@ async function patchBankQuestion(req: VercelRequest, res: VercelResponse, auth: 
     where: { id },
     include: { bank: true },
   })
-  // 부모 bank 의 소유자 본인만 수정 가능
-  if (!existing || existing.bank.createdById !== auth.userId) {
+  // 부모 bank 의 소유자 본인만 수정 가능 (ADMIN 은 과목 내 모든 문제모음 문항 수정 가능)
+  if (!existing || (auth.role !== 'ADMIN' && existing.bank.createdById !== auth.userId)) {
     return res.status(404).json({ error: '문항을 찾을 수 없습니다' })
   }
 
@@ -85,7 +85,7 @@ async function deleteBankQuestion(_req: VercelRequest, res: VercelResponse, auth
     where: { id },
     include: { bank: true },
   })
-  if (!existing || existing.bank.createdById !== auth.userId) {
+  if (!existing || (auth.role !== 'ADMIN' && existing.bank.createdById !== auth.userId)) {
     return res.status(404).json({ error: '문항을 찾을 수 없습니다' })
   }
 

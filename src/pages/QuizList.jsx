@@ -163,7 +163,12 @@ export default function QuizList() {
 
 // ─────────────────────────────── 교수자 뷰 ───────────────────────────────
 function InstructorQuizList() {
-  const [quizzes, setQuizzes] = useState([])
+  // mock 모드는 초기값을 동기로 채워 첫 렌더 깜빡임 제거 — api 모드는 서버 왕복 필요
+  const [quizzes, setQuizzes] = useState(() => {
+    if (isApiMode()) return []
+    const ltiCode = currentLtiCourseCode()
+    return ltiCode ? [...mockQuizzes] : mockQuizzes.filter(q => q.course === CURRENT_COURSE)
+  })
 
   // 데이터 레이어 경유 — mock/api 모드 자동 분기
   // LTI 모드: 서버가 이미 Canvas courseCode 로 필터링하므로 클라이언트 필터 skip
@@ -849,7 +854,11 @@ function StudentQuizList() {
   const [sortKey, setSortKey] = useState('recent')
 
   // 데이터 레이어 경유 — api 모드에선 서버가 visible + 수강 과목 필터링까지 수행
-  const [allQuizzes, setAllQuizzes] = useState([])
+  // mock 모드는 초기값을 동기로 채워 첫 렌더 깜빡임 제거
+  const [allQuizzes, setAllQuizzes] = useState(() => {
+    if (isApiMode()) return []
+    return mockQuizzes.filter(q => q.status !== 'draft' && q.visible !== false)
+  })
   // api 모드용 — 학생 본인 attempt 전체 (quiz.id 별 그룹핑용)
   // null = mock 모드 (StudentQuizCard 가 getStudentAttempts 로 직접 로드)
   const [apiAttempts, setApiAttempts] = useState(null)

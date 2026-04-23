@@ -31,8 +31,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 async function listBankQuestions(_req: VercelRequest, res: VercelResponse, auth: AuthPayload, bankId: string) {
   const bank = await prisma.questionBank.findUnique({ where: { id: bankId } })
-  // 본인 소유 아니면 존재 자체 숨김
-  if (!bank || bank.createdById !== auth.userId) {
+  // 본인 소유 아니면 존재 자체 숨김 (ADMIN 은 과목 내 모든 문제모음 접근 가능)
+  if (!bank || (auth.role !== 'ADMIN' && bank.createdById !== auth.userId)) {
     return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
   }
 
@@ -49,7 +49,7 @@ async function listBankQuestions(_req: VercelRequest, res: VercelResponse, auth:
 
 async function createBankQuestion(req: VercelRequest, res: VercelResponse, auth: AuthPayload, bankId: string) {
   const bank = await prisma.questionBank.findUnique({ where: { id: bankId } })
-  if (!bank || bank.createdById !== auth.userId) {
+  if (!bank || (auth.role !== 'ADMIN' && bank.createdById !== auth.userId)) {
     return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
   }
 

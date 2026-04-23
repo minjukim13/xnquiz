@@ -33,7 +33,8 @@ async function getBank(_req: VercelRequest, res: VercelResponse, auth: AuthPaylo
       include: { course: true, _count: { select: { questions: true } } },
     })
     // 교수자별 개인화: 본인 소유가 아니면 존재 자체 숨김 (404)
-    if (!bank || bank.createdById !== auth.userId) {
+    // ADMIN 은 과목 내 모든 문제모음 접근 가능 (운영자 권한)
+    if (!bank || (auth.role !== 'ADMIN' && bank.createdById !== auth.userId)) {
       return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
     }
 
@@ -55,7 +56,7 @@ async function getBank(_req: VercelRequest, res: VercelResponse, auth: AuthPaylo
 
 async function patchBank(req: VercelRequest, res: VercelResponse, auth: AuthPayload, id: string) {
   const existing = await prisma.questionBank.findUnique({ where: { id } })
-  if (!existing || existing.createdById !== auth.userId) {
+  if (!existing || (auth.role !== 'ADMIN' && existing.createdById !== auth.userId)) {
     return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
   }
 
@@ -105,7 +106,7 @@ async function patchBank(req: VercelRequest, res: VercelResponse, auth: AuthPayl
 
 async function deleteBank(_req: VercelRequest, res: VercelResponse, auth: AuthPayload, id: string) {
   const existing = await prisma.questionBank.findUnique({ where: { id } })
-  if (!existing || existing.createdById !== auth.userId) {
+  if (!existing || (auth.role !== 'ADMIN' && existing.createdById !== auth.userId)) {
     return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
   }
 

@@ -26,10 +26,12 @@ async function listBanks(req: VercelRequest, res: VercelResponse, auth: AuthPayl
 
   try {
     // 교수자별 개인화: 본인이 만든 문제모음만 조회 (같은 과목의 다른 교수자 것은 숨김)
+    // ADMIN 예외: 과목 페이지 컨텍스트(courseCode 지정)에서는 해당 과목의 모든 문제모음 조회 가능
+    const scopedToCourseAsAdmin = auth.role === 'ADMIN' && !!courseCode
     const banks = await prisma.questionBank.findMany({
       where: {
-        createdById: auth.userId,
         ...(courseCode ? { courseCode } : {}),
+        ...(scopedToCourseAsAdmin ? {} : { createdById: auth.userId }),
       },
       include: { course: true, _count: { select: { questions: true } } },
       orderBy: { updatedAt: 'desc' },
