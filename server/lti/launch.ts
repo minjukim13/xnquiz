@@ -184,9 +184,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // 교수자 launch 시 NRPS 자동 동기화 (실패해도 launch 는 계속)
+  // 교수자/운영자 launch 시 NRPS 자동 동기화 (실패해도 launch 는 계속)
+  // 운영자(ADMIN)는 교수자가 가진 모든 권한을 포함 — 동기화 트리거도 동일
   // POC 단계: 블로킹 동기식 — 수강생 수 많아지면 비동기 전환 검토
-  if (role === 'PROFESSOR' && canvasCourseCode && nrpsUrl) {
+  if ((role === 'PROFESSOR' || role === 'ADMIN') && canvasCourseCode && nrpsUrl) {
     try {
       const syncResult = await syncRosterFromNrps({
         courseCode: canvasCourseCode,
