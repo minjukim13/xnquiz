@@ -54,7 +54,11 @@ export function QuestionBankProvider({ children }) {
     let mounted = true
     ;(async () => {
       try {
-        const apiBanks = await listBanks()
+        // LTI 모드: 과목 스코프를 명시적으로 전달 (ADMIN 예외 로직은 courseCode 가 있어야 작동)
+        const ltiCourseCode = typeof window !== 'undefined'
+          ? localStorage.getItem('xnq_lti_course_code')
+          : null
+        const apiBanks = await listBanks(ltiCourseCode ? { courseCode: ltiCourseCode } : {})
         if (!mounted) return
         setBanks(apiBanks)
         const perBank = await Promise.all(apiBanks.map(b => apiGetBankQuestions(b.id)))
