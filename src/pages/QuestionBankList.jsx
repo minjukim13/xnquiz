@@ -177,14 +177,16 @@ export default function QuestionBankList() {
             )
           })}
 
-          {/* 추가 카드 */}
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary"
-          >
-            <Plus size={20} />
-            <span className="text-sm font-medium">새 문제모음 추가</span>
-          </button>
+          {/* 추가 카드 (문제모음이 있을 때만 노출) */}
+          {banks.length > 0 && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary"
+            >
+              <Plus size={20} />
+              <span className="text-sm font-medium">새 문제모음 추가</span>
+            </button>
+          )}
         </div>
 
         {/* 빈 상태 */}
