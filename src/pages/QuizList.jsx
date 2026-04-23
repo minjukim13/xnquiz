@@ -953,8 +953,9 @@ function StudentQuizList() {
 
 function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = null }) {
   // api 모드면 부모가 내려준 실제 응시 기록, 아니면 mock localStorage 에서 조회
+  // api 모드는 서버가 이미 본인 것만 반환 → studentId 추가 필터 스킵 (LTI 유저 ID 매칭 오류 방지)
   const attempts = apiAttempts ?? getStudentAttempts(quiz.id)
-  const myAttempts = attempts.filter(a => a.studentId === studentId)
+  const myAttempts = apiAttempts ? apiAttempts : attempts.filter(a => a.studentId === studentId)
   const myAttempt = myAttempts[myAttempts.length - 1] ?? null
   const attemptCount = myAttempts.length
   const [showHistory, setShowHistory] = useState(false)
