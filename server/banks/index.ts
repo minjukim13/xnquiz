@@ -14,19 +14,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: '교수자만 접근 가능합니다' })
   }
 
-  if (req.method === 'GET')  return listBanks(req, res)
+  if (req.method === 'GET')  return listBanks(req, res, auth)
   if (req.method === 'POST') return createBank(req, res, auth)
 
   res.setHeader('Allow', 'GET, POST')
   return res.status(405).json({ error: 'Method Not Allowed' })
 }
 
-async function listBanks(req: VercelRequest, res: VercelResponse) {
+async function listBanks(req: VercelRequest, res: VercelResponse, auth: AuthPayload) {
   const courseCode = (req.query.courseCode as string | undefined)?.toUpperCase()
 
   try {
+    // 교수자별 개인화: 본인이 만든 문제모음만 조회 (같은 과목의 다른 교수자 것은 숨김)
     const banks = await prisma.questionBank.findMany({
-      where: courseCode ? { courseCode } : undefined,
+      where: {
+        createdById: auth.userId,
+        ...(courseCode ? { courseCode } : {}),
+      },
       include: { course: true, _count: { select: { questions: true } } },
       orderBy: { updatedAt: 'desc' },
     })

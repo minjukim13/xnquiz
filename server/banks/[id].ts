@@ -18,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = req.query.id as string | undefined
   if (!id) return res.status(400).json({ error: 'id 필요' })
 
-  if (req.method === 'GET')    return getBank(req, res, id)
+  if (req.method === 'GET')    return getBank(req, res, auth, id)
   if (req.method === 'PATCH')  return patchBank(req, res, auth, id)
   if (req.method === 'DELETE') return deleteBank(req, res, auth, id)
 
@@ -26,13 +26,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   return res.status(405).json({ error: 'Method Not Allowed' })
 }
 
-async function getBank(_req: VercelRequest, res: VercelResponse, id: string) {
+async function getBank(_req: VercelRequest, res: VercelResponse, auth: AuthPayload, id: string) {
   try {
     const bank = await prisma.questionBank.findUnique({
       where: { id },
       include: { course: true, _count: { select: { questions: true } } },
     })
-    if (!bank) return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
+    // 교수자별 개인화: 본인 소유가 아니면 존재 자체 숨김 (404)
+    if (!bank || bank.createdById !== auth.userId) {
+      return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
+    }
 
     return res.status(200).json({
       id: bank.id,
@@ -50,9 +53,11 @@ async function getBank(_req: VercelRequest, res: VercelResponse, id: string) {
   }
 }
 
-async function patchBank(req: VercelRequest, res: VercelResponse, _auth: AuthPayload, id: string) {
+async function patchBank(req: VercelRequest, res: VercelResponse, auth: AuthPayload, id: string) {
   const existing = await prisma.questionBank.findUnique({ where: { id } })
-  if (!existing) return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
+  if (!existing || existing.createdById !== auth.userId) {
+    return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
+  }
 
   const body = (req.body ?? {}) as Record<string, unknown>
   const data: Record<string, unknown> = {}
@@ -98,9 +103,11 @@ async function patchBank(req: VercelRequest, res: VercelResponse, _auth: AuthPay
   }
 }
 
-async function deleteBank(_req: VercelRequest, res: VercelResponse, _auth: AuthPayload, id: string) {
+async function deleteBank(_req: VercelRequest, res: VercelResponse, auth: AuthPayload, id: string) {
   const existing = await prisma.questionBank.findUnique({ where: { id } })
-  if (!existing) return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
+  if (!existing || existing.createdById !== auth.userId) {
+    return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
+  }
 
   try {
     await prisma.questionBank.delete({ where: { id } })

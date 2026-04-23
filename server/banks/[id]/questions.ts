@@ -22,16 +22,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = req.query.id as string | undefined
   if (!id) return res.status(400).json({ error: 'id 필요' })
 
-  if (req.method === 'GET')  return listBankQuestions(req, res, id)
+  if (req.method === 'GET')  return listBankQuestions(req, res, auth, id)
   if (req.method === 'POST') return createBankQuestion(req, res, auth, id)
 
   res.setHeader('Allow', 'GET, POST')
   return res.status(405).json({ error: 'Method Not Allowed' })
 }
 
-async function listBankQuestions(_req: VercelRequest, res: VercelResponse, bankId: string) {
+async function listBankQuestions(_req: VercelRequest, res: VercelResponse, auth: AuthPayload, bankId: string) {
   const bank = await prisma.questionBank.findUnique({ where: { id: bankId } })
-  if (!bank) return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
+  // 본인 소유 아니면 존재 자체 숨김
+  if (!bank || bank.createdById !== auth.userId) {
+    return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
+  }
 
   try {
     const questions = await prisma.bankQuestion.findMany({
@@ -44,9 +47,11 @@ async function listBankQuestions(_req: VercelRequest, res: VercelResponse, bankI
   }
 }
 
-async function createBankQuestion(req: VercelRequest, res: VercelResponse, _auth: AuthPayload, bankId: string) {
+async function createBankQuestion(req: VercelRequest, res: VercelResponse, auth: AuthPayload, bankId: string) {
   const bank = await prisma.questionBank.findUnique({ where: { id: bankId } })
-  if (!bank) return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
+  if (!bank || bank.createdById !== auth.userId) {
+    return res.status(404).json({ error: '문제은행을 찾을 수 없습니다' })
+  }
 
   const body = (req.body ?? {}) as Record<string, unknown>
   const type = body.type as QuestionType | undefined
