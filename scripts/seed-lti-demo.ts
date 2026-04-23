@@ -469,10 +469,11 @@ async function main() {
     // Canvas Assignment 등록 (external_tool 타입)
     if (canSyncCanvas && quiz) {
       try {
-        // launchUrl 쿼리(quiz_id 등) 금지 — Canvas Dev Key 의 redirect_uri 정확매칭 때문에
-        // 쿼리 포함 URL 은 bad_request("Invalid redirect_uri") 를 일으킴.
-        // Assignment → 어떤 퀴즈인지 연결은 추후 custom_fields 방식으로 구현.
-        const launchUrl = `${publicUrl!.replace(/\/+$/, '')}/api/lti/launch`
+        // launchUrl 은 Canvas Dev Key 에 등록된 redirect URI 와 exact match 필요.
+        // 퀴즈 placement tool 은 `?section=quizzes` 로 등록돼 있으므로 Assignment 도 동일 쿼리 사용.
+        // 임의 파라미터(quiz_id 등) 추가 금지 — mismatch 시 authorize 500 발생.
+        // 퀴즈별 deep link 는 추후 custom_fields 로 구현.
+        const launchUrl = `${publicUrl!.replace(/\/+$/, '')}/api/lti/launch?section=quizzes`
         const { assignment, created, updated } = await ensureExternalToolAssignment({
           baseUrl: canvasBaseUrl!,
           apiToken: canvasApiToken!,
