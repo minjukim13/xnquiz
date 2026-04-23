@@ -7,8 +7,13 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '../../lib/prisma.js'
 import { syncRosterFromNrps } from '../../lib/lti/nrps.js'
 
-const LTI_ROLE_INSTRUCTOR = 'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor'
-const LTI_ROLE_ADMIN = 'http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator'
+// LTI 1.3 roles 는 context(과목)/institution(기관)/system 레벨이 섞여 들어옴.
+// xnquiz 화면 분기는 "이 과목에서의 역할"이 우선 — 기관 Admin 이어도 과목에서 Learner 면 학생 화면으로 보여야 함.
+const CTX_ROLE_INSTRUCTOR = 'membership#Instructor'
+const CTX_ROLE_TEACHER = 'membership#Teacher'
+const CTX_ROLE_TA = 'membership#TeachingAssistant'
+const CTX_ROLE_LEARNER = 'membership#Learner'
+const INST_ROLE_ADMIN = 'institution/person#Administrator'
 
 type CanvasJwk = { kty: string; kid: string; n: string; e: string; alg?: string }
 
@@ -27,9 +32,12 @@ async function fetchCanvasPublicKey(jwksUrl: string, kid: string): Promise<strin
 function mapRole(roles: unknown): 'PROFESSOR' | 'STUDENT' | 'ADMIN' {
   if (!Array.isArray(roles)) return 'STUDENT'
   const str = roles.map(String)
-  if (str.some((r) => r.includes(LTI_ROLE_ADMIN))) return 'ADMIN'
-  if (str.some((r) => r.includes(LTI_ROLE_INSTRUCTOR) || r.endsWith('Instructor') || r.endsWith('Teacher')))
+  // 1) 과목(context) 역할 우선
+  if (str.some((r) => r.includes(CTX_ROLE_LEARNER))) return 'STUDENT'
+  if (str.some((r) => r.includes(CTX_ROLE_INSTRUCTOR) || r.includes(CTX_ROLE_TEACHER) || r.includes(CTX_ROLE_TA)))
     return 'PROFESSOR'
+  // 2) 과목 역할 없으면 기관 관리자 여부 확인
+  if (str.some((r) => r.includes(INST_ROLE_ADMIN))) return 'ADMIN'
   return 'STUDENT'
 }
 
