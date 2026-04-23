@@ -67,10 +67,24 @@ function RoleToggle({ role, setRole }) {
   )
 }
 
+function isLtiActive() {
+  try { return typeof window !== 'undefined' && localStorage.getItem('xnq_lti_active') === '1' } catch { return false }
+}
+
 export default function Layout({ children }) {
   const { role, setRole, currentStudent } = useRole()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const location = useLocation()
+
+  // LTI 모드 (Canvas iframe 진입): Canvas 가 이미 좌측 네비게이션 제공
+  // → xnquiz 내부 사이드바/헤더/역할토글 숨김. 콘텐츠만 렌더.
+  if (isLtiActive()) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <main className="px-6 lg:px-10 py-6">{children}</main>
+      </div>
+    )
+  }
 
   const navItems = role === 'student'
     ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
