@@ -82,7 +82,7 @@ export default function Layout({ children }) {
   if (isLtiActive()) {
     return (
       <div className="lti-mode min-h-screen bg-background text-foreground">
-        <main className="px-6 lg:px-10 py-6">{children}</main>
+        <main className="px-6 lg:px-10 pt-2 pb-6">{children}</main>
       </div>
     )
   }
