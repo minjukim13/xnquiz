@@ -3,12 +3,23 @@
 // - 기존 "1학기 중간고사" 는 유지
 // - 이미 같은 제목이 있으면 해당 항목 스킵 (재실행 안전)
 // - 교수자 소유자: minju.kim@xinics.com (ADMIN/PROFESSOR)
+// - CANVAS_API_TOKEN 이 env 에 있으면 각 퀴즈를 Canvas Assignment(external_tool) 로 자동 등록
+//   → Canvas "과제 및 평가", "학습 활동 현황" 메뉴에 노출됨
 //
 // 사용: tsx scripts/seed-lti-demo.ts
 
 import 'dotenv/config'
+import { config as dotenvConfig } from 'dotenv'
+// tsx(Node) 는 Vite 와 달리 .env.local 을 자동 로드하지 않음 — 명시적으로 추가 로드
+dotenvConfig({ path: '.env.local', override: true })
+
 import { prisma } from '../lib/prisma.js'
 import type { QuestionType, AutoGradeMode, BankDifficulty } from '@prisma/client'
+import {
+  ensureExternalToolAssignment,
+  listExternalTools,
+  pickMatchingTool,
+} from '../lib/lti/canvas-rest.js'
 
 const COURSE_CODE = 'CANVAS_EA5D93865BBDFB742FB410DF1E727F3012D2A0D6'
 const OWNER_EMAIL = 'minju.kim@xinics.com'
@@ -328,13 +339,77 @@ const BANKS: BankSeed[] = [
 // ───────────────────────────── 실행부 ─────────────────────────────
 
 async function main() {
-  const course = await prisma.course.findUnique({ where: { code: COURSE_CODE } })
+  const course = await prisma.course.findUnique({
+    where: { code: COURSE_CODE },
+    include: { ltiPlatform: true },
+  })
   if (!course) throw new Error(`과목 없음: ${COURSE_CODE} — Canvas 교수자 launch 먼저 필요`)
 
   const owner = await prisma.user.findUnique({ where: { email: OWNER_EMAIL } })
   if (!owner) throw new Error(`교수자 User 없음: ${OWNER_EMAIL}`)
 
   console.log(`[seed-lti-demo] 대상 과목=${course.code}, 소유자=${owner.name} (${owner.id})`)
+
+  // Canvas REST API 연동 가능 여부 판단
+  // Canvas REST 는 숫자 course_id 를 요구함 (LTI opaque context_id 로는 404).
+  // 브라우저 URL 의 /courses/<숫자>/ 에서 확인해 CANVAS_COURSE_ID env 로 주입.
+  const canvasApiToken = process.env.CANVAS_API_TOKEN
+  const publicUrl = process.env.XNQUIZ_PUBLIC_URL
+  const canvasCourseId = process.env.CANVAS_COURSE_ID
+  const canvasBaseUrl = course.ltiPlatform?.issuer
+
+  const canSyncCanvas = !!(canvasApiToken && publicUrl && canvasCourseId && canvasBaseUrl)
+  if (!canSyncCanvas) {
+    console.log('[canvas-sync] SKIP — 다음 env/DB 값 중 누락 있음:')
+    console.log(`   CANVAS_API_TOKEN=${canvasApiToken ? 'OK' : 'MISSING'}`)
+    console.log(`   XNQUIZ_PUBLIC_URL=${publicUrl ? 'OK' : 'MISSING'}`)
+    console.log(`   CANVAS_COURSE_ID=${canvasCourseId ? 'OK' : 'MISSING (브라우저 URL /courses/<숫자>/ 의 숫자)'}`)
+    console.log(`   LtiPlatform.issuer=${canvasBaseUrl ? 'OK' : 'MISSING'}`)
+    console.log('   → 퀴즈는 xnquiz DB 에만 생성되고 Canvas UI 에는 노출 안 됨')
+  } else {
+    console.log(`[canvas-sync] ENABLED — Canvas course_id=${canvasCourseId}, base=${canvasBaseUrl}`)
+    console.log(`[canvas-sync]   XNQUIZ_PUBLIC_URL=${publicUrl}`)
+  }
+
+  // env 포맷 사전 검증
+  if (canSyncCanvas && publicUrl) {
+    if (!/^https?:\/\//.test(publicUrl)) {
+      console.error(`[canvas-sync] ERROR: XNQUIZ_PUBLIC_URL 에 http(s):// 접두어 없음. 현재값="${publicUrl}"`)
+      console.error('   .env.local 을 "https://..." 형식으로 고친 뒤 재실행')
+      process.exit(1)
+    }
+    try { new URL(publicUrl) } catch {
+      console.error(`[canvas-sync] ERROR: XNQUIZ_PUBLIC_URL 이 유효한 URL 이 아님. 현재값="${publicUrl}"`)
+      process.exit(1)
+    }
+  }
+
+  // 과목에 설치된 External Tool 중 xnquiz 매칭 도구 찾기 (content_id 주입용)
+  let toolContentId: number | undefined
+  if (canSyncCanvas) {
+    try {
+      const tools = await listExternalTools({
+        baseUrl: canvasBaseUrl!,
+        apiToken: canvasApiToken!,
+        courseId: canvasCourseId!,
+      })
+      const probeUrl = `${publicUrl!.replace(/\/+$/, '')}/api/lti/launch`
+      const matched = pickMatchingTool(tools, probeUrl)
+      if (matched) {
+        toolContentId = matched.id
+        console.log(`[canvas-sync] tool matched: id=${matched.id} name="${matched.name}" url=${matched.url ?? matched.domain ?? '-'}`)
+      } else {
+        console.warn('[canvas-sync] WARN: 과목에 매칭되는 external tool 못 찾음. Assignment 클릭 시 실패 가능')
+        console.warn(`   매칭 기준 URL=${probeUrl}`)
+        console.warn('   설치된 tool 목록:')
+        for (const t of tools) {
+          console.warn(`     - id=${t.id} name="${t.name}" url=${t.url ?? '-'} domain=${t.domain ?? '-'}`)
+        }
+      }
+    } catch (err) {
+      console.warn('[canvas-sync] external tool 조회 실패:', String(err))
+    }
+  }
 
   const now = new Date()
   const dueDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7일 후
@@ -344,51 +419,77 @@ async function main() {
     const dup = await prisma.quiz.findFirst({
       where: { courseCode: COURSE_CODE, title: q.title },
     })
-    if (dup) {
-      console.log(`[quiz] SKIP 이미 존재: ${q.title}`)
-      continue
-    }
 
+    let quiz = dup
     const totalPoints = q.questions.reduce((sum, qq) => sum + qq.points, 0)
 
-    const quiz = await prisma.quiz.create({
-      data: {
-        title: q.title,
-        description: q.description,
-        courseCode: COURSE_CODE,
-        createdById: owner.id,
-        status: 'open',
-        visible: true,
-        startDate: now,
-        dueDate,
-        week: q.week,
-        session: q.session,
-        timeLimit: q.timeLimit,
-        allowAttempts: 1,
-        scoreRevealEnabled: false,
-        allowLateSubmit: false,
-      },
-    })
-
-    for (let i = 0; i < q.questions.length; i++) {
-      const qq = q.questions[i]
-      await prisma.question.create({
+    if (dup) {
+      console.log(`[quiz] SKIP 이미 존재: ${q.title}`)
+    } else {
+      quiz = await prisma.quiz.create({
         data: {
-          quizId: quiz.id,
-          order: i + 1,
-          type: qq.type,
-          text: qq.text,
-          points: qq.points,
-          autoGrade: qq.autoGrade,
-          correctAnswer: qq.correctAnswer as never,
-          choices: qq.choices as never,
-          rubric: qq.rubric,
-          correctComment: qq.correctComment,
-          incorrectComment: qq.incorrectComment,
+          title: q.title,
+          description: q.description,
+          courseCode: COURSE_CODE,
+          createdById: owner.id,
+          status: 'open',
+          visible: true,
+          startDate: now,
+          dueDate,
+          week: q.week,
+          session: q.session,
+          timeLimit: q.timeLimit,
+          allowAttempts: 1,
+          scoreRevealEnabled: false,
+          allowLateSubmit: false,
         },
       })
+
+      for (let i = 0; i < q.questions.length; i++) {
+        const qq = q.questions[i]
+        await prisma.question.create({
+          data: {
+            quizId: quiz.id,
+            order: i + 1,
+            type: qq.type,
+            text: qq.text,
+            points: qq.points,
+            autoGrade: qq.autoGrade,
+            correctAnswer: qq.correctAnswer as never,
+            choices: qq.choices as never,
+            rubric: qq.rubric,
+            correctComment: qq.correctComment,
+            incorrectComment: qq.incorrectComment,
+          },
+        })
+      }
+      console.log(`[quiz] CREATED ${q.title} (총 ${totalPoints}점, ${q.questions.length}문항)`)
     }
-    console.log(`[quiz] CREATED ${q.title} (총 ${totalPoints}점, ${q.questions.length}문항)`)
+
+    // Canvas Assignment 등록 (external_tool 타입)
+    if (canSyncCanvas && quiz) {
+      try {
+        const launchUrl = `${publicUrl!.replace(/\/+$/, '')}/api/lti/launch?quiz_id=${quiz.id}`
+        const { assignment, created, updated } = await ensureExternalToolAssignment({
+          baseUrl: canvasBaseUrl!,
+          apiToken: canvasApiToken!,
+          courseId: canvasCourseId!,
+          name: q.title,
+          launchUrl,
+          pointsPossible: totalPoints,
+          dueAt: dueDate,
+          published: true,
+          description: q.description,
+          contentId: toolContentId,
+        })
+        const action = created ? 'CREATED' : updated ? 'UPDATED' : 'EXISTS'
+        console.log(
+          `[canvas-sync] ${action} assignment id=${assignment.id} "${assignment.name}"`,
+        )
+      } catch (err) {
+        console.error(`[canvas-sync] FAIL "${q.title}":`, String(err))
+      }
+    }
   }
 
   // 문제모음 생성
