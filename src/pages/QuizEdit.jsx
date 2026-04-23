@@ -25,7 +25,8 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 
 const WEEK_OPTIONS = [{ value: null, label: '선택 안함' }, ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` }))]
-const SESSION_OPTIONS = [{ value: null, label: '선택 안함' }, ...[1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` }))]
+const SESSION_BASE = [1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` }))
+const SESSION_OPTIONS_WITH_NONE = [{ value: null, label: '선택 안함' }, ...SESSION_BASE]
 const ATTEMPT_MIN = 1
 const ATTEMPT_MAX = 99
 const SCORE_POLICIES = ['최고 점수 유지', '최신 점수 유지', '평균 점수'].map(v => ({ value: v, label: v }))
@@ -384,7 +385,7 @@ export default function QuizEdit() {
             )}
           </div>
           <div className="space-y-4">
-            <SC title="기본 정보"><SF label="퀴즈 제목" required><input type="text" value={title} onChange={e => setTitle(e.target.value)} className={INPUT_CLS} placeholder="퀴즈 제목을 입력하세요" /></SF><SF label="퀴즈 설명"><textarea value={description} onChange={e => setDescription(e.target.value)} className={cn(INPUT_CLS, 'resize-none')} rows={3} placeholder="학생에게 표시될 퀴즈 설명 (선택)" /></SF><div className="grid grid-cols-2 gap-2"><SF label="주차"><CustomSelect value={week} onChange={v => { setWeek(v); if (v !== null && !session) setSession(1); if (v === null) setSession(null) }} options={WEEK_OPTIONS} placeholder="선택 안함" /></SF><SF label="차시"><CustomSelect value={session} onChange={setSession} options={SESSION_OPTIONS} placeholder="선택 안함" /></SF></div></SC>
+            <SC title="기본 정보"><SF label="퀴즈 제목" required><input type="text" value={title} onChange={e => setTitle(e.target.value)} className={INPUT_CLS} placeholder="퀴즈 제목을 입력하세요" /></SF><SF label="퀴즈 설명"><textarea value={description} onChange={e => setDescription(e.target.value)} className={cn(INPUT_CLS, 'resize-none')} rows={3} placeholder="학생에게 표시될 퀴즈 설명 (선택)" /></SF><div className="grid grid-cols-2 gap-2"><SF label="주차"><CustomSelect value={week} onChange={v => { setWeek(v); if (v !== null && !session) setSession(1); if (v === null) setSession(null) }} options={WEEK_OPTIONS} placeholder="선택 안함" /></SF><SF label="차시"><CustomSelect value={session} onChange={setSession} options={week !== null ? SESSION_BASE : SESSION_OPTIONS_WITH_NONE} placeholder="선택 안함" /></SF></div></SC>
             <SC title="퀴즈 유형"><div className="grid grid-cols-2 gap-2">{[{ value: 'graded', label: '평가용', desc: '성적 반영' }, { value: 'practice', label: '연습용', desc: '성적 미반영' }].map(opt => (<button key={opt.value} onClick={() => setQuizMode(opt.value)} className={cn('text-left p-2.5 rounded-md transition-all border-2', quizMode === opt.value ? 'border-primary bg-accent' : 'border-border bg-white')}><p className={cn('text-sm font-semibold', quizMode === opt.value ? 'text-primary' : 'text-slate-700')}>{opt.label}</p><p className={cn('text-xs mt-0.5', quizMode === opt.value ? 'text-primary' : 'text-muted-foreground')}>{opt.desc}</p></button>))}</div></SC>
             <SC title="응시 기간">
               <div className="grid grid-cols-2 gap-2">
