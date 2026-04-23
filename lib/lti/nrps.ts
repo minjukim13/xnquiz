@@ -120,6 +120,22 @@ export async function syncRosterFromNrps(params: SyncRosterParams): Promise<Sync
     const members = Array.isArray(data.members) ? data.members : []
     result.totalMembers += members.length
 
+    // 진단 로그: 첫 3명의 원본 필드 구조 확인 (Canvas 가 실제로 어떤 키를 보내는지)
+    if (members.length > 0) {
+      const sample = members.slice(0, 3).map((m) => ({
+        user_id: m.user_id,
+        name: m.name,
+        given_name: m.given_name,
+        family_name: m.family_name,
+        email: m.email,
+        status: m.status,
+        sourcedid: m.lis_person_sourcedid,
+        roles_count: Array.isArray(m.roles) ? m.roles.length : 0,
+        all_keys: Object.keys(m),
+      }))
+      console.log('[nrps] sample members', JSON.stringify(sample))
+    }
+
     for (const m of members) {
       if (m.status && m.status !== 'Active') {
         result.skipped += 1
