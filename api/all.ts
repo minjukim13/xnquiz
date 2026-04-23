@@ -44,8 +44,15 @@ let cached: express.Application | null = null
 
 function buildApp() {
   const app = express()
+  app.disable('etag') // 304 Not Modified 로 목록이 갱신 안 되는 이슈 방지
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ extended: true }))
+
+  // 기본 API 는 동적 데이터라 브라우저 캐시 금지 (lti/jwks 핸들러는 public max-age 로 덮어씀)
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, must-revalidate')
+    next()
+  })
 
   app.all('/api/health', vh(health))
 
