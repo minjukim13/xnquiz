@@ -60,26 +60,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     },
   })
 
-  // redirect_uri 는 Canvas Dev Key 에 등록된 URL 과 정확 매칭 필수 → 쿼리/해시 제거.
-  // 퀴즈 식별 같은 파라미터는 target_link_uri 에 남아 있고 id_token 클레임으로 전달됨.
-  const redirectUri = (() => {
-    try {
-      const u = new URL(targetLinkUri)
-      u.search = ''
-      u.hash = ''
-      return u.toString()
-    } catch {
-      return targetLinkUri
-    }
-  })()
-
   const authUrl = new URL(platform.authLoginUrl)
   authUrl.searchParams.set('scope', 'openid')
   authUrl.searchParams.set('response_type', 'id_token')
   authUrl.searchParams.set('response_mode', 'form_post')
   authUrl.searchParams.set('prompt', 'none')
   authUrl.searchParams.set('client_id', clientId)
-  authUrl.searchParams.set('redirect_uri', redirectUri)
+  // redirect_uri 는 target_link_uri 그대로 전달 — Canvas Dev Key 는 이 페어로 검증함.
+  // 쿼리/해시를 제거하면 쿼리 포함 URL 이 등록된 Dev Key 에서 500 반환(authorize 단계 실패).
+  authUrl.searchParams.set('redirect_uri', targetLinkUri)
   authUrl.searchParams.set('state', state)
   authUrl.searchParams.set('nonce', nonce)
   authUrl.searchParams.set('login_hint', loginHint)
