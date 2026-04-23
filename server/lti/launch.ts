@@ -347,12 +347,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try { section = new URL(targetLinkClaim).searchParams.get('section') } catch { /* ignore */ }
   }
 
+  // LearningX → xnquiz 주차/차시 단방향 동기화 (B-1)
+  // LearningX 가 LTI custom variable substitution 으로 주입: custom_week, custom_session
+  // 퀴즈 신규 생성 시 프리필 용도로만 사용. 기존 퀴즈는 덮어쓰지 않음.
+  // 범위 밖(week 1~16, session 1~4) 또는 파싱 실패 시 무시.
+  const parseRange = (raw: unknown, min: number, max: number): number | null => {
+    if (raw === null || raw === undefined || raw === '') return null
+    const n = typeof raw === 'number' ? raw : parseInt(String(raw), 10)
+    if (!Number.isFinite(n) || !Number.isInteger(n)) return null
+    if (n < min || n > max) return null
+    return n
+  }
+  const ltiWeek = parseRange(custom.week, 1, 16)
+  const ltiSession = parseRange(custom.session, 1, 4)
+
   // 기존 SPA 가 localStorage Bearer 방식이라 URL 해시로도 토큰 전달 (POC 호환용)
   // Phase B 에서 API 미들웨어가 쿠키를 읽게 되면 해시 전달은 폐기
   const publicUrl = process.env.XNQUIZ_PUBLIC_URL || `https://${req.headers.host}`
   const hashParams: Record<string, string> = { token: sessionToken, role, lti: '1' }
   if (section) hashParams.section = section
   if (canvasCourseCode) hashParams.courseCode = canvasCourseCode
+  if (ltiWeek !== null) hashParams.week = String(ltiWeek)
+  if (ltiSession !== null) hashParams.session = String(ltiSession)
   const hashPayload = new URLSearchParams(hashParams).toString()
 
   const redirectPath = section === 'banks' ? '/question-banks' : '/'

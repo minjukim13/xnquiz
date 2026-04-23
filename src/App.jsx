@@ -14,6 +14,8 @@ if (typeof window !== 'undefined') {
     const role = hashParams.get('role')
     const section = hashParams.get('section')
     const courseCode = hashParams.get('courseCode')
+    const week = hashParams.get('week')
+    const session = hashParams.get('session')
     if (token) {
       try {
         localStorage.setItem('xnq_token', token)
@@ -21,6 +23,12 @@ if (typeof window !== 'undefined') {
         if (role) localStorage.setItem('xnq_lti_role', role)
         if (section) localStorage.setItem('xnq_lti_section', section)
         if (courseCode) localStorage.setItem('xnq_lti_course_code', courseCode)
+        // LearningX 가 주입한 주차/차시 — 신규 퀴즈 생성 시 프리필 용도
+        // 매 launch 마다 값이 다를 수 있어 항상 덮어쓰기 (없으면 이전값 제거)
+        if (week) localStorage.setItem('xnq_lti_week', week)
+        else localStorage.removeItem('xnq_lti_week')
+        if (session) localStorage.setItem('xnq_lti_session', session)
+        else localStorage.removeItem('xnq_lti_session')
       } catch { /* private mode / quota */ }
     }
     // URL 정리: ?lti=1 과 해시 제거, 경로는 그대로 유지
