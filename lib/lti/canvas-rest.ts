@@ -216,9 +216,11 @@ export async function ensureExternalToolAssignment(
     name: params.name,
   })
   if (existing) {
-    const needsUpdate =
+    const contentIdMismatch =
       params.contentId != null &&
       existing.external_tool_tag_attributes?.content_id !== params.contentId
+    const urlMismatch = existing.external_tool_tag_attributes?.url !== params.launchUrl
+    const needsUpdate = contentIdMismatch || urlMismatch
     if (!needsUpdate) return { assignment: existing, created: false, updated: false }
     const updated = await updateExternalToolAssignment({
       baseUrl: params.baseUrl,
