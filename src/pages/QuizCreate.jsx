@@ -165,7 +165,7 @@ export default function QuizCreate() {
     if (errors.length > 0) {
       setAlertDialog({
         title: '필수 항목 미입력',
-        message: errors.map(e => `- ${e}`).join('\n'),
+        message: errors[0],
       })
       return
     }

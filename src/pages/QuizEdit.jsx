@@ -264,7 +264,7 @@ export default function QuizEdit() {
     if (questions.length === 0) errors.push('최소 1개 이상의 문항을 추가해주세요')
     if (hasDuplicateStudent(assignments)) errors.push('동일한 학생이 여러 추가 기간 설정에 포함되어 있습니다')
     if (errors.length > 0) {
-      setAlertDialog({ title: '필수 항목 미입력', message: errors.map(e => `- ${e}`).join('\n') })
+      setAlertDialog({ title: '필수 항목 미입력', message: errors[0] })
       return
     }
     let savedQuestions = questions
