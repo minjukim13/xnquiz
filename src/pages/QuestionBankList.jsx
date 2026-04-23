@@ -70,7 +70,7 @@ export default function QuestionBankList() {
     <Layout>
       <div className="max-w-6xl mx-auto pb-8">
         {/* 헤더 */}
-        <div className="flex items-end justify-between gap-4" style={{ paddingTop: 32, paddingBottom: 20 }}>
+        <div className="flex items-center justify-between gap-4" style={{ paddingTop: 32, paddingBottom: 20 }}>
           <h1 className="text-[24px] font-bold text-foreground leading-tight">문제모음</h1>
           <div className="flex items-center gap-2.5 shrink-0">
             <Button variant="outline" onClick={() => setShowCopyModal(true)}>
