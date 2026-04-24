@@ -25,3 +25,19 @@ export async function listCourses() {
   }
   return [...MOCK_COURSES]
 }
+
+/**
+ * LTI 교수자 과목 목록 — Canvas REST 경유
+ * 현재 로그인한 교수자가 Canvas 에서 teacher enrollment 를 가진 모든 과목.
+ * LTI 모드(xnq_lti_active)에서만 호출 가능.
+ *
+ * @param {object} [opts]
+ * @param {string} [opts.excludeCourseCode] 제외할 xnquiz courseCode (예: "CANVAS_32225")
+ * @returns {Promise<Array<{ canvasId, courseCode, name, label, hasXnCourse }>>}
+ */
+export async function listTeacherCourses(opts = {}) {
+  const qs = opts.excludeCourseCode
+    ? '?' + new URLSearchParams({ excludeCourseCode: opts.excludeCourseCode }).toString()
+    : ''
+  return await api('/api/lti/teacher-courses' + qs)
+}

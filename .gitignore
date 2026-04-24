@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# LTI RSA 키 (민감 정보 — private.pem 절대 커밋 금지)
+keys/*.pem
+
 # Logs
 logs
 *.log

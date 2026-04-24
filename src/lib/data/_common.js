@@ -5,6 +5,15 @@
 
 export const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
+// LTI 모드에서 Canvas 과목으로 격리된 courseCode 반환 (없으면 null)
+// launch 가 localStorage 에 저장해둔 값을 읽음
+export function currentLtiCourseCode() {
+  try {
+    if (localStorage.getItem('xnq_lti_active') !== '1') return null
+    return localStorage.getItem('xnq_lti_course_code') || null
+  } catch { return null }
+}
+
 // ISO 문자열을 "YYYY-MM-DD HH:mm" (브라우저 로컬) 으로 정규화 — mockData 포맷과 호환
 export function normalizeDate(iso) {
   if (!iso) return iso ?? null

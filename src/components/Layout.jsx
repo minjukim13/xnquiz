@@ -1,11 +1,18 @@
-import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect, Suspense } from 'react'
+import { Link, useLocation, Outlet } from 'react-router-dom'
 import { GraduationCap, BookOpen, LayoutList, Menu } from 'lucide-react'
 import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
+import { prefetchRoute } from '../lib/prefetch'
+
+// href 와 lazy 청크 매핑 — hover/focus/idle 시 프리페치
+const PREFETCH_MAP = {
+  '/': prefetchRoute.quizList,
+  '/question-banks': prefetchRoute.questionBankList,
+}
 
 function NavLinks({ navItems, isActive, role, onNavigate }) {
   return (
@@ -16,11 +23,15 @@ function NavLinks({ navItems, isActive, role, onNavigate }) {
       {navItems.map(item => {
         const active = isActive(item.href)
         const Icon = item.icon
+        const prefetch = PREFETCH_MAP[item.href]
         return (
           <Link
             key={item.href}
             to={item.href}
             onClick={onNavigate}
+            onMouseEnter={prefetch}
+            onFocus={prefetch}
+            onTouchStart={prefetch}
             className={cn(
               'flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors',
               active
@@ -67,16 +78,56 @@ function RoleToggle({ role, setRole }) {
   )
 }
 
-export default function Layout({ children }) {
+function isLtiActive() {
+  try { return typeof window !== 'undefined' && localStorage.getItem('xnq_lti_active') === '1' } catch { return false }
+}
+
+// 본문 전환 중 사이드바는 유지하고 메인 영역만 스피너 표시
+function ContentFallback() {
+  return (
+    <div className="flex items-center justify-center py-20">
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
+
+export default function Layout() {
   const { role, setRole, currentStudent } = useRole()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const location = useLocation()
+
+  // 첫 페이지 마운트 후 idle 타임에 다른 메뉴 청크 프리페치 → 메뉴 전환 지연 제거
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 300))
+    const cancel = window.cancelIdleCallback || clearTimeout
+    const handle = schedule(() => {
+      Object.values(PREFETCH_MAP).forEach(fn => { try { fn?.() } catch { /* noop */ } })
+    })
+    return () => cancel(handle)
+  }, [])
+
+  // LTI 모드 (Canvas iframe 진입): Canvas 가 이미 좌측 네비게이션 제공
+  // → xnquiz 내부 사이드바/헤더/역할토글 숨김. 콘텐츠만 렌더.
+  // → lti-mode 클래스로 페이지별 max-w-5xl 중앙정렬 해제 (index.css)
+  // → iframe 여백은 Canvas 본문(약 24px)과 맞추고, 상단 간격도 타이트하게
+  if (isLtiActive()) {
+    return (
+      <div className="lti-mode min-h-screen bg-background text-foreground">
+        <main className="px-4 sm:px-5 pt-1 pb-4">
+          <Suspense fallback={<ContentFallback />}>
+            <Outlet />
+          </Suspense>
+        </main>
+      </div>
+    )
+  }
 
   const navItems = role === 'student'
     ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
     : [
         { label: '퀴즈', href: '/', icon: LayoutList },
-        { label: '문제은행', href: '/question-banks', icon: BookOpen },
+        { label: '문제모음', href: '/question-banks', icon: BookOpen },
       ]
 
   const isActive = (href) => {
@@ -182,7 +233,11 @@ export default function Layout({ children }) {
             </div>
           )}
 
-          <main className="flex-1 min-w-0 px-6 lg:px-10 pb-6">{children}</main>
+          <main className="flex-1 min-w-0 px-6 lg:px-10 pb-6">
+            <Suspense fallback={<ContentFallback />}>
+              <Outlet />
+            </Suspense>
+          </main>
         </div>
       </div>
     </div>

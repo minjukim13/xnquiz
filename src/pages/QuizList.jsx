@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown } from 'lucide-react'
+import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown, Pencil, ClipboardCheck } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
-import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts } from '../data/mockData'
-import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz, listAttempts, isApiMode } from '@/lib/data'
+import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz, listAttempts, isApiMode, listCourses, listTeacherCourses } from '@/lib/data'
+import { currentLtiCourseCode } from '@/lib/data/_common'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import QuizSettingsDialog from '../components/QuizSettingsDialog'
 import StatusBadge from '../components/StatusBadge'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { isDeadlinePassed } from '@/utils/deadlineUtils'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -153,6 +154,14 @@ function isScheduled(quiz) {
   return new Date() < new Date(quiz.startDate)
 }
 
+// dueDate 기반 화면용 상태 결정 — DB status 는 유지, 표시만 마감으로 전환
+// 지각 제출 허용 시 lateSubmitDeadline 까지는 '진행중' 으로 유지됨 (deadlineUtils)
+function resolveDisplayStatus(quiz) {
+  if (isScheduled(quiz)) return 'scheduled'
+  if (quiz.status === 'open' && isDeadlinePassed(quiz)) return 'closed'
+  return quiz.status
+}
+
 // STATUS_CONFIG 제거 → StatusBadge 컴포넌트로 통합
 
 export default function QuizList() {
@@ -162,13 +171,20 @@ export default function QuizList() {
 
 // ─────────────────────────────── 교수자 뷰 ───────────────────────────────
 function InstructorQuizList() {
-  const [quizzes, setQuizzes] = useState([])
+  // mock 모드는 초기값을 동기로 채워 첫 렌더 깜빡임 제거 — api 모드는 서버 왕복 필요
+  const [quizzes, setQuizzes] = useState(() => {
+    if (isApiMode()) return []
+    const ltiCode = currentLtiCourseCode()
+    return ltiCode ? [...mockQuizzes] : mockQuizzes.filter(q => q.course === CURRENT_COURSE)
+  })
 
   // 데이터 레이어 경유 — mock/api 모드 자동 분기
+  // LTI 모드: 서버가 이미 Canvas courseCode 로 필터링하므로 클라이언트 필터 skip
   const reload = async () => {
     try {
       const all = await listQuizzes()
-      setQuizzes(all.filter(q => q.course === CURRENT_COURSE))
+      const ltiCode = currentLtiCourseCode()
+      setQuizzes(ltiCode ? all : all.filter(q => q.course === CURRENT_COURSE))
     } catch (err) {
       console.error('[QuizList] listQuizzes 실패', err)
     }
@@ -178,7 +194,9 @@ function InstructorQuizList() {
     let mounted = true
     ;(async () => {
       const all = await listQuizzes().catch(() => [])
-      if (mounted) setQuizzes(all.filter(q => q.course === CURRENT_COURSE))
+      if (!mounted) return
+      const ltiCode = currentLtiCourseCode()
+      setQuizzes(ltiCode ? all : all.filter(q => q.course === CURRENT_COURSE))
     })()
     return () => { mounted = false }
   }, [])
@@ -303,9 +321,9 @@ function InstructorQuizList() {
   )
 
   return (
-    <Layout>
+    <>
       <div className="max-w-5xl mx-auto pb-6">
-        <div className="flex items-end justify-between gap-4 pt-8 pb-5">
+        <div className="flex items-center justify-between gap-4 pt-8 pb-5">
           <div className="flex items-center gap-2.5">
             <h1 className="text-[24px] font-bold text-foreground leading-tight">퀴즈 관리</h1>
             <Button
@@ -392,7 +410,7 @@ function InstructorQuizList() {
       )}
 
       {toast && <Toast message={toast} />}
-    </Layout>
+    </>
   )
 }
 
@@ -411,24 +429,22 @@ function QuizCard({ quiz, onCopy, onDelete }) {
   const ddayBadge = getDdayBadge(quiz)
   const navigate = useNavigate()
   const scheduled = isScheduled(quiz)
+  const displayStatus = resolveDisplayStatus(quiz)
 
-  const cardTarget = (!scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open'))
-    ? `/quiz/${quiz.id}/grade`
-    : null
+  const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
 
   return (
     <Card
       className={cn(
-        'overflow-hidden transition-shadow',
-        cardTarget && 'cursor-pointer hover:shadow-md',
+        'overflow-hidden transition-shadow cursor-pointer hover:shadow-md',
         quiz.status === 'draft' ? 'bg-slate-50 opacity-85' : 'bg-white'
       )}
-      onClick={() => cardTarget && navigate(cardTarget)}
+      onClick={() => navigate(`/quiz/${quiz.id}`)}
     >
       <div className="flex items-start gap-4 px-6 pt-3 pb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <StatusBadge status={scheduled ? 'scheduled' : quiz.status} />
+            <StatusBadge status={displayStatus} />
             {(quiz.week > 0 || quiz.session > 0) && (
               <span className="text-xs text-muted-foreground">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
@@ -464,20 +480,15 @@ function QuizCard({ quiz, onCopy, onDelete }) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-          <Button
-            asChild
-            variant="outline"
-            className="border-gray-200 text-gray-900 bg-white hover:bg-gray-50"
-          >
-            <Link to={`/quiz/${quiz.id}/edit`}>편집</Link>
-          </Button>
-
-          {quiz.status !== 'draft' && (
-            <Button
-              asChild
-            >
-              <Link to={`/quiz/${quiz.id}/stats`}>통계</Link>
-            </Button>
+          {canGrade && (
+            <>
+              <Button asChild variant="outline" className="border-gray-200 text-gray-900 bg-white hover:bg-gray-50">
+                <Link to={`/quiz/${quiz.id}/grade`}>채점</Link>
+              </Button>
+              <Button asChild>
+                <Link to={`/quiz/${quiz.id}/stats`}>통계</Link>
+              </Button>
+            </>
           )}
 
           <DropdownMenu>
@@ -487,6 +498,10 @@ function QuizCard({ quiz, onCopy, onDelete }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/edit`)}>
+                <Pencil size={14} />
+                편집
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/attempt?preview=true`)}>
                 <Eye size={14} />
                 미리보기
@@ -546,7 +561,7 @@ function ActiveStats({ quiz }) {
   const totalStudents = quiz.totalStudents ?? 0
   const submitRate = totalStudents > 0 ? Math.round((submitted / totalStudents) * 100) : 0
   const unsubmitted = Math.max(0, totalStudents - submitted)
-  const isClosed = quiz.status === 'closed' || quiz.status === 'grading'
+  const isClosed = quiz.status === 'closed' || quiz.status === 'grading' || isDeadlinePassed(quiz)
 
   const cols = [
     { label: '응시율',   value: `${submitRate}%`,   cls: 'text-slate-900' },
@@ -671,15 +686,47 @@ function QuizImportModal({ onClose, onImport }) {
   const [selectedCourse, setSelectedCourse] = useState(null)
   const [checkedIds, setCheckedIds] = useState(new Set())
   const [courseSearch, setCourseSearch] = useState('')
-  const otherCourses = MOCK_COURSES.filter(c => c.name !== CURRENT_COURSE)
-  const filteredCourses = otherCourses.filter(c =>
+  const [courses, setCourses] = useState([])
+  const [coursesLoading, setCoursesLoading] = useState(true)
+  const [courseQuizzes, setCourseQuizzes] = useState([])
+  const [quizzesLoading, setQuizzesLoading] = useState(false)
+
+  // 현재 과목 식별: LTI 모드면 Canvas courseCode, 아니면 CURRENT_COURSE 라벨
+  const ltiCourseCode = currentLtiCourseCode()
+  const isLti = !!ltiCourseCode
+  const currentCourseCode = (ltiCourseCode || CURRENT_COURSE.split(' ')[0]).toUpperCase()
+  const [loadError, setLoadError] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        // LTI 모드: Canvas REST 경유로 교수자가 가르치는 실제 과목 전체 조회.
+        // 비 LTI 모드: xnquiz DB 의 과목 목록.
+        const all = isLti
+          ? await listTeacherCourses({ excludeCourseCode: currentCourseCode })
+          : await listCourses()
+        if (!mounted) return
+        // LTI 모드는 서버에서 이미 현재 과목 제외. 비 LTI 모드는 클라에서 제외.
+        const others = isLti ? all : all.filter(c => {
+          const code = (c.code || c.name.split(' ')[0] || '').toUpperCase()
+          return code !== currentCourseCode
+        })
+        setCourses(others)
+      } catch (err) {
+        console.error('[QuizImportModal] 과목 목록 로드 실패', err)
+        setLoadError(err?.message || '과목 목록을 불러오지 못했습니다')
+        setCourses([])
+      } finally {
+        if (mounted) setCoursesLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [isLti, currentCourseCode])
+
+  const filteredCourses = courses.filter(c =>
     c.name.toLowerCase().includes(courseSearch.toLowerCase())
   )
-
-  const courseQuizzes = useMemo(() => {
-    if (!selectedCourse) return []
-    return mockQuizzes.filter(q => q.course === selectedCourse && q.status !== 'draft')
-  }, [selectedCourse])
 
   const toggleCheck = (id) => {
     setCheckedIds(prev => {
@@ -689,9 +736,23 @@ function QuizImportModal({ onClose, onImport }) {
     })
   }
 
-  const handleSelectCourse = (courseName) => {
-    setSelectedCourse(courseName)
+  const handleSelectCourse = async (course) => {
+    setSelectedCourse(course.name)
     setCheckedIds(new Set())
+    setQuizzesLoading(true)
+    try {
+      // LTI 과목은 courseCode(예: "CANVAS_173"), 비 LTI 는 code(예: "CS301") 사용.
+      // xnquiz 에 한 번도 런치된 적 없는 Canvas 과목은 Course 레코드가 없어 빈 배열이 반환됨.
+      const code = (course.courseCode || course.code || course.name.split(' ')[0] || '').toUpperCase()
+      const list = await listQuizzes({ courseCode: code, bypassLtiCourseFilter: true })
+      // 임시저장(draft) 제외 — 다른 사람이 가져와서 재사용할 수 있는 것만 노출
+      setCourseQuizzes(list.filter(q => q.status !== 'draft'))
+    } catch (err) {
+      console.error('[QuizImportModal] listQuizzes 실패', err)
+      setCourseQuizzes([])
+    } finally {
+      setQuizzesLoading(false)
+    }
   }
 
   const handleImport = () => {
@@ -704,13 +765,13 @@ function QuizImportModal({ onClose, onImport }) {
     <Dialog open onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-w-4xl min-h-[600px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-6 py-5 border-b border-slate-100 shrink-0">
-          <DialogTitle>타 과목 퀴즈 가져오기</DialogTitle>
+          <DialogTitle>다른 과목 퀴즈 가져오기</DialogTitle>
           <p className="text-[15px] text-muted-foreground">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden min-h-0">
-          {/* 왼쪽: 과목 목록 */}
-          <div className="w-44 shrink-0 flex flex-col border-r border-slate-100">
+          {/* 왼쪽: 과목 목록 — LTI 과목명이 길어서 폭 여유 확보 */}
+          <div className={cn('shrink-0 flex flex-col border-r border-slate-100', isLti ? 'w-64' : 'w-44')}>
             <div className="p-3 pb-2 border-b border-slate-50">
               <div className="relative">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -724,16 +785,28 @@ function QuizImportModal({ onClose, onImport }) {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {filteredCourses.length === 0 ? (
-                <p className="text-xs text-center py-3 text-muted-foreground">없음</p>
+              {coursesLoading ? (
+                <p className="text-xs text-center py-3 text-muted-foreground">불러오는 중</p>
+              ) : loadError ? (
+                <p className="text-xs text-center py-3 text-destructive leading-relaxed px-2">{loadError}</p>
+              ) : filteredCourses.length === 0 ? (
+                <p className="text-xs text-center py-3 text-muted-foreground">
+                  {courseSearch ? '검색 결과 없음' : '다른 과목이 없습니다'}
+                </p>
               ) : filteredCourses.map(course => {
                 const isSelected = selectedCourse === course.name
-                const code = course.name.split(' ')[0]
-                const label = course.name.split(' ').slice(1).join(' ')
+                // LTI(Canvas) 과목은 courseCode 가 "CANVAS_173" 형태라 배지로 노출할 가치가 없음.
+                // 비 LTI 과목만 "CS301" 같은 코드 배지 표시.
+                const ltiCourse = !!course.canvasId
+                const badge = ltiCourse ? null : (course.code || course.name.split(' ')[0])
+                const label = ltiCourse
+                  ? course.name
+                  : (course.shortName || course.name.split(' ').slice(1).join(' ') || course.name)
                 return (
                   <button
-                    key={course.id}
-                    onClick={() => handleSelectCourse(course.name)}
+                    key={course.id ?? course.canvasId ?? course.code ?? course.name}
+                    onClick={() => handleSelectCourse(course)}
+                    title={course.name}
                     className={cn(
                       'w-full flex items-center gap-1.5 text-left px-3 py-2.5 rounded transition-colors',
                       isSelected
@@ -741,10 +814,12 @@ function QuizImportModal({ onClose, onImport }) {
                         : 'text-slate-700 hover:bg-slate-100'
                     )}
                   >
-                    <span className={cn(
-                      'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0',
-                      isSelected ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
-                    )}>{code}</span>
+                    {badge && (
+                      <span className={cn(
+                        'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0',
+                        isSelected ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
+                      )}>{badge}</span>
+                    )}
                     <span className="text-xs truncate">{label}</span>
                   </button>
                 )
@@ -757,6 +832,10 @@ function QuizImportModal({ onClose, onImport }) {
             {!selectedCourse ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 <p className="text-[15px]">좌측에서 과목을 선택하세요</p>
+              </div>
+            ) : quizzesLoading ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p className="text-[15px]">불러오는 중</p>
               </div>
             ) : courseQuizzes.length === 0 ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -806,7 +885,7 @@ function QuizImportModal({ onClose, onImport }) {
 
         <div className={cn('flex items-center justify-between px-6 py-4', checkedIds.size === 0 && 'border-t border-slate-100')}>
           <p className="text-[15px] text-muted-foreground">
-            {checkedIds.size > 0 ? `${checkedIds.size}개 선택됨` : '가져올 퀴즈를 선택하세요'}
+            {checkedIds.size > 0 ? `${checkedIds.size}개 선택됨` : ''}
           </p>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={onClose}>취소</Button>
@@ -844,7 +923,11 @@ function StudentQuizList() {
   const [sortKey, setSortKey] = useState('recent')
 
   // 데이터 레이어 경유 — api 모드에선 서버가 visible + 수강 과목 필터링까지 수행
-  const [allQuizzes, setAllQuizzes] = useState([])
+  // mock 모드는 초기값을 동기로 채워 첫 렌더 깜빡임 제거
+  const [allQuizzes, setAllQuizzes] = useState(() => {
+    if (isApiMode()) return []
+    return mockQuizzes.filter(q => q.status !== 'draft' && q.visible !== false)
+  })
   // api 모드용 — 학생 본인 attempt 전체 (quiz.id 별 그룹핑용)
   // null = mock 모드 (StudentQuizCard 가 getStudentAttempts 로 직접 로드)
   const [apiAttempts, setApiAttempts] = useState(null)
@@ -884,9 +967,9 @@ function StudentQuizList() {
   const hasAny = filteredAll.length > 0
 
   return (
-    <Layout>
+    <>
       <div className="max-w-5xl mx-auto pb-6">
-        <div className="flex items-end justify-between gap-4 pt-8 pb-5">
+        <div className="flex items-center justify-between gap-4 pt-8 pb-5">
           <h1 className="text-[24px] font-bold text-foreground leading-tight">내 퀴즈</h1>
         </div>
 
@@ -942,20 +1025,23 @@ function StudentQuizList() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   )
 }
 
 function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = null }) {
   // api 모드면 부모가 내려준 실제 응시 기록, 아니면 mock localStorage 에서 조회
+  // api 모드는 서버가 이미 본인 것만 반환 → studentId 추가 필터 스킵 (LTI 유저 ID 매칭 오류 방지)
   const attempts = apiAttempts ?? getStudentAttempts(quiz.id)
-  const myAttempts = attempts.filter(a => a.studentId === studentId)
+  const myAttempts = apiAttempts ? apiAttempts : attempts.filter(a => a.studentId === studentId)
   const myAttempt = myAttempts[myAttempts.length - 1] ?? null
   const attemptCount = myAttempts.length
   const [showHistory, setShowHistory] = useState(false)
   const maxAttempts = quiz.allowAttempts ?? 1
   const isAttemptExceeded = maxAttempts !== -1 && attemptCount >= maxAttempts
-  const isOpen = quiz.status === 'open' && !scheduled
+  const pastDue = isDeadlinePassed(quiz)
+  const isOpen = quiz.status === 'open' && !scheduled && !pastDue
+  const displayStatus = resolveDisplayStatus(quiz)
   const ddayBadge = getDdayBadge(quiz)
 
   // 학생 혼란 방지 — 채점 상태(대기/완료)는 학생 목록 배지에 표시하지 않음.
@@ -969,7 +1055,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
       <div className="flex items-start gap-4 px-6 pt-3 pb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <StatusBadge status={scheduled ? 'scheduled' : quiz.status} />
+            <StatusBadge status={displayStatus} />
             {myBadge && (
               <span className={cn('text-xs font-medium px-2 py-0.5 rounded-md', myBadge.cls)}>
                 {myBadge.label}

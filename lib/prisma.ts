@@ -1,5 +1,5 @@
 // Prisma 클라이언트 싱글턴
-// Prisma 7 + Neon 어댑터 — Vercel Serverless 환경 최적화
+// Prisma 7 + @prisma/adapter-pg — Supabase PostgreSQL (ap-northeast-2 Seoul) 연결
 // 핫-리로드 시 connection pool 폭증 방지
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'

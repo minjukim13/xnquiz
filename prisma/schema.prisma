@@ -104,10 +104,11 @@ model User {
   updatedAt DateTime @updatedAt
 
   enrollments    Enrollment[]
-  createdQuizzes Quiz[]        @relation("QuizCreatedBy")
+  createdQuizzes Quiz[]         @relation("QuizCreatedBy")
   createdBanks   QuestionBank[] @relation("BankCreatedBy")
   attempts       Attempt[]
-  gradedAnswers  Answer[]      @relation("AnswerGradedBy")
+  gradedAnswers  Answer[]       @relation("AnswerGradedBy")
+  ltiMappings    LtiUserMap[]
 
   @@index([role])
 }
@@ -118,13 +119,26 @@ model User {
 
 model Course {
   code      String   @id // PK = 과목코드, 예: "CS301"
-  name      String       // 과목명 (중복 허용), 예: "데이터베이스"
+  name      String // 과목명 (중복 허용), 예: "데이터베이스"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // LTI 1.3 연동 메타데이터 (Canvas 과목에서 launch 된 경우만 채워짐)
+  ltiPlatformId      String? // FK → LtiPlatform.id
+  ltiContextId       String? // Canvas context.id (Dev Key privacy 설정에 따라 숫자 또는 해시)
+  ltiCanvasCourseId  Int? // Canvas 의 실제 숫자 course.id — NRPS URL 경로에서 추출
+  ltiDeploymentId    String? // LTI deployment_id (NRPS/AGS 토큰 요청용)
+  ltiNrpsUrl         String? // context_memberships_url (NRPS endpoint)
+  ltiLineItemsUrl    String? // AGS lineitems 컬렉션 URL (Canvas 과목의 성적열 관리 엔드포인트)
+  ltiLastSyncedAt    DateTime? // 마지막 NRPS 동기화 시각
 
   quizzes     Quiz[]
   banks       QuestionBank[]
   enrollments Enrollment[]
+  ltiPlatform LtiPlatform? @relation(fields: [ltiPlatformId], references: [id])
+
+  @@index([ltiPlatformId, ltiContextId])
+  @@index([ltiCanvasCourseId])
 }
 
 model Enrollment {
@@ -146,7 +160,7 @@ model Enrollment {
 // ─────────────────────────────────────────────────────────────
 
 model Quiz {
-  id          String     @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
   description String?
   courseCode  String
@@ -184,11 +198,19 @@ model Quiz {
   // 집계 캐시 (선택) — 실운영에서는 쿼리 시 계산 권장
   avgScore Float?
 
+  // LTI AGS — Canvas Gradebook lineitem 연동
+  ltiLineItemUrl     String?   // 이 퀴즈에 대응하는 Canvas lineitem URL (최초 점수 전송 시 생성)
+  ltiLastScoreSentAt DateTime? // 마지막으로 AGS score 를 Canvas 에 전송한 시각
+
+  // Canvas Assignment deep-link — Assignment 클릭 시 상세화면 매핑용
+  // launch.ts 에서 custom.canvas_assignment_id 로 lookup → /quiz/:id 로 redirect
+  canvasAssignmentId Int? @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  course    Course    @relation(fields: [courseCode], references: [code], onDelete: Cascade)
-  createdBy User      @relation("QuizCreatedBy", fields: [createdById], references: [id])
+  course    Course     @relation(fields: [courseCode], references: [code], onDelete: Cascade)
+  createdBy User       @relation("QuizCreatedBy", fields: [createdById], references: [id])
   questions Question[]
   attempts  Attempt[]
 
@@ -202,12 +224,12 @@ model Quiz {
 // ─────────────────────────────────────────────────────────────
 
 model Question {
-  id      String       @id @default(cuid())
-  quizId  String
-  order   Int
-  type    QuestionType
-  text    String       @db.Text
-  points  Float        @default(0)
+  id     String       @id @default(cuid())
+  quizId String
+  order  Int
+  type   QuestionType
+  text   String       @db.Text
+  points Float        @default(0)
 
   autoGrade AutoGradeMode @default(MANUAL)
 
@@ -272,7 +294,7 @@ model BankQuestion {
   points     Float           @default(0)
   usageCount Int             @default(0)
 
-  text          String @db.Text
+  text          String  @db.Text
   options       Json? // Question.choices와 별도 — 문제은행 스키마 유지
   correctAnswer Json?
   scoringMode   String? // "partial" 등
@@ -291,10 +313,10 @@ model BankQuestion {
 // ─────────────────────────────────────────────────────────────
 
 model Attempt {
-  id            String    @id @default(cuid())
+  id            String @id @default(cuid())
   quizId        String
   userId        String
-  attemptNumber Int       @default(1)
+  attemptNumber Int    @default(1)
 
   startTime   DateTime?
   endTime     DateTime?
@@ -348,4 +370,77 @@ model Answer {
   @@unique([attemptId, questionId])
   @@index([attemptId])
   @@index([questionId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// LTI 1.3 (Canvas 연동용)
+// ─────────────────────────────────────────────────────────────
+
+// Canvas 플랫폼 메타데이터 캐시
+// 하나의 Canvas 인스턴스 = issuer 하나, 그 안에서 개발자 키마다 clientId 별도
+model LtiPlatform {
+  id       String @id @default(cuid())
+  issuer   String // Canvas 인스턴스 URL, 예: "https://cnvs-dev.xinics.kr"
+  clientId String // Canvas Developer Key Client ID (19자리)
+
+  authLoginUrl String // Canvas OIDC auth endpoint (예: /api/lti/authorize_redirect)
+  authTokenUrl String // Canvas OAuth2 token endpoint (예: /login/oauth2/token)
+  jwksUrl      String // Canvas public JWKS URL (JWT 서명 검증용)
+
+  deploymentIds String[] @default([]) // 과목/계정별 deployment_id 누적
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userMappings LtiUserMap[]
+  courses      Course[]
+
+  @@unique([issuer, clientId])
+  @@map("lti_platform")
+}
+
+// OIDC 3-leg handshake 용 임시 state/nonce 저장 (기본 5분 TTL)
+model LtiSession {
+  id String @id @default(cuid())
+
+  state String @unique // Canvas → xnquiz redirect 시 검증용
+  nonce String // id_token 안에 같은 값이 들어와야 함
+
+  platformIssuer String
+  clientId       String
+  loginHint      String? // Canvas 가 login_initiations 에 넘긴 hint
+  ltiMessageHint String?
+  targetLinkUri  String? // deep link 대상 URL
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime // createdAt + 5분 권장, 만료시 정리
+
+  @@index([state])
+  @@index([expiresAt])
+  @@map("lti_session")
+}
+
+// Canvas 사용자 (sub) ↔ xnquiz User 매핑
+// LTI launch 시 sub 클레임으로 조회하여 자동 로그인 처리
+model LtiUserMap {
+  id String @id @default(cuid())
+
+  platformId String
+  ltiSub     String // Canvas 사용자 고유 ID (id_token.sub)
+  userId     String // xnquiz 내부 User.id
+
+  email String?
+  name  String?
+  roles String? // Canvas 에서 받은 LTI roles 원문 (JSON 문자열)
+
+  lastLaunchAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  platform LtiPlatform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([platformId, ltiSub])
+  @@index([userId])
+  @@map("lti_user_map")
 }

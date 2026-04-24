@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Pencil } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
-import Layout from '../components/Layout'
 import { useQuestionBank } from '../context/questionBank'
 import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
@@ -12,8 +11,13 @@ import AddBankModal from '../components/AddBankModal'
 import ExportBankModal from '../components/ExportBankModal'
 import ImportBankModal from '../components/ImportBankModal'
 import { DIFFICULTY_META, DIFF_LABEL } from '../components/bankDifficulty'
+import { currentLtiCourseCode } from '@/lib/data/_common'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
+// LTI 모드면 Canvas courseCode (예: "CANVAS_32225"), 아니면 mock 기본 과목 코드
+function resolveCurrentCourseCode() {
+  return currentLtiCourseCode() || CURRENT_COURSE.split(/\s+/)[0].toUpperCase()
+}
 
 export default function QuestionBankList() {
   const navigate = useNavigate()
@@ -59,7 +63,7 @@ export default function QuestionBankList() {
           bankId,
         })))
       }
-      showToast(`'${newName}' 문제은행이 생성되었습니다`, bankId)
+      showToast(`'${newName}' 문제모음이 생성되었습니다`, bankId)
     } catch (err) {
       console.error('[QuestionBankList] 복사 실패', err)
       showToast('복사 중 오류가 발생했습니다')
@@ -67,11 +71,11 @@ export default function QuestionBankList() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="max-w-6xl mx-auto pb-8">
         {/* 헤더 */}
-        <div className="flex items-end justify-between gap-4" style={{ paddingTop: 32, paddingBottom: 20 }}>
-          <h1 className="text-[24px] font-bold text-foreground leading-tight">문제은행</h1>
+        <div className="flex items-center justify-between gap-4" style={{ paddingTop: 32, paddingBottom: 20 }}>
+          <h1 className="text-[24px] font-bold text-foreground leading-tight">문제모음</h1>
           <div className="flex items-center gap-2.5 shrink-0">
             <Button variant="outline" onClick={() => setShowCopyModal(true)}>
               <FolderInput size={14} />
@@ -83,7 +87,7 @@ export default function QuestionBankList() {
             </Button>
             <Button onClick={() => setShowAddModal(true)}>
               <Plus size={15} />
-              새 문제은행
+              새 문제모음
             </Button>
           </div>
         </div>
@@ -177,27 +181,29 @@ export default function QuestionBankList() {
             )
           })}
 
-          {/* 추가 카드 */}
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary"
-          >
-            <Plus size={20} />
-            <span className="text-sm font-medium">새 문제은행 추가</span>
-          </button>
+          {/* 추가 카드 (문제모음이 있을 때만 노출) */}
+          {banks.length > 0 && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary"
+            >
+              <Plus size={20} />
+              <span className="text-sm font-medium">새 문제모음 추가</span>
+            </button>
+          )}
         </div>
 
         {/* 빈 상태 */}
         {banks.length === 0 && (
           <div className="mt-12 text-center">
             <BookOpen size={36} className="mx-auto mb-3 text-slate-200" />
-            <p className="text-sm font-medium mb-1 text-muted-foreground">문제은행이 없습니다</p>
-            <p className="text-xs mb-4 text-muted-foreground">새 문제은행을 만들어 문항을 관리하세요</p>
+            <p className="text-sm font-medium mb-1 text-muted-foreground">문제모음이 없습니다</p>
+            <p className="text-xs mb-4 text-muted-foreground">새 문제모음을 만들어 문항을 관리하세요</p>
             <button
               onClick={() => setShowAddModal(true)}
               className="text-sm font-medium px-4 py-2 bg-primary text-primary-foreground rounded transition-colors hover:bg-primary-hover"
             >
-              첫 문제은행 만들기
+              첫 문제모음 만들기
             </button>
           </div>
         )}
@@ -213,6 +219,7 @@ export default function QuestionBankList() {
                 name,
                 difficulty,
                 course: CURRENT_COURSE,
+                courseCode: resolveCurrentCourseCode(),
                 updatedAt: new Date().toISOString().split('T')[0],
                 usedInQuizIds: [],
               })
@@ -227,7 +234,7 @@ export default function QuestionBankList() {
 
       {deleteTarget && (
         <ConfirmDialog
-          title={`'${deleteTarget.name}' 문제은행을 삭제할까요?`}
+          title={`'${deleteTarget.name}' 문제모음을 삭제할까요?`}
           message={`은행에 포함된 문항 ${getQuestionCount(deleteTarget.id)}개가 함께 삭제되며 복구할 수 없습니다.`}
           confirmLabel="삭제"
           confirmDanger
@@ -253,13 +260,14 @@ export default function QuestionBankList() {
               let bankId, toastName
               if (existingBankId) {
                 bankId = existingBankId
-                toastName = banks.find(b => b.id === existingBankId)?.name || '문제은행'
+                toastName = banks.find(b => b.id === existingBankId)?.name || '문제모음'
               } else {
                 const created = await addBank({
                   id: `bank_import_${Date.now()}`,
                   name: bankName,
                   difficulty: difficulty || '',
                   course: CURRENT_COURSE,
+                  courseCode: resolveCurrentCourseCode(),
                   updatedAt: new Date().toISOString().split('T')[0],
                   usedInQuizIds: [],
                 })
@@ -274,7 +282,7 @@ export default function QuestionBankList() {
                 bankId,
               })))
               setShowCopyModal(false)
-              showToast(`'${toastName}' 문제은행에 ${selectedQs.length}개 문항 가져오기 완료`, bankId)
+              showToast(`'${toastName}' 문제모음에 ${selectedQs.length}개 문항 가져오기 완료`, bankId)
             } catch (err) {
               console.error('[QuestionBankList] 가져오기 실패', err)
               showToast('가져오기 중 오류가 발생했습니다')
@@ -290,7 +298,8 @@ export default function QuestionBankList() {
             try {
               let bankId = targetBankId
               let bankName = newBankName
-              if (targetBankId === '__new__') {
+              // 모달은 new 모드면 targetBankId=null + newBankName 으로 호출, existing 모드면 targetBankId=id + newBankName=null
+              if (!targetBankId && newBankName) {
                 const created = await addBank({
                   id: `bank_export_${Date.now()}`,
                   name: bankName,
@@ -311,7 +320,7 @@ export default function QuestionBankList() {
                 bankId,
               })))
               setShowExportModal(false)
-              showToast(`'${bankName}' 문제은행에 ${questions.length}개 문항을 내보냈습니다`, bankId)
+              showToast(`'${bankName}' 문제모음에 ${questions.length}개 문항을 내보냈습니다`, bankId)
             } catch (err) {
               console.error('[QuestionBankList] 내보내기 실패', err)
               showToast('내보내기 중 오류가 발생했습니다')
@@ -326,8 +335,8 @@ export default function QuestionBankList() {
           action={toast.bankId ? { label: '바로가기', onClick: () => { navigate(`/question-banks/${toast.bankId}`); setToast(null) } } : undefined}
         />
       )}
-    </Layout>
+    </>
   )
 }
 
-// ── 새 문제은행 모달 ──────────────────────────────────────────────────────────
+// ── 새 문제모음 모달 ──────────────────────────────────────────────────────────

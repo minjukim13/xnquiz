@@ -5,7 +5,6 @@ import { downloadGradesXlsx, downloadItemAnalysisXlsx } from '../utils/excelUtil
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
-import Layout from '../components/Layout'
 import { QUIZ_TYPES } from '../data/mockData'
 import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
 import { useRole } from '../context/role'
@@ -94,28 +93,24 @@ export default function QuizStats() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-          <p className="text-sm text-muted-foreground">불러오는 중</p>
-        </div>
-      </Layout>
+      <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+        <p className="text-sm text-muted-foreground">불러오는 중</p>
+      </div>
     )
   }
 
   if (!quiz) {
     return (
-      <Layout>
-        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-          <AlertCircle size={32} className="mx-auto mb-3 text-red-700" />
-          <p className="text-sm font-medium mb-1 text-slate-900">퀴즈를 찾을 수 없습니다</p>
-          <Link to="/" className="text-xs text-primary hover:underline">퀴즈 목록으로 돌아가기</Link>
-        </div>
-      </Layout>
+      <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+        <AlertCircle size={32} className="mx-auto mb-3 text-red-700" />
+        <p className="text-sm font-medium mb-1 text-slate-900">퀴즈를 찾을 수 없습니다</p>
+        <Link to="/" className="text-xs text-primary hover:underline">퀴즈 목록으로 돌아가기</Link>
+      </div>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="max-w-7xl mx-auto pb-10 pt-6">
 
         {/* 퀴즈 정보 헤더 */}
@@ -139,7 +134,7 @@ export default function QuizStats() {
         {/* 탭 */}
         <StatsPageTabs quiz={quiz} quizQuestions={enrichedQuestions} quizStudents={quizStudents} />
       </div>
-    </Layout>
+    </>
   )
 }
 
