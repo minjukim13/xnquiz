@@ -24,10 +24,6 @@ function isScheduled(quiz) {
   return new Date() < new Date(quiz.startDate)
 }
 
-function isLtiActive() {
-  try { return typeof window !== 'undefined' && localStorage.getItem('xnq_lti_active') === '1' } catch { return false }
-}
-
 function InfoRow({ label, value, muted = false }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2.5">
@@ -148,24 +144,15 @@ export default function QuizDetail() {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto pb-10">
-        {/* 상단 네비게이션 — LTI 모드에선 사이드바가 없어 outline 버튼으로 강조 */}
-        {isLtiActive() ? (
-          <div className="mt-6 mb-4">
-            <Button variant="outline" size="sm" onClick={() => navigate('/')}>
-              <ChevronLeft size={15} strokeWidth={2.25} />
-              퀴즈 목록
-            </Button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mt-6 mb-3 -ml-1 px-1 py-1 rounded"
-          >
-            <ChevronLeft size={16} strokeWidth={2.25} />
-            퀴즈 목록
-          </button>
-        )}
+        {/* 상단 브레드크럼 — Vercel 대시보드 스타일: 텍스트 링크, 테두리 없음 */}
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mt-6 mb-3 -ml-1 px-1 py-1"
+        >
+          <ChevronLeft size={16} strokeWidth={2.25} />
+          퀴즈 목록
+        </button>
 
         {/* 헤더: 제목 + 메타(상태/주차/기간) + 액션 */}
         <div className="flex items-start justify-between gap-4 pb-4">
