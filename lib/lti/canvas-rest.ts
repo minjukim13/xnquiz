@@ -33,6 +33,7 @@ export type CanvasAssignment = {
   id: number
   name: string
   html_url?: string
+  description?: string | null
   external_tool_tag_attributes?: {
     url?: string
     content_type?: string
@@ -165,7 +166,8 @@ export async function createExternalToolAssignment(
       points_possible: pointsPossible,
       due_at: dueAt ? dueAt.toISOString() : null,
       published,
-      ...(description ? { description } : {}),
+      // 빈 문자열('')도 명시적으로 전달해야 Canvas 에서 기존 설명을 지울 수 있음
+      ...(description !== undefined ? { description } : {}),
     },
   }
 
@@ -183,9 +185,10 @@ export async function updateExternalToolAssignment(
     assignmentId: number
     launchUrl: string
     contentId?: number
+    description?: string
   },
 ): Promise<CanvasAssignment> {
-  const { courseId, assignmentId, launchUrl, contentId } = params
+  const { courseId, assignmentId, launchUrl, contentId, description } = params
   const body = {
     assignment: {
       external_tool_tag_attributes: {
@@ -193,6 +196,8 @@ export async function updateExternalToolAssignment(
         new_tab: false,
         ...(contentId ? { content_type: 'context_external_tool', content_id: contentId } : {}),
       },
+      // 빈 문자열('')도 명시적으로 전달해야 Canvas 에서 기존 설명을 지울 수 있음
+      ...(description !== undefined ? { description } : {}),
     },
   }
   return canvasFetch<CanvasAssignment>(
@@ -220,7 +225,11 @@ export async function ensureExternalToolAssignment(
       params.contentId != null &&
       existing.external_tool_tag_attributes?.content_id !== params.contentId
     const urlMismatch = existing.external_tool_tag_attributes?.url !== params.launchUrl
-    const needsUpdate = contentIdMismatch || urlMismatch
+    // description 이 명시적으로 전달됐을 때만 비교 (빈 문자열 '' 은 지움 의도로 간주)
+    const descriptionMismatch =
+      params.description !== undefined &&
+      (existing.description ?? '') !== params.description
+    const needsUpdate = contentIdMismatch || urlMismatch || descriptionMismatch
     if (!needsUpdate) return { assignment: existing, created: false, updated: false }
     const updated = await updateExternalToolAssignment({
       baseUrl: params.baseUrl,
@@ -229,6 +238,7 @@ export async function ensureExternalToolAssignment(
       assignmentId: existing.id,
       launchUrl: params.launchUrl,
       contentId: params.contentId,
+      description: params.description,
     })
     return { assignment: updated, created: false, updated: true }
   }
