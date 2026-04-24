@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom'
 import { ArrowLeft, Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange } from 'lucide-react'
-import Layout from '../components/Layout'
 import StatusBadge from '../components/StatusBadge'
 import { mockQuizzes } from '../data/mockData'
 import { getQuiz, deleteQuiz, isApiMode } from '@/lib/data'
@@ -108,17 +107,13 @@ export default function QuizDetail() {
 
   if (!loaded) {
     return (
-      <Layout>
-        <div className="max-w-4xl mx-auto pt-10 text-sm text-muted-foreground">로딩 중</div>
-      </Layout>
+      <div className="max-w-4xl mx-auto pt-10 text-sm text-muted-foreground">로딩 중</div>
     )
   }
 
   if (!quiz) {
     return (
-      <Layout>
-        <div className="max-w-4xl mx-auto pt-10 text-sm text-muted-foreground">퀴즈를 찾을 수 없습니다.</div>
-      </Layout>
+      <div className="max-w-4xl mx-auto pt-10 text-sm text-muted-foreground">퀴즈를 찾을 수 없습니다.</div>
     )
   }
 
@@ -142,7 +137,7 @@ export default function QuizDetail() {
   const attemptLabel = quiz.allowAttempts === -1 ? '무제한' : `${quiz.allowAttempts ?? 1}회`
 
   return (
-    <Layout>
+    <>
       <div className="max-w-4xl mx-auto pb-10">
         {/* 상단 브레드크럼 — Outline 스타일 뒤로가기 버튼 */}
         <button
@@ -337,6 +332,6 @@ export default function QuizDetail() {
       )}
 
       {toast && <Toast message={toast} />}
-    </Layout>
+    </>
   )
 }

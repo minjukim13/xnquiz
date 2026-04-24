@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown, Pencil, ClipboardCheck } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
-import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts } from '../data/mockData'
@@ -313,7 +312,7 @@ function InstructorQuizList() {
   )
 
   return (
-    <Layout>
+    <>
       <div className="max-w-5xl mx-auto pb-6">
         <div className="flex items-center justify-between gap-4 pt-8 pb-5">
           <div className="flex items-center gap-2.5">
@@ -402,7 +401,7 @@ function InstructorQuizList() {
       )}
 
       {toast && <Toast message={toast} />}
-    </Layout>
+    </>
   )
 }
 
@@ -958,7 +957,7 @@ function StudentQuizList() {
   const hasAny = filteredAll.length > 0
 
   return (
-    <Layout>
+    <>
       <div className="max-w-5xl mx-auto pb-6">
         <div className="flex items-center justify-between gap-4 pt-8 pb-5">
           <h1 className="text-[24px] font-bold text-foreground leading-tight">내 퀴즈</h1>
@@ -1016,7 +1015,7 @@ function StudentQuizList() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   )
 }
 

@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { GripVertical, Pencil, Trash2, HelpCircle } from 'lucide-react'
-import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
 import AddQuestionModal from '../components/AddQuestionModal'
@@ -206,7 +205,7 @@ export default function QuizCreate() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="max-w-5xl mx-auto pb-4">
         <h1 className="text-[22px] font-bold text-foreground pt-8 pb-5">새 퀴즈 만들기</h1>
 
@@ -245,7 +244,7 @@ export default function QuizCreate() {
       {showAddModal && <AddQuestionModal onClose={() => setShowAddModal(false)} onAdd={addNewQuestion} />}
       {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
       {alertDialog && <AlertDialog title={alertDialog.title} message={alertDialog.message} variant={alertDialog.variant} onClose={() => setAlertDialog(null)} />}
-    </Layout>
+    </>
   )
 }
 

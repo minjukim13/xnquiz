@@ -2,7 +2,6 @@ import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { Plus, Search, X, Edit2, Trash2, Upload, Download, ChevronLeft, AlertCircle, GripVertical } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
-import Layout from '../components/Layout'
 import { QUIZ_TYPES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { DropdownSelect } from '../components/DropdownSelect'
@@ -104,7 +103,7 @@ export default function QuestionBank() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="max-w-6xl mx-auto pb-8">
 
         {/* 헤더 */}
@@ -284,7 +283,7 @@ export default function QuestionBank() {
           action={toast.bankId ? { label: '바로가기', onClick: () => { navigate(`/question-banks/${toast.bankId}`); setToast(null) } } : undefined}
         />
       )}
-    </Layout>
+    </>
   )
 }
 

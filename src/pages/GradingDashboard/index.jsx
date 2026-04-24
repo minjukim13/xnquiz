@@ -6,7 +6,6 @@ import {
   FileEdit, UserCheck, Printer
 } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
-import Layout from '../../components/Layout'
 import { getStudentAnswer } from '../../data/mockData'
 import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
 import { useRole } from '../../context/role'
@@ -192,52 +191,46 @@ export default function GradingDashboard() {
   // ── 로딩 중 ──
   if (loading) {
     return (
-      <Layout>
-        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-          <p className="text-sm text-muted-foreground">불러오는 중</p>
-        </div>
-      </Layout>
+      <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+        <p className="text-sm text-muted-foreground">불러오는 중</p>
+      </div>
     )
   }
 
   // ── 유효하지 않은 quiz id ──
   if (!QUIZ_INFO) {
     return (
-      <Layout>
-        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-          <AlertCircle size={32} className="mx-auto mb-3 text-red-700" />
-          <p className="text-sm font-medium mb-1 text-slate-900">퀴즈를 찾을 수 없습니다</p>
-          <Link to="/" className="text-xs text-primary hover:underline">퀴즈 목록으로 돌아가기</Link>
-        </div>
-      </Layout>
+      <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+        <AlertCircle size={32} className="mx-auto mb-3 text-red-700" />
+        <p className="text-sm font-medium mb-1 text-slate-900">퀴즈를 찾을 수 없습니다</p>
+        <Link to="/" className="text-xs text-primary hover:underline">퀴즈 목록으로 돌아가기</Link>
+      </div>
     )
   }
 
   // ── draft 퀴즈 ──
   if (QUIZ_INFO.status === 'draft') {
     return (
-      <Layout>
-        <div className="max-w-md mx-auto px-6 py-20 text-center">
-          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-accent">
-            <FileEdit size={24} className="text-primary" />
-          </div>
-          <h3 className="text-lg font-bold mb-2 text-gray-900">아직 응시가 시작되지 않았습니다</h3>
-          <p className="text-sm mb-6 text-gray-500">
-            이 퀴즈는 임시저장 상태입니다. 퀴즈를 공개하면 학생이 응시할 수 있습니다.
-          </p>
-          <Button asChild>
-            <Link to={`/quiz/${QUIZ_INFO.id}/edit`}>
-              <FileEdit size={14} />
-              퀴즈 편집하기
-            </Link>
-          </Button>
+      <div className="max-w-md mx-auto px-6 py-20 text-center">
+        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-accent">
+          <FileEdit size={24} className="text-primary" />
         </div>
-      </Layout>
+        <h3 className="text-lg font-bold mb-2 text-gray-900">아직 응시가 시작되지 않았습니다</h3>
+        <p className="text-sm mb-6 text-gray-500">
+          이 퀴즈는 임시저장 상태입니다. 퀴즈를 공개하면 학생이 응시할 수 있습니다.
+        </p>
+        <Button asChild>
+          <Link to={`/quiz/${QUIZ_INFO.id}/edit`}>
+            <FileEdit size={14} />
+            퀴즈 편집하기
+          </Link>
+        </Button>
+      </div>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="pt-4 pb-6">
 
         {/* ── 퀴즈 정보 카드 ── */}
@@ -475,6 +468,6 @@ export default function GradingDashboard() {
       )}
 
       {toast && <Toast message={toast} />}
-    </Layout>
+    </>
   )
 }
