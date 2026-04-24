@@ -485,7 +485,9 @@ async function main() {
           pointsPossible: totalPoints,
           dueAt: dueDate,
           published: true,
-          description: q.description,
+          // Canvas Assignment Show 페이지 상단의 설명 영역을 비운다.
+          // 퀴즈 설명은 xnquiz 상세화면 내부에서만 노출 — Canvas 제목과의 시각 중복/폰트 충돌 방지.
+          description: '',
           contentId: toolContentId,
         })
         // Assignment id 를 Quiz 에 저장 (이미 있으면 업데이트, 동일 값이면 no-op)
