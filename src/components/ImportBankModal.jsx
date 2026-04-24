@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useQuestionBank } from '../context/questionBank'
-import { MOCK_COURSES } from '../data/mockData'
+import { listBanks, getBankQuestions as apiGetBankQuestions, isApiMode } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
@@ -15,8 +15,42 @@ import {
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
 export default function ImportBankModal({ onClose, onImport }) {
-  const { banks, getBankQuestions } = useQuestionBank()
+  const { banks: contextBanks, getBankQuestions: contextGetBankQuestions } = useQuestionBank()
   const [step, setStep] = useState(1)
+
+  // API 모드에서는 교수가 만든 모든 과목의 뱅크를 cross-course 로 로드.
+  // mock 모드에서는 context 의 전체 뱅크를 그대로 사용.
+  const [crossBanks, setCrossBanks] = useState(null)
+  const [crossQuestionsByBank, setCrossQuestionsByBank] = useState({})
+  useEffect(() => {
+    if (!isApiMode()) return
+    let mounted = true
+    ;(async () => {
+      try {
+        const all = await listBanks()
+        if (!mounted) return
+        setCrossBanks(all)
+        const entries = await Promise.all(
+          all.map(async b => [b.id, await apiGetBankQuestions(b.id)])
+        )
+        if (mounted) setCrossQuestionsByBank(Object.fromEntries(entries))
+      } catch (err) {
+        console.error('[ImportBankModal] cross-course 뱅크 로드 실패', err)
+        if (mounted) setCrossBanks([])
+      }
+    })()
+    return () => { mounted = false }
+  }, [])
+
+  const apiMode = isApiMode()
+  const allBanks = useMemo(
+    () => (apiMode ? (crossBanks ?? []) : contextBanks),
+    [apiMode, crossBanks, contextBanks]
+  )
+  const getAllBankQuestions = (bankId) => {
+    if (apiMode) return crossQuestionsByBank[bankId] || []
+    return contextGetBankQuestions(bankId)
+  }
 
   const [selectedSourceIds, setSelectedSourceIds] = useState([])
   const [courseSearch, setCourseSearch] = useState('')
@@ -29,18 +63,16 @@ export default function ImportBankModal({ onClose, onImport }) {
   const [filterDifficulty, setFilterDifficulty] = useState('all')
   const [inlineToast, setInlineToast] = useState(null)
 
-  const sourceQuestions = useMemo(() => {
-    return selectedSourceIds.flatMap(bankId => {
-      const bankName = banks.find(b => b.id === bankId)?.name || ''
-      return getBankQuestions(bankId).map(q => ({ ...q, _sourceBankName: bankName }))
-    })
-  }, [selectedSourceIds, banks, getBankQuestions])
+  const sourceQuestions = selectedSourceIds.flatMap(bankId => {
+    const bankName = allBanks.find(b => b.id === bankId)?.name || ''
+    return getAllBankQuestions(bankId).map(q => ({ ...q, _sourceBankName: bankName }))
+  })
 
-  const filtered = useMemo(() => sourceQuestions.filter(q => {
+  const filtered = sourceQuestions.filter(q => {
     const matchType = filterType === 'all' || q.type === filterType
     const matchDiff = filterDifficulty === 'all' || q.difficulty === filterDifficulty
     return matchType && matchDiff
-  }), [sourceQuestions, filterType, filterDifficulty])
+  })
 
   const allFilteredSelected = filtered.length > 0 && filtered.every(q => selectedQuestionIds.includes(q.id))
   const someFilteredSelected = filtered.some(q => selectedQuestionIds.includes(q.id)) && !allFilteredSelected
@@ -59,35 +91,37 @@ export default function ImportBankModal({ onClose, onImport }) {
     }
   }
 
-  const selectedQuestions = useMemo(() =>
-    selectedQuestionIds.map(id => sourceQuestions.find(q => q.id === id)).filter(Boolean),
-    [selectedQuestionIds, sourceQuestions]
-  )
+  const selectedQuestions = selectedQuestionIds
+    .map(id => sourceQuestions.find(q => q.id === id))
+    .filter(Boolean)
 
-  const autoDifficulty = useMemo(() => {
+  const autoDifficulty = (() => {
     if (selectedQuestions.length === 0) return ''
     const diffs = [...new Set(selectedQuestions.map(q => q.difficulty || ''))]
     return diffs.length === 1 ? diffs[0] : ''
-  }, [selectedQuestions])
+  })()
 
-  const allowedDifficulties = useMemo(() => {
+  const allowedDifficulties = (() => {
     if (selectedQuestions.length === 0) return ['']
     const diffs = [...new Set(selectedQuestions.map(q => q.difficulty || ''))]
     if (diffs.length === 1 && diffs[0] !== '') return [diffs[0], '']
     if (diffs.length === 1 && diffs[0] === '') return ['', 'high', 'medium', 'low']
     return ['']
-  }, [selectedQuestions])
+  })()
 
   const effectiveDifficulty = manualDifficulty !== null ? manualDifficulty : autoDifficulty
 
-  const existingTargetBanks = banks.filter(b => b.course === CURRENT_COURSE && !selectedSourceIds.includes(b.id))
-  const targetBank = targetMode === 'existing' && targetBankId ? banks.find(b => b.id === targetBankId) : null
+  // 가져오기 target = 현재 과목 (context banks 는 이미 현재 과목으로 스코프됨 in API mode)
+  // mock 모드에서는 전체 뱅크가 있어서 CURRENT_COURSE 로 필터.
+  const currentCourseBanks = apiMode ? contextBanks : contextBanks.filter(b => b.course === CURRENT_COURSE)
+  const existingTargetBanks = currentCourseBanks.filter(b => !selectedSourceIds.includes(b.id))
+  const targetBank = targetMode === 'existing' && targetBankId ? allBanks.find(b => b.id === targetBankId) : null
 
   const handleSourceToggle = (bankId) => {
     const isChecked = selectedSourceIds.includes(bankId)
     setSelectedSourceIds(prev => isChecked ? prev.filter(id => id !== bankId) : [...prev, bankId])
     if (isChecked) {
-      const bankQIds = getBankQuestions(bankId).map(q => q.id)
+      const bankQIds = getAllBankQuestions(bankId).map(q => q.id)
       setSelectedQuestionIds(prev => prev.filter(id => !bankQIds.includes(id)))
     }
     if (!isChecked && bankId === targetBankId) setTargetBankId(null)
@@ -95,7 +129,7 @@ export default function ImportBankModal({ onClose, onImport }) {
 
   const handleTargetBankChange = (id) => {
     setTargetBankId(id)
-    const tb = banks.find(b => b.id === id)
+    const tb = allBanks.find(b => b.id === id)
     if (tb?.difficulty) {
       setSelectedQuestionIds(prev => {
         const next = prev.filter(qId => {
@@ -112,20 +146,20 @@ export default function ImportBankModal({ onClose, onImport }) {
     }
   }
 
-  const availableCourses = useMemo(() =>
-    MOCK_COURSES.filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase())),
-    [courseSearch]
-  )
-
-  const courseGroups = useMemo(() => {
+  // 사이드바 과목 목록: 실제 뱅크가 있는 과목들에서 동적 생성 (MOCK_COURSES 하드코딩 제거)
+  const courseGroups = (() => {
     const groups = {}
-    banks.forEach(b => {
+    allBanks.forEach(b => {
       const course = b.course || CURRENT_COURSE
       if (!groups[course]) groups[course] = []
       groups[course].push(b)
     })
     return groups
-  }, [banks])
+  })()
+
+  const availableCourses = Object.keys(courseGroups)
+    .map(name => ({ id: name, name }))
+    .filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase()))
 
   const canSubmit = selectedQuestions.length > 0 &&
     (targetMode === 'new' ? newBankName.trim() !== '' : targetBankId !== null)
@@ -133,12 +167,12 @@ export default function ImportBankModal({ onClose, onImport }) {
   const prevSourceLen = useRef(0)
   useEffect(() => {
     if (selectedSourceIds.length === 1 && prevSourceLen.current === 0 && !newBankName) {
-      const srcBank = banks.find(b => b.id === selectedSourceIds[0])
+      const srcBank = allBanks.find(b => b.id === selectedSourceIds[0])
       // eslint-disable-next-line react-hooks/set-state-in-effect -- auto-populate copy name once
       if (srcBank) setNewBankName(`${srcBank.name}-사본`)
     }
     prevSourceLen.current = selectedSourceIds.length
-  }, [selectedSourceIds, banks, newBankName])
+  }, [selectedSourceIds, allBanks, newBankName])
 
   const goToStep2 = () => {
     if (targetBank?.difficulty) {

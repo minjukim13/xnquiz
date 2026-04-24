@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { Plus, BookOpen, Trash2, Copy, FolderInput, FolderOutput, Pencil } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
-import Layout from '../components/Layout'
 import { useQuestionBank } from '../context/questionBank'
 import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
@@ -12,8 +11,13 @@ import AddBankModal from '../components/AddBankModal'
 import ExportBankModal from '../components/ExportBankModal'
 import ImportBankModal from '../components/ImportBankModal'
 import { DIFFICULTY_META, DIFF_LABEL } from '../components/bankDifficulty'
+import { currentLtiCourseCode } from '@/lib/data/_common'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
+// LTI 모드면 Canvas courseCode (예: "CANVAS_32225"), 아니면 mock 기본 과목 코드
+function resolveCurrentCourseCode() {
+  return currentLtiCourseCode() || CURRENT_COURSE.split(/\s+/)[0].toUpperCase()
+}
 
 export default function QuestionBankList() {
   const navigate = useNavigate()
@@ -67,7 +71,7 @@ export default function QuestionBankList() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="max-w-6xl mx-auto pb-8">
         {/* 헤더 */}
         <div className="flex items-center justify-between gap-4" style={{ paddingTop: 32, paddingBottom: 20 }}>
@@ -215,6 +219,7 @@ export default function QuestionBankList() {
                 name,
                 difficulty,
                 course: CURRENT_COURSE,
+                courseCode: resolveCurrentCourseCode(),
                 updatedAt: new Date().toISOString().split('T')[0],
                 usedInQuizIds: [],
               })
@@ -262,6 +267,7 @@ export default function QuestionBankList() {
                   name: bankName,
                   difficulty: difficulty || '',
                   course: CURRENT_COURSE,
+                  courseCode: resolveCurrentCourseCode(),
                   updatedAt: new Date().toISOString().split('T')[0],
                   usedInQuizIds: [],
                 })
@@ -292,7 +298,8 @@ export default function QuestionBankList() {
             try {
               let bankId = targetBankId
               let bankName = newBankName
-              if (targetBankId === '__new__') {
+              // 모달은 new 모드면 targetBankId=null + newBankName 으로 호출, existing 모드면 targetBankId=id + newBankName=null
+              if (!targetBankId && newBankName) {
                 const created = await addBank({
                   id: `bank_export_${Date.now()}`,
                   name: bankName,
@@ -328,7 +335,7 @@ export default function QuestionBankList() {
           action={toast.bankId ? { label: '바로가기', onClick: () => { navigate(`/question-banks/${toast.bankId}`); setToast(null) } } : undefined}
         />
       )}
-    </Layout>
+    </>
   )
 }
 
