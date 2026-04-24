@@ -147,12 +147,13 @@ export default function ImportBankModal({ onClose, onImport }) {
   }
 
   // 사이드바 과목 목록: 실제 뱅크가 있는 과목들에서 동적 생성 (MOCK_COURSES 하드코딩 제거)
+  // 표시용 이름: API 응답은 courseName (Canvas 과목명), mock 은 course ("CS301 데이터베이스")
   const courseGroups = (() => {
     const groups = {}
     allBanks.forEach(b => {
-      const course = b.course || CURRENT_COURSE
-      if (!groups[course]) groups[course] = []
-      groups[course].push(b)
+      const displayName = b.courseName || b.course || CURRENT_COURSE
+      if (!groups[displayName]) groups[displayName] = []
+      groups[displayName].push(b)
     })
     return groups
   })()

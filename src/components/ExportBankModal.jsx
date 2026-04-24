@@ -169,12 +169,13 @@ export default function ExportBankModal({ onClose, onExport }) {
     (targetMode === 'new' ? newBankName.trim() !== '' : targetBankId !== null)
 
   // 사이드바 과목 목록: 실제 뱅크가 있는 과목들에서 동적 생성 (MOCK_COURSES 하드코딩 제거)
+  // 표시용 이름: API 응답은 courseName (Canvas 과목명), mock 은 course ("CS301 데이터베이스")
   const courseGroups = (() => {
     const groups = {}
     allBanks.forEach(b => {
-      const course = b.course || CURRENT_COURSE
-      if (!groups[course]) groups[course] = []
-      groups[course].push(b)
+      const displayName = b.courseName || b.course || CURRENT_COURSE
+      if (!groups[displayName]) groups[displayName] = []
+      groups[displayName].push(b)
     })
     return groups
   })()
@@ -184,8 +185,9 @@ export default function ExportBankModal({ onClose, onExport }) {
     .filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase()))
 
   // 대상 과목 드롭다운: API 모드 → xnquiz 등록된 과목 전체, mock 모드 → MOCK_COURSES
+  // API 과목명: listCourses 가 label("code name") 을 name 으로 넘기므로 shortName 우선 표시
   const targetCourseOptions = apiMode
-    ? (teacherCourses ?? []).map(c => ({ value: c.name, label: c.name }))
+    ? (teacherCourses ?? []).map(c => ({ value: c.name, label: c.shortName || c.name }))
     : MOCK_COURSES.map(c => ({ value: c.name, label: c.name }))
 
   const goToStep2 = () => {
