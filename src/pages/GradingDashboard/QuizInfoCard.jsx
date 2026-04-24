@@ -1,6 +1,13 @@
 import { useMemo } from 'react'
 import StatusBadge from '../../components/StatusBadge'
-import { getEffectiveSubmittedCount } from '@/utils/deadlineUtils'
+import { getEffectiveSubmittedCount, isDeadlinePassed } from '@/utils/deadlineUtils'
+
+function resolveDisplayStatus(quiz) {
+  if (!quiz) return null
+  if (quiz.status === 'open' && quiz.startDate && new Date() < new Date(quiz.startDate)) return 'scheduled'
+  if (quiz.status === 'open' && isDeadlinePassed(quiz)) return 'closed'
+  return quiz.status
+}
 
 // ─── 퀴즈 정보 카드 ─────────────────────────────────────────────────────────
 export default function QuizInfoCard({ quiz, students }) {
@@ -33,7 +40,7 @@ export default function QuizInfoCard({ quiz, students }) {
               <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-accent text-primary">
                 {quiz.week}주차 {quiz.session}차시
               </span>
-              <StatusBadge status={quiz.status} className="px-2.5 py-1 rounded-full font-semibold" />
+              <StatusBadge status={resolveDisplayStatus(quiz)} className="px-2.5 py-1 rounded-full font-semibold" />
             </div>
             <h2 className="text-xl font-extrabold text-foreground mb-1.5">{quiz.title}</h2>
             <p className="text-sm text-muted-foreground mb-2">{quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}</p>

@@ -17,10 +17,18 @@ import {
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Toast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
+import { isDeadlinePassed } from '@/utils/deadlineUtils'
 
 function isScheduled(quiz) {
   if (!quiz || quiz.status !== 'open' || !quiz.startDate) return false
   return new Date() < new Date(quiz.startDate)
+}
+
+function resolveDisplayStatus(quiz) {
+  if (!quiz) return null
+  if (isScheduled(quiz)) return 'scheduled'
+  if (quiz.status === 'open' && isDeadlinePassed(quiz)) return 'closed'
+  return quiz.status
 }
 
 function InfoRow({ label, value, muted = false }) {
@@ -118,6 +126,7 @@ export default function QuizDetail() {
   }
 
   const scheduled = isScheduled(quiz)
+  const displayStatus = resolveDisplayStatus(quiz)
   const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
   const canStats = quiz.status !== 'draft'
 
@@ -154,7 +163,7 @@ export default function QuizDetail() {
           <div className="flex-1 min-w-0">
             <h1 className="text-[22px] font-bold text-foreground leading-tight mb-2">{quiz.title}</h1>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <StatusBadge status={scheduled ? 'scheduled' : quiz.status} />
+              <StatusBadge status={displayStatus} />
               {(quiz.week > 0 || quiz.session > 0) && (
                 <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-accent text-primary">
                   {quiz.week > 0 ? `${quiz.week}주차` : ''}
