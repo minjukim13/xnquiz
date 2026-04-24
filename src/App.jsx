@@ -37,6 +37,7 @@ if (typeof window !== 'undefined') {
 }
 
 const QuizList = lazy(() => import('./pages/QuizList'))
+const QuizDetail = lazy(() => import('./pages/QuizDetail'))
 const QuizEdit = lazy(() => import('./pages/QuizEdit'))
 const QuizCreate = lazy(() => import('./pages/QuizCreate'))
 const GradingDashboard = lazy(() => import('./pages/GradingDashboard'))
@@ -62,6 +63,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<QuizList />} />
             <Route path="/quiz/new" element={<QuizCreate />} />
+            <Route path="/quiz/:id" element={<QuizDetail />} />
             <Route path="/quiz/:id/edit" element={<QuizEdit />} />
             <Route path="/quiz/:id/grade" element={<GradingDashboard />} />
             <Route path="/quiz/:id/stats" element={<QuizStats />} />

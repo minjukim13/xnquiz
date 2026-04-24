@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown } from 'lucide-react'
+import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown, Pencil, ClipboardCheck } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
@@ -422,18 +422,15 @@ function QuizCard({ quiz, onCopy, onDelete }) {
   const navigate = useNavigate()
   const scheduled = isScheduled(quiz)
 
-  const cardTarget = (!scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open'))
-    ? `/quiz/${quiz.id}/grade`
-    : null
+  const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
 
   return (
     <Card
       className={cn(
-        'overflow-hidden transition-shadow',
-        cardTarget && 'cursor-pointer hover:shadow-md',
+        'overflow-hidden transition-shadow cursor-pointer hover:shadow-md',
         quiz.status === 'draft' ? 'bg-slate-50 opacity-85' : 'bg-white'
       )}
-      onClick={() => cardTarget && navigate(cardTarget)}
+      onClick={() => navigate(`/quiz/${quiz.id}`)}
     >
       <div className="flex items-start gap-4 px-6 pt-3 pb-3">
         <div className="flex-1 min-w-0">
@@ -474,20 +471,15 @@ function QuizCard({ quiz, onCopy, onDelete }) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-          <Button
-            asChild
-            variant="outline"
-            className="border-gray-200 text-gray-900 bg-white hover:bg-gray-50"
-          >
-            <Link to={`/quiz/${quiz.id}/edit`}>편집</Link>
-          </Button>
-
-          {quiz.status !== 'draft' && (
-            <Button
-              asChild
-            >
-              <Link to={`/quiz/${quiz.id}/stats`}>통계</Link>
-            </Button>
+          {canGrade && (
+            <>
+              <Button asChild variant="outline" className="border-gray-200 text-gray-900 bg-white hover:bg-gray-50">
+                <Link to={`/quiz/${quiz.id}/grade`}>채점</Link>
+              </Button>
+              <Button asChild>
+                <Link to={`/quiz/${quiz.id}/stats`}>통계</Link>
+              </Button>
+            </>
           )}
 
           <DropdownMenu>
@@ -497,6 +489,10 @@ function QuizCard({ quiz, onCopy, onDelete }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/edit`)}>
+                <Pencil size={14} />
+                편집
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/attempt?preview=true`)}>
                 <Eye size={14} />
                 미리보기
