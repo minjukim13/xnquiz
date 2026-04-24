@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import QuizSettingsDialog from '../components/QuizSettingsDialog'
 import StatusBadge from '../components/StatusBadge'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { isDeadlinePassed } from '@/utils/deadlineUtils'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -151,6 +152,14 @@ function sortQuizzes(quizzes, sortKey) {
 function isScheduled(quiz) {
   if (quiz.status !== 'open' || !quiz.startDate) return false
   return new Date() < new Date(quiz.startDate)
+}
+
+// dueDate 기반 화면용 상태 결정 — DB status 는 유지, 표시만 마감으로 전환
+// 지각 제출 허용 시 lateSubmitDeadline 까지는 '진행중' 으로 유지됨 (deadlineUtils)
+function resolveDisplayStatus(quiz) {
+  if (isScheduled(quiz)) return 'scheduled'
+  if (quiz.status === 'open' && isDeadlinePassed(quiz)) return 'closed'
+  return quiz.status
 }
 
 // STATUS_CONFIG 제거 → StatusBadge 컴포넌트로 통합
@@ -420,6 +429,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
   const ddayBadge = getDdayBadge(quiz)
   const navigate = useNavigate()
   const scheduled = isScheduled(quiz)
+  const displayStatus = resolveDisplayStatus(quiz)
 
   const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
 
@@ -434,7 +444,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
       <div className="flex items-start gap-4 px-6 pt-3 pb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <StatusBadge status={scheduled ? 'scheduled' : quiz.status} />
+            <StatusBadge status={displayStatus} />
             {(quiz.week > 0 || quiz.session > 0) && (
               <span className="text-xs text-muted-foreground">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
@@ -551,7 +561,7 @@ function ActiveStats({ quiz }) {
   const totalStudents = quiz.totalStudents ?? 0
   const submitRate = totalStudents > 0 ? Math.round((submitted / totalStudents) * 100) : 0
   const unsubmitted = Math.max(0, totalStudents - submitted)
-  const isClosed = quiz.status === 'closed' || quiz.status === 'grading'
+  const isClosed = quiz.status === 'closed' || quiz.status === 'grading' || isDeadlinePassed(quiz)
 
   const cols = [
     { label: '응시율',   value: `${submitRate}%`,   cls: 'text-slate-900' },
@@ -1029,7 +1039,9 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
   const [showHistory, setShowHistory] = useState(false)
   const maxAttempts = quiz.allowAttempts ?? 1
   const isAttemptExceeded = maxAttempts !== -1 && attemptCount >= maxAttempts
-  const isOpen = quiz.status === 'open' && !scheduled
+  const pastDue = isDeadlinePassed(quiz)
+  const isOpen = quiz.status === 'open' && !scheduled && !pastDue
+  const displayStatus = resolveDisplayStatus(quiz)
   const ddayBadge = getDdayBadge(quiz)
 
   // 학생 혼란 방지 — 채점 상태(대기/완료)는 학생 목록 배지에 표시하지 않음.
@@ -1043,7 +1055,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
       <div className="flex items-start gap-4 px-6 pt-3 pb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <StatusBadge status={scheduled ? 'scheduled' : quiz.status} />
+            <StatusBadge status={displayStatus} />
             {myBadge && (
               <span className={cn('text-xs font-medium px-2 py-0.5 rounded-md', myBadge.cls)}>
                 {myBadge.label}
