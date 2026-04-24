@@ -272,6 +272,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // NRPS URL 경로에서 Canvas 실제 course.id (숫자) 추출
+  // 예: https://{host}/api/lti/courses/32227/names_and_roles → 32227
+  // Dev Key privacy 설정에 따라 context.id 가 해시로 올 수 있어 numeric id 확보가 필요하다.
+  let canvasCourseNumericId: number | null = null
+  if (nrpsUrl) {
+    const m = nrpsUrl.match(/\/courses\/(\d+)\//)
+    if (m) {
+      const parsed = parseInt(m[1], 10)
+      if (Number.isInteger(parsed)) canvasCourseNumericId = parsed
+    }
+  }
+
   if (ctxClaim && typeof ctxClaim === 'object' && ctxClaim !== null) {
     const ctx = ctxClaim as { id?: unknown; label?: unknown; title?: unknown }
     if (typeof ctx.id === 'string' && ctx.id) {
@@ -286,6 +298,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           name: courseName,
           ltiPlatformId: platform.id,
           ltiContextId: ctx.id,
+          ltiCanvasCourseId: canvasCourseNumericId,
           ltiDeploymentId: deploymentId,
           ltiNrpsUrl: nrpsUrl,
           ltiLineItemsUrl: agsLineItemsUrl,
@@ -295,6 +308,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           name: courseName,
           ltiPlatformId: platform.id,
           ltiContextId: ctx.id,
+          ltiCanvasCourseId: canvasCourseNumericId,
           ltiDeploymentId: deploymentId,
           ltiNrpsUrl: nrpsUrl,
           ltiLineItemsUrl: agsLineItemsUrl,

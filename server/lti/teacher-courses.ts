@@ -95,23 +95,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? req.query.excludeCourseCode.toUpperCase()
       : null
 
-    const codes = canvasCourses.map(c => `CANVAS_${c.id}`.toUpperCase())
+    // xnquiz DB 의 Course.ltiCanvasCourseId 로 Canvas 숫자 id 매칭.
+    // Dev Key privacy 설정 때문에 LTI context.id 가 해시로 올 수 있어
+    // `CANVAS_{numeric_id}` 단순 규칙으로는 매칭 안 됨.
+    const canvasIds = canvasCourses.map(c => c.id)
     const existingCourses = await prisma.course.findMany({
-      where: { code: { in: codes } },
-      select: { code: true },
+      where: { ltiCanvasCourseId: { in: canvasIds } },
+      select: { code: true, ltiCanvasCourseId: true },
     })
-    const existingSet = new Set(existingCourses.map(c => c.code))
+    const codeByCanvasId = new Map<number, string>()
+    for (const c of existingCourses) {
+      if (c.ltiCanvasCourseId != null) codeByCanvasId.set(c.ltiCanvasCourseId, c.code)
+    }
 
     const result = canvasCourses
       .map(c => {
-        const courseCode = `CANVAS_${c.id}`.toUpperCase()
+        // xnquiz 에 launch 된 적 있으면 실제 courseCode, 없으면 숫자 기반 placeholder
+        // (placeholder 는 /api/quizzes 조회 시 빈 배열 반환 → UI "공개된 퀴즈 없음")
+        const courseCode = codeByCanvasId.get(c.id) ?? `CANVAS_${c.id}`
         return {
           canvasId: c.id,
           canvasCourseCode: c.course_code ?? null,
           courseCode,
           name: c.name,
           label: c.name,
-          hasXnCourse: existingSet.has(courseCode),
+          hasXnCourse: codeByCanvasId.has(c.id),
         }
       })
       .filter(c => (excludeCode ? c.courseCode !== excludeCode : true))
