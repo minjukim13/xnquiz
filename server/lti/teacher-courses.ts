@@ -2,9 +2,12 @@
 // LTI 교수자가 Canvas 에서 teacher enrollment 를 가진 모든 과목을 조회.
 //
 // 인증 흐름:
-//   - 요청자 세션(JWT) → userId → LtiUserMap → ltiSub + platform.issuer
+//   - 요청자 세션(JWT) → userId → User.studentId(Canvas login_id) 또는 email local-part
 //   - Canvas REST admin PAT(CANVAS_API_TOKEN) 으로
-//     GET {issuer}/api/v1/users/sis_lti_user_id:{ltiSub}/courses?enrollment_type=teacher
+//     GET {issuer}/api/v1/users/sis_login_id:{loginId}/courses?enrollment_type=teacher
+//
+// sis_lti_user_id: 쿼리는 이 Canvas 인스턴스에 SIS LTI 매핑이 없어 404.
+// sis_login_id: 는 동작 확인됨 (200).
 //
 // 반환 항목마다 xnquiz 의 Course 존재 여부(hasXnCourse) + xnquiz courseCode 포함.
 // 클라이언트는 이 courseCode 로 GET /api/quizzes?courseCode=... 를 호출해
@@ -46,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const mapping = await prisma.ltiUserMap.findFirst({
       where: { userId: auth.userId },
       orderBy: { lastLaunchAt: 'desc' },
-      include: { platform: true },
+      include: { platform: true, user: true },
     })
     if (!mapping) {
       return res.status(400).json({
@@ -54,9 +57,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
+    // Canvas login_id 우선순위: User.studentId (launch.ts 에서 custom.canvas_user_login_id 로 저장) >
+    //   실제 email 의 local-part. LTI fallback email(lti-{sub}@xn.lti) 은 Canvas 조회 불가라 명시 에러.
+    const email = mapping.user.email
+    const isFallbackEmail = email.endsWith('@xn.lti')
+    const loginId = mapping.user.studentId
+      || (isFallbackEmail ? null : email.split('@')[0])
+    if (!loginId) {
+      return res.status(400).json({
+        error: 'Canvas login_id 를 찾지 못했습니다. Dev Key 에 canvas_user_login_id=$Canvas.user.loginId 가 등록되어 있어야 합니다.',
+      })
+    }
+
     const baseUrl = trimBase(mapping.platform.issuer)
     const url =
-      `${baseUrl}/api/v1/users/sis_lti_user_id:${encodeURIComponent(mapping.ltiSub)}` +
+      `${baseUrl}/api/v1/users/sis_login_id:${encodeURIComponent(loginId)}` +
       `/courses?enrollment_type=teacher&state[]=available&per_page=100`
 
     const resp = await fetch(url, {
