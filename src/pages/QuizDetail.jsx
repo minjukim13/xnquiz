@@ -24,6 +24,12 @@ function isScheduled(quiz) {
   return new Date() < new Date(quiz.startDate)
 }
 
+// LTI 모드(iframe) 여부 — Canvas 가 이미 제목/설명/브레드크럼 영역을 렌더링하므로
+// xnquiz 쪽에서 동일 정보 중복 노출을 피하기 위해 분기에 사용.
+function isLtiActive() {
+  try { return typeof window !== 'undefined' && localStorage.getItem('xnq_lti_active') === '1' } catch { return false }
+}
+
 function InfoRow({ label, value, muted = false }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2.5">
@@ -140,24 +146,29 @@ export default function QuizDetail() {
 
   const timeLimitLabel = !quiz.timeLimit ? '제한 없음' : `${quiz.timeLimit}분`
   const attemptLabel = quiz.allowAttempts === -1 ? '무제한' : `${quiz.allowAttempts ?? 1}회`
+  const ltiActive = isLtiActive()
 
   return (
     <Layout>
       <div className="max-w-4xl mx-auto pb-10">
-        {/* 상단 브레드크럼 — Vercel 대시보드 스타일: 텍스트 링크, 테두리 없음 */}
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mt-6 mb-3 -ml-1 px-1 py-1"
-        >
-          <ChevronLeft size={16} strokeWidth={2.25} />
-          퀴즈 목록
-        </button>
+        {/* 상단 브레드크럼 — LTI 모드에선 Canvas 가 자체 브레드크럼 제공하므로 숨김 */}
+        {!ltiActive && (
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mt-6 mb-3 -ml-1 px-1 py-1"
+          >
+            <ChevronLeft size={16} strokeWidth={2.25} />
+            퀴즈 목록
+          </button>
+        )}
 
-        {/* 헤더: 제목 + 메타(상태/주차/기간) + 액션 */}
-        <div className="flex items-start justify-between gap-4 pb-4">
+        {/* 헤더: 제목(LTI 모드에선 Canvas 가 렌더하므로 숨김) + 메타(상태/주차/기간) + 액션 */}
+        <div className={cn('flex items-start justify-between gap-4 pb-4', ltiActive && 'pt-6')}>
           <div className="flex-1 min-w-0">
-            <h1 className="text-[22px] font-bold text-foreground leading-tight mb-2">{quiz.title}</h1>
+            {!ltiActive && (
+              <h1 className="text-[22px] font-bold text-foreground leading-tight mb-2">{quiz.title}</h1>
+            )}
             <div className="flex items-center gap-1.5 flex-wrap">
               <StatusBadge status={scheduled ? 'scheduled' : quiz.status} />
               {(quiz.week > 0 || quiz.session > 0) && (
@@ -217,8 +228,8 @@ export default function QuizDetail() {
           </div>
         </div>
 
-        {/* 퀴즈 설명 카드 */}
-        {quiz.description && (
+        {/* 퀴즈 설명 카드 — LTI 모드에선 Canvas 가 이미 상단에 설명을 보여주므로 숨김 */}
+        {quiz.description && !ltiActive && (
           <Card className="mb-4 px-5 py-4">
             <p className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed">
               {quiz.description}
