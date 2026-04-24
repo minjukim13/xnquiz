@@ -347,6 +347,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try { section = new URL(targetLinkClaim).searchParams.get('section') } catch { /* ignore */ }
   }
 
+  // Assignment deep-link: custom.canvas_assignment_id 가 있으면 해당 퀴즈 상세화면으로
+  // Dev Key 사용자 정의 필드에 `canvas_assignment_id=$Canvas.assignment.id` 필요.
+  // 사이드바 "퀴즈" 메뉴 진입은 assignment context 가 없어 undefined → 기본 redirect.
+  const customAssignmentId = custom.canvas_assignment_id
+  let targetQuizId: string | null = null
+  if (customAssignmentId !== undefined && customAssignmentId !== null && customAssignmentId !== '') {
+    const parsed = typeof customAssignmentId === 'number'
+      ? customAssignmentId
+      : parseInt(String(customAssignmentId), 10)
+    if (Number.isFinite(parsed) && Number.isInteger(parsed)) {
+      const mapped = await prisma.quiz.findUnique({
+        where: { canvasAssignmentId: parsed },
+        select: { id: true },
+      })
+      if (mapped) targetQuizId = mapped.id
+    }
+  }
+
   // LearningX → xnquiz 주차/차시 단방향 동기화 (B-1)
   // LearningX 가 LTI custom variable substitution 으로 주입: custom_week, custom_session
   // 퀴즈 신규 생성 시 프리필 용도로만 사용. 기존 퀴즈는 덮어쓰지 않음.
@@ -371,7 +389,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (ltiSession !== null) hashParams.session = String(ltiSession)
   const hashPayload = new URLSearchParams(hashParams).toString()
 
-  const redirectPath = section === 'banks' ? '/question-banks' : '/'
+  // Assignment deep-link 우선 — 매핑된 quizId 가 있으면 상세화면으로
+  // 없으면 기존 기본 경로 (section=banks → 문제은행, 그 외 → 퀴즈 목록)
+  const redirectPath = targetQuizId
+    ? `/quiz/${targetQuizId}`
+    : section === 'banks' ? '/question-banks' : '/'
   res.setHeader('Location', `${publicUrl}${redirectPath}?lti=1#${hashPayload}`)
   return res.status(302).end()
 }
