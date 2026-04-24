@@ -200,6 +200,10 @@ model Quiz {
   ltiLineItemUrl     String?   // 이 퀴즈에 대응하는 Canvas lineitem URL (최초 점수 전송 시 생성)
   ltiLastScoreSentAt DateTime? // 마지막으로 AGS score 를 Canvas 에 전송한 시각
 
+  // Canvas Assignment deep-link — Assignment 클릭 시 상세화면 매핑용
+  // launch.ts 에서 custom.canvas_assignment_id 로 lookup → /quiz/:id 로 redirect
+  canvasAssignmentId Int? @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

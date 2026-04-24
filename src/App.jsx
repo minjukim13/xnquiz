@@ -5,7 +5,8 @@ import { QuestionBankProvider } from './context/QuestionBankContext'
 
 // LTI 진입 부트스트랩 — React 렌더 전에 해시에서 토큰 추출 후 localStorage 저장
 // launch 엔드포인트가 `/{path}?lti=1#token=...&role=...&section=...` 로 redirect 하면 여기서 흡수
-// section 에 따라 초기 경로가 이미 결정된 상태로 들어옴 (launch 가 /question-banks 또는 / 로 redirect)
+// section 에 따라 초기 경로가 이미 결정된 상태로 들어옴
+// (launch 가 /quiz/:id | /question-banks | / 중 하나로 redirect)
 if (typeof window !== 'undefined') {
   const params = new URLSearchParams(window.location.search)
   if (params.get('lti') === '1' && window.location.hash.length > 1) {

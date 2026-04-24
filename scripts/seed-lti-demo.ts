@@ -472,7 +472,9 @@ async function main() {
         // launchUrl 은 Canvas Dev Key 에 등록된 redirect URI 와 exact match 필요.
         // 퀴즈 placement tool 은 `?section=quizzes` 로 등록돼 있으므로 Assignment 도 동일 쿼리 사용.
         // 임의 파라미터(quiz_id 등) 추가 금지 — mismatch 시 authorize 500 발생.
-        // 퀴즈별 deep link 는 추후 custom_fields 로 구현.
+        // Assignment 별 deep link 는 Canvas assignment.id 를 Quiz 에 저장해두고
+        // launch 시 custom.canvas_assignment_id 로 lookup → /quiz/:id 로 redirect.
+        // Dev Key 사용자 정의 필드에 `canvas_assignment_id=$Canvas.assignment.id` 필요.
         const launchUrl = `${publicUrl!.replace(/\/+$/, '')}/api/lti/launch?section=quizzes`
         const { assignment, created, updated } = await ensureExternalToolAssignment({
           baseUrl: canvasBaseUrl!,
@@ -486,6 +488,13 @@ async function main() {
           description: q.description,
           contentId: toolContentId,
         })
+        // Assignment id 를 Quiz 에 저장 (이미 있으면 업데이트, 동일 값이면 no-op)
+        if (quiz.canvasAssignmentId !== assignment.id) {
+          await prisma.quiz.update({
+            where: { id: quiz.id },
+            data: { canvasAssignmentId: assignment.id },
+          })
+        }
         const action = created ? 'CREATED' : updated ? 'UPDATED' : 'EXISTS'
         console.log(
           `[canvas-sync] ${action} assignment id=${assignment.id} "${assignment.name}"`,
