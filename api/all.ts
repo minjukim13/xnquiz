@@ -24,6 +24,7 @@ import attemptsSubmit from '../server/attempts/[id]/submit.js'
 import ltiJwks from '../server/lti/jwks.js'
 import ltiLogin from '../server/lti/login.js'
 import ltiLaunch from '../server/lti/launch.js'
+import ltiTeacherCourses from '../server/lti/teacher-courses.js'
 
 type VercelHandler = (req: VercelRequest, res: VercelResponse) => Promise<unknown> | unknown
 
@@ -87,6 +88,7 @@ function buildApp() {
   app.all('/api/lti/jwks', vh(ltiJwks))
   app.all('/api/lti/login', vh(ltiLogin))
   app.all('/api/lti/launch', vh(ltiLaunch))
+  app.all('/api/lti/teacher-courses', vh(ltiTeacherCourses))
 
   app.use('/api', (req, res) => {
     res.status(404).json({ error: `Not Found: ${req.method} ${req.originalUrl}` })
