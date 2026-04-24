@@ -236,7 +236,7 @@ export default function QuizDetail() {
             <div className="text-center px-4 py-5">
               <p className="text-xs text-muted-foreground mb-1">문항 수</p>
               <p className="text-xl font-bold text-foreground">
-                {quiz.questions ?? questions.length}<span className="text-sm font-normal text-muted-foreground ml-0.5">개</span>
+                {quiz.questions ?? 0}<span className="text-sm font-normal text-muted-foreground ml-0.5">개</span>
               </p>
             </div>
             <div className="text-center px-4 py-5">
