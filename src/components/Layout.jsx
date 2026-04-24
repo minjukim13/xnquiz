@@ -79,10 +79,11 @@ export default function Layout({ children }) {
   // LTI 모드 (Canvas iframe 진입): Canvas 가 이미 좌측 네비게이션 제공
   // → xnquiz 내부 사이드바/헤더/역할토글 숨김. 콘텐츠만 렌더.
   // → lti-mode 클래스로 페이지별 max-w-5xl 중앙정렬 해제 (index.css)
+  // → iframe 여백은 Canvas 본문(약 24px)과 맞추고, 상단 간격도 타이트하게
   if (isLtiActive()) {
     return (
       <div className="lti-mode min-h-screen bg-background text-foreground">
-        <main className="px-6 lg:px-10 pb-6">{children}</main>
+        <main className="px-4 sm:px-5 pt-1 pb-4">{children}</main>
       </div>
     )
   }

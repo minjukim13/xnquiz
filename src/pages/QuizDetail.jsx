@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom'
-import { ChevronLeft, Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange } from 'lucide-react'
+import { ArrowLeft, Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange } from 'lucide-react'
 import Layout from '../components/Layout'
 import StatusBadge from '../components/StatusBadge'
 import { mockQuizzes } from '../data/mockData'
@@ -144,13 +144,13 @@ export default function QuizDetail() {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto pb-10">
-        {/* 상단 브레드크럼 — Vercel 대시보드 스타일: 텍스트 링크, 테두리 없음 */}
+        {/* 상단 브레드크럼 — Outline 스타일 뒤로가기 버튼 */}
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mt-6 mb-3 -ml-1 px-1 py-1"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 hover:text-slate-900 transition-colors px-3 py-1.5 rounded-lg mt-2 mb-3"
         >
-          <ChevronLeft size={16} strokeWidth={2.25} />
+          <ArrowLeft size={16} strokeWidth={2.25} />
           퀴즈 목록
         </button>
 
