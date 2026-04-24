@@ -116,7 +116,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
             )}
             <div className="flex flex-col gap-2.5">
               <DialogTitle>
-                {selectedBank ? selectedBank.name : '문제은행에서 추가'}
+                {selectedBank ? selectedBank.name : '문제모음에서 추가'}
               </DialogTitle>
               {selectedBank ? (
                 <DialogDescription>{bankQuestions.length}개 문항</DialogDescription>
@@ -144,7 +144,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                     </div>
                   )}
                   {currentBanks.length === 0 ? (
-                    <p className="text-sm py-6 text-center text-muted-foreground">이 과목에 등록된 문제은행이 없습니다</p>
+                    <p className="text-sm py-6 text-center text-muted-foreground">이 과목에 등록된 문제모음이 없습니다</p>
                   ) : (
                     currentBanks.map(b => {
                       const count = getBankQuestions(b.id).length
@@ -178,7 +178,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                     size={13}
                     style={{ transform: showOtherCourses ? 'rotate(-90deg)' : 'rotate(-180deg)', transition: 'transform 0.15s' }}
                   />
-                  다른 과목 문제은행
+                  다른 과목 문제모음
                 </button>
                 {showOtherCourses && (() => {
                   const otherBanks = banks.filter(b => b.course !== currentCourse)

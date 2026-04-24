@@ -27,11 +27,18 @@ function DialogIcon({ tone = 'info' }) {
   )
 }
 
-function parseMessage(message) {
-  if (!message) return { isList: false, lines: [], text: '' }
-  const lines = message.split('\n').filter(l => l.trim())
-  const isList = lines.length > 0 && lines.every(l => l.trimStart().startsWith('- '))
-  return { isList, lines, text: message }
+
+function CloseButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="닫기"
+      className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+    >
+      <X className="size-4" />
+    </button>
+  )
 }
 
 // ── Confirm ─────────────────────────────────────────────────────────────────
@@ -46,42 +53,34 @@ export function ConfirmDialog({
 }) {
   return (
     <ShadcnAlertDialog open onOpenChange={(open) => { if (!open) onCancel?.() }}>
-      <AlertDialogContent
-        className="w-[400px] max-w-[400px] rounded-2xl px-7 py-8 gap-6 [word-break:keep-all] sm:max-w-[400px]"
-      >
-        <div>
-          <div className="flex items-center gap-3">
-            <DialogIcon tone={confirmDanger ? 'destructive' : 'info'} />
-            <AlertDialogTitle className="text-[17px] font-semibold text-foreground">{title}</AlertDialogTitle>
-          </div>
+      <AlertDialogContent className="w-[340px] max-w-[340px] rounded-2xl p-6 gap-0 [word-break:keep-all] sm:max-w-[340px]">
+        <CloseButton onClick={onCancel} />
+
+        <div className="flex flex-col items-center text-center">
+          <DialogIcon tone={confirmDanger ? 'destructive' : 'info'} />
+          <AlertDialogTitle className="mt-3 text-[16px] font-semibold text-foreground leading-[1.4]">
+            {title}
+          </AlertDialogTitle>
           {message && (
             <AlertDialogDescription asChild>
-              <p className="mt-2 text-[14px] leading-[1.6] text-secondary-foreground whitespace-pre-line">
+              <p className="mt-1.5 text-[13px] leading-[1.55] text-muted-foreground whitespace-pre-line">
                 {message}
               </p>
             </AlertDialogDescription>
           )}
         </div>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg bg-secondary px-5 py-2.5 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-border"
-          >
+
+        <div className="mt-5 flex gap-2">
+          <Button variant="outline" onClick={onCancel} className="flex-1">
             {cancelLabel}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={confirmDanger ? 'destructive' : 'default'}
             onClick={onConfirm}
-            className={cn(
-              'rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-colors',
-              confirmDanger
-                ? 'bg-destructive hover:bg-destructive-hover'
-                : 'bg-primary hover:bg-primary-hover',
-            )}
+            className="flex-1"
           >
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </AlertDialogContent>
     </ShadcnAlertDialog>
@@ -96,52 +95,28 @@ export function AlertDialog({
   closeLabel = '확인',
   variant = 'info',
 }) {
-  const { isList, lines, text } = parseMessage(message)
   const tone = variant === 'error' ? 'destructive' : 'info'
 
   return (
     <ShadcnAlertDialog open onOpenChange={(open) => { if (!open) onClose?.() }}>
-      <AlertDialogContent className="max-w-sm rounded-2xl">
-        <div>
-          <div className="flex items-start gap-2">
-            <DialogIcon tone={tone} />
-            <div>
-              <AlertDialogTitle className="text-[17px] font-semibold leading-[1.45]">{title}</AlertDialogTitle>
-              {isList && (
-                <p className="text-[13px] text-muted-foreground mt-0.5">
-                  아래 항목을 확인해주세요
-                </p>
-              )}
-            </div>
-          </div>
+      <AlertDialogContent className="w-[320px] max-w-[320px] rounded-2xl p-6 gap-0 sm:max-w-[320px]">
+        <CloseButton onClick={onClose} />
 
+        <div className="flex flex-col items-center text-center">
+          <DialogIcon tone={tone} />
+          <AlertDialogTitle className="mt-3 text-[16px] font-semibold text-foreground leading-[1.4]">
+            {title}
+          </AlertDialogTitle>
           {message && (
             <AlertDialogDescription asChild>
-              <div className="mt-2 pl-6">
-                {isList ? (
-                  <div className="rounded-[10px] bg-accent border border-primary/15 px-4 py-3.5 space-y-2.5">
-                    {lines.map((line, i) => (
-                      <div key={i} className="flex items-start gap-2.5">
-                        <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-primary" />
-                        <span className="text-[13px] text-secondary-foreground">
-                          {line.replace(/^\s*-\s*/, '')}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[13px] leading-[1.6] text-muted-foreground whitespace-pre-line">
-                    {text}
-                  </p>
-                )}
-              </div>
+              <p className="mt-1.5 text-[13px] leading-[1.55] text-muted-foreground whitespace-pre-line">
+                {message}
+              </p>
             </AlertDialogDescription>
           )}
         </div>
 
-        <div className="flex justify-end">
-          <Button onClick={onClose}>{closeLabel}</Button>
-        </div>
+        <Button onClick={onClose} className="mt-5 w-full">{closeLabel}</Button>
       </AlertDialogContent>
     </ShadcnAlertDialog>
   )

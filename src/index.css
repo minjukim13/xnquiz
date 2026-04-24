@@ -4,6 +4,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* LTI 모드: Canvas iframe 에서 진입 시 페이지별 중앙정렬 max-width 해제 */
+/* 전체 iframe 영역을 콘텐츠가 차지하도록 페이지 공통 규칙 오버라이드 */
+/* 모달 내부 max-w-md/lg 등 작은 값은 유지하고 컨테이너 폭 4xl~7xl 만 해제 */
+.lti-mode .max-w-4xl,
+.lti-mode .max-w-5xl,
+.lti-mode .max-w-6xl,
+.lti-mode .max-w-7xl {
+  max-width: none;
+}
+
 @layer base {
   * {
     box-sizing: border-box;

@@ -43,7 +43,7 @@ export function QuestionBankProvider({ children }) {
   })
 
   // api 모드: 서버에서 banks + 각 bank 의 questions 일괄 로드
-  // 문제은행은 교수자 전용 (학생은 /api/banks 403). role 전환 시 재실행.
+  // 문제모음은 교수자 전용 (학생은 /api/banks 403). role 전환 시 재실행.
   useEffect(() => {
     if (MODE !== 'api') return
     if (role !== 'instructor') {
@@ -54,7 +54,11 @@ export function QuestionBankProvider({ children }) {
     let mounted = true
     ;(async () => {
       try {
-        const apiBanks = await listBanks()
+        // LTI 모드: 과목 스코프를 명시적으로 전달 (ADMIN 예외 로직은 courseCode 가 있어야 작동)
+        const ltiCourseCode = typeof window !== 'undefined'
+          ? localStorage.getItem('xnq_lti_course_code')
+          : null
+        const apiBanks = await listBanks(ltiCourseCode ? { courseCode: ltiCourseCode } : {})
         if (!mounted) return
         setBanks(apiBanks)
         const perBank = await Promise.all(apiBanks.map(b => apiGetBankQuestions(b.id)))

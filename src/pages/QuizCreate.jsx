@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { GripVertical, Pencil, Trash2, HelpCircle } from 'lucide-react'
-import Layout from '../components/Layout'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
 import AddQuestionModal from '../components/AddQuestionModal'
@@ -26,10 +25,8 @@ const WEEK_OPTIONS = [
   { value: null, label: '선택 안함' },
   ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` })),
 ]
-const SESSION_OPTIONS = [
-  { value: null, label: '선택 안함' },
-  ...[1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` })),
-]
+const SESSION_BASE = [1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` }))
+const SESSION_OPTIONS_WITH_NONE = [{ value: null, label: '선택 안함' }, ...SESSION_BASE]
 const ATTEMPT_MIN = 1
 const ATTEMPT_MAX = 99
 const SCORE_POLICIES = ['최고 점수 유지', '최신 점수 유지', '평균 점수'].map(v => ({ value: v, label: v }))
@@ -42,8 +39,22 @@ export default function QuizCreate() {
   const navigate = useNavigate()
   const { role } = useRole()
   const [tab, setTab] = useState('info')
+  // LTI 모드에서 LearningX 가 주입한 주차/차시 값을 초기값으로 프리필
+  // 범위 검증은 서버에서 수행, 여기서는 파싱만
+  const ltiPrefill = (() => {
+    try {
+      if (typeof window === 'undefined') return { week: null, session: null }
+      if (localStorage.getItem('xnq_lti_active') !== '1') return { week: null, session: null }
+      const w = parseInt(localStorage.getItem('xnq_lti_week') || '', 10)
+      const s = parseInt(localStorage.getItem('xnq_lti_session') || '', 10)
+      return {
+        week: Number.isInteger(w) && w >= 1 && w <= 16 ? w : null,
+        session: Number.isInteger(s) && s >= 1 && s <= 4 ? s : null,
+      }
+    } catch { return { week: null, session: null } }
+  })()
   const [form, setForm] = useState({
-    title: '', description: '', week: null, session: null,
+    title: '', description: '', week: ltiPrefill.week, session: ltiPrefill.session,
     startDate: '', dueDate: '', lockDate: '', timeLimit: '60', unlimitedTimeLimit: false,
     allowAttempts: 1, unlimitedAttempts: false, scorePolicy: '최고 점수 유지',
     shuffleChoices: false, shuffleQuestions: false,
@@ -167,7 +178,7 @@ export default function QuizCreate() {
     if (errors.length > 0) {
       setAlertDialog({
         title: '필수 항목 미입력',
-        message: errors.map(e => `- ${e}`).join('\n'),
+        message: errors[0],
       })
       return
     }
@@ -194,7 +205,7 @@ export default function QuizCreate() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="max-w-5xl mx-auto pb-4">
         <h1 className="text-[22px] font-bold text-foreground pt-8 pb-5">새 퀴즈 만들기</h1>
 
@@ -233,7 +244,7 @@ export default function QuizCreate() {
       {showAddModal && <AddQuestionModal onClose={() => setShowAddModal(false)} onAdd={addNewQuestion} />}
       {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
       {alertDialog && <AlertDialog title={alertDialog.title} message={alertDialog.message} variant={alertDialog.variant} onClose={() => setAlertDialog(null)} />}
-    </Layout>
+    </>
   )
 }
 
@@ -271,7 +282,7 @@ function InfoTab({ form, set }) {
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="주차"><CustomSelect value={form.week} onChange={v => { set('week', v); if (v !== null && !form.session) set('session', 1); if (v === null) set('session', null) }} options={WEEK_OPTIONS} placeholder="주차 선택" /></Field>
-          <Field label="차시"><CustomSelect value={form.session} onChange={v => set('session', v)} options={SESSION_OPTIONS} placeholder="차시 선택" /></Field>
+          <Field label="차시"><CustomSelect value={form.session} onChange={v => set('session', v)} options={form.week !== null ? SESSION_BASE : SESSION_OPTIONS_WITH_NONE} placeholder="차시 선택" /></Field>
         </div>
       </Section>
 
@@ -496,13 +507,13 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
           <Popover>
             <PopoverTrigger asChild>
               <Button size="lg">
-                문제은행에서 추가
+                문제모음에서 추가
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-72 p-1.5">
               <button onClick={onShowBank} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors">
                 <p className="text-sm font-medium text-foreground">직접 선택</p>
-                <p className="text-xs text-muted-foreground mt-0.5">문제은행에서 원하는 문항을 골라 추가합니다</p>
+                <p className="text-xs text-muted-foreground mt-0.5">문제모음에서 원하는 문항을 골라 추가합니다</p>
               </button>
               <button onClick={onShowRandomBank} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors">
                 <p className="text-sm font-medium text-foreground">랜덤 출제</p>

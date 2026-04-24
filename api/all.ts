@@ -21,6 +21,10 @@ import attemptsIndex from '../server/attempts/index.js'
 import attemptsById from '../server/attempts/[id].js'
 import attemptsAnswers from '../server/attempts/[id]/answers.js'
 import attemptsSubmit from '../server/attempts/[id]/submit.js'
+import ltiJwks from '../server/lti/jwks.js'
+import ltiLogin from '../server/lti/login.js'
+import ltiLaunch from '../server/lti/launch.js'
+import ltiTeacherCourses from '../server/lti/teacher-courses.js'
 
 type VercelHandler = (req: VercelRequest, res: VercelResponse) => Promise<unknown> | unknown
 
@@ -41,8 +45,15 @@ let cached: express.Application | null = null
 
 function buildApp() {
   const app = express()
+  app.disable('etag') // 304 Not Modified 로 목록이 갱신 안 되는 이슈 방지
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ extended: true }))
+
+  // 기본 API 는 동적 데이터라 브라우저 캐시 금지 (lti/jwks 핸들러는 public max-age 로 덮어씀)
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, must-revalidate')
+    next()
+  })
 
   app.all('/api/health', vh(health))
 
@@ -72,6 +83,12 @@ function buildApp() {
   app.all('/api/attempts/:id', vh(attemptsById))
   app.all('/api/attempts/:id/answers', vh(attemptsAnswers))
   app.all('/api/attempts/:id/submit', vh(attemptsSubmit))
+
+  // LTI 1.3 엔드포인트
+  app.all('/api/lti/jwks', vh(ltiJwks))
+  app.all('/api/lti/login', vh(ltiLogin))
+  app.all('/api/lti/launch', vh(ltiLaunch))
+  app.all('/api/lti/teacher-courses', vh(ltiTeacherCourses))
 
   app.use('/api', (req, res) => {
     res.status(404).json({ error: `Not Found: ${req.method} ${req.originalUrl}` })

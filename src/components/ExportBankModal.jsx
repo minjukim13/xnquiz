@@ -1,6 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuestionBank } from '../context/questionBank'
 import { MOCK_COURSES } from '../data/mockData'
+import {
+  listBanks,
+  getBankQuestions as apiGetBankQuestions,
+  listCourses,
+  isApiMode,
+} from '@/lib/data'
 import { DropdownSelect } from './DropdownSelect'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -16,12 +22,58 @@ import {
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
 export default function ExportBankModal({ onClose, onExport }) {
-  const { banks, getBankQuestions } = useQuestionBank()
+  const { banks: contextBanks, getBankQuestions: contextGetBankQuestions } = useQuestionBank()
   const [step, setStep] = useState(1)
+
+  // API 모드에서는 교수가 만든 모든 과목의 뱅크 + xnquiz 등록된 과목 목록을 cross-course 로 로드
+  const [crossBanks, setCrossBanks] = useState(null)
+  const [crossQuestionsByBank, setCrossQuestionsByBank] = useState({})
+  const [teacherCourses, setTeacherCourses] = useState(null)
+  useEffect(() => {
+    if (!isApiMode()) return
+    let mounted = true
+    ;(async () => {
+      try {
+        const [all, courses] = await Promise.all([listBanks(), listCourses()])
+        if (!mounted) return
+        setCrossBanks(all)
+        setTeacherCourses(courses)
+        const entries = await Promise.all(
+          all.map(async b => [b.id, await apiGetBankQuestions(b.id)])
+        )
+        if (mounted) setCrossQuestionsByBank(Object.fromEntries(entries))
+      } catch (err) {
+        console.error('[ExportBankModal] cross-course 뱅크 로드 실패', err)
+        if (mounted) {
+          setCrossBanks([])
+          setTeacherCourses([])
+        }
+      }
+    })()
+    return () => { mounted = false }
+  }, [])
+
+  const apiMode = isApiMode()
+  const allBanks = apiMode ? (crossBanks ?? []) : contextBanks
+  const getAllBankQuestions = (bankId) => {
+    if (apiMode) return crossQuestionsByBank[bankId] || []
+    return contextGetBankQuestions(bankId)
+  }
 
   const [selectedSourceIds, setSelectedSourceIds] = useState([])
   const [courseSearch, setCourseSearch] = useState('')
-  const [targetCourse, setTargetCourse] = useState(CURRENT_COURSE)
+  // API 모드: context 뱅크의 첫 과목 (= 현재 과목). mock 모드: CURRENT_COURSE.
+  const [targetCourse, setTargetCourse] = useState(() =>
+    apiMode ? (contextBanks[0]?.course ?? '') : CURRENT_COURSE
+  )
+  // context 뱅크가 늦게 로드되면 targetCourse 가 '' 로 남을 수 있어 초기화 보강
+  useEffect(() => {
+    if (!apiMode) return
+    if (targetCourse) return
+    const first = contextBanks[0]?.course
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time default once context banks arrive
+    if (first) setTargetCourse(first)
+  }, [apiMode, contextBanks, targetCourse])
   const [targetMode, setTargetMode] = useState('new')
   const [targetBankId, setTargetBankId] = useState(null)
   const [newBankName, setNewBankName] = useState('')
@@ -31,21 +83,19 @@ export default function ExportBankModal({ onClose, onExport }) {
   const [filterDifficulty, setFilterDifficulty] = useState('all')
   const [inlineToast, setInlineToast] = useState(null)
 
-  const targetBank = targetBankId ? banks.find(b => b.id === targetBankId) : null
-  const courseBanks = banks.filter(b => b.course === targetCourse && !selectedSourceIds.includes(b.id))
+  const targetBank = targetBankId ? allBanks.find(b => b.id === targetBankId) : null
+  const courseBanks = allBanks.filter(b => b.course === targetCourse && !selectedSourceIds.includes(b.id))
 
-  const sourceQuestions = useMemo(() => {
-    return selectedSourceIds.flatMap(bankId => {
-      const bankName = banks.find(b => b.id === bankId)?.name || ''
-      return getBankQuestions(bankId).map(q => ({ ...q, _sourceBankName: bankName }))
-    })
-  }, [selectedSourceIds, banks, getBankQuestions])
+  const sourceQuestions = selectedSourceIds.flatMap(bankId => {
+    const bankName = allBanks.find(b => b.id === bankId)?.name || ''
+    return getAllBankQuestions(bankId).map(q => ({ ...q, _sourceBankName: bankName }))
+  })
 
-  const filtered = useMemo(() => sourceQuestions.filter(q => {
+  const filtered = sourceQuestions.filter(q => {
     const matchType = filterType === 'all' || q.type === filterType
     const matchDiff = filterDifficulty === 'all' || q.difficulty === filterDifficulty
     return matchType && matchDiff
-  }), [sourceQuestions, filterType, filterDifficulty])
+  })
 
   const allFilteredSelected = filtered.length > 0 && filtered.every(q => selectedQuestionIds.includes(q.id))
   const someFilteredSelected = filtered.some(q => selectedQuestionIds.includes(q.id)) && !allFilteredSelected
@@ -64,31 +114,30 @@ export default function ExportBankModal({ onClose, onExport }) {
     }
   }
 
-  const selectedQuestions = useMemo(() =>
-    selectedQuestionIds.map(id => sourceQuestions.find(q => q.id === id)).filter(Boolean),
-    [selectedQuestionIds, sourceQuestions]
-  )
+  const selectedQuestions = selectedQuestionIds
+    .map(id => sourceQuestions.find(q => q.id === id))
+    .filter(Boolean)
 
-  const autoDifficulty = useMemo(() => {
+  const autoDifficulty = (() => {
     if (selectedQuestions.length === 0) return ''
     const diffs = [...new Set(selectedQuestions.map(q => q.difficulty || ''))]
     return diffs.length === 1 ? diffs[0] : ''
-  }, [selectedQuestions])
+  })()
 
-  const allowedDifficulties = useMemo(() => {
+  const allowedDifficulties = (() => {
     if (selectedQuestions.length === 0) return ['']
     const diffs = [...new Set(selectedQuestions.map(q => q.difficulty || ''))]
     if (diffs.length === 1 && diffs[0] !== '') return [diffs[0], '']
     if (diffs.length === 1 && diffs[0] === '') return ['', 'high', 'medium', 'low']
     return ['']
-  }, [selectedQuestions])
+  })()
 
   const effectiveNewDifficulty = newBankDifficulty !== null ? newBankDifficulty : autoDifficulty
 
   const handleTargetBankChange = (id) => {
     setTargetBankId(id)
     if (id) {
-      const tb = banks.find(b => b.id === id)
+      const tb = allBanks.find(b => b.id === id)
       if (tb?.difficulty) {
         setSelectedQuestionIds(prev => {
           const next = prev.filter(qId => {
@@ -110,7 +159,7 @@ export default function ExportBankModal({ onClose, onExport }) {
     const isChecked = selectedSourceIds.includes(bankId)
     setSelectedSourceIds(prev => isChecked ? prev.filter(id => id !== bankId) : [...prev, bankId])
     if (isChecked) {
-      const bankQIds = getBankQuestions(bankId).map(q => q.id)
+      const bankQIds = getAllBankQuestions(bankId).map(q => q.id)
       setSelectedQuestionIds(prev => prev.filter(id => !bankQIds.includes(id)))
     }
     if (!isChecked && bankId === targetBankId) setTargetBankId(null)
@@ -119,20 +168,27 @@ export default function ExportBankModal({ onClose, onExport }) {
   const canSubmit = selectedQuestions.length > 0 &&
     (targetMode === 'new' ? newBankName.trim() !== '' : targetBankId !== null)
 
-  const availableCourses = useMemo(() =>
-    MOCK_COURSES.filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase())),
-    [courseSearch]
-  )
-
-  const courseGroups = useMemo(() => {
+  // 사이드바 과목 목록: 실제 뱅크가 있는 과목들에서 동적 생성 (MOCK_COURSES 하드코딩 제거)
+  // 표시용 이름: API 응답은 courseName (Canvas 과목명), mock 은 course ("CS301 데이터베이스")
+  const courseGroups = (() => {
     const groups = {}
-    banks.forEach(b => {
-      const course = b.course || CURRENT_COURSE
-      if (!groups[course]) groups[course] = []
-      groups[course].push(b)
+    allBanks.forEach(b => {
+      const displayName = b.courseName || b.course || CURRENT_COURSE
+      if (!groups[displayName]) groups[displayName] = []
+      groups[displayName].push(b)
     })
     return groups
-  }, [banks])
+  })()
+
+  const availableCourses = Object.keys(courseGroups)
+    .map(name => ({ id: name, name }))
+    .filter(c => c.name.toLowerCase().includes(courseSearch.toLowerCase()))
+
+  // 대상 과목 드롭다운: API 모드 → xnquiz 등록된 과목 전체, mock 모드 → MOCK_COURSES
+  // API 과목명: listCourses 가 label("code name") 을 name 으로 넘기므로 shortName 우선 표시
+  const targetCourseOptions = apiMode
+    ? (teacherCourses ?? []).map(c => ({ value: c.name, label: c.shortName || c.name }))
+    : MOCK_COURSES.map(c => ({ value: c.name, label: c.name }))
 
   const goToStep2 = () => {
     if (targetBank?.difficulty) {
@@ -203,14 +259,14 @@ export default function ExportBankModal({ onClose, onExport }) {
 
             <div className="px-6 py-5">
               <h3 className="text-[15px] font-semibold text-foreground mb-1">내보낼 위치</h3>
-              <p className="text-xs text-muted-foreground mb-4">내보낼 과목과 문제은행을 선택하세요</p>
+              <p className="text-xs text-muted-foreground mb-4">내보낼 과목과 문제모음을 선택하세요</p>
 
               <div className="mb-4">
                 <label className="text-xs font-medium text-secondary-foreground block mb-1.5">대상 과목</label>
                 <DropdownSelect
                   value={targetCourse}
                   onChange={(course) => { setTargetCourse(course); setTargetBankId(null) }}
-                  options={MOCK_COURSES.map(c => ({ value: c.name, label: c.name }))}
+                  options={targetCourseOptions}
                 />
               </div>
 
@@ -223,8 +279,8 @@ export default function ExportBankModal({ onClose, onExport }) {
                   )}
                 >
                   <div className="px-4 py-3">
-                    <p className={cn('text-[15px]', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제은행 만들기</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">선택한 과목에 새 문제은행을 생성합니다</p>
+                    <p className={cn('text-[15px]', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제모음 만들기</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">선택한 과목에 새 문제모음을 생성합니다</p>
                   </div>
                   {targetMode === 'new' && (
                     <div className="px-4 pb-3 pt-1 space-y-2 border-t border-primary/15">
@@ -233,7 +289,7 @@ export default function ExportBankModal({ onClose, onExport }) {
                         value={newBankName}
                         onClick={e => e.stopPropagation()}
                         onChange={e => setNewBankName(e.target.value)}
-                        placeholder="문제은행 이름"
+                        placeholder="문제모음 이름"
                         autoFocus
                         className="w-full max-w-xs text-[15px] px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground bg-white"
                       />
@@ -258,13 +314,13 @@ export default function ExportBankModal({ onClose, onExport }) {
                   )}
                 >
                   <div className="px-4 py-3">
-                    <p className={cn('text-[15px]', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제은행에 추가</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">이미 있는 문제은행에 문항을 추가합니다</p>
+                    <p className={cn('text-[15px]', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제모음에 추가</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">이미 있는 문제모음에 문항을 추가합니다</p>
                   </div>
                   {targetMode === 'existing' && (
                     <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-primary/15" onClick={e => e.stopPropagation()}>
                       {courseBanks.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-3">선택한 과목에 사용 가능한 문제은행이 없습니다</p>
+                        <p className="text-sm text-muted-foreground py-3">선택한 과목에 사용 가능한 문제모음이 없습니다</p>
                       ) : (
                         courseBanks.map(b => (
                           <button

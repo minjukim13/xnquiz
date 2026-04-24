@@ -7,6 +7,8 @@ import { getAuthFromRequest, type AuthPayload } from '../../lib/auth.js'
 import { toQuizResponse, scorePolicyFromLabel, type QuizStats } from '../../lib/mappers/quiz.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store')
+
   const auth = getAuthFromRequest(req)
   if (!auth) return res.status(401).json({ error: '인증이 필요합니다' })
 

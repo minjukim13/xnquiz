@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:api": "tsx watch --clear-screen=false dev-server.ts",
     "build": "vite build",
+    "build:vercel": "node scripts/vercel-build.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck:api": "tsc --noEmit -p tsconfig.json",
@@ -15,7 +16,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "seed:lti": "tsx scripts/seed-lti-demo.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.7.0",

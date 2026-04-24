@@ -5,7 +5,7 @@
  * VITE_DATA_SOURCE=api   → fetch('/api/quizzes/...')
  */
 import { api } from '@/lib/api'
-import { MODE, normalizeDate } from './_common'
+import { MODE, normalizeDate, currentLtiCourseCode } from './_common'
 import {
   mockQuizzes,
   addQuiz as mockAdd,
@@ -42,9 +42,12 @@ function extractCourseCode(raw) {
 
 // mock-shape quiz body → api createQuiz body 로 변환
 function toApiQuizBody(body) {
+  // LTI 모드: Canvas 과목으로 자동 격리. 기존 body.courseCode 는 덮어씀
+  const ltiCode = currentLtiCourseCode()
+  const effectiveCode = ltiCode || body.courseCode || extractCourseCode(body.course)
   return {
     title: body.title,
-    courseCode: body.courseCode || extractCourseCode(body.course),
+    courseCode: effectiveCode,
     description: body.description ?? undefined,
     status: body.status ?? 'draft',
     visible: body.visible ?? true,
@@ -74,10 +77,22 @@ function toApiQuestionBody(q) {
 }
 
 export async function listQuizzes(params = {}) {
-  if (MODE === 'api') {
-    const qs = new URLSearchParams(params).toString()
+  // bypassLtiCourseFilter: 타 과목 퀴즈 가져오기 등 LTI 현재 과목 override 를
+  // 건너뛰고 params.courseCode 를 그대로 사용해야 하는 경우 true 로 지정
+  const { bypassLtiCourseFilter, ...query } = params
+  // LTI 활성 상태에서는 서버 DB 에만 데이터가 존재 (mockQuizzes 는 CS301 등 비 LTI 전용).
+  // MODE 가 mock 으로 배포된 경우에도 LTI 런칭 시 api 를 강제로 호출.
+  const ltiActive = !!currentLtiCourseCode()
+  if (MODE === 'api' || ltiActive) {
+    const ltiCode = bypassLtiCourseFilter ? null : currentLtiCourseCode()
+    const effectiveParams = ltiCode ? { ...query, courseCode: ltiCode } : query
+    const qs = new URLSearchParams(effectiveParams).toString()
     const rows = await api('/api/quizzes' + (qs ? '?' + qs : ''))
     return rows.map(normalizeQuiz)
+  }
+  if (query.courseCode) {
+    const code = String(query.courseCode).toUpperCase()
+    return mockQuizzes.filter(q => (q.courseCode ?? q.course?.split(' ')[0] ?? '').toUpperCase() === code)
   }
   return [...mockQuizzes]
 }

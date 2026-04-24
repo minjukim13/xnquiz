@@ -180,13 +180,13 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
         {/* ── 상단 고정 헤더 ── */}
         <div className="shrink-0 px-6 pt-6 pb-4 border-b border-gray-200">
           <DialogHeader>
-            <DialogTitle>복수 문제은행 랜덤 출제</DialogTitle>
-            <DialogDescription>여러 문제은행에서 조건에 맞는 문항을 랜덤으로 출제합니다.</DialogDescription>
+            <DialogTitle>복수 문제모음 랜덤 출제</DialogTitle>
+            <DialogDescription>여러 문제모음에서 조건에 맞는 문항을 랜덤으로 출제합니다.</DialogDescription>
           </DialogHeader>
 
           <div className="flex items-center gap-2 mt-4">
             {[
-              { n: 1, label: '문제은행 선택' },
+              { n: 1, label: '문제모음 선택' },
               { n: 2, label: '출제 옵션 설정' },
             ].map(({ n, label }, i) => (
               <div key={n} className="flex items-center gap-2 flex-1">
@@ -213,7 +213,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
         {/* ── 본문 스크롤 영역 ── */}
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
 
-          {/* Step 1: 문제은행 복수 선택 */}
+          {/* Step 1: 문제모음 복수 선택 */}
           {step === 1 && (
             <div>
               {/* 현재 과목 은행 */}
@@ -233,7 +233,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                 </div>
 
                 {currentBanks.length === 0 ? (
-                  <p className="text-sm py-6 text-center text-muted-foreground">이 과목에 등록된 문제은행이 없습니다</p>
+                  <p className="text-sm py-6 text-center text-muted-foreground">이 과목에 등록된 문제모음이 없습니다</p>
                 ) : (
                   <div>
                     {currentBanks.map((b, idx) => {
@@ -350,7 +350,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                       size={14}
                       style={{ transform: showOtherCourses ? 'rotate(-90deg)' : 'rotate(-180deg)', transition: 'transform 0.15s' }}
                     />
-                    다른 과목 문제은행
+                    다른 과목 문제모음
                   </button>
                   {showOtherCourses && (
                     <div className="space-y-6">
@@ -397,7 +397,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
               {/* 선택 요약 */}
               {selectedBankIds.size > 0 && (
                 <p className="text-[13px] text-muted-foreground px-1 pt-4 mt-4 border-t border-gray-100">
-                  <span className="text-secondary-foreground font-medium">{selectedBankIds.size}개</span> 문제은행 선택됨
+                  <span className="text-secondary-foreground font-medium">{selectedBankIds.size}개</span> 문제모음 선택됨
                   {' / '}
                   총 <span className="text-secondary-foreground font-medium">{[...selectedBankIds].reduce((sum, id) => sum + getBankQuestions(id).filter(q => !added.includes(q.id)).length, 0)}개</span> 문항 출제 가능
                 </p>
