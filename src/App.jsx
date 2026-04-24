@@ -1,7 +1,9 @@
-import { lazy, Suspense } from 'react'
+import { lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { RoleProvider } from './context/RoleContext'
 import { QuestionBankProvider } from './context/QuestionBankContext'
+import Layout from './components/Layout'
+import { prefetchRoute } from './lib/prefetch'
 
 // LTI 진입 부트스트랩 — React 렌더 전에 해시에서 토큰 추출 후 localStorage 저장
 // launch 엔드포인트가 `/{path}?lti=1#token=...&role=...&section=...` 로 redirect 하면 여기서 흡수
@@ -37,31 +39,25 @@ if (typeof window !== 'undefined') {
   }
 }
 
-const QuizList = lazy(() => import('./pages/QuizList'))
+// nav 프리페치와 lazy 가 같은 import() 를 공유 → 중복 다운로드 없음
+const QuizList = lazy(prefetchRoute.quizList)
 const QuizDetail = lazy(() => import('./pages/QuizDetail'))
 const QuizEdit = lazy(() => import('./pages/QuizEdit'))
 const QuizCreate = lazy(() => import('./pages/QuizCreate'))
 const GradingDashboard = lazy(() => import('./pages/GradingDashboard'))
 const QuizStats = lazy(() => import('./pages/QuizStats'))
-const QuestionBankList = lazy(() => import('./pages/QuestionBankList'))
+const QuestionBankList = lazy(prefetchRoute.questionBankList)
 const QuestionBank = lazy(() => import('./pages/QuestionBank'))
 const QuizAttempt = lazy(() => import('./pages/QuizAttempt'))
-
-function PageLoader() {
-  return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
-}
 
 export default function App() {
   return (
     <RoleProvider>
       <QuestionBankProvider>
       <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
+        <Routes>
+          {/* Layout Route — 사이드바를 라우트 전환 사이에 유지 (Suspense 는 Layout 내부 main 영역에) */}
+          <Route element={<Layout />}>
             <Route path="/" element={<QuizList />} />
             <Route path="/quiz/new" element={<QuizCreate />} />
             <Route path="/quiz/:id" element={<QuizDetail />} />
@@ -72,8 +68,8 @@ export default function App() {
             <Route path="/question-banks" element={<QuestionBankList />} />
             <Route path="/question-banks/:bankId" element={<QuestionBank />} />
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+          </Route>
+        </Routes>
       </BrowserRouter>
       </QuestionBankProvider>
     </RoleProvider>

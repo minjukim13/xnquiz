@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Check, AlertCircle, Send, Eye, X, Lock } from 'lucide-react'
-import Layout from '../components/Layout'
 import { mockQuizzes, getQuizQuestions as mockGetQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
 import { getQuiz, getQuizQuestions, startAttempt, saveAnswers, submitAttempt } from '@/lib/data'
 import { useRole } from '../context/role'
@@ -331,7 +330,7 @@ export default function QuizAttempt() {
   // 결과 모달이 뜸. 아래 차단 화면은 '첫 진입인데 이미 만료' 케이스 전용.
   if (!isPreview && !submitted && quiz && quiz.lockDate && new Date() > new Date(quiz.lockDate) && !restored) {
     return (
-      <Layout>
+      <>
         <div className="max-w-2xl mx-auto py-16 text-center">
           <Lock size={36} className="mx-auto mb-3 text-muted-foreground/40" />
           <p className="text-base font-semibold mb-1 text-slate-700">이용이 종료되었습니다</p>
@@ -340,13 +339,13 @@ export default function QuizAttempt() {
             퀴즈 목록으로
           </Button>
         </div>
-      </Layout>
+      </>
     )
   }
 
   if (!isPreview && quiz && quiz.status === 'open' && quiz.startDate && new Date() < new Date(quiz.startDate)) {
     return (
-      <Layout>
+      <>
         <div className="max-w-2xl mx-auto py-16 text-center">
           <Clock size={36} className="mx-auto mb-3 text-amber-400" />
           <p className="text-base font-semibold mb-1 text-slate-700">응시 시작 전입니다</p>
@@ -355,7 +354,7 @@ export default function QuizAttempt() {
             퀴즈 목록으로
           </Button>
         </div>
-      </Layout>
+      </>
     )
   }
 
@@ -366,7 +365,7 @@ export default function QuizAttempt() {
       closed: '종료된 퀴즈입니다.',
     }[quiz.status] ?? '현재 응시할 수 없는 퀴즈입니다.'
     return (
-      <Layout>
+      <>
         <div className="max-w-2xl mx-auto py-16 text-center">
           <AlertCircle size={36} className="mx-auto mb-3 text-muted-foreground/40" />
           <p className="text-base font-semibold mb-1 text-slate-700">응시 불가</p>
@@ -375,7 +374,7 @@ export default function QuizAttempt() {
             퀴즈 목록으로
           </Button>
         </div>
-      </Layout>
+      </>
     )
   }
 
@@ -384,7 +383,7 @@ export default function QuizAttempt() {
     const lateDeadlinePassed = quiz.allowLateSubmit && quiz.lateSubmitDeadline && new Date() > new Date(quiz.lateSubmitDeadline)
     if (!quiz.allowLateSubmit || lateDeadlinePassed) {
       return (
-        <Layout>
+        <>
           <div className="max-w-2xl mx-auto py-16 text-center">
             <Clock size={36} className="mx-auto mb-3 text-red-400" />
             <p className="text-base font-semibold mb-1 text-slate-700">
@@ -399,33 +398,33 @@ export default function QuizAttempt() {
               퀴즈 목록으로
             </Button>
           </div>
-        </Layout>
+        </>
       )
     }
   }
 
   if (!loaded) {
     return (
-      <Layout>
+      <>
         <div className="max-w-2xl mx-auto py-16 text-center">
           <p className="text-sm text-muted-foreground">불러오는 중</p>
         </div>
-      </Layout>
+      </>
     )
   }
 
   if (!quiz || questions.length === 0) {
     return (
-      <Layout>
+      <>
         <div className="max-w-2xl mx-auto py-16 text-center">
           <p className="text-sm text-muted-foreground">해당 퀴즈를 찾을 수 없거나 응시 가능한 문항이 없습니다.</p>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="max-w-3xl mx-auto pb-6">
 
         {/* 자동 저장 실패 배너 */}
@@ -721,7 +720,7 @@ export default function QuizAttempt() {
           onClose={() => setStartNotice(false)}
         />
       )}
-    </Layout>
+    </>
   )
 }
 
