@@ -77,13 +77,19 @@ function toApiQuestionBody(q) {
 }
 
 export async function listQuizzes(params = {}) {
+  // bypassLtiCourseFilter: 타 과목 퀴즈 가져오기 등 LTI 현재 과목 override 를
+  // 건너뛰고 params.courseCode 를 그대로 사용해야 하는 경우 true 로 지정
+  const { bypassLtiCourseFilter, ...query } = params
   if (MODE === 'api') {
-    // LTI 모드: 현재 Canvas 과목으로 자동 필터 (기존 params.courseCode 보다 우선)
-    const ltiCode = currentLtiCourseCode()
-    const effectiveParams = ltiCode ? { ...params, courseCode: ltiCode } : params
+    const ltiCode = bypassLtiCourseFilter ? null : currentLtiCourseCode()
+    const effectiveParams = ltiCode ? { ...query, courseCode: ltiCode } : query
     const qs = new URLSearchParams(effectiveParams).toString()
     const rows = await api('/api/quizzes' + (qs ? '?' + qs : ''))
     return rows.map(normalizeQuiz)
+  }
+  if (query.courseCode) {
+    const code = String(query.courseCode).toUpperCase()
+    return mockQuizzes.filter(q => (q.courseCode ?? q.course?.split(' ')[0] ?? '').toUpperCase() === code)
   }
   return [...mockQuizzes]
 }

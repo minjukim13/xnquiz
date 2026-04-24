@@ -6,7 +6,7 @@ import Layout from '../components/Layout'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts } from '../data/mockData'
-import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz, listAttempts, isApiMode } from '@/lib/data'
+import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz, listAttempts, isApiMode, listCourses, listTeacherCourses } from '@/lib/data'
 import { currentLtiCourseCode } from '@/lib/data/_common'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
@@ -677,15 +677,47 @@ function QuizImportModal({ onClose, onImport }) {
   const [selectedCourse, setSelectedCourse] = useState(null)
   const [checkedIds, setCheckedIds] = useState(new Set())
   const [courseSearch, setCourseSearch] = useState('')
-  const otherCourses = MOCK_COURSES.filter(c => c.name !== CURRENT_COURSE)
-  const filteredCourses = otherCourses.filter(c =>
+  const [courses, setCourses] = useState([])
+  const [coursesLoading, setCoursesLoading] = useState(true)
+  const [courseQuizzes, setCourseQuizzes] = useState([])
+  const [quizzesLoading, setQuizzesLoading] = useState(false)
+
+  // 현재 과목 식별: LTI 모드면 Canvas courseCode, 아니면 CURRENT_COURSE 라벨
+  const ltiCourseCode = currentLtiCourseCode()
+  const isLti = !!ltiCourseCode
+  const currentCourseCode = (ltiCourseCode || CURRENT_COURSE.split(' ')[0]).toUpperCase()
+  const [loadError, setLoadError] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        // LTI 모드: Canvas REST 경유로 교수자가 가르치는 실제 과목 전체 조회.
+        // 비 LTI 모드: xnquiz DB 의 과목 목록.
+        const all = isLti
+          ? await listTeacherCourses({ excludeCourseCode: currentCourseCode })
+          : await listCourses()
+        if (!mounted) return
+        // LTI 모드는 서버에서 이미 현재 과목 제외. 비 LTI 모드는 클라에서 제외.
+        const others = isLti ? all : all.filter(c => {
+          const code = (c.code || c.name.split(' ')[0] || '').toUpperCase()
+          return code !== currentCourseCode
+        })
+        setCourses(others)
+      } catch (err) {
+        console.error('[QuizImportModal] 과목 목록 로드 실패', err)
+        setLoadError(err?.message || '과목 목록을 불러오지 못했습니다')
+        setCourses([])
+      } finally {
+        if (mounted) setCoursesLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [isLti, currentCourseCode])
+
+  const filteredCourses = courses.filter(c =>
     c.name.toLowerCase().includes(courseSearch.toLowerCase())
   )
-
-  const courseQuizzes = useMemo(() => {
-    if (!selectedCourse) return []
-    return mockQuizzes.filter(q => q.course === selectedCourse && q.status !== 'draft')
-  }, [selectedCourse])
 
   const toggleCheck = (id) => {
     setCheckedIds(prev => {
@@ -695,9 +727,23 @@ function QuizImportModal({ onClose, onImport }) {
     })
   }
 
-  const handleSelectCourse = (courseName) => {
-    setSelectedCourse(courseName)
+  const handleSelectCourse = async (course) => {
+    setSelectedCourse(course.name)
     setCheckedIds(new Set())
+    setQuizzesLoading(true)
+    try {
+      // LTI 과목은 courseCode(예: "CANVAS_173"), 비 LTI 는 code(예: "CS301") 사용.
+      // xnquiz 에 한 번도 런치된 적 없는 Canvas 과목은 Course 레코드가 없어 빈 배열이 반환됨.
+      const code = (course.courseCode || course.code || course.name.split(' ')[0] || '').toUpperCase()
+      const list = await listQuizzes({ courseCode: code, bypassLtiCourseFilter: true })
+      // 임시저장(draft) 제외 — 다른 사람이 가져와서 재사용할 수 있는 것만 노출
+      setCourseQuizzes(list.filter(q => q.status !== 'draft'))
+    } catch (err) {
+      console.error('[QuizImportModal] listQuizzes 실패', err)
+      setCourseQuizzes([])
+    } finally {
+      setQuizzesLoading(false)
+    }
   }
 
   const handleImport = () => {
@@ -710,13 +756,13 @@ function QuizImportModal({ onClose, onImport }) {
     <Dialog open onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-w-4xl min-h-[600px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-6 py-5 border-b border-slate-100 shrink-0">
-          <DialogTitle>타 과목 퀴즈 가져오기</DialogTitle>
+          <DialogTitle>다른 과목 퀴즈 가져오기</DialogTitle>
           <p className="text-[15px] text-muted-foreground">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden min-h-0">
-          {/* 왼쪽: 과목 목록 */}
-          <div className="w-44 shrink-0 flex flex-col border-r border-slate-100">
+          {/* 왼쪽: 과목 목록 — LTI 과목명이 길어서 폭 여유 확보 */}
+          <div className={cn('shrink-0 flex flex-col border-r border-slate-100', isLti ? 'w-64' : 'w-44')}>
             <div className="p-3 pb-2 border-b border-slate-50">
               <div className="relative">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -730,16 +776,28 @@ function QuizImportModal({ onClose, onImport }) {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {filteredCourses.length === 0 ? (
-                <p className="text-xs text-center py-3 text-muted-foreground">없음</p>
+              {coursesLoading ? (
+                <p className="text-xs text-center py-3 text-muted-foreground">불러오는 중</p>
+              ) : loadError ? (
+                <p className="text-xs text-center py-3 text-destructive leading-relaxed px-2">{loadError}</p>
+              ) : filteredCourses.length === 0 ? (
+                <p className="text-xs text-center py-3 text-muted-foreground">
+                  {courseSearch ? '검색 결과 없음' : '다른 과목이 없습니다'}
+                </p>
               ) : filteredCourses.map(course => {
                 const isSelected = selectedCourse === course.name
-                const code = course.name.split(' ')[0]
-                const label = course.name.split(' ').slice(1).join(' ')
+                // LTI(Canvas) 과목은 courseCode 가 "CANVAS_173" 형태라 배지로 노출할 가치가 없음.
+                // 비 LTI 과목만 "CS301" 같은 코드 배지 표시.
+                const ltiCourse = !!course.canvasId
+                const badge = ltiCourse ? null : (course.code || course.name.split(' ')[0])
+                const label = ltiCourse
+                  ? course.name
+                  : (course.shortName || course.name.split(' ').slice(1).join(' ') || course.name)
                 return (
                   <button
-                    key={course.id}
-                    onClick={() => handleSelectCourse(course.name)}
+                    key={course.id ?? course.canvasId ?? course.code ?? course.name}
+                    onClick={() => handleSelectCourse(course)}
+                    title={course.name}
                     className={cn(
                       'w-full flex items-center gap-1.5 text-left px-3 py-2.5 rounded transition-colors',
                       isSelected
@@ -747,10 +805,12 @@ function QuizImportModal({ onClose, onImport }) {
                         : 'text-slate-700 hover:bg-slate-100'
                     )}
                   >
-                    <span className={cn(
-                      'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0',
-                      isSelected ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
-                    )}>{code}</span>
+                    {badge && (
+                      <span className={cn(
+                        'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0',
+                        isSelected ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
+                      )}>{badge}</span>
+                    )}
                     <span className="text-xs truncate">{label}</span>
                   </button>
                 )
@@ -763,6 +823,10 @@ function QuizImportModal({ onClose, onImport }) {
             {!selectedCourse ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 <p className="text-[15px]">좌측에서 과목을 선택하세요</p>
+              </div>
+            ) : quizzesLoading ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p className="text-[15px]">불러오는 중</p>
               </div>
             ) : courseQuizzes.length === 0 ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -812,7 +876,7 @@ function QuizImportModal({ onClose, onImport }) {
 
         <div className={cn('flex items-center justify-between px-6 py-4', checkedIds.size === 0 && 'border-t border-slate-100')}>
           <p className="text-[15px] text-muted-foreground">
-            {checkedIds.size > 0 ? `${checkedIds.size}개 선택됨` : '가져올 퀴즈를 선택하세요'}
+            {checkedIds.size > 0 ? `${checkedIds.size}개 선택됨` : ''}
           </p>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={onClose}>취소</Button>
