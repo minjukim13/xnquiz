@@ -249,8 +249,8 @@ export const mockQuizzes = [
     week: 7,
     session: 2,
     totalStudents: 120,
-    submitted: 116,
-    graded: 116,
+    submitted: 120,
+    graded: 120,
     pendingGrade: 0,
     questions: 10,
     totalPoints: 50,
@@ -2394,8 +2394,8 @@ const AUTO_CORRECT_Q8_MAP = {
 }
 
 // 퀴즈 8 학생별 수동채점 점수 풀
-const S8_Q9  = [6, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10]   // mean ≈ 8.33
-const S8_Q10 = [8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 13, 13, 14, 15] // mean ≈ 11.2
+const S8_Q9  = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]   // 0~15 균등 분포 (분산 극대화)
+const S8_Q10 = [0, 1, 3, 5, 7, 9, 10, 11, 12, 13, 14, 15, 11, 7, 4] // 0~15 다양 (분산 극대화)
 
 // 퀴즈 8 오답 선택지 (정답 아닌 것들)
 const Q8_WRONG = {
@@ -2410,28 +2410,17 @@ const Q8_WRONG = {
 }
 
 export const mockStudents8 = Array.from({ length: 120 }, (_, i) => {
-  // 마지막 4명은 미제출
-  if (i >= 116) {
-    return {
-      id: `s8_${i + 1}`,
-      studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
-      name: DEMO_NAMES[i % DEMO_NAMES.length],
-      department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
-      score: null, startTime: null, endTime: null, submitted: false, submittedAt: null,
-      response: null, autoScores: {}, manualScores: null, selections: {},
-    }
-  }
-  // 자동채점 점수 (난이도별 정답률 반영)
-  const a1 = i % 10 !== 9  ? 3 : 0    // ~90% 정답 (쉬움)
-  const a2 = i % 5  < 4    ? 3 : 0    // 80% 정답 (쉬움)
-  const a3 = i % 20 < 17   ? 2 : 0    // 85% 정답 (쉬움)
-  const a4 = i % 20 < 13   ? 3 : 0    // 65% 정답 (중간)
-  const a5 = i % 5  < 3    ? 3 : 0    // 60% 정답 (중간)
-  const a6 = i % 20 < 11   ? 2 : 0    // 55% 정답 (중간)
-  const a7 = i % 20 < 9    ? 4 : 0    // 45% 정답 (어려움)
-  const a8 = i % 8  < 3    ? 5 : 0    // ~37.5% 정답 (어려움)
-  const m9  = S8_Q9[i % 15]
-  const m10 = S8_Q10[i % 15]
+  // 자동채점 점수 (난이도별 정답률 반영, 문항별 독립 시드로 학생간 점수 분산 확대)
+  const a1 = (i *  7 + 3 ) % 10 !== 9  ? 3 : 0    // ~90% 정답 (쉬움)
+  const a2 = (i * 13 + 1 ) % 5  < 4    ? 3 : 0    // 80% 정답 (쉬움)
+  const a3 = (i * 17 + 5 ) % 20 < 17   ? 2 : 0    // 85% 정답 (쉬움)
+  const a4 = (i * 19 + 9 ) % 20 < 13   ? 3 : 0    // 65% 정답 (중간)
+  const a5 = (i * 23 + 2 ) % 5  < 3    ? 3 : 0    // 60% 정답 (중간)
+  const a6 = (i * 29 + 11) % 20 < 11   ? 2 : 0    // 55% 정답 (중간)
+  const a7 = (i * 31 + 4 ) % 20 < 9    ? 4 : 0    // 45% 정답 (어려움)
+  const a8 = (i * 37 + 6 ) % 8  < 3    ? 5 : 0    // ~37.5% 정답 (어려움)
+  const m9  = S8_Q9[(i * 11) % 15]
+  const m10 = S8_Q10[(i * 13 + 4) % 15]
   const autoTotal = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8
   const total = autoTotal + m9 + m10
   const hour = 9 + Math.floor(((i * 7) % 480) / 60)
