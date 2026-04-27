@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import PageHeader from '../components/PageHeader'
 
 function TypeBadge({ type }) {
   const cfg = QUIZ_TYPES[type] || { label: type }
@@ -111,27 +112,29 @@ export default function QuizStats() {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto pb-10 pt-6">
+      <div className="max-w-7xl mx-auto pb-10">
+        <PageHeader
+          backTo="/"
+          ariaLabel="퀴즈 목록으로"
+          title={quiz.title}
+          actions={
+            <Button asChild>
+              <Link to={`/quiz/${quiz.id}/grade`}>채점 대시보드</Link>
+            </Button>
+          }
+          meta={
+            <>
+              <Badge className="bg-accent text-primary border-0">{quiz.week}주차 {quiz.session}차시</Badge>
+              <span className="text-xs text-muted-foreground">
+                {quiz.startDate || quiz.dueDate
+                  ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}`
+                  : '응시 기간 제한 없음'}
+              </span>
+            </>
+          }
+          description={quiz.description}
+        />
 
-        {/* 퀴즈 정보 헤더 */}
-        <div className="px-4 pt-2.5 pb-3.5 mb-4 border border-border rounded-xl">
-          <div className="flex items-end justify-between gap-4 flex-wrap mb-2">
-            <Badge className="bg-accent text-primary border-0">{quiz.week}주차 {quiz.session}차시</Badge>
-            <div className="flex gap-2 shrink-0">
-              <Button asChild className="font-semibold">
-                <Link to={`/quiz/${quiz.id}/grade`}>채점 대시보드</Link>
-              </Button>
-              <Button asChild variant="secondary" className="font-semibold">
-                <Link to="/">목록으로</Link>
-              </Button>
-            </div>
-          </div>
-          <h2 className="text-base font-bold">{quiz.title}</h2>
-          {quiz.description && <p className="text-xs mt-1.5 text-slate-500">{quiz.description}</p>}
-          <p className="text-xs mt-1 text-muted-foreground">{quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}</p>
-        </div>
-
-        {/* 탭 */}
         <StatsPageTabs quiz={quiz} quizQuestions={enrichedQuestions} quizStudents={quizStudents} />
       </div>
     </>
@@ -415,12 +418,20 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
     ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
     : null
 
-  const scoreFreq = {}
-  scores.forEach(s => { scoreFreq[s] = (scoreFreq[s] || 0) + 1 })
+  // 점수 분포: totalPoints 에 따라 1점 단위 또는 5점/10점 단위로 자동 binning
+  const binSize = totalPoints >= 80 ? 10 : totalPoints >= 30 ? 5 : 1
+  const binFreq = {}
+  scores.forEach(s => {
+    const b = Math.floor(s / binSize) * binSize
+    binFreq[b] = (binFreq[b] || 0) + 1
+  })
+  const minBin = Math.floor(minScore / binSize) * binSize
+  const maxBin = Math.floor(maxScore / binSize) * binSize
   const distData = scores.length
-    ? Array.from({ length: maxScore - minScore + 1 }, (_, i) => {
-        const s = minScore + i
-        return { score: `${s}점`, count: scoreFreq[s] || 0, raw: s }
+    ? Array.from({ length: (maxBin - minBin) / binSize + 1 }, (_, i) => {
+        const lo = minBin + i * binSize
+        const label = binSize === 1 ? `${lo}점` : `${lo}~${lo + binSize - 1}점`
+        return { score: label, count: binFreq[lo] || 0, raw: lo }
       })
     : []
 
@@ -448,25 +459,32 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
 
   return (
     <div className="space-y-4">
-      {/* 요약 지표 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {[
-          { label: '평균 점수', value: avg.toFixed(1), unit: `/ ${totalPoints}점`, accent: true },
-          { label: '최고 점수', value: maxScore, unit: '점' },
-          { label: '최저 점수', value: minScore, unit: '점' },
-          { label: '표준편차', value: `±${stdev.toFixed(1)}`, unit: '점' },
-          { label: '응시율', value: submitRate, unit: '%' },
-          { label: '평균 응시시간', value: avgDuration ?? '-', unit: '분' },
-        ].map(item => (
-          <Card key={item.label} className="p-3 text-center">
-            <div className="flex items-baseline justify-center gap-1 leading-none">
-              <span className={cn('text-xl font-bold', item.accent ? 'text-primary' : '')}>{item.value}</span>
-              <span className="text-xs text-muted-foreground">{item.unit}</span>
-            </div>
-            <div className="text-xs mt-1.5 text-slate-600">{item.label}</div>
-          </Card>
-        ))}
-      </div>
+      {/* 요약 지표 — 평균 점수 메인 + 보조 메트릭 인라인 */}
+      <Card className="px-6 py-5">
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1.5">평균 점수</p>
+            <p className="flex items-baseline gap-1.5 leading-none">
+              <span className="text-[40px] font-bold text-primary">{avg.toFixed(1)}</span>
+              <span className="text-base text-muted-foreground">/ {totalPoints}점</span>
+            </p>
+          </div>
+          <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5">
+            {[
+              { label: '최고', value: `${maxScore}점` },
+              { label: '최저', value: `${minScore}점` },
+              { label: '표준편차', value: `±${stdev.toFixed(1)}점` },
+              { label: '응시율', value: `${submitRate}%` },
+              { label: '평균 응시시간', value: avgDuration != null ? `${avgDuration}분` : '-' },
+            ].map(m => (
+              <div key={m.label} className="flex items-baseline gap-1.5">
+                <dt className="text-xs text-muted-foreground">{m.label}</dt>
+                <dd className="text-sm font-semibold text-foreground">{m.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </Card>
 
       {/* 점수 분포 + 응시 현황 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -485,11 +503,17 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
                 <XAxis dataKey="score" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
                 <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} allowDecimals={false} />
                 <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val) => [`${val}명`, '인원']} />
-                <ReferenceLine x={`${Math.round(avg)}점`} stroke="var(--primary)" strokeDasharray="3 3" label={{ value: '평균', position: 'top', fontSize: 10, fill: 'var(--primary)' }} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                  {distData.map((d, i) => (
-                    <Cell key={i} fill={d.raw === Math.round(avg) ? 'var(--primary)' : 'var(--accent)'} />
-                  ))}
+                <ReferenceLine x={(() => {
+                  const lo = Math.floor(Math.round(avg) / binSize) * binSize
+                  return binSize === 1 ? `${lo}점` : `${lo}~${lo + binSize - 1}점`
+                })()} stroke="var(--primary)" strokeDasharray="3 3" label={{ value: '평균', position: 'top', fontSize: 10, fill: 'var(--primary)' }} />
+                <Bar dataKey="count" fill="#3182F6" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                  {distData.map((d, i) => {
+                    const avgLo = Math.floor(Math.round(avg) / binSize) * binSize
+                    return (
+                      <Cell key={i} fill={d.raw === avgLo ? '#3182F6' : '#BFD6FF'} />
+                    )
+                  })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -547,7 +571,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val, _name, props) => [props.payload.hasData ? `${val}%` : '채점 데이터 없음', `${props.payload.label} 득점률`]} />
             <ReferenceLine x={70} stroke="#86EFAC" strokeDasharray="3 3" label={{ value: '70%', position: 'right', fontSize: 10, fill: '#6BD895' }} />
             <ReferenceLine x={40} stroke="#FDA4AF" strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 10, fill: '#F08D99' }} />
-            <Bar dataKey="rate" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 11, fill: 'var(--muted-foreground)', formatter: v => `${v}%` }}>
+            <Bar dataKey="rate" radius={[0, 4, 4, 0]} isAnimationActive={false} label={{ position: 'right', fontSize: 11, fill: 'var(--muted-foreground)', formatter: v => `${v}%` }}>
               {qRateData.map((q, i) => (
                 <Cell key={i} fill={!q.hasData ? '#D1D5DB' : q.rate >= 70 ? '#86EFAC' : q.rate >= 40 ? '#FDBA74' : '#FDA4AF'} />
               ))}

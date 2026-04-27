@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
-import { Plus, Search, X, Edit2, Trash2, Upload, Download, ChevronLeft, AlertCircle, GripVertical } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Upload, Download, AlertCircle, GripVertical } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { QUIZ_TYPES } from '../data/mockData'
 import { useRole } from '../context/role'
@@ -8,11 +8,19 @@ import { DropdownSelect } from '../components/DropdownSelect'
 import { useQuestionBank } from '../context/questionBank'
 import AddQuestionModal from '../components/AddQuestionModal'
 import TypeBadge from '../components/TypeBadge'
+import PageHeader from '../components/PageHeader'
 import { downloadQuestionTemplate, parseExcelOrCsv } from '../utils/excelUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
 const DIFFICULTY_META = {
@@ -106,55 +114,46 @@ export default function QuestionBank() {
     <>
       <div className="max-w-6xl mx-auto pb-8">
 
-        {/* 헤더 */}
-        <div className="pt-4 pb-5">
-          <button
-            onClick={() => navigate('/question-banks')}
-            className="flex items-center gap-1 text-xs mb-3 text-muted-foreground hover:text-secondary-foreground transition-colors"
-          >
-            <ChevronLeft size={13} />
-            문제모음 목록
-          </button>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              {editingBankName ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    autoFocus
-                    value={bankNameDraft}
-                    onChange={e => setBankNameDraft(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && bankNameDraft.trim()) {
-                        updateBank(bank.id, { name: bankNameDraft.trim() })
-                        setEditingBankName(false)
-                      }
-                      if (e.key === 'Escape') setEditingBankName(false)
-                    }}
-                    onBlur={() => {
-                      if (bankNameDraft.trim()) updateBank(bank.id, { name: bankNameDraft.trim() })
-                      setEditingBankName(false)
-                    }}
-                    className="text-[24px] font-bold text-foreground focus:outline-none border-b-2 border-primary bg-transparent min-w-0"
-                    style={{ width: `${Math.max(bankNameDraft.length, 4)}ch` }}
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 group">
-                  <h1 className="text-[24px] font-bold text-foreground">{bank.name}</h1>
-                  <button
-                    type="button"
-                    onClick={() => { setBankNameDraft(bank.name); setEditingBankName(true) }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-caption hover:text-primary"
-                  >
-                    <Edit2 size={15} />
-                  </button>
-                </div>
-              )}
-              <p className="text-xs mt-1.5 text-caption">
-                문항을 수정해도 이미 생성된 퀴즈에는 자동 반영되지 않습니다.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+        <PageHeader
+          backTo="/question-banks"
+          ariaLabel="문제모음 목록으로"
+          title={
+            editingBankName ? (
+              <input
+                autoFocus
+                value={bankNameDraft}
+                onChange={e => setBankNameDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && bankNameDraft.trim()) {
+                    updateBank(bank.id, { name: bankNameDraft.trim() })
+                    setEditingBankName(false)
+                  }
+                  if (e.key === 'Escape') setEditingBankName(false)
+                }}
+                onBlur={() => {
+                  if (bankNameDraft.trim()) updateBank(bank.id, { name: bankNameDraft.trim() })
+                  setEditingBankName(false)
+                }}
+                className="text-[22px] font-bold text-foreground leading-tight focus:outline-none border-b-2 border-primary bg-transparent min-w-0"
+                style={{ width: `${Math.max(bankNameDraft.length, 4)}ch` }}
+              />
+            ) : (
+              <div className="flex items-center gap-2 group min-w-0">
+                <h1 className="text-[22px] font-bold text-foreground leading-tight truncate">{bank.name}</h1>
+                <button
+                  type="button"
+                  onClick={() => { setBankNameDraft(bank.name); setEditingBankName(true) }}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary shrink-0"
+                  aria-label="문제모음 이름 편집"
+                >
+                  <Edit2 size={15} />
+                </button>
+              </div>
+            )
+          }
+          description="문항을 수정해도 이미 생성된 퀴즈에는 자동 반영되지 않습니다."
+          actions={
+            <>
               <Button variant="outline" onClick={() => setShowUploadModal(true)}>
                 <Upload size={14} />
                 <span className="hidden sm:block">일괄 업로드</span>
@@ -163,9 +162,9 @@ export default function QuestionBank() {
                 <Plus size={15} />
                 문항 추가
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* 필터 + 검색 툴바 */}
         <div className="flex items-center gap-3 mb-3">
@@ -362,70 +361,66 @@ function ExcelUploadModal({ onClose, onImport }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold">문항 일괄 업로드</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-            <X size={16} />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>문항 일괄 업로드</DialogTitle>
+          <DialogDescription>
+            엑셀(.xlsx, .xls) 또는 CSV 파일을 업로드하세요.
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">엑셀(.xlsx, .xls) 또는 CSV 파일을 업로드하세요.</p>
-
-          <div
-            className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload size={24} className="mx-auto mb-2 text-muted-foreground" />
-            {file ? (
-              <p className="text-sm font-medium text-slate-700">{file.name}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">클릭하여 파일 선택</p>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </div>
-
-          {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3 space-y-1">
-              {errors.map((e, i) => (
-                <p key={i} className="text-xs text-red-600 flex items-start gap-1.5">
-                  <AlertCircle size={13} className="shrink-0 mt-0.5" />
-                  {e}
-                </p>
-              ))}
-            </div>
+        <div
+          className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload size={24} className="mx-auto mb-2 text-muted-foreground" />
+          {file ? (
+            <p className="text-sm font-medium text-foreground">{file.name}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">클릭하여 파일 선택</p>
           )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+        </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <button
-              onClick={downloadQuestionTemplate}
-              className="text-xs text-primary hover:underline flex items-center gap-1"
+        {errors.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 space-y-1">
+            {errors.map((e, i) => (
+              <p key={i} className="text-xs text-destructive flex items-start gap-1.5">
+                <AlertCircle size={13} className="shrink-0 mt-0.5" />
+                {e}
+              </p>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-1">
+          <button
+            onClick={downloadQuestionTemplate}
+            className="text-xs text-primary hover:underline flex items-center gap-1"
+          >
+            <Download size={13} />
+            템플릿 다운로드
+          </button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={onClose}>취소</Button>
+            <Button
+              size="sm"
+              onClick={handleUpload}
+              disabled={!file || loading}
             >
-              <Download size={13} />
-              템플릿 다운로드
-            </button>
-            <div className="flex gap-2">
-              <Button size="sm" variant="ghost" onClick={onClose}>취소</Button>
-              <Button
-                size="sm"
-                onClick={handleUpload}
-                disabled={!file || loading}
-              >
-                {loading ? '처리 중' : '업로드'}
-              </Button>
-            </div>
+              {loading ? '처리 중' : '업로드'}
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
