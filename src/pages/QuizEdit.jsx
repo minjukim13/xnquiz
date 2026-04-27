@@ -725,7 +725,7 @@ function QuestionsTab({ questions, totalPoints, regradeMap, onShowBank, onShowRa
                   </div>
                 </div>
 
-                <p className="text-sm font-medium text-slate-700 line-clamp-2 mt-2 ml-8">{q.text}</p>
+                <p className="text-sm font-medium text-slate-700 line-clamp-2 mt-2 ml-8">{String(q.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}</p>
 
                 {q.type !== 'essay' && q.type !== 'file_upload' && q.type !== 'text' && (
                   <div className="mt-1.5 ml-8 bg-slate-50/80 rounded px-2.5 py-1.5">

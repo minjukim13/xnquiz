@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import QuestionAnswer from '../components/QuestionAnswer'
-import { MediaList, MediaRenderer } from '../components/QuestionMedia'
+import { RichTextRenderer } from '../components/RichText'
 import { generateStudentVariables } from '@/utils/formulaEngine'
 import {
   buildAttemptSessionKey,
@@ -744,10 +744,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-0">안내</Badge>
           </div>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700">{question.text}</p>
-          {Array.isArray(question.media) && question.media.length > 0 && (
-            <div className="mt-3"><MediaList items={question.media} /></div>
-          )}
+          <RichTextRenderer html={question.text} className="text-sm leading-relaxed text-slate-700" />
         </CardContent>
       </Card>
     )
@@ -818,42 +815,33 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
             })}
           </p>
         ) : (
-          <p className="text-sm leading-relaxed mb-4">{question.text}</p>
-        )}
-
-        {/* 문제 본문 이미지/동영상 */}
-        {Array.isArray(question.media) && question.media.length > 0 && (
-          <div className="mb-4"><MediaList items={question.media} /></div>
+          <RichTextRenderer html={question.text} className="text-sm leading-relaxed mb-4 block" />
         )}
 
         {/* 객관식 / 참거짓 */}
         {(question.type === 'multiple_choice' || question.type === 'true_false') && (
           <div className="space-y-2">
-            {question.choices.map((choice, i) => {
-              const optMedia = Array.isArray(question.optionsMedia) ? question.optionsMedia[i] : null
-              return (
-                <label
-                  key={i}
-                  className={cn(
-                    'flex items-start gap-3 px-3 py-2.5 rounded-md border transition-colors',
-                    value === choice ? 'bg-accent border-blue-200' : 'bg-slate-50 border-slate-100',
-                    !disabled && 'cursor-pointer hover:border-blue-200',
-                    disabled && 'cursor-default'
-                  )}
-                >
-                  <input
-                    type="radio" name={question.id} value={choice}
-                    checked={value === choice}
-                    onChange={() => !disabled && onChange(choice)}
-                    className="accent-primary mt-0.5 shrink-0" disabled={disabled}
-                  />
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <span className="text-sm text-slate-700 block">{choice}</span>
-                    {optMedia && <MediaRenderer item={optMedia} size="sm" />}
-                  </div>
-                </label>
-              )
-            })}
+            {question.choices.map((choice, i) => (
+              <label
+                key={i}
+                className={cn(
+                  'flex items-start gap-3 px-3 py-2.5 rounded-md border transition-colors',
+                  value === choice ? 'bg-accent border-blue-200' : 'bg-slate-50 border-slate-100',
+                  !disabled && 'cursor-pointer hover:border-blue-200',
+                  disabled && 'cursor-default'
+                )}
+              >
+                <input
+                  type="radio" name={question.id} value={choice}
+                  checked={value === choice}
+                  onChange={() => !disabled && onChange(choice)}
+                  className="accent-primary mt-0.5 shrink-0" disabled={disabled}
+                />
+                <div className="flex-1 min-w-0">
+                  <RichTextRenderer html={choice} className="text-sm text-slate-700" />
+                </div>
+              </label>
+            ))}
           </div>
         )}
 
@@ -861,7 +849,6 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
         {question.type === 'multiple_answers' && (
           <div className="space-y-2">
             {(question.options || question.choices || []).map((choice, i) => {
-              const optMedia = Array.isArray(question.optionsMedia) ? question.optionsMedia[i] : null
               const str = typeof value === 'string' ? value : ''
               const selected = str ? str.split(',').map(s => s.trim()).includes(choice) : false
               const toggle = () => {
@@ -881,9 +868,8 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
                   )}
                 >
                   <input type="checkbox" checked={selected} onChange={toggle} className="accent-blue-500 mt-0.5 shrink-0" disabled={disabled} />
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <span className="text-sm text-slate-700 block">{choice}</span>
-                    {optMedia && <MediaRenderer item={optMedia} size="sm" />}
+                  <div className="flex-1 min-w-0">
+                    <RichTextRenderer html={choice} className="text-sm text-slate-700" />
                   </div>
                 </label>
               )

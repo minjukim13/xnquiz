@@ -559,8 +559,8 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
                   </div>
                 </div>
 
-                {/* 중단 행: 문제 본문 */}
-                <p className="text-sm font-medium text-slate-700 line-clamp-2 mt-2 ml-8">{q.text}</p>
+                {/* 중단 행: 문제 본문 (HTML 태그 제거 후 요약 표시) */}
+                <p className="text-sm font-medium text-slate-700 line-clamp-2 mt-2 ml-8">{String(q.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}</p>
 
                 {/* 하단 행: 정답 영역 */}
                 {q.type !== 'essay' && q.type !== 'file_upload' && q.type !== 'text' && (

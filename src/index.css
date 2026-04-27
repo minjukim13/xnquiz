@@ -68,6 +68,27 @@
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+
+  /* RichText 편집기 placeholder */
+  .rich-text-editable:empty::before {
+    content: attr(data-placeholder);
+    color: var(--muted-foreground);
+    pointer-events: none;
+  }
+  .rich-text-editable img,
+  .rich-text img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+    margin: 8px 0;
+  }
+  .rich-text-editable iframe,
+  .rich-text iframe { max-width: 100%; }
+  .rich-text-editable video,
+  .rich-text video { max-width: 100%; border-radius: 8px; display: block; margin: 8px 0; }
+  .rich-text p { margin: 0; }
+  .rich-text p + p { margin-top: 0.5em; }
 }
 
 @theme inline {
