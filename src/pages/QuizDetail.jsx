@@ -183,16 +183,6 @@ export default function QuizDetail() {
   const timeLimitLabel = !quiz.timeLimit ? '제한 없음' : `${quiz.timeLimit}분`
   const attemptLabel = quiz.allowAttempts === -1 ? '무제한' : `${quiz.allowAttempts ?? 1}회`
 
-  const conditionSummary = `${formatDateRange(quiz.startDate, quiz.dueDate)} · 제한 ${timeLimitLabel}`
-  const policySummary = `${attemptLabel} 응시 · 문항 셔플 ${quiz.shuffleQuestions ? '사용' : '미사용'}`
-  const revealSummary = scoreRevealSummary(quiz)
-  const restrictionTokens = [
-    quiz.accessCode && '접근 코드',
-    quiz.ipRestriction && 'IP 제한',
-    quiz.visible === false && '학생 숨김',
-  ].filter(Boolean)
-  const restrictionSummary = restrictionTokens.length ? restrictionTokens.join(' · ') : '제한 없음'
-
   return (
     <>
       <div className="max-w-4xl mx-auto pb-10">
@@ -307,7 +297,7 @@ export default function QuizDetail() {
         {/* 상세 섹션들 */}
         <div className="grid gap-3 md:grid-cols-2">
           {/* 응시 조건 */}
-          <Section title="응시 조건" summary={conditionSummary} defaultOpen>
+          <Section title="응시 조건" defaultOpen>
             <InfoRow label="응시 기간" value={formatDateRange(quiz.startDate, quiz.dueDate)} />
             <InfoRow
               label="이용 종료"
@@ -327,7 +317,7 @@ export default function QuizDetail() {
           </Section>
 
           {/* 응시 정책 */}
-          <Section title="응시 정책" summary={policySummary}>
+          <Section title="응시 정책">
             <InfoRow label="응시 횟수" value={attemptLabel} />
             {(quiz.allowAttempts === -1 || (quiz.allowAttempts ?? 1) > 1) && (
               <InfoRow label="점수 정책" value={quiz.scorePolicy ?? '최고 점수 유지'} />
@@ -339,7 +329,7 @@ export default function QuizDetail() {
           </Section>
 
           {/* 성적 공개 */}
-          <Section title="성적 공개" summary={revealSummary}>
+          <Section title="성적 공개">
             <InfoRow label="공개 정책" value={scoreRevealSummary(quiz)} />
             {(quiz.scoreRevealStart || quiz.scoreRevealEnd) && (
               <>
@@ -354,7 +344,7 @@ export default function QuizDetail() {
           </Section>
 
           {/* 접근 제한 */}
-          <Section title="접근 제한" summary={restrictionSummary}>
+          <Section title="접근 제한">
             <InfoRow
               label="접근 코드"
               value={quiz.accessCode ? '설정됨' : '설정 안함'}
