@@ -31,13 +31,34 @@ function resolveDisplayStatus(quiz) {
   return quiz.status
 }
 
+const DEFAULT_VALUE_TOKENS = new Set([
+  '사용 안함',
+  '설정 안함',
+  '비허용',
+  '비공개',
+  '제한 없음',
+  '응시 기간 제한 없음',
+])
+
+function isDefaultValue(value) {
+  if (typeof value !== 'string') return false
+  return DEFAULT_VALUE_TOKENS.has(value.trim())
+}
+
 function InfoRow({ label, value, muted = false }) {
+  const isDefault = muted || isDefaultValue(value)
   return (
     <div className="flex items-baseline gap-3 py-1.5">
       <span className="text-sm text-muted-foreground w-24 shrink-0">{label}</span>
-      <span className={cn('text-sm break-words', muted ? 'text-muted-foreground' : 'text-foreground font-medium')}>
-        {value}
-      </span>
+      {isDefault ? (
+        <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">
+          {value}
+        </span>
+      ) : (
+        <span className="text-sm break-words text-foreground font-medium">
+          {value}
+        </span>
+      )}
     </div>
   )
 }
@@ -53,7 +74,7 @@ function Section({ title, summary, defaultOpen = false, children }) {
         className="w-full flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-foreground shrink-0">{title}</h3>
+          <h3 className="text-base font-semibold text-foreground shrink-0">{title}</h3>
           {summary && (
             <span className="text-xs text-muted-foreground truncate">{summary}</span>
           )}
