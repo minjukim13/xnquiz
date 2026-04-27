@@ -4,7 +4,7 @@
  * 사용:
  *   import { listQuizzes, createQuiz } from '@/lib/data'
  */
-import { MODE } from './_common'
+import { MODE, shouldUseApi } from './_common'
 
 export * from './quizzes'
 export * from './courses'
@@ -13,4 +13,5 @@ export * from './students'
 export * from './attempts'
 
 export const DATA_MODE = MODE
-export const isApiMode = () => MODE === 'api'
+// LTI 런칭 상태에서는 mock 으로 배포됐어도 api 코드패스가 정답
+export const isApiMode = shouldUseApi

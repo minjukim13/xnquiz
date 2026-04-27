@@ -7,11 +7,11 @@
  * 프론트 기존 사용처는 `c.id` (소문자) + `c.name` (합친 문자열). 호환 위해 mock 구조로 표준화.
  */
 import { api } from '@/lib/api'
-import { MODE } from './_common'
+import { shouldUseApi } from './_common'
 import { MOCK_COURSES } from '@/data/mockData'
 
 export async function listCourses() {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     const rows = await api('/api/courses')
     // API 응답 → mock 형태(`id`, `name`) 로 매핑
     // id = 소문자 code ("cs301"), name = "CS301 데이터베이스" 레이블

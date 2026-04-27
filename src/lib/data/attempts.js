@@ -8,7 +8,7 @@
  * listStudentsInQuiz() 는 GradingDashboard 용 구조로 통일. 다음 단계에서 이 둘을 매핑.
  */
 import { api } from '@/lib/api'
-import { MODE, normalizeDate as fmtDate } from './_common'
+import { normalizeDate as fmtDate, shouldUseApi } from './_common'
 import { getQuizStudents as mockGetStudents, getStudentAttempts as mockGetAttempts } from '@/data/mockData'
 
 // api attempt[] → GradingDashboard 가 기대하는 학생-중심 shape 으로 집계
@@ -91,7 +91,7 @@ function mapAttemptsToStudents(attempts, scorePolicy) {
 }
 
 export async function listAttempts(params = {}) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     const qs = new URLSearchParams(params).toString()
     if (params.quizId) {
       // 학생-중심 집계 — quiz.scorePolicy 함께 조회해 정책 반영
@@ -109,13 +109,13 @@ export async function listAttempts(params = {}) {
 }
 
 export async function getAttempt(id) {
-  if (MODE === 'api') return await api(`/api/attempts/${id}`)
+  if (shouldUseApi()) return await api(`/api/attempts/${id}`)
   // mock 에는 개별 attempt id 조회가 없어 — 지원 안 함
   throw new Error('getAttempt: mock 모드 미지원')
 }
 
 export async function startAttempt(quizId) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     return await api('/api/attempts', {
       method: 'POST', body: JSON.stringify({ quizId }),
     })
@@ -125,7 +125,7 @@ export async function startAttempt(quizId) {
 }
 
 export async function saveAnswers(attemptId, answers) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     return await api(`/api/attempts/${attemptId}/answers`, {
       method: 'PUT', body: JSON.stringify({ answers }),
     })
@@ -135,14 +135,14 @@ export async function saveAnswers(attemptId, answers) {
 }
 
 export async function submitAttempt(attemptId) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     return await api(`/api/attempts/${attemptId}/submit`, { method: 'POST' })
   }
   return { id: attemptId, submitted: true, submittedAt: new Date().toISOString() }
 }
 
 export async function gradeAttempt(attemptId, grades) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     return await api(`/api/attempts/${attemptId}`, {
       method: 'PATCH', body: JSON.stringify({ grades }),
     })
@@ -152,6 +152,6 @@ export async function gradeAttempt(attemptId, grades) {
 
 /** 학생 개인의 퀴즈 응시 이력 (mockData getStudentAttempts 대응) */
 export async function getMyAttempts(quizId) {
-  if (MODE === 'api') return await api(`/api/attempts?quizId=${quizId}`)
+  if (shouldUseApi()) return await api(`/api/attempts?quizId=${quizId}`)
   return mockGetAttempts(quizId)
 }

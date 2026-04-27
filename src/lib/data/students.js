@@ -2,10 +2,10 @@
  * Students 데이터 레이어 (교수자 전용)
  */
 import { api } from '@/lib/api'
-import { MODE } from './_common'
+import { shouldUseApi } from './_common'
 
 export async function listStudents(params = {}) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     const qs = new URLSearchParams(params).toString()
     return await api('/api/students' + (qs ? '?' + qs : ''))
   }
