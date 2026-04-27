@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom'
-import { ChevronLeft, Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, ChevronDown } from 'lucide-react'
+import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, ChevronDown } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
+import PageHeader from '../components/PageHeader'
 import { mockQuizzes } from '../data/mockData'
 import { getQuiz, deleteQuiz, isApiMode } from '@/lib/data'
 import { useRole } from '../context/role'
@@ -186,21 +187,54 @@ export default function QuizDetail() {
   return (
     <>
       <div className="max-w-4xl mx-auto pb-10">
-        {/* 상단 브레드크럼 — Outline 스타일 뒤로가기 버튼 */}
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-1 py-1.5 rounded-lg mt-2 mb-3"
-        >
-          <ChevronLeft size={16} strokeWidth={2.25} />
-          퀴즈 목록
-        </button>
-
-        {/* 헤더: 제목 + 메타(상태/주차/기간) + 액션 */}
-        <div className="flex items-start justify-between gap-4 pb-4">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-[22px] font-bold text-foreground leading-tight mb-2">{quiz.title}</h1>
-            <div className="flex items-center gap-1.5 flex-wrap">
+        <PageHeader
+          backTo="/"
+          ariaLabel="퀴즈 목록으로"
+          title={quiz.title}
+          actions={
+            <>
+              {canGrade && (
+                <Button asChild>
+                  <Link to={`/quiz/${quiz.id}/grade`}>
+                    <ClipboardCheck size={15} />
+                    채점
+                  </Link>
+                </Button>
+              )}
+              {canStats && (
+                <Button asChild variant="outline">
+                  <Link to={`/quiz/${quiz.id}/stats`}>
+                    <BarChart3 size={15} />
+                    통계
+                  </Link>
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+                    <MoreVertical size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/edit`)}>
+                    <Pencil size={14} />
+                    편집
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/attempt?preview=true`)}>
+                    <Eye size={14} />
+                    미리보기
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={() => setDeleteConfirm(true)}>
+                    <Trash2 size={14} />
+                    삭제
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          }
+          meta={
+            <>
               <StatusBadge status={displayStatus} />
               {(quiz.week > 0 || quiz.session > 0) && (
                 <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-accent text-primary">
@@ -213,51 +247,9 @@ export default function QuizDetail() {
                 <CalendarRange size={11} className="text-muted-foreground" />
                 {formatDateRange(quiz.startDate, quiz.dueDate)}
               </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-            {canGrade && (
-              <Button asChild>
-                <Link to={`/quiz/${quiz.id}/grade`}>
-                  <ClipboardCheck size={15} />
-                  채점
-                </Link>
-              </Button>
-            )}
-            {canStats && (
-              <Button asChild variant="outline">
-                <Link to={`/quiz/${quiz.id}/stats`}>
-                  <BarChart3 size={15} />
-                  통계
-                </Link>
-              </Button>
-            )}
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-gray-900">
-                  <MoreVertical size={16} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/edit`)}>
-                  <Pencil size={14} />
-                  편집
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/attempt?preview=true`)}>
-                  <Eye size={14} />
-                  미리보기
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={() => setDeleteConfirm(true)}>
-                  <Trash2 size={14} />
-                  삭제
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* 퀴즈 설명 카드 */}
         {quiz.description && (
