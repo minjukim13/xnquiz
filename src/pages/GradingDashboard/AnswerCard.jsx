@@ -5,6 +5,7 @@ import { getStudentAnswer, isAnswerCorrect } from '../../data/mockData'
 import TypeBadge from '../../components/TypeBadge'
 import { CheckCircle2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { MediaList } from '../../components/QuestionMedia'
 
 // 복합 답안(객체/배열)을 표시용 문자열로 변환
 function formatAnswerForDisplay(question, answer) {
@@ -73,6 +74,9 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
 
       {/* 문제 내용 */}
       <p className="text-[15px] font-semibold text-foreground leading-normal mb-3">{question.text}</p>
+      {Array.isArray(question.media) && question.media.length > 0 && (
+        <div className="mb-3"><MediaList items={question.media} size="sm" /></div>
+      )}
 
       {/* 답안 박스 */}
       <div className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-secondary max-w-full">

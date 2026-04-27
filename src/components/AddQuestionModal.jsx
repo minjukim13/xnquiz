@@ -16,6 +16,8 @@ import {
   removeAndShiftBlank,
   removeAndShiftDropdown,
 } from '@/utils/placeholderUtils'
+import { MediaEditor, InlineImagePicker } from './QuestionMedia'
+import { normalizeMediaList } from '@/utils/mediaUtils'
 
 // ── 유형별 아이콘 + 설명 메타 ──────────
 const TYPE_META = {
@@ -51,11 +53,11 @@ const getTypeTw = (key) => TYPE_TW[key] ?? { text: 'text-muted-foreground', bg: 
 
 // ── 폼 초기값 ───────────────────────────────────────────────────────────────
 function initForm(type) {
-  const base = { text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '' }
+  const base = { text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '', media: [] }
   switch (type) {
-    case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
+    case 'multiple_choice':         return { ...base, options: ['', '', '', ''], optionsMedia: [null, null, null, null], correctIdx: 0 }
     case 'true_false':              return { ...base, correctBool: true }
-    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], correctIdxs: [], scoringMode: 'all_correct' }
+    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], optionsMedia: [null, null, null, null], correctIdxs: [], scoringMode: 'all_correct' }
     case 'short_answer':            return { ...base, acceptedAnswers: [''] }
     case 'essay':                   return { ...base, rubric: '' }
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
@@ -64,7 +66,7 @@ function initForm(type) {
     case 'fill_in_multiple_blanks': return { ...base, blanks: [] }
     case 'multiple_dropdowns':      return { ...base, dropdowns: [] }
     case 'file_upload':             return base
-    case 'text':                    return { text: '', points: 0, difficulty: '' }
+    case 'text':                    return { text: '', points: 0, difficulty: '', media: [] }
     default:                        return base
   }
 }
@@ -80,16 +82,29 @@ function pickComments(form) {
 
 // ── 폼 → 문항 객체 ─────────────────────────────────────────────────────────
 function buildQuestion(type, form) {
-  const base = { type, text: form.text.trim(), points: Number.isFinite(Number(form.points)) ? Number(form.points) : 0, difficulty: form.difficulty || '', ...pickComments(form) }
+  const media = normalizeMediaList(form.media)
+  const mediaField = media.length > 0 ? { media } : {}
+  const base = { type, text: form.text.trim(), points: Number.isFinite(Number(form.points)) ? Number(form.points) : 0, difficulty: form.difficulty || '', ...pickComments(form), ...mediaField }
+  // 보기별 이미지 매핑: 필터된 options 인덱스와 매칭되도록 재정렬
+  const buildOptionsMedia = (originalOptions, optionsMedia) => {
+    if (!Array.isArray(optionsMedia)) return null
+    const filtered = []
+    originalOptions.forEach((opt, i) => {
+      if (opt.trim()) filtered.push(optionsMedia[i] || null)
+    })
+    return filtered.some(m => m) ? filtered : null
+  }
   switch (type) {
     case 'multiple_choice': {
       const filtered = form.options.filter(o => o.trim())
-      return { ...base, options: filtered, choices: filtered, correctAnswer: filtered[form.correctIdx] ?? filtered[0] }
+      const optsMedia = buildOptionsMedia(form.options, form.optionsMedia)
+      return { ...base, options: filtered, choices: filtered, correctAnswer: filtered[form.correctIdx] ?? filtered[0], ...(optsMedia ? { optionsMedia: optsMedia } : {}) }
     }
     case 'true_false':              return { ...base, correctAnswer: form.correctBool ? '참' : '거짓', choices: ['참', '거짓'] }
     case 'multiple_answers': {
       const filtered = form.options.filter(o => o.trim())
-      return { ...base, options: filtered, choices: filtered, correctAnswer: form.correctIdxs.map(i => filtered[i]).filter(Boolean), scoringMode: form.scoringMode ?? 'all_correct' }
+      const optsMedia = buildOptionsMedia(form.options, form.optionsMedia)
+      return { ...base, options: filtered, choices: filtered, correctAnswer: form.correctIdxs.map(i => filtered[i]).filter(Boolean), scoringMode: form.scoringMode ?? 'all_correct', ...(optsMedia ? { optionsMedia: optsMedia } : {}) }
     }
     case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
     case 'essay':                   return { ...base, rubric: form.rubric }
@@ -103,7 +118,7 @@ function buildQuestion(type, form) {
       return { options: opts, answerIdx: idx }
     }) }
     case 'file_upload':             return base
-    case 'text':                    return { type, text: form.text.trim(), points: 0, difficulty: '' }
+    case 'text':                    return { type, text: form.text.trim(), points: 0, difficulty: '', ...mediaField }
     default:                        return base
   }
 }
@@ -234,37 +249,55 @@ function TypeForm({ type, form, setForm, textareaRef }) {
   const inputCls = 'flex-1 text-[15px] px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30'
 
   switch (type) {
-    case 'multiple_choice':
+    case 'multiple_choice': {
+      const optsMedia = form.optionsMedia || []
+      const setOptMedia = (i, media) => {
+        const next = [...optsMedia]
+        while (next.length < form.options.length) next.push(null)
+        next[i] = media
+        upd('optionsMedia', next)
+      }
       return (
         <div className="space-y-3">
           <Label required>보기 옵션</Label>
+          <p className="text-xs text-muted-foreground -mt-1">오른쪽 이미지 버튼으로 보기별 이미지를 첨부할 수 있습니다</p>
           <div className="space-y-2">
             {form.options.map((opt, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <button type="button" onClick={() => upd('correctIdx', i)}
-                  title={form.correctIdx === i ? '정답' : '정답으로 지정'}
-                  className={cn(
-                    'w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center transition-all',
-                    form.correctIdx === i ? 'bg-indigo-500' : 'border border-neutral-300 bg-white hover:border-indigo-400'
-                  )}>
-                  {form.correctIdx === i && <Check size={12} strokeWidth={3} className="text-white" />}
-                </button>
-                <AnswerTextarea value={opt} placeholder={`보기 ${i + 1}`}
-                  onChange={e => { const n = [...form.options]; n[i] = e.target.value; upd('options', n) }}
-                  className={inputCls} />
-                {form.options.length > 2 && (
-                  <TrashBtn onClick={() => {
-                    const n = form.options.filter((_, j) => j !== i)
-                    upd('options', n)
-                    if (form.correctIdx >= n.length) upd('correctIdx', 0)
-                  }} />
-                )}
+              <div key={i} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => upd('correctIdx', i)}
+                    title={form.correctIdx === i ? '정답' : '정답으로 지정'}
+                    className={cn(
+                      'w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center transition-all',
+                      form.correctIdx === i ? 'bg-indigo-500' : 'border border-neutral-300 bg-white hover:border-indigo-400'
+                    )}>
+                    {form.correctIdx === i && <Check size={12} strokeWidth={3} className="text-white" />}
+                  </button>
+                  <AnswerTextarea value={opt} placeholder={`보기 ${i + 1}`}
+                    onChange={e => { const n = [...form.options]; n[i] = e.target.value; upd('options', n) }}
+                    className={inputCls} />
+                  <InlineImagePicker value={optsMedia[i] || null} onChange={m => setOptMedia(i, m)} />
+                  {form.options.length > 2 && (
+                    <TrashBtn onClick={() => {
+                      setForm(prev => {
+                        const newOptions = prev.options.filter((_, j) => j !== i)
+                        const newOptsMedia = (prev.optionsMedia || []).filter((_, j) => j !== i)
+                        let newIdx = prev.correctIdx
+                        if (newIdx === i) newIdx = 0
+                        else if (newIdx > i) newIdx -= 1
+                        if (newIdx >= newOptions.length) newIdx = 0
+                        return { ...prev, options: newOptions, optionsMedia: newOptsMedia, correctIdx: newIdx }
+                      })
+                    }} />
+                  )}
+                </div>
               </div>
             ))}
           </div>
-          {form.options.length < 6 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
+          {form.options.length < 6 && <AddBtn onClick={() => setForm(prev => ({ ...prev, options: [...prev.options, ''], optionsMedia: [...(prev.optionsMedia || []), null] }))} label="보기 추가" />}
         </div>
       )
+    }
 
     case 'true_false':
       return (
@@ -286,10 +319,18 @@ function TypeForm({ type, form, setForm, textareaRef }) {
         </div>
       )
 
-    case 'multiple_answers':
+    case 'multiple_answers': {
+      const optsMedia = form.optionsMedia || []
+      const setOptMedia = (i, media) => {
+        const next = [...optsMedia]
+        while (next.length < form.options.length) next.push(null)
+        next[i] = media
+        upd('optionsMedia', next)
+      }
       return (
         <div className="space-y-3">
           <Label required>보기 옵션</Label>
+          <p className="text-xs text-muted-foreground -mt-1">오른쪽 이미지 버튼으로 보기별 이미지를 첨부할 수 있습니다</p>
           <div className="space-y-2">
             {form.options.map((opt, i) => {
               const isCorrect = form.correctIdxs.includes(i)
@@ -305,20 +346,25 @@ function TypeForm({ type, form, setForm, textareaRef }) {
                   <AnswerTextarea value={opt} placeholder={`보기 ${i + 1}`}
                     onChange={e => { const n = [...form.options]; n[i] = e.target.value; upd('options', n) }}
                     className={inputCls} />
+                  <InlineImagePicker value={optsMedia[i] || null} onChange={m => setOptMedia(i, m)} />
                   {form.options.length > 2 && (
                     <TrashBtn onClick={() => {
-                      const n = form.options.filter((_, j) => j !== i)
-                      const nc = form.correctIdxs.filter(x => x !== i).map(x => x > i ? x - 1 : x)
-                      upd('options', n); upd('correctIdxs', nc)
+                      setForm(prev => {
+                        const newOptions = prev.options.filter((_, j) => j !== i)
+                        const newOptsMedia = (prev.optionsMedia || []).filter((_, j) => j !== i)
+                        const newCorrectIdxs = prev.correctIdxs.filter(x => x !== i).map(x => x > i ? x - 1 : x)
+                        return { ...prev, options: newOptions, optionsMedia: newOptsMedia, correctIdxs: newCorrectIdxs }
+                      })
                     }} />
                   )}
                 </div>
               )
             })}
           </div>
-          {form.options.length < 8 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
+          {form.options.length < 8 && <AddBtn onClick={() => setForm(prev => ({ ...prev, options: [...prev.options, ''], optionsMedia: [...(prev.optionsMedia || []), null] }))} label="보기 추가" />}
         </div>
       )
+    }
 
     case 'short_answer':
       return (
@@ -804,16 +850,21 @@ function questionToForm(q) {
     correct_comments: q.correct_comments || '',
     incorrect_comments: q.incorrect_comments || '',
     neutral_comments: q.neutral_comments || '',
+    media: Array.isArray(q.media) ? [...q.media] : [],
   }
   // mock 데이터는 choices 필드를 사용하고, AddQuestionModal은 options를 사용
   const opts = q.options?.length ? [...q.options] : q.choices?.length ? [...q.choices] : ['', '', '', '']
+  // 보기별 이미지: 저장된 optionsMedia 를 options 길이에 맞춰 확장
+  const optsMedia = Array.isArray(q.optionsMedia)
+    ? opts.map((_, i) => q.optionsMedia[i] || null)
+    : opts.map(() => null)
   switch (q.type) {
     case 'multiple_choice': {
       let idx = q.correctAnswer ?? 0
       // correctAnswer가 문자열이면 choices/options에서 인덱스 찾기
       if (typeof idx === 'string') idx = opts.findIndex(o => o === idx)
       if (idx < 0) idx = 0
-      return { ...base, options: opts, correctIdx: idx }
+      return { ...base, options: opts, optionsMedia: optsMedia, correctIdx: idx }
     }
     case 'true_false': {
       let val = q.correctAnswer ?? true
@@ -827,7 +878,7 @@ function questionToForm(q) {
       if (idxs.length > 0 && typeof idxs[0] === 'string') {
         idxs = idxs.map(a => opts.findIndex(o => o === a)).filter(i => i >= 0)
       }
-      return { ...base, options: opts, correctIdxs: idxs, scoringMode: q.scoringMode ?? 'all_correct' }
+      return { ...base, options: opts, optionsMedia: optsMedia, correctIdxs: idxs, scoringMode: q.scoringMode ?? 'all_correct' }
     }
     case 'short_answer':
       return { ...base, acceptedAnswers: Array.isArray(q.correctAnswer) && q.correctAnswer.length ? [...q.correctAnswer] : typeof q.correctAnswer === 'string' ? [q.correctAnswer] : [''] }
@@ -1076,6 +1127,13 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                 autoFocus
                 className="w-full bg-white text-[15px] px-3 py-2.5 rounded-lg focus:outline-none resize-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
               />
+              {/* 문제 본문에 이미지/동영상 첨부 */}
+              <div className="mt-3">
+                <MediaEditor
+                  value={form.media || []}
+                  onChange={(next) => setForm(prev => ({ ...prev, media: next }))}
+                />
+              </div>
             </div>
 
             {/* 배점 / 난이도 — text 유형은 숨김 */}
