@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import DOMPurify from 'dompurify'
-import { Image as ImageIcon, Youtube, Link as LinkIcon, X } from 'lucide-react'
+import { Image as ImageIcon, Youtube, Link as LinkIcon, X, Trash2 } from 'lucide-react'
 import {
   fileToMediaItem,
   parseEmbedUrl,
@@ -58,7 +58,7 @@ export function richTextHasContent(html) {
 //   placeholder: string
 //   minHeight: tailwind class (예: 'min-h-[80px]')
 //   variant: 'full' | 'inline' (inline은 줄바꿈 비활성)
-export function RichTextEditor({ value, onChange, placeholder, minHeight = 'min-h-[100px]', variant = 'full', autoFocus, onRefReady }) {
+export function RichTextEditor({ value, onChange, placeholder, minHeight = 'min-h-[100px]', variant = 'full', autoFocus, onRefReady, onDelete }) {
   const ref = useRef(null)
   const [showUrlPrompt, setShowUrlPrompt] = useState(null) // 'image' | 'embed' | null
   const [urlValue, setUrlValue] = useState('')
@@ -212,6 +212,16 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = 'min-
           <Youtube size={14} />
         </ToolbarBtn>
         <span className="ml-auto text-[10px] text-muted-foreground pr-1">이미지 {MAX_IMAGE_BYTES / 1024 / 1024}MB 이하</span>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            title="보기 삭제"
+            className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-white transition-colors"
+          >
+            <Trash2 size={13} />
+          </button>
+        )}
       </div>
 
       {/* URL 입력 패널 */}

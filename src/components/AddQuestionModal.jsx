@@ -255,11 +255,8 @@ function TypeForm({ type, form, setForm, textareaRef }) {
                 <div className="flex-1 min-w-0">
                   <RichTextEditor value={opt} placeholder={`보기 ${i + 1}`}
                     minHeight="min-h-[44px]"
-                    onChange={val => { const n = [...form.options]; n[i] = val; upd('options', n) }} />
-                </div>
-                {form.options.length > 2 && (
-                  <div className="mt-2">
-                    <TrashBtn onClick={() => {
+                    onChange={val => { const n = [...form.options]; n[i] = val; upd('options', n) }}
+                    onDelete={form.options.length > 2 ? () => {
                       setForm(prev => {
                         const newOptions = prev.options.filter((_, j) => j !== i)
                         let newIdx = prev.correctIdx
@@ -268,9 +265,8 @@ function TypeForm({ type, form, setForm, textareaRef }) {
                         if (newIdx >= newOptions.length) newIdx = 0
                         return { ...prev, options: newOptions, correctIdx: newIdx }
                       })
-                    }} />
-                  </div>
-                )}
+                    } : undefined} />
+                </div>
               </div>
             ))}
           </div>
@@ -318,19 +314,15 @@ function TypeForm({ type, form, setForm, textareaRef }) {
                   <div className="flex-1 min-w-0">
                     <RichTextEditor value={opt} placeholder={`보기 ${i + 1}`}
                       minHeight="min-h-[44px]"
-                      onChange={val => { const n = [...form.options]; n[i] = val; upd('options', n) }} />
-                  </div>
-                  {form.options.length > 2 && (
-                    <div className="mt-2">
-                      <TrashBtn onClick={() => {
+                      onChange={val => { const n = [...form.options]; n[i] = val; upd('options', n) }}
+                      onDelete={form.options.length > 2 ? () => {
                         setForm(prev => {
                           const newOptions = prev.options.filter((_, j) => j !== i)
                           const newCorrectIdxs = prev.correctIdxs.filter(x => x !== i).map(x => x > i ? x - 1 : x)
                           return { ...prev, options: newOptions, correctIdxs: newCorrectIdxs }
                         })
-                      }} />
-                    </div>
-                  )}
+                      } : undefined} />
+                  </div>
                 </div>
               )
             })}
