@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom'
-import { ArrowLeft, Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, ChevronDown } from 'lucide-react'
+import { ChevronLeft, Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, ChevronDown } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import { mockQuizzes } from '../data/mockData'
 import { getQuiz, deleteQuiz, isApiMode } from '@/lib/data'
@@ -190,9 +190,9 @@ export default function QuizDetail() {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 hover:text-slate-900 transition-colors px-3 py-1.5 rounded-lg mt-2 mb-3"
+          className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-1 py-1.5 rounded-lg mt-2 mb-3"
         >
-          <ArrowLeft size={16} strokeWidth={2.25} />
+          <ChevronLeft size={16} strokeWidth={2.25} />
           퀴즈 목록
         </button>
 
