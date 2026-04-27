@@ -5,6 +5,7 @@ import TypeBadge from '../../components/TypeBadge'
 import { Download, FolderDown, ChevronDown, RefreshCw } from 'lucide-react'
 import ResponsesTab from './ResponsesTab'
 import StatsTab from './StatsTab'
+import { MediaList, MediaRenderer } from '../../components/QuestionMedia'
 
 const REGRADE_OPTION_LABELS = {
   award_both: '이전 정답과 수정된 정답 모두 인정',
@@ -64,18 +65,26 @@ export default function QuestionDetailPanel({ question, students, search, onSear
             {/* 펼침 영역: 선지 + 정답 */}
             {showChoices && isExpandable && (
               <div className="px-4 pb-4 pt-0">
+                {/* 문제 본문 이미지/동영상 */}
+                {Array.isArray(question.media) && question.media.length > 0 && (
+                  <div className="mb-2"><MediaList items={question.media} size="sm" /></div>
+                )}
                 {/* 선택지 리스트 */}
                 {question.choices && question.choices.length > 0 && (
                   <div className="flex flex-col gap-1">
                     {question.choices.map((choice, i) => {
                       const isCorrect = choice === question.correctAnswer
+                      const optMedia = Array.isArray(question.optionsMedia) ? question.optionsMedia[i] : null
                       return (
                         <div key={i} className={cn(
-                          'flex items-baseline gap-2 text-[13px] leading-[1.5] px-2.5 py-1.5 rounded-md transition-colors',
+                          'flex items-start gap-2 text-[13px] leading-[1.5] px-2.5 py-1.5 rounded-md transition-colors',
                           isCorrect ? 'bg-accent text-primary font-semibold' : 'text-secondary-foreground'
                         )}>
                           <span className="flex-shrink-0 w-4 text-right">{i + 1}.</span>
-                          <span>{choice}</span>
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <span className="block">{choice}</span>
+                            {optMedia && <MediaRenderer item={optMedia} size="sm" className="max-h-24" />}
+                          </div>
                         </div>
                       )
                     })}
