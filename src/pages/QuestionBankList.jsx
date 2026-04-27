@@ -196,7 +196,7 @@ export default function QuestionBankList() {
         {/* 빈 상태 */}
         {banks.length === 0 && (
           <div className="mt-12 text-center">
-            <BookOpen size={36} className="mx-auto mb-3 text-slate-200" />
+            <BookOpen size={36} className="mx-auto mb-3 text-muted-foreground" />
             <p className="text-sm font-medium mb-1 text-muted-foreground">문제모음이 없습니다</p>
             <p className="text-xs mb-4 text-muted-foreground">새 문제모음을 만들어 문항을 관리하세요</p>
             <button

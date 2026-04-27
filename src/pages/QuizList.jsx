@@ -437,7 +437,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
     <Card
       className={cn(
         'overflow-hidden transition-shadow cursor-pointer hover:shadow-md',
-        quiz.status === 'draft' ? 'bg-slate-50 opacity-85' : 'bg-white'
+        quiz.status === 'draft' ? 'bg-secondary opacity-85' : 'bg-white'
       )}
       onClick={() => navigate(`/quiz/${quiz.id}`)}
     >
@@ -451,14 +451,14 @@ function QuizCard({ quiz, onCopy, onDelete }) {
               </span>
             )}
           </div>
-          <h3 className="text-base font-semibold leading-snug mb-1 truncate text-slate-900">{quiz.title}</h3>
+          <h3 className="text-base font-semibold leading-snug mb-1 truncate text-foreground">{quiz.title}</h3>
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xs text-muted-foreground">
               {quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}
               {quiz.lockDate && (
                 <>
                   <span className="text-muted-foreground">{' | '}</span>
-                  <span className="text-gray-500">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span>
+                  <span className="text-muted-foreground">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span>
                 </>
               )}
             </p>
@@ -482,7 +482,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
         <div className="flex items-center gap-2 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
           {canGrade && (
             <>
-              <Button asChild variant="outline" className="border-gray-200 text-gray-900 bg-white hover:bg-gray-50">
+              <Button asChild variant="outline" className="border-border text-foreground bg-white hover:bg-secondary">
                 <Link to={`/quiz/${quiz.id}/grade`}>채점</Link>
               </Button>
               <Button asChild>
@@ -493,7 +493,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-gray-900">
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
                 <MoreVertical size={16} />
               </Button>
             </DropdownMenuTrigger>
@@ -520,7 +520,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
         </div>
       </div>
 
-      <div className="px-6 py-4 bg-slate-50 border-t border-slate-100" onClick={e => e.stopPropagation()}>
+      <div className="px-6 py-4 bg-secondary border-t border-border" onClick={e => e.stopPropagation()}>
         {quiz.status === 'draft' || scheduled ? (
           <DraftSpecs quiz={quiz} />
         ) : (
@@ -544,8 +544,8 @@ function DraftSpecs({ quiz }) {
   return (
     <div className="grid grid-cols-3">
       {cols.map((item, idx) => (
-        <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < cols.length - 1 && 'border-r border-slate-100')}>
-          <p className="text-base font-semibold leading-none text-slate-700">{item.value}</p>
+        <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < cols.length - 1 && 'border-r border-border')}>
+          <p className="text-base font-semibold leading-none text-secondary-foreground">{item.value}</p>
           <p className="text-xs mt-1 text-muted-foreground">{item.label}</p>
         </div>
       ))}
@@ -564,8 +564,8 @@ function ActiveStats({ quiz }) {
   const isClosed = quiz.status === 'closed' || quiz.status === 'grading' || isDeadlinePassed(quiz)
 
   const cols = [
-    { label: '응시율',   value: `${submitRate}%`,   cls: 'text-slate-900' },
-    { label: '응시인원', value: `${submitted}명`,   cls: 'text-slate-900' },
+    { label: '응시율',   value: `${submitRate}%`,   cls: 'text-foreground' },
+    { label: '응시인원', value: `${submitted}명`,   cls: 'text-foreground' },
     { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-red-500' : 'text-muted-foreground' },
     ...(isClosed ? [{ label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-primary' }] : []),
   ]
@@ -573,7 +573,7 @@ function ActiveStats({ quiz }) {
   return (
     <div className={cn('grid', cols.length === 4 ? 'grid-cols-4' : 'grid-cols-3')}>
       {cols.map((item, idx) => (
-        <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < cols.length - 1 && 'border-r border-slate-100')}>
+        <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < cols.length - 1 && 'border-r border-border')}>
           <p className={cn('text-lg font-bold leading-none', item.cls)}>{item.value}</p>
           <p className="text-xs mt-1 text-muted-foreground">{item.label}</p>
         </div>
@@ -595,15 +595,15 @@ function ResetNotice({ mode = 'import' }) {
   ]
   const action = mode === 'copy' ? '복사한' : '가져온'
   return (
-    <div className="rounded-lg bg-slate-50 border border-slate-200 px-3.5 py-3">
-      <p className="text-[11.5px] text-slate-500 mb-3">
+    <div className="rounded-lg bg-secondary border border-border px-3.5 py-3">
+      <p className="text-[11.5px] text-muted-foreground mb-3">
         퀴즈를 {action} 후 아래 항목들은 초기화되므로 다시 설정해 주세요.
       </p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
         {items.map(([label, value]) => (
           <div key={label} className="flex items-center justify-between gap-2">
-            <span className="text-xs text-slate-700">{label}</span>
-            <span className="text-[11px] text-muted-foreground bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 whitespace-nowrap">{value}</span>
+            <span className="text-xs text-secondary-foreground">{label}</span>
+            <span className="text-[11px] text-muted-foreground bg-secondary border border-border rounded px-1.5 py-0.5 whitespace-nowrap">{value}</span>
           </div>
         ))}
       </div>
@@ -635,7 +635,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
               placeholder="과목 검색"
               value={courseSearch}
               onChange={e => setCourseSearch(e.target.value)}
-              className="w-full text-xs py-1.5 pl-8 pr-3 border border-slate-200 rounded-md outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 text-slate-700"
+              className="w-full text-xs py-1.5 pl-8 pr-3 border border-border rounded-md outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 text-secondary-foreground"
             />
           </div>
           {filteredCourses.length === 0 && (
@@ -652,7 +652,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
                   'w-full flex items-center gap-3 px-4 py-3 text-[15px] text-left rounded-md border transition-colors',
                   isSelected
                     ? 'border-blue-400 bg-accent text-primary font-semibold'
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    : 'border-border bg-white text-secondary-foreground hover:bg-secondary'
                 )}
               >
                 <span className="flex-1">{course.name}</span>
@@ -764,15 +764,15 @@ function QuizImportModal({ onClose, onImport }) {
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-w-4xl min-h-[600px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 py-5 border-b border-slate-100 shrink-0">
+        <DialogHeader className="px-6 py-5 border-b border-border shrink-0">
           <DialogTitle>다른 과목 퀴즈 가져오기</DialogTitle>
           <p className="text-[15px] text-muted-foreground">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden min-h-0">
           {/* 왼쪽: 과목 목록 — LTI 과목명이 길어서 폭 여유 확보 */}
-          <div className={cn('shrink-0 flex flex-col border-r border-slate-100', isLti ? 'w-64' : 'w-44')}>
-            <div className="p-3 pb-2 border-b border-slate-50">
+          <div className={cn('shrink-0 flex flex-col border-r border-border', isLti ? 'w-64' : 'w-44')}>
+            <div className="p-3 pb-2 border-b border-border">
               <div className="relative">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
@@ -780,7 +780,7 @@ function QuizImportModal({ onClose, onImport }) {
                   placeholder="과목 검색"
                   value={courseSearch}
                   onChange={e => setCourseSearch(e.target.value)}
-                  className="w-full text-[11.5px] py-1.5 pl-6 pr-2 border border-slate-200 rounded outline-none focus:border-blue-400 text-slate-700"
+                  className="w-full text-[11.5px] py-1.5 pl-6 pr-2 border border-border rounded outline-none focus:border-blue-400 text-secondary-foreground"
                 />
               </div>
             </div>
@@ -811,7 +811,7 @@ function QuizImportModal({ onClose, onImport }) {
                       'w-full flex items-center gap-1.5 text-left px-3 py-2.5 rounded transition-colors',
                       isSelected
                         ? 'bg-accent text-primary font-semibold'
-                        : 'text-slate-700 hover:bg-slate-100'
+                        : 'text-secondary-foreground hover:bg-secondary'
                     )}
                   >
                     {badge && (
@@ -863,7 +863,7 @@ function QuizImportModal({ onClose, onImport }) {
                         <div className="flex items-center gap-2 mb-0.5">
                           <StatusBadge status={quiz.status} />
                         </div>
-                        <p className="text-[15px] font-medium truncate text-slate-900">{quiz.title}</p>
+                        <p className="text-[15px] font-medium truncate text-foreground">{quiz.title}</p>
                         <p className="text-xs mt-0.5 text-muted-foreground">
                           {quiz.questions}문항 · {quiz.totalPoints}점
                           {quiz.dueDate ? ` · ${quiz.dueDate.split(' ')[0]}` : ''}
@@ -878,12 +878,12 @@ function QuizImportModal({ onClose, onImport }) {
         </div>
 
         {checkedIds.size > 0 && (
-          <div className="px-4 pt-3 border-t border-slate-100">
+          <div className="px-4 pt-3 border-t border-border">
             <ResetNotice mode="import" />
           </div>
         )}
 
-        <div className={cn('flex items-center justify-between px-6 py-4', checkedIds.size === 0 && 'border-t border-slate-100')}>
+        <div className={cn('flex items-center justify-between px-6 py-4', checkedIds.size === 0 && 'border-t border-border')}>
           <p className="text-[15px] text-muted-foreground">
             {checkedIds.size > 0 ? `${checkedIds.size}개 선택됨` : ''}
           </p>
@@ -1047,7 +1047,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
   // 학생 혼란 방지 — 채점 상태(대기/완료)는 학생 목록 배지에 표시하지 않음.
   // 응시 여부만 표시: 미응시(마감) = 미제출, 그 외(응시중 / 응시 완료)는 배지 없음.
   const myBadge = (!myAttempt && !isOpen)
-    ? { label: '미제출', cls: 'text-muted-foreground bg-slate-100' }
+    ? { label: '미제출', cls: 'text-muted-foreground bg-secondary' }
     : null
 
   return (
@@ -1068,7 +1068,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
             )}
           </div>
 
-          <h3 className="text-base font-semibold leading-snug mb-1 truncate text-slate-900">{quiz.title}</h3>
+          <h3 className="text-base font-semibold leading-snug mb-1 truncate text-foreground">{quiz.title}</h3>
 
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xs text-muted-foreground">
@@ -1076,7 +1076,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
               {quiz.lockDate && (
                 <>
                   <span className="text-muted-foreground">{' | '}</span>
-                  <span className="text-gray-500">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span>
+                  <span className="text-muted-foreground">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span>
                 </>
               )}
             </p>
@@ -1107,7 +1107,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
           {!scheduled && isOpen && isAttemptExceeded && (
             <div className="relative group">
               <Button disabled>응시하기</Button>
-              <div className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10 bg-slate-700 text-white">
+              <div className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10 bg-foreground text-white">
                 응시 가능 횟수({maxAttempts}회)를 초과했습니다
               </div>
             </div>
@@ -1116,7 +1116,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
       </div>
 
       {/* 카드 하단: 퀴즈 메타 정보 or 성적 */}
-      <div className="px-6 py-4 bg-slate-50 border-t border-slate-100">
+      <div className="px-6 py-4 bg-secondary border-t border-border">
         {!myAttempt ? (
           <div className="grid grid-cols-3">
             {[
@@ -1124,8 +1124,8 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
               { label: '총점', value: `${quiz.totalPoints}점` },
               { label: '제한시간', value: !quiz.timeLimit ? '없음' : `${quiz.timeLimit}분` },
             ].map((item, idx) => (
-              <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < 2 && 'border-r border-slate-100')}>
-                <p className="text-lg font-bold leading-none text-slate-900">{item.value}</p>
+              <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < 2 && 'border-r border-border')}>
+                <p className="text-lg font-bold leading-none text-foreground">{item.value}</p>
                 <p className="text-xs mt-1 text-muted-foreground">{item.label}</p>
               </div>
             ))}
@@ -1200,7 +1200,7 @@ function StudentScoreFooter({ quiz, myAttempt, myAttempts, showHistory, setShowH
       </div>
 
       {showHistory && myAttempts.length > 1 && (
-        <div className="mt-2.5 pt-2.5 border-t border-slate-200 space-y-1">
+        <div className="mt-2.5 pt-2.5 border-t border-border space-y-1">
           {myAttempts.map((att, idx) => {
             const attAuto = att.totalAutoScore ?? 0
             const attManual = att.manualPending > 0 ? 0 : (att.totalManualScore ?? 0)
@@ -1213,7 +1213,7 @@ function StudentScoreFooter({ quiz, myAttempt, myAttempts, showHistory, setShowH
                 </span>
                 <span className="text-muted-foreground">{att.submittedAt}</span>
                 {released ? (
-                  <span className={cn(isLast ? 'text-primary font-semibold' : 'text-slate-500')}>
+                  <span className={cn(isLast ? 'text-primary font-semibold' : 'text-muted-foreground')}>
                     {attTotal}점 / {totalPossible}점
                     {att.manualPending > 0 && <span className="text-muted-foreground"> *</span>}
                   </span>

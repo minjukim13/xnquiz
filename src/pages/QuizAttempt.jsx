@@ -334,7 +334,7 @@ export default function QuizAttempt() {
       <>
         <div className="max-w-2xl mx-auto py-16 text-center">
           <Lock size={36} className="mx-auto mb-3 text-muted-foreground/40" />
-          <p className="text-base font-semibold mb-1 text-slate-700">이용이 종료되었습니다</p>
+          <p className="text-base font-semibold mb-1 text-secondary-foreground">이용이 종료되었습니다</p>
           <p className="text-sm mb-5 text-muted-foreground">이용 종료 일시가 지나 퀴즈에 접근할 수 없습니다</p>
           <Button variant="outline" onClick={() => navigate('/')}>
             퀴즈 목록으로
@@ -349,7 +349,7 @@ export default function QuizAttempt() {
       <>
         <div className="max-w-2xl mx-auto py-16 text-center">
           <Clock size={36} className="mx-auto mb-3 text-amber-400" />
-          <p className="text-base font-semibold mb-1 text-slate-700">응시 시작 전입니다</p>
+          <p className="text-base font-semibold mb-1 text-secondary-foreground">응시 시작 전입니다</p>
           <p className="text-sm mb-5 text-muted-foreground">{quiz.startDate}부터 응시할 수 있습니다</p>
           <Button variant="outline" onClick={() => navigate('/')}>
             퀴즈 목록으로
@@ -369,7 +369,7 @@ export default function QuizAttempt() {
       <>
         <div className="max-w-2xl mx-auto py-16 text-center">
           <AlertCircle size={36} className="mx-auto mb-3 text-muted-foreground/40" />
-          <p className="text-base font-semibold mb-1 text-slate-700">응시 불가</p>
+          <p className="text-base font-semibold mb-1 text-secondary-foreground">응시 불가</p>
           <p className="text-sm mb-5 text-muted-foreground">{statusMsg}</p>
           <Button variant="outline" onClick={() => navigate('/')}>
             퀴즈 목록으로
@@ -387,7 +387,7 @@ export default function QuizAttempt() {
         <>
           <div className="max-w-2xl mx-auto py-16 text-center">
             <Clock size={36} className="mx-auto mb-3 text-red-400" />
-            <p className="text-base font-semibold mb-1 text-slate-700">
+            <p className="text-base font-semibold mb-1 text-secondary-foreground">
               {lateDeadlinePassed ? '지각 제출 기한이 종료되었습니다' : '제출 기한이 종료되었습니다'}
             </p>
             <p className="text-sm mb-5 text-muted-foreground">
@@ -501,7 +501,7 @@ export default function QuizAttempt() {
                 <p className="text-xs mb-0.5 text-muted-foreground">{quiz.week}주차 {quiz.session}차시 · {questions.reduce((s, q) => s + (q.points || 0), 0)}점</p>
                 <h1 className="text-base font-bold">{quiz.title}</h1>
                 {quiz.description && (
-                  <p className="text-sm mt-1.5 text-slate-500">{quiz.description}</p>
+                  <p className="text-sm mt-1.5 text-muted-foreground">{quiz.description}</p>
                 )}
                 {!isPreview && !submitted && lastSavedAt && !saveError && (
                   <p className="text-[11px] mt-2 text-muted-foreground inline-flex items-center gap-1">
@@ -518,14 +518,14 @@ export default function QuizAttempt() {
                   </p>
                 </div>
                 {noTimeLimit ? (
-                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-muted text-slate-700 border border-border">
+                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-muted text-secondary-foreground border border-border">
                     <Clock size={13} />
                     제한 없음
                   </div>
                 ) : (
                   <div className={cn(
                     'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold border',
-                    timeRemaining < 300 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-muted text-slate-700 border-border'
+                    timeRemaining < 300 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-muted text-secondary-foreground border-border'
                   )}>
                     <Clock size={13} />
                     {formatTime(timeRemaining)}
@@ -551,7 +551,7 @@ export default function QuizAttempt() {
                 </span>
               )}
             </div>
-            <div className="h-1 rounded-full overflow-hidden bg-slate-100 mb-4">
+            <div className="h-1 rounded-full overflow-hidden bg-secondary mb-4">
               <div
                 className="h-full bg-primary transition-all"
                 style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
@@ -739,12 +739,12 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
   // text 유형: 안내문으로만 렌더링 (Q번호 없음)
   if (question.type === 'text') {
     return (
-      <Card className="overflow-hidden border-slate-200">
+      <Card className="overflow-hidden border-border">
         <CardContent className="px-5 py-4">
           <div className="flex items-center gap-2 mb-2">
-            <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-0">안내</Badge>
+            <Badge variant="secondary" className="bg-secondary text-secondary-foreground border-0">안내</Badge>
           </div>
-          <RichTextRenderer html={question.text} className="text-sm leading-relaxed text-slate-700" />
+          <RichTextRenderer html={question.text} className="text-sm leading-relaxed text-secondary-foreground" />
         </CardContent>
       </Card>
     )
@@ -760,7 +760,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
               {typeLabels[question.type] ?? question.type}
             </Badge>
           </div>
-          <span className="text-xs font-semibold shrink-0 text-slate-600">{question.points}점</span>
+          <span className="text-xs font-semibold shrink-0 text-secondary-foreground">{question.points}점</span>
         </div>
         {/* 본문: 다중 빈칸/드롭다운이고 본문에 placeholder가 있으면 inline 렌더 */}
         {((question.type === 'fill_in_multiple_blanks' || question.type === 'multiple_dropdowns') && hasInlinePlaceholders(question.text)) ? (
@@ -826,7 +826,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
                 key={i}
                 className={cn(
                   'flex items-start gap-3 px-3 py-2.5 rounded-md border transition-colors',
-                  value === choice ? 'bg-accent border-blue-200' : 'bg-slate-50 border-slate-100',
+                  value === choice ? 'bg-accent border-blue-200' : 'bg-secondary border-border',
                   !disabled && 'cursor-pointer hover:border-blue-200',
                   disabled && 'cursor-default'
                 )}
@@ -838,7 +838,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
                   className="accent-primary mt-0.5 shrink-0" disabled={disabled}
                 />
                 <div className="flex-1 min-w-0">
-                  <RichTextRenderer html={choice} className="text-sm text-slate-700" />
+                  <RichTextRenderer html={choice} className="text-sm text-secondary-foreground" />
                 </div>
               </label>
             ))}
@@ -862,14 +862,14 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
                   key={i}
                   className={cn(
                     'flex items-start gap-3 px-3 py-2.5 rounded-md border transition-colors',
-                    selected ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-100',
+                    selected ? 'bg-blue-50 border-blue-200' : 'bg-secondary border-border',
                     !disabled && 'cursor-pointer hover:border-blue-200',
                     disabled && 'cursor-default'
                   )}
                 >
                   <input type="checkbox" checked={selected} onChange={toggle} className="accent-blue-500 mt-0.5 shrink-0" disabled={disabled} />
                   <div className="flex-1 min-w-0">
-                    <RichTextRenderer html={choice} className="text-sm text-slate-700" />
+                    <RichTextRenderer html={choice} className="text-sm text-secondary-foreground" />
                   </div>
                 </label>
               )
@@ -912,7 +912,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           return (
             <div className="space-y-2">
               {Object.keys(varValues).length > 0 && (
-                <div className="inline-flex flex-wrap gap-2 text-xs text-muted-foreground px-3 py-2 rounded-md bg-slate-50 border border-slate-100">
+                <div className="inline-flex flex-wrap gap-2 text-xs text-muted-foreground px-3 py-2 rounded-md bg-secondary border border-border">
                   <span className="font-medium">주어진 값:</span>
                   {Object.entries(varValues).map(([name, val]) => (
                     <span key={name} className="font-mono text-teal-700">
@@ -938,8 +938,8 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           return (
             <div className="space-y-2">
               {question.pairs.map((p, i) => (
-                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-slate-100 bg-slate-50">
-                  <span className="text-sm text-slate-700 flex-1 truncate">{p.left}</span>
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-border bg-secondary">
+                  <span className="text-sm text-secondary-foreground flex-1 truncate">{p.left}</span>
                   <span className="text-muted-foreground text-xs shrink-0">↔</span>
                   <select
                     value={answerMap[p.left] ?? ''} disabled={disabled}
@@ -963,8 +963,8 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           return (
             <div className="space-y-2">
               {question.dropdowns.map((dd, i) => (
-                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-slate-100 bg-slate-50">
-                  {dd.label && <span className="text-sm font-medium text-slate-700 flex-shrink-0">{dd.label}</span>}
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-border bg-secondary">
+                  {dd.label && <span className="text-sm font-medium text-secondary-foreground flex-shrink-0">{dd.label}</span>}
                   <select
                     value={arr[i] ?? ''} disabled={disabled}
                     onChange={e => {
@@ -1016,7 +1016,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
             <div className="space-y-2">
               <label className={cn(
                 'flex items-center gap-3 px-3 py-4 rounded-md border border-dashed transition-colors',
-                file ? 'border-blue-200 bg-accent/40' : 'border-slate-200 bg-slate-50',
+                file ? 'border-blue-200 bg-accent/40' : 'border-border bg-secondary',
                 !disabled && 'cursor-pointer hover:border-blue-300',
                 disabled && 'cursor-default'
               )}>
@@ -1039,7 +1039,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
                     </>
                   ) : (
                     <>
-                      <p className="text-sm text-slate-700">파일을 선택하세요</p>
+                      <p className="text-sm text-secondary-foreground">파일을 선택하세요</p>
                       <p className="text-xs text-muted-foreground mt-0.5">허용 파일: PDF, DOC, DOCX, HWP, ZIP</p>
                     </>
                   )}
@@ -1068,7 +1068,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           || (question.type === 'formula' && question.formula)
         if (!hasAnswer) {
           return (
-            <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-200">
+            <div className="px-5 py-2.5 bg-secondary border-t border-border">
               <p className="text-xs text-muted-foreground">정답 없음 (수동 채점 문항)</p>
             </div>
           )

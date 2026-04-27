@@ -295,7 +295,7 @@ function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDr
         <div
           draggable
           onDragStart={onDragStart}
-          className="flex items-center px-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-slate-500 transition-colors shrink-0 self-stretch"
+          className="flex items-center px-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors shrink-0 self-stretch"
           title="드래그하여 순서 변경"
         >
           <GripVertical size={16} />
@@ -313,7 +313,7 @@ function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDr
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <TypeBadge type={question.type} small />
-              <span className="text-xs font-medium text-slate-700">{question.points}점</span>
+              <span className="text-xs font-medium text-secondary-foreground">{question.points}점</span>
               {diff && (
                 <Badge variant="secondary" className={cn('text-xs', diff.className)}>
                   {diff.label}
