@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom'
-import { ArrowLeft, Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange } from 'lucide-react'
+import { ArrowLeft, Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, ChevronDown } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import { mockQuizzes } from '../data/mockData'
 import { getQuiz, deleteQuiz, isApiMode } from '@/lib/data'
@@ -42,15 +42,32 @@ function InfoRow({ label, value, muted = false }) {
   )
 }
 
-function Section({ title, children }) {
+function Section({ title, summary, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
     <Card className="overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      </div>
-      <div className="px-6 py-2 divide-y divide-slate-100">
-        {children}
-      </div>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-foreground shrink-0">{title}</h3>
+          {summary && (
+            <span className="text-xs text-muted-foreground truncate">{summary}</span>
+          )}
+        </div>
+        <ChevronDown
+          size={16}
+          className={cn('text-muted-foreground transition-transform shrink-0', open && 'rotate-180')}
+        />
+      </button>
+      {open && (
+        <div className="px-5 pb-1 border-t border-slate-100 divide-y divide-slate-100">
+          {children}
+        </div>
+      )}
     </Card>
   )
 }
@@ -144,6 +161,16 @@ export default function QuizDetail() {
 
   const timeLimitLabel = !quiz.timeLimit ? '제한 없음' : `${quiz.timeLimit}분`
   const attemptLabel = quiz.allowAttempts === -1 ? '무제한' : `${quiz.allowAttempts ?? 1}회`
+
+  const conditionSummary = `${formatDateRange(quiz.startDate, quiz.dueDate)} · 제한 ${timeLimitLabel}`
+  const policySummary = `${attemptLabel} 응시 · 문항 셔플 ${quiz.shuffleQuestions ? '사용' : '미사용'}`
+  const revealSummary = scoreRevealSummary(quiz)
+  const restrictionTokens = [
+    quiz.accessCode && '접근 코드',
+    quiz.ipRestriction && 'IP 제한',
+    quiz.visible === false && '학생 숨김',
+  ].filter(Boolean)
+  const restrictionSummary = restrictionTokens.length ? restrictionTokens.join(' · ') : '제한 없음'
 
   return (
     <>
@@ -259,7 +286,7 @@ export default function QuizDetail() {
         {/* 상세 섹션들 */}
         <div className="grid gap-4 md:grid-cols-2">
           {/* 응시 조건 */}
-          <Section title="응시 조건">
+          <Section title="응시 조건" summary={conditionSummary} defaultOpen>
             <InfoRow label="응시 기간" value={formatDateRange(quiz.startDate, quiz.dueDate)} />
             <InfoRow
               label="이용 종료"
@@ -279,7 +306,7 @@ export default function QuizDetail() {
           </Section>
 
           {/* 응시 정책 */}
-          <Section title="응시 정책">
+          <Section title="응시 정책" summary={policySummary}>
             <InfoRow label="응시 횟수" value={attemptLabel} />
             {(quiz.allowAttempts === -1 || (quiz.allowAttempts ?? 1) > 1) && (
               <InfoRow label="점수 정책" value={quiz.scorePolicy ?? '최고 점수 유지'} />
@@ -291,7 +318,7 @@ export default function QuizDetail() {
           </Section>
 
           {/* 성적 공개 */}
-          <Section title="성적 공개">
+          <Section title="성적 공개" summary={revealSummary}>
             <InfoRow label="공개 정책" value={scoreRevealSummary(quiz)} />
             {(quiz.scoreRevealStart || quiz.scoreRevealEnd) && (
               <>
@@ -306,7 +333,7 @@ export default function QuizDetail() {
           </Section>
 
           {/* 접근 제한 */}
-          <Section title="접근 제한">
+          <Section title="접근 제한" summary={restrictionSummary}>
             <InfoRow
               label="접근 코드"
               value={quiz.accessCode ? '설정됨' : '설정 안함'}
