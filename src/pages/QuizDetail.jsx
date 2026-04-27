@@ -48,14 +48,14 @@ function isDefaultValue(value) {
 function InfoRow({ label, value, muted = false }) {
   const isDefault = muted || isDefaultValue(value)
   return (
-    <div className="flex items-baseline gap-3 py-1.5">
-      <span className="text-sm text-muted-foreground w-24 shrink-0">{label}</span>
+    <div className="flex items-baseline justify-between gap-4 py-1.5">
+      <span className="text-sm text-muted-foreground shrink-0">{label}</span>
       {isDefault ? (
-        <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">
+        <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground shrink-0">
           {value}
         </span>
       ) : (
-        <span className="text-sm break-words text-foreground font-medium">
+        <span className="text-sm text-right break-words text-foreground font-medium">
           {value}
         </span>
       )}
@@ -63,7 +63,7 @@ function InfoRow({ label, value, muted = false }) {
   )
 }
 
-function Section({ title, summary, defaultOpen = false, children }) {
+function Section({ title, summary, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <Card className="overflow-hidden">
