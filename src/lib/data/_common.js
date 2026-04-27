@@ -14,6 +14,13 @@ export function currentLtiCourseCode() {
   } catch { return null }
 }
 
+// api 코드패스를 타야 하는지 판단.
+// VITE_DATA_SOURCE=api 거나, mock 으로 배포됐어도 LTI 런칭 상태면 서버 DB 를 봐야 함
+// (mockQuizzes 는 CS301 등 비 LTI 전용 시드라 LTI 가 만든 cuid 가 없음).
+export function shouldUseApi() {
+  return MODE === 'api' || !!currentLtiCourseCode()
+}
+
 // ISO 문자열을 "YYYY-MM-DD HH:mm" (브라우저 로컬) 으로 정규화 — mockData 포맷과 호환
 export function normalizeDate(iso) {
   if (!iso) return iso ?? null

@@ -5,7 +5,7 @@
  * VITE_DATA_SOURCE=api   → fetch('/api/quizzes/...')
  */
 import { api } from '@/lib/api'
-import { MODE, normalizeDate, currentLtiCourseCode } from './_common'
+import { normalizeDate, currentLtiCourseCode, shouldUseApi } from './_common'
 import {
   mockQuizzes,
   addQuiz as mockAdd,
@@ -80,10 +80,7 @@ export async function listQuizzes(params = {}) {
   // bypassLtiCourseFilter: 타 과목 퀴즈 가져오기 등 LTI 현재 과목 override 를
   // 건너뛰고 params.courseCode 를 그대로 사용해야 하는 경우 true 로 지정
   const { bypassLtiCourseFilter, ...query } = params
-  // LTI 활성 상태에서는 서버 DB 에만 데이터가 존재 (mockQuizzes 는 CS301 등 비 LTI 전용).
-  // MODE 가 mock 으로 배포된 경우에도 LTI 런칭 시 api 를 강제로 호출.
-  const ltiActive = !!currentLtiCourseCode()
-  if (MODE === 'api' || ltiActive) {
+  if (shouldUseApi()) {
     const ltiCode = bypassLtiCourseFilter ? null : currentLtiCourseCode()
     const effectiveParams = ltiCode ? { ...query, courseCode: ltiCode } : query
     const qs = new URLSearchParams(effectiveParams).toString()
@@ -98,17 +95,17 @@ export async function listQuizzes(params = {}) {
 }
 
 export async function getQuiz(id) {
-  if (MODE === 'api') return normalizeQuiz(await api(`/api/quizzes/${id}`))
+  if (shouldUseApi()) return normalizeQuiz(await api(`/api/quizzes/${id}`))
   return mockQuizzes.find(q => q.id === id) ?? null
 }
 
 export async function getQuizQuestions(id) {
-  if (MODE === 'api') return await api(`/api/quizzes/${id}/questions`)
+  if (shouldUseApi()) return await api(`/api/quizzes/${id}/questions`)
   return mockGetQuestions(id)
 }
 
 export async function createQuiz(body) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     return normalizeQuiz(await api('/api/quizzes', {
       method: 'POST', body: JSON.stringify(toApiQuizBody(body)),
     }))
@@ -119,7 +116,7 @@ export async function createQuiz(body) {
 }
 
 export async function updateQuiz(id, body) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     return normalizeQuiz(await api(`/api/quizzes/${id}`, {
       method: 'PATCH', body: JSON.stringify(toApiQuizBody(body)),
     }))
@@ -128,7 +125,7 @@ export async function updateQuiz(id, body) {
 }
 
 export async function deleteQuiz(id) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     await api(`/api/quizzes/${id}`, { method: 'DELETE' })
     return true
   }
@@ -137,7 +134,7 @@ export async function deleteQuiz(id) {
 
 // 개별 문항 CRUD (api 모드 전용 — mock 은 setQuizQuestions 로 일괄 처리)
 export async function createQuizQuestion(quizId, body) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     return await api(`/api/quizzes/${quizId}/questions`, {
       method: 'POST', body: JSON.stringify(toApiQuestionBody(body)),
     })
@@ -146,14 +143,14 @@ export async function createQuizQuestion(quizId, body) {
 }
 
 export async function updateQuestion(id, body) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     return await api(`/api/questions/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
   }
   throw new Error('updateQuestion: mock 모드에서는 setQuizQuestions 를 사용하세요')
 }
 
 export async function deleteQuestion(id) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     await api(`/api/questions/${id}`, { method: 'DELETE' })
     return true
   }
@@ -172,7 +169,7 @@ export async function regradeQuestion(quizId, question, option, oldQuestion) {
   if (option === 'no_regrade') {
     return { changedAnswers: 0, changedAttempts: 0, regradedStudents: 0 }
   }
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     return await api(`/api/questions/${question.id}/regrade`, {
       method: 'POST',
       body: JSON.stringify({
@@ -195,12 +192,12 @@ export async function regradeQuestion(quizId, question, option, oldQuestion) {
  * @returns {Promise<number>} 영향 받은 응시 건수 (api 는 항상 0)
  */
 export async function recalculateScorePolicy(quizId, newPolicy) {
-  if (MODE === 'api') return 0
+  if (shouldUseApi()) return 0
   return mockRecalcPolicy(quizId, newPolicy)
 }
 
 export async function setQuizQuestions(id, questions) {
-  if (MODE === 'api') {
+  if (shouldUseApi()) {
     // api 모드: PUT 으로 배치 UPSERT — 기존 문항은 UPDATE (Answer FK 보존),
     // 입력에 없는 기존 문항만 DELETE. 새 문항은 CREATE 후 새 cuid 부여.
     const body = questions.map(toApiQuestionBodyKeepId)
