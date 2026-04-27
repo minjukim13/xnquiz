@@ -261,13 +261,13 @@ function InfoTab({ form, set }) {
               className={cn('text-left p-3 rounded-md transition-all border-2',
                 form.quizMode === opt.value ? 'border-primary bg-accent' : 'border-border bg-white'
               )}>
-              <p className={cn('text-sm font-semibold', form.quizMode === opt.value ? 'text-primary' : 'text-slate-700')}>{opt.label}</p>
+              <p className={cn('text-sm font-semibold', form.quizMode === opt.value ? 'text-primary' : 'text-secondary-foreground')}>{opt.label}</p>
               <p className={cn('text-xs mt-0.5', form.quizMode === opt.value ? 'text-primary' : 'text-muted-foreground')}>{opt.desc}</p>
             </button>
           ))}
         </div>
         {form.quizMode === 'practice' && (
-          <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-amber-50/40 border border-amber-300 text-slate-600">
+          <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-amber-50/40 border border-amber-300 text-secondary-foreground">
             <span>연습용 퀴즈는 성적에 반영되지 않습니다.</span>
           </div>
         )}
@@ -303,21 +303,21 @@ function InfoTab({ form, set }) {
           <input type="datetime-local" value={form.lockDate} onChange={e => set('lockDate', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
           <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
           {form.lockDate && form.dueDate && new Date(form.lockDate) < new Date(form.dueDate) && (
-            <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-amber-50/40 border border-amber-300 text-slate-600 mt-2">
+            <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-amber-50/40 border border-amber-300 text-secondary-foreground mt-2">
               <span>이용 종료 일시가 마감 일시보다 앞서 있습니다. 마감 전에 퀴즈 접근이 차단될 수 있습니다.</span>
             </div>
           )}
         </Field>
         <div className="mt-1 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-700">마감 후 지각 제출 허용</span>
-            <Switch checked={form.allowLateSubmit} onCheckedChange={v => set('allowLateSubmit', v)} className="data-[state=checked]:bg-foreground data-[state=unchecked]:bg-gray-200" />
+            <span className="text-sm font-medium text-secondary-foreground">마감 후 지각 제출 허용</span>
+            <Switch checked={form.allowLateSubmit} onCheckedChange={v => set('allowLateSubmit', v)} className="data-[state=checked]:bg-foreground data-[state=unchecked]:bg-border" />
           </div>
           {form.allowLateSubmit && (
-            <div className="border-l-2 border-gray-200 pl-4 ml-0.5 space-y-2">
-              <label className="block text-sm font-medium text-slate-700">지각 제출 마감 일시</label>
-              <input type="datetime-local" value={form.lateSubmitDeadline} onChange={e => set('lateSubmitDeadline', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all" />
-              {!form.lateSubmitDeadline && <p className="text-xs text-gray-500">미설정 시 무제한 허용</p>}
+            <div className="border-l-2 border-border pl-4 ml-0.5 space-y-2">
+              <label className="block text-sm font-medium text-secondary-foreground">지각 제출 마감 일시</label>
+              <input type="datetime-local" value={form.lateSubmitDeadline} onChange={e => set('lateSubmitDeadline', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all" />
+              {!form.lateSubmitDeadline && <p className="text-xs text-muted-foreground">미설정 시 무제한 허용</p>}
             </div>
           )}
         </div>
@@ -336,20 +336,20 @@ function InfoTab({ form, set }) {
           <Field label="응시 시간 제한">
             <div className="flex items-center gap-2">
               <div className={cn('flex items-center gap-2 flex-1 transition-opacity', form.unlimitedTimeLimit && 'opacity-40 pointer-events-none')}>
-                <input type="number" value={form.timeLimit} onChange={e => set('timeLimit', e.target.value)} placeholder="60" min={1} disabled={form.unlimitedTimeLimit} className={cn('w-full text-sm px-3.5 py-2.5 rounded-md border transition-all', form.unlimitedTimeLimit ? 'border-gray-200 bg-gray-50 text-muted-foreground cursor-not-allowed' : 'border-gray-200 bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary')} />
+                <input type="number" value={form.timeLimit} onChange={e => set('timeLimit', e.target.value)} placeholder="60" min={1} disabled={form.unlimitedTimeLimit} className={cn('w-full text-sm px-3.5 py-2.5 rounded-md border transition-all', form.unlimitedTimeLimit ? 'border-border bg-secondary text-muted-foreground cursor-not-allowed' : 'border-border bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary')} />
                 <span className="text-sm shrink-0 text-muted-foreground">분</span>
               </div>
-              <button type="button" onClick={() => set('unlimitedTimeLimit', !form.unlimitedTimeLimit)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', form.unlimitedTimeLimit ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700')}>무제한</button>
+              <button type="button" onClick={() => set('unlimitedTimeLimit', !form.unlimitedTimeLimit)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', form.unlimitedTimeLimit ? 'bg-primary text-white border-primary' : 'bg-white text-muted-foreground border-border hover:bg-secondary hover:text-foreground')}>무제한</button>
             </div>
           </Field>
           <Field label="최대 응시 횟수">
             <div className="flex items-center gap-2">
-              <div className={cn('flex items-center border rounded-md overflow-hidden transition-opacity', form.unlimitedAttempts ? 'border-gray-200 opacity-40 pointer-events-none' : 'border-gray-200')}>
-                <button type="button" onClick={() => set('allowAttempts', Math.max(ATTEMPT_MIN, form.allowAttempts - 1))} disabled={form.allowAttempts <= ATTEMPT_MIN || form.unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', form.unlimitedAttempts ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed')}>-</button>
-                <span className={cn('px-4 py-2.5 text-sm font-medium min-w-[48px] text-center border-x', form.unlimitedAttempts ? 'border-gray-200 bg-gray-50 text-muted-foreground' : 'border-gray-200 bg-white text-foreground')}>{form.allowAttempts}회</span>
-                <button type="button" onClick={() => set('allowAttempts', Math.min(ATTEMPT_MAX, form.allowAttempts + 1))} disabled={form.allowAttempts >= ATTEMPT_MAX || form.unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', form.unlimitedAttempts ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed')}>+</button>
+              <div className={cn('flex items-center border rounded-md overflow-hidden transition-opacity', form.unlimitedAttempts ? 'border-border opacity-40 pointer-events-none' : 'border-border')}>
+                <button type="button" onClick={() => set('allowAttempts', Math.max(ATTEMPT_MIN, form.allowAttempts - 1))} disabled={form.allowAttempts <= ATTEMPT_MIN || form.unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', form.unlimitedAttempts ? 'text-muted-foreground cursor-not-allowed' : 'text-muted-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed')}>-</button>
+                <span className={cn('px-4 py-2.5 text-sm font-medium min-w-[48px] text-center border-x', form.unlimitedAttempts ? 'border-border bg-secondary text-muted-foreground' : 'border-border bg-white text-foreground')}>{form.allowAttempts}회</span>
+                <button type="button" onClick={() => set('allowAttempts', Math.min(ATTEMPT_MAX, form.allowAttempts + 1))} disabled={form.allowAttempts >= ATTEMPT_MAX || form.unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', form.unlimitedAttempts ? 'text-muted-foreground cursor-not-allowed' : 'text-muted-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed')}>+</button>
               </div>
-              <button type="button" onClick={() => set('unlimitedAttempts', !form.unlimitedAttempts)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', form.unlimitedAttempts ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700')}>무제한</button>
+              <button type="button" onClick={() => set('unlimitedAttempts', !form.unlimitedAttempts)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', form.unlimitedAttempts ? 'bg-primary text-white border-primary' : 'bg-white text-muted-foreground border-border hover:bg-secondary hover:text-foreground')}>무제한</button>
             </div>
           </Field>
         </div>
@@ -372,7 +372,7 @@ function InfoTab({ form, set }) {
             description="학생에게 문항을 1개씩만 보여주고 이전/다음 버튼으로 이동합니다"
           />
           {form.oneQuestionAtATime && (
-            <div className="border-l-2 border-gray-200 pl-4 ml-0.5 space-y-2">
+            <div className="border-l-2 border-border pl-4 ml-0.5 space-y-2">
               <Toggle
                 checked={form.lockAfterAnswer}
                 onChange={v => set('lockAfterAnswer', v)}
@@ -390,7 +390,7 @@ function InfoTab({ form, set }) {
           {form.scoreRevealEnabled && (
             <div className="space-y-4 pt-1">
               <div>
-                <p className="text-xs font-semibold mb-2 text-slate-600">공개 범위</p>
+                <p className="text-xs font-semibold mb-2 text-secondary-foreground">공개 범위</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { value: 'wrong_only', label: '오답 여부만', desc: '정오답(✓/✗) + 점수 표시\n정답은 공개하지 않습니다' },
@@ -410,7 +410,7 @@ function InfoTab({ form, set }) {
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold mb-2 text-slate-600">공개 시점</p>
+                <p className="text-xs font-semibold mb-2 text-secondary-foreground">공개 시점</p>
                 <div className="space-y-1">
                   {[
                     { value: 'immediately', label: '제출 즉시', desc: '학생이 제출하는 순간 바로 공개됩니다' },
@@ -429,11 +429,11 @@ function InfoTab({ form, set }) {
                 {form.scoreRevealTiming === 'period' && (
                   <div className="mt-3 pt-3 grid grid-cols-2 gap-3 border-t border-blue-100">
                     <div>
-                      <label className="block text-xs font-medium mb-1 text-slate-600">공개 시작일</label>
+                      <label className="block text-xs font-medium mb-1 text-secondary-foreground">공개 시작일</label>
                       <input type="datetime-local" value={form.scoreRevealStart} onChange={e => set('scoreRevealStart', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1 text-slate-600">공개 종료일</label>
+                      <label className="block text-xs font-medium mb-1 text-secondary-foreground">공개 종료일</label>
                       <input type="datetime-local" value={form.scoreRevealEnd} onChange={e => set('scoreRevealEnd', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" />
                     </div>
                   </div>
@@ -471,7 +471,7 @@ function InfoTab({ form, set }) {
       <Section title="퀴즈 공개 여부">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-700">학생에게 퀴즈 공개</p>
+            <p className="text-sm font-medium text-secondary-foreground">학생에게 퀴즈 공개</p>
             <p className="text-xs text-muted-foreground mt-0.5">비공개 시 학생 화면에 퀴즈가 표시되지 않습니다</p>
           </div>
           <Switch checked={form.visible} onCheckedChange={v => set('visible', v)} className="data-[state=checked]:bg-primary" />
@@ -526,7 +526,7 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
 
       {/* 문항 리스트 */}
       {questions.length === 0 ? (
-        <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-slate-50">
+        <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-secondary">
           <p className="text-sm text-muted-foreground/60">아직 추가된 문항이 없습니다</p>
         </div>
       ) : (
@@ -545,7 +545,7 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
                     <span className="text-xs font-bold w-5 text-center text-muted-foreground">{i + 1}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                    <Badge variant="secondary" className="bg-slate-100 text-slate-600">{QUIZ_TYPES[q.type]?.label}</Badge>
+                    <Badge variant="secondary" className="bg-secondary text-secondary-foreground">{QUIZ_TYPES[q.type]?.label}</Badge>
                     <span className="text-xs text-muted-foreground">{q.points}점</span>
                     {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-orange-50 text-orange-700">수동채점</Badge>}
                   </div>
@@ -560,11 +560,11 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
                 </div>
 
                 {/* 중단 행: 문제 본문 (HTML 태그 제거 후 요약 표시) */}
-                <p className="text-sm font-medium text-slate-700 line-clamp-2 mt-2 ml-8">{String(q.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}</p>
+                <p className="text-sm font-medium text-secondary-foreground line-clamp-2 mt-2 ml-8">{String(q.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}</p>
 
                 {/* 하단 행: 정답 영역 */}
                 {q.type !== 'essay' && q.type !== 'file_upload' && q.type !== 'text' && (
-                  <div className="mt-1.5 ml-8 bg-slate-50/80 rounded px-2.5 py-1.5">
+                  <div className="mt-1.5 ml-8 bg-secondary/80 rounded px-2.5 py-1.5">
                     <QuestionAnswer q={q} />
                   </div>
                 )}
@@ -591,7 +591,7 @@ function Section({ title, children }) {
 function Field({ label, required, children }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1.5 text-slate-700">
+      <label className="block text-sm font-medium mb-1.5 text-secondary-foreground">
         {label}{required && <span className="ml-0.5 text-red-500">*</span>}
       </label>
       {children}
@@ -604,7 +604,7 @@ function Toggle({ checked, onChange, label, description }) {
     <label className="flex items-start gap-3 cursor-pointer">
       <Switch checked={checked} onCheckedChange={onChange} className="mt-0.5 data-[state=checked]:bg-primary" />
       <div>
-        <p className="text-sm font-medium text-slate-700">{label}</p>
+        <p className="text-sm font-medium text-secondary-foreground">{label}</p>
         {description && <p className="text-xs mt-0.5 text-muted-foreground">{description}</p>}
       </div>
     </label>

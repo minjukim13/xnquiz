@@ -17,7 +17,7 @@ import PageHeader from '../components/PageHeader'
 function TypeBadge({ type }) {
   const cfg = QUIZ_TYPES[type] || { label: type }
   return (
-    <Badge variant="secondary" className="bg-slate-100 text-slate-600">
+    <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
       {cfg.label}
     </Badge>
   )
@@ -104,7 +104,7 @@ export default function QuizStats() {
     return (
       <div className="max-w-2xl mx-auto px-6 py-16 text-center">
         <AlertCircle size={32} className="mx-auto mb-3 text-red-700" />
-        <p className="text-sm font-medium mb-1 text-slate-900">퀴즈를 찾을 수 없습니다</p>
+        <p className="text-sm font-medium mb-1 text-foreground">퀴즈를 찾을 수 없습니다</p>
         <Link to="/" className="text-xs text-primary hover:underline">퀴즈 목록으로 돌아가기</Link>
       </div>
     )
@@ -159,7 +159,7 @@ function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
   const [activeTab, setActiveTab] = useState('grades')
   return (
     <>
-      <div className="flex items-center border-b border-gray-200 mb-5 h-11 px-2">
+      <div className="flex items-center border-b border-border mb-5 h-11 px-2">
         <div className="flex items-center gap-6 h-full">
           {[
             { key: 'grades', label: '학생별 성적 조회' },
@@ -171,8 +171,8 @@ function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
               className={cn(
                 'h-full flex items-center text-sm -mb-px border-b-2 transition-colors',
                 activeTab === key
-                  ? 'border-black text-gray-900 font-semibold'
-                  : 'border-transparent text-gray-500 font-medium hover:text-gray-700'
+                  ? 'border-black text-foreground font-semibold'
+                  : 'border-transparent text-muted-foreground font-medium hover:text-foreground'
               )}
             >
               {label}
@@ -249,7 +249,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
     <div>
       {/* 요약 필터 */}
       <div className="flex items-center justify-between gap-2 mb-5">
-        <div className="inline-flex items-center gap-1 p-0.5 rounded-lg bg-slate-100">
+        <div className="inline-flex items-center gap-1 p-0.5 rounded-lg bg-secondary">
           {[
             { key: 'all', label: '전체', value: allStudents.length, dotCls: null },
             { key: 'submitted', label: '제출완료', value: submittedStarted.length, dotCls: 'bg-emerald-500' },
@@ -266,7 +266,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                 )}
               >
                 {dotCls && <span className={cn('w-1.5 h-1.5 rounded-full', dotCls)} />}
-                <span className={isActive ? 'text-gray-900 font-medium' : 'text-gray-500'}>{label}</span>
+                <span className={isActive ? 'text-foreground font-medium' : 'text-muted-foreground'}>{label}</span>
                 <span className={cn('font-bold text-xs', isActive ? 'text-primary' : 'text-muted-foreground')}>{value}</span>
               </button>
             )
@@ -280,13 +280,13 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
             'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
             showUngradedOnly
               ? 'bg-accent text-primary border-primary/30'
-              : 'bg-white text-gray-600 border-slate-200 hover:bg-slate-50'
+              : 'bg-white text-secondary-foreground border-border hover:bg-secondary'
           )}
         >
           <Check
             size={13}
             strokeWidth={3}
-            className={showUngradedOnly ? 'text-primary' : 'text-slate-300'}
+            className={showUngradedOnly ? 'text-primary' : 'text-muted-foreground'}
           />
           미채점만 보기
         </button>
@@ -313,7 +313,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead>
-              <tr className="bg-slate-50 border-b border-border">
+              <tr className="bg-secondary border-b border-border">
                 {[
                   { key: 'name', label: '이름', align: 'left' },
                   { key: 'studentId', label: '학번', align: 'center' },
@@ -328,7 +328,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                     {key ? (
                       <button
                         onClick={() => handleSort(key)}
-                        className={cn('group inline-flex items-center gap-1 text-[13px] font-medium transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-primary' : 'text-slate-600')}
+                        className={cn('group inline-flex items-center gap-1 text-[13px] font-medium transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-primary' : 'text-secondary-foreground')}
                       >
                         {label}
                         {sortKey !== key && <ArrowUpDown size={12} className="opacity-30 group-hover:opacity-60 transition-opacity" />}
@@ -336,7 +336,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                         {sortKey === key && sortDir === 'asc' && <ArrowUp size={12} />}
                       </button>
                     ) : (
-                      <span className="text-[13px] font-medium text-slate-600">{label}</span>
+                      <span className="text-[13px] font-medium text-secondary-foreground">{label}</span>
                     )}
                   </th>
                 ))}
@@ -347,25 +347,25 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                 const scorePct = s.score !== null ? Math.round((s.score / totalPoints) * 100) : null
                 const elapsed = calcElapsed(s.startTime, s.submittedAt)
                 return (
-                  <tr key={s.id} className="border-b border-slate-100 hover:bg-accent/30 transition-colors">
+                  <tr key={s.id} className="border-b border-border hover:bg-accent/30 transition-colors">
                     <td className="px-4 py-2.5">{s.name}</td>
-                    <td className="px-4 py-2.5 text-center text-slate-500">{s.studentId}</td>
-                    <td className="px-4 py-2.5 text-slate-500">{s.department}</td>
-                    <td className="px-3 py-2.5 text-center whitespace-nowrap text-slate-700">
+                    <td className="px-4 py-2.5 text-center text-muted-foreground">{s.studentId}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{s.department}</td>
+                    <td className="px-3 py-2.5 text-center whitespace-nowrap text-secondary-foreground">
                       {elapsed ?? <span className="text-muted-foreground">-</span>}
                     </td>
-                    <td className="px-4 py-2.5 text-center whitespace-nowrap text-slate-700">
+                    <td className="px-4 py-2.5 text-center whitespace-nowrap text-secondary-foreground">
                       {s.submittedAt ? s.submittedAt.split(' ')[1] : <span className="text-muted-foreground">-</span>}
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {s.score !== null
-                        ? <span className={cn('font-semibold', scorePct >= 80 ? 'text-primary' : scorePct >= 60 ? 'text-slate-600' : 'text-red-500')}>{s.score}점</span>
+                        ? <span className={cn('font-semibold', scorePct >= 80 ? 'text-primary' : scorePct >= 60 ? 'text-secondary-foreground' : 'text-red-500')}>{s.score}점</span>
                         : <span className="text-muted-foreground">-</span>
                       }
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {s.score !== null ? (
-                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-500">채점 완료</span>
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-secondary text-muted-foreground">채점 완료</span>
                       ) : (
                         <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-amber-50 text-amber-600">미채점</span>
                       )}
@@ -502,16 +502,16 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
               <BarChart data={distData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                 <XAxis dataKey="score" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
                 <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val) => [`${val}명`, '인원']} />
+                <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }} formatter={(val) => [`${val}명`, '인원']} />
                 <ReferenceLine x={(() => {
                   const lo = Math.floor(Math.round(avg) / binSize) * binSize
                   return binSize === 1 ? `${lo}점` : `${lo}~${lo + binSize - 1}점`
                 })()} stroke="var(--primary)" strokeDasharray="3 3" label={{ value: '평균', position: 'top', fontSize: 10, fill: 'var(--primary)' }} />
-                <Bar dataKey="count" fill="#3182F6" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                <Bar dataKey="count" fill="var(--primary)" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                   {distData.map((d, i) => {
                     const avgLo = Math.floor(Math.round(avg) / binSize) * binSize
                     return (
-                      <Cell key={i} fill={d.raw === avgLo ? '#3182F6' : '#BFD6FF'} />
+                      <Cell key={i} fill={d.raw === avgLo ? 'var(--primary)' : '#BFD6FF'} />
                     )
                   })}
                 </Bar>
@@ -532,10 +532,10 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             ].map(item => (
               <div key={item.label}>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-600">{item.label}</span>
-                  <span className="font-semibold text-slate-700">{item.value}명{item.rate ? ` (${item.rate}%)` : ''}</span>
+                  <span className="text-secondary-foreground">{item.label}</span>
+                  <span className="font-semibold text-secondary-foreground">{item.value}명{item.rate ? ` (${item.rate}%)` : ''}</span>
                 </div>
-                <div className="h-1.5 rounded overflow-hidden bg-slate-200">
+                <div className="h-1.5 rounded overflow-hidden bg-secondary">
                   <div className="h-full rounded" style={{ width: `${(item.value / quiz.totalStudents) * 100}%`, background: item.barColor }} />
                 </div>
               </div>
@@ -543,10 +543,10 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           </div>
 
           <div className="mt-4 pt-3 space-y-2 border-t border-border">
-            <p className="text-xs font-medium mb-2 text-slate-600">점수 분포 구간 (채점 완료 기준)</p>
+            <p className="text-xs font-medium mb-2 text-secondary-foreground">점수 분포 구간 (채점 완료 기준)</p>
             {[
               { label: '상위 27%', value: `${p73}점 이상`, cls: 'text-green-700' },
-              { label: '중위 46%', value: `${p27}~${p73}점`, cls: 'text-slate-700' },
+              { label: '중위 46%', value: `${p27}~${p73}점`, cls: 'text-secondary-foreground' },
               { label: '하위 27%', value: `${p27}점 미만`, cls: 'text-red-600' },
             ].map(row => (
               <div key={row.label} className="flex justify-between text-xs">
@@ -567,8 +567,8 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={qRateData} layout="vertical" margin={{ top: 0, right: 44, left: 8, bottom: 0 }}>
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickFormatter={v => `${v}%`} />
-            <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} width={32} />
-            <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }} formatter={(val, _name, props) => [props.payload.hasData ? `${val}%` : '채점 데이터 없음', `${props.payload.label} 득점률`]} />
+            <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} width={32} />
+            <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }} formatter={(val, _name, props) => [props.payload.hasData ? `${val}%` : '채점 데이터 없음', `${props.payload.label} 득점률`]} />
             <ReferenceLine x={70} stroke="#86EFAC" strokeDasharray="3 3" label={{ value: '70%', position: 'right', fontSize: 10, fill: '#6BD895' }} />
             <ReferenceLine x={40} stroke="#FDA4AF" strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: 10, fill: '#F08D99' }} />
             <Bar dataKey="rate" radius={[0, 4, 4, 0]} isAnimationActive={false} label={{ position: 'right', fontSize: 11, fill: 'var(--muted-foreground)', formatter: v => `${v}%` }}>
@@ -585,7 +585,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             { color: '#FDA4AF', label: '40% 미만 (어려움)' },
             { color: '#D1D5DB', label: '채점 전' },
           ].map(item => (
-            <div key={item.label} className="flex items-center gap-1.5 text-xs text-slate-600">
+            <div key={item.label} className="flex items-center gap-1.5 text-xs text-secondary-foreground">
               <span className="w-2.5 h-2.5 rounded-sm" style={{ background: item.color }} />
               {item.label}
             </div>
@@ -608,7 +608,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-slate-50 border-b-2 border-border">
+              <tr className="bg-secondary border-b-2 border-border">
                 {[
                   { label: '문항', center: true },
                   { label: '유형', center: false },
@@ -618,7 +618,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
                   { label: '난이도', center: true, tip: '득점률 기준: ≥70% 쉬움 / 40~69% 보통 / <40% 어려움' },
                   { label: '채점 현황', center: true },
                 ].map(({ label, center, tip }) => (
-                  <th key={label} title={tip ?? ''} className={cn('px-4 py-2.5 font-semibold whitespace-nowrap text-[11px] text-slate-600', center ? 'text-center' : 'text-left', tip && 'cursor-help')}>
+                  <th key={label} title={tip ?? ''} className={cn('px-4 py-2.5 font-semibold whitespace-nowrap text-[11px] text-secondary-foreground', center ? 'text-center' : 'text-left', tip && 'cursor-help')}>
                     {label}{tip && <span className="text-muted-foreground/40 ml-0.5">ⓘ</span>}
                   </th>
                 ))}
@@ -626,21 +626,21 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             </thead>
             <tbody>
               {qTableData.map((q, i) => (
-                <tr key={q.id} className={cn('border-b border-slate-100 hover:bg-accent/30 transition-colors', i % 2 !== 0 && 'bg-slate-50/50')}>
+                <tr key={q.id} className={cn('border-b border-border hover:bg-accent/30 transition-colors', i % 2 !== 0 && 'bg-secondary/50')}>
                   <td className="px-4 py-2.5 text-center">
                     <Badge className="bg-accent text-primary border-0">Q{q.order}</Badge>
                   </td>
                   <td className="px-4 py-2.5"><TypeBadge type={q.type} /></td>
-                  <td className="px-4 py-2.5 text-center font-medium text-slate-700">{q.points}점</td>
-                  <td className="px-4 py-2.5 text-center text-slate-700">
+                  <td className="px-4 py-2.5 text-center font-medium text-secondary-foreground">{q.points}점</td>
+                  <td className="px-4 py-2.5 text-center text-secondary-foreground">
                     {q.avgScore != null ? `${q.avgScore}점` : <span className="text-muted-foreground/40">-</span>}
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 rounded overflow-hidden bg-slate-200">
+                      <div className="w-16 h-1.5 rounded overflow-hidden bg-secondary">
                         <div className={cn('h-full rounded', !q.rate ? 'bg-border' : q.rate >= 70 ? 'bg-correct' : q.rate >= 40 ? 'bg-amber-500' : 'bg-destructive')} style={{ width: `${q.rate ?? 0}%` }} />
                       </div>
-                      <span className={cn('font-medium', q.avgScore != null ? 'text-slate-700' : 'text-muted-foreground/40')}>
+                      <span className={cn('font-medium', q.avgScore != null ? 'text-secondary-foreground' : 'text-muted-foreground/40')}>
                         {q.avgScore != null ? `${q.rate}%` : '-'}
                       </span>
                     </div>
@@ -668,7 +668,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-1 border-t border-border bg-slate-50">
+        <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-1 border-t border-border bg-secondary">
           <span className="text-xs text-muted-foreground">
             난이도(득점률 기준): <span className="text-correct">≥70%</span> 쉬움 / <span className="text-amber-500">40~69%</span> 보통 / <span className="text-destructive">&lt;40%</span> 어려움
           </span>

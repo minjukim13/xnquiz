@@ -72,7 +72,7 @@ function Section({ title, summary, defaultOpen = true, children }) {
         type="button"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
-        className="w-full flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
+        className="w-full flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-secondary transition-colors text-left"
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <h3 className="text-base font-semibold text-foreground shrink-0">{title}</h3>
@@ -86,7 +86,7 @@ function Section({ title, summary, defaultOpen = true, children }) {
         />
       </button>
       {open && (
-        <div className="px-5 py-1 border-t border-slate-100 divide-y divide-slate-100">
+        <div className="px-5 py-1 border-t border-border divide-y divide-border">
           {children}
         </div>
       )}
@@ -262,7 +262,7 @@ export default function QuizDetail() {
 
         {/* 요약 카드: 문항 수 · 총점 · 제한시간 · 응시횟수 */}
         <Card className="mb-4 overflow-hidden">
-          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-slate-100">
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border">
             <div className="text-center px-4 py-3.5">
               <p className="text-xs text-muted-foreground mb-1">문항 수</p>
               <p className="text-xl font-bold text-foreground">
