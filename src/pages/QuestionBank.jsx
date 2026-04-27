@@ -321,7 +321,7 @@ function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDr
                 </Badge>
               )}
             </div>
-            <p className="text-sm leading-relaxed">{question.text}</p>
+            <p className="text-sm leading-relaxed line-clamp-3">{String(question.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}</p>
           </div>
           <Button
             variant="ghost" size="icon-xs"

@@ -16,8 +16,7 @@ import {
   removeAndShiftBlank,
   removeAndShiftDropdown,
 } from '@/utils/placeholderUtils'
-import { MediaEditor, InlineImagePicker } from './QuestionMedia'
-import { normalizeMediaList } from '@/utils/mediaUtils'
+import { RichTextEditor, richTextHasContent } from './RichText'
 
 // ── 유형별 아이콘 + 설명 메타 ──────────
 const TYPE_META = {
@@ -53,11 +52,11 @@ const getTypeTw = (key) => TYPE_TW[key] ?? { text: 'text-muted-foreground', bg: 
 
 // ── 폼 초기값 ───────────────────────────────────────────────────────────────
 function initForm(type) {
-  const base = { text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '', media: [] }
+  const base = { text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '' }
   switch (type) {
-    case 'multiple_choice':         return { ...base, options: ['', '', '', ''], optionsMedia: [null, null, null, null], correctIdx: 0 }
+    case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
     case 'true_false':              return { ...base, correctBool: true }
-    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], optionsMedia: [null, null, null, null], correctIdxs: [], scoringMode: 'all_correct' }
+    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], correctIdxs: [], scoringMode: 'all_correct' }
     case 'short_answer':            return { ...base, acceptedAnswers: [''] }
     case 'essay':                   return { ...base, rubric: '' }
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
@@ -66,7 +65,7 @@ function initForm(type) {
     case 'fill_in_multiple_blanks': return { ...base, blanks: [] }
     case 'multiple_dropdowns':      return { ...base, dropdowns: [] }
     case 'file_upload':             return base
-    case 'text':                    return { text: '', points: 0, difficulty: '', media: [] }
+    case 'text':                    return { text: '', points: 0, difficulty: '' }
     default:                        return base
   }
 }
@@ -82,29 +81,17 @@ function pickComments(form) {
 
 // ── 폼 → 문항 객체 ─────────────────────────────────────────────────────────
 function buildQuestion(type, form) {
-  const media = normalizeMediaList(form.media)
-  const mediaField = media.length > 0 ? { media } : {}
-  const base = { type, text: form.text.trim(), points: Number.isFinite(Number(form.points)) ? Number(form.points) : 0, difficulty: form.difficulty || '', ...pickComments(form), ...mediaField }
-  // 보기별 이미지 매핑: 필터된 options 인덱스와 매칭되도록 재정렬
-  const buildOptionsMedia = (originalOptions, optionsMedia) => {
-    if (!Array.isArray(optionsMedia)) return null
-    const filtered = []
-    originalOptions.forEach((opt, i) => {
-      if (opt.trim()) filtered.push(optionsMedia[i] || null)
-    })
-    return filtered.some(m => m) ? filtered : null
-  }
+  // 본문 text 는 RichTextEditor 의 HTML 문자열일 수 있음 (이미지/iframe 인라인 포함)
+  const base = { type, text: form.text || '', points: Number.isFinite(Number(form.points)) ? Number(form.points) : 0, difficulty: form.difficulty || '', ...pickComments(form) }
   switch (type) {
     case 'multiple_choice': {
-      const filtered = form.options.filter(o => o.trim())
-      const optsMedia = buildOptionsMedia(form.options, form.optionsMedia)
-      return { ...base, options: filtered, choices: filtered, correctAnswer: filtered[form.correctIdx] ?? filtered[0], ...(optsMedia ? { optionsMedia: optsMedia } : {}) }
+      const filtered = form.options.filter(o => richTextHasContent(o))
+      return { ...base, options: filtered, choices: filtered, correctAnswer: filtered[form.correctIdx] ?? filtered[0] }
     }
     case 'true_false':              return { ...base, correctAnswer: form.correctBool ? '참' : '거짓', choices: ['참', '거짓'] }
     case 'multiple_answers': {
-      const filtered = form.options.filter(o => o.trim())
-      const optsMedia = buildOptionsMedia(form.options, form.optionsMedia)
-      return { ...base, options: filtered, choices: filtered, correctAnswer: form.correctIdxs.map(i => filtered[i]).filter(Boolean), scoringMode: form.scoringMode ?? 'all_correct', ...(optsMedia ? { optionsMedia: optsMedia } : {}) }
+      const filtered = form.options.filter(o => richTextHasContent(o))
+      return { ...base, options: filtered, choices: filtered, correctAnswer: form.correctIdxs.map(i => filtered[i]).filter(Boolean), scoringMode: form.scoringMode ?? 'all_correct' }
     }
     case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
     case 'essay':                   return { ...base, rubric: form.rubric }
@@ -118,7 +105,7 @@ function buildQuestion(type, form) {
       return { options: opts, answerIdx: idx }
     }) }
     case 'file_upload':             return base
-    case 'text':                    return { type, text: form.text.trim(), points: 0, difficulty: '', ...mediaField }
+    case 'text':                    return { type, text: form.text || '', points: 0, difficulty: '' }
     default:                        return base
   }
 }
@@ -127,15 +114,15 @@ function buildQuestion(type, form) {
 // ── 유효성 검사 ─────────────────────────────────────────────────────────────
 
 function isValid(type, form) {
-  if (type === 'text') return form.text?.trim().length > 0
-  if (!form.text?.trim()) return false
+  if (type === 'text') return richTextHasContent(form.text)
+  if (!richTextHasContent(form.text)) return false
   // 배점: 빈값/비숫자/음수 차단, 0 허용
   if (form.points === '' || form.points === null || form.points === undefined) return false
   const pointsNum = Number(form.points)
   if (!Number.isFinite(pointsNum) || pointsNum < 0) return false
   switch (type) {
-    case 'multiple_choice':         return form.options.filter(o => o.trim()).length >= 2
-    case 'multiple_answers':        return form.options.filter(o => o.trim()).length >= 2 && form.correctIdxs.length >= 1
+    case 'multiple_choice':         return form.options.filter(o => richTextHasContent(o)).length >= 2
+    case 'multiple_answers':        return form.options.filter(o => richTextHasContent(o)).length >= 2 && form.correctIdxs.length >= 1
     case 'short_answer':            return form.acceptedAnswers.some(a => a.trim())
     case 'numerical':               return form.correctNum !== '' && !isNaN(Number(form.correctNum))
     case 'formula': {
@@ -249,55 +236,47 @@ function TypeForm({ type, form, setForm, textareaRef }) {
   const inputCls = 'flex-1 text-[15px] px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30'
 
   switch (type) {
-    case 'multiple_choice': {
-      const optsMedia = form.optionsMedia || []
-      const setOptMedia = (i, media) => {
-        const next = [...optsMedia]
-        while (next.length < form.options.length) next.push(null)
-        next[i] = media
-        upd('optionsMedia', next)
-      }
+    case 'multiple_choice':
       return (
         <div className="space-y-3">
           <Label required>보기 옵션</Label>
-          <p className="text-xs text-muted-foreground -mt-1">오른쪽 이미지 버튼으로 보기별 이미지를 첨부할 수 있습니다</p>
+          <p className="text-xs text-muted-foreground -mt-1">각 보기 입력란의 툴바에서 이미지/동영상을 인라인 삽입할 수 있습니다</p>
           <div className="space-y-2">
             {form.options.map((opt, i) => (
-              <div key={i} className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => upd('correctIdx', i)}
-                    title={form.correctIdx === i ? '정답' : '정답으로 지정'}
-                    className={cn(
-                      'w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center transition-all',
-                      form.correctIdx === i ? 'bg-indigo-500' : 'border border-neutral-300 bg-white hover:border-indigo-400'
-                    )}>
-                    {form.correctIdx === i && <Check size={12} strokeWidth={3} className="text-white" />}
-                  </button>
-                  <AnswerTextarea value={opt} placeholder={`보기 ${i + 1}`}
-                    onChange={e => { const n = [...form.options]; n[i] = e.target.value; upd('options', n) }}
-                    className={inputCls} />
-                  <InlineImagePicker value={optsMedia[i] || null} onChange={m => setOptMedia(i, m)} />
-                  {form.options.length > 2 && (
+              <div key={i} className="flex items-start gap-2">
+                <button type="button" onClick={() => upd('correctIdx', i)}
+                  title={form.correctIdx === i ? '정답' : '정답으로 지정'}
+                  className={cn(
+                    'w-5 h-5 mt-2 rounded-full flex-shrink-0 flex items-center justify-center transition-all',
+                    form.correctIdx === i ? 'bg-indigo-500' : 'border border-neutral-300 bg-white hover:border-indigo-400'
+                  )}>
+                  {form.correctIdx === i && <Check size={12} strokeWidth={3} className="text-white" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <RichTextEditor value={opt} placeholder={`보기 ${i + 1}`}
+                    minHeight="min-h-[44px]"
+                    onChange={val => { const n = [...form.options]; n[i] = val; upd('options', n) }} />
+                </div>
+                {form.options.length > 2 && (
+                  <div className="mt-2">
                     <TrashBtn onClick={() => {
                       setForm(prev => {
                         const newOptions = prev.options.filter((_, j) => j !== i)
-                        const newOptsMedia = (prev.optionsMedia || []).filter((_, j) => j !== i)
                         let newIdx = prev.correctIdx
                         if (newIdx === i) newIdx = 0
                         else if (newIdx > i) newIdx -= 1
                         if (newIdx >= newOptions.length) newIdx = 0
-                        return { ...prev, options: newOptions, optionsMedia: newOptsMedia, correctIdx: newIdx }
+                        return { ...prev, options: newOptions, correctIdx: newIdx }
                       })
                     }} />
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          {form.options.length < 6 && <AddBtn onClick={() => setForm(prev => ({ ...prev, options: [...prev.options, ''], optionsMedia: [...(prev.optionsMedia || []), null] }))} label="보기 추가" />}
+          {form.options.length < 6 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
         </div>
       )
-    }
 
     case 'true_false':
       return (
@@ -319,52 +298,46 @@ function TypeForm({ type, form, setForm, textareaRef }) {
         </div>
       )
 
-    case 'multiple_answers': {
-      const optsMedia = form.optionsMedia || []
-      const setOptMedia = (i, media) => {
-        const next = [...optsMedia]
-        while (next.length < form.options.length) next.push(null)
-        next[i] = media
-        upd('optionsMedia', next)
-      }
+    case 'multiple_answers':
       return (
         <div className="space-y-3">
           <Label required>보기 옵션</Label>
-          <p className="text-xs text-muted-foreground -mt-1">오른쪽 이미지 버튼으로 보기별 이미지를 첨부할 수 있습니다</p>
+          <p className="text-xs text-muted-foreground -mt-1">각 보기 입력란의 툴바에서 이미지/동영상을 인라인 삽입할 수 있습니다</p>
           <div className="space-y-2">
             {form.options.map((opt, i) => {
               const isCorrect = form.correctIdxs.includes(i)
               return (
-                <div key={i} className="flex items-center gap-2">
+                <div key={i} className="flex items-start gap-2">
                   <button type="button" onClick={() => upd('correctIdxs', isCorrect ? form.correctIdxs.filter(x => x !== i) : [...form.correctIdxs, i])}
                     className={cn(
-                      'w-4 h-4 rounded flex-shrink-0 flex items-center justify-center transition-all border',
+                      'w-4 h-4 mt-2.5 rounded flex-shrink-0 flex items-center justify-center transition-all border',
                       isCorrect ? 'bg-indigo-500 border-indigo-500' : 'bg-white border-neutral-400'
                     )}>
                     {isCorrect && <span className="text-white text-[9px]">✓</span>}
                   </button>
-                  <AnswerTextarea value={opt} placeholder={`보기 ${i + 1}`}
-                    onChange={e => { const n = [...form.options]; n[i] = e.target.value; upd('options', n) }}
-                    className={inputCls} />
-                  <InlineImagePicker value={optsMedia[i] || null} onChange={m => setOptMedia(i, m)} />
+                  <div className="flex-1 min-w-0">
+                    <RichTextEditor value={opt} placeholder={`보기 ${i + 1}`}
+                      minHeight="min-h-[44px]"
+                      onChange={val => { const n = [...form.options]; n[i] = val; upd('options', n) }} />
+                  </div>
                   {form.options.length > 2 && (
-                    <TrashBtn onClick={() => {
-                      setForm(prev => {
-                        const newOptions = prev.options.filter((_, j) => j !== i)
-                        const newOptsMedia = (prev.optionsMedia || []).filter((_, j) => j !== i)
-                        const newCorrectIdxs = prev.correctIdxs.filter(x => x !== i).map(x => x > i ? x - 1 : x)
-                        return { ...prev, options: newOptions, optionsMedia: newOptsMedia, correctIdxs: newCorrectIdxs }
-                      })
-                    }} />
+                    <div className="mt-2">
+                      <TrashBtn onClick={() => {
+                        setForm(prev => {
+                          const newOptions = prev.options.filter((_, j) => j !== i)
+                          const newCorrectIdxs = prev.correctIdxs.filter(x => x !== i).map(x => x > i ? x - 1 : x)
+                          return { ...prev, options: newOptions, correctIdxs: newCorrectIdxs }
+                        })
+                      }} />
+                    </div>
                   )}
                 </div>
               )
             })}
           </div>
-          {form.options.length < 8 && <AddBtn onClick={() => setForm(prev => ({ ...prev, options: [...prev.options, ''], optionsMedia: [...(prev.optionsMedia || []), null] }))} label="보기 추가" />}
+          {form.options.length < 8 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
         </div>
       )
-    }
 
     case 'short_answer':
       return (
@@ -850,21 +823,16 @@ function questionToForm(q) {
     correct_comments: q.correct_comments || '',
     incorrect_comments: q.incorrect_comments || '',
     neutral_comments: q.neutral_comments || '',
-    media: Array.isArray(q.media) ? [...q.media] : [],
   }
   // mock 데이터는 choices 필드를 사용하고, AddQuestionModal은 options를 사용
   const opts = q.options?.length ? [...q.options] : q.choices?.length ? [...q.choices] : ['', '', '', '']
-  // 보기별 이미지: 저장된 optionsMedia 를 options 길이에 맞춰 확장
-  const optsMedia = Array.isArray(q.optionsMedia)
-    ? opts.map((_, i) => q.optionsMedia[i] || null)
-    : opts.map(() => null)
   switch (q.type) {
     case 'multiple_choice': {
       let idx = q.correctAnswer ?? 0
       // correctAnswer가 문자열이면 choices/options에서 인덱스 찾기
       if (typeof idx === 'string') idx = opts.findIndex(o => o === idx)
       if (idx < 0) idx = 0
-      return { ...base, options: opts, optionsMedia: optsMedia, correctIdx: idx }
+      return { ...base, options: opts, correctIdx: idx }
     }
     case 'true_false': {
       let val = q.correctAnswer ?? true
@@ -878,7 +846,7 @@ function questionToForm(q) {
       if (idxs.length > 0 && typeof idxs[0] === 'string') {
         idxs = idxs.map(a => opts.findIndex(o => o === a)).filter(i => i >= 0)
       }
-      return { ...base, options: opts, optionsMedia: optsMedia, correctIdxs: idxs, scoringMode: q.scoringMode ?? 'all_correct' }
+      return { ...base, options: opts, correctIdxs: idxs, scoringMode: q.scoringMode ?? 'all_correct' }
     }
     case 'short_answer':
       return { ...base, acceptedAnswers: Array.isArray(q.correctAnswer) && q.correctAnswer.length ? [...q.correctAnswer] : typeof q.correctAnswer === 'string' ? [q.correctAnswer] : [''] }
@@ -1108,32 +1076,32 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                 {selectedType === 'text' ? '안내문 내용' : selectedType === 'formula' ? '문제 설명' : '문제 내용'}
                 {' '}<span className="text-destructive">*</span>
               </label>
-              <textarea
-                ref={bodyTextareaRef}
-                value={form.text}
-                onChange={e => setForm(prev => ({ ...prev, text: e.target.value }))}
-                placeholder={
-                  selectedType === 'text'
-                    ? '학생에게 표시할 안내문을 입력하세요 (예: 이번 시험은 오픈북으로 진행됩니다.)'
-                    : selectedType === 'formula'
-                    ? '예: a명의 학생이 b권의 책을 가지고 있을 때, 총 책의 수는?  (변수는 아래에서 정의)'
-                    : selectedType === 'fill_in_multiple_blanks'
-                    ? '예: 장미는 [빈칸1], 제비꽃은 [빈칸2] 색이다.  (아래 "본문에 빈칸 삽입" 버튼 사용)'
-                    : selectedType === 'multiple_dropdowns'
-                    ? '예: 계절 중 가장 더운 때는 [드롭다운1]이다.  (아래 "본문에 드롭다운 삽입" 버튼 사용)'
-                    : '문제를 입력하세요'
-                }
-                rows={3}
-                autoFocus
-                className="w-full bg-white text-[15px] px-3 py-2.5 rounded-lg focus:outline-none resize-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
-              />
-              {/* 문제 본문에 이미지/동영상 첨부 */}
-              <div className="mt-3">
-                <MediaEditor
-                  value={form.media || []}
-                  onChange={(next) => setForm(prev => ({ ...prev, media: next }))}
+              {/* fill_in_multiple_blanks / multiple_dropdowns / formula 는 본문에 [빈칸N]/[드롭다운N] 토큰 삽입 동작 + 변수명 [a] 등 plain text 가 필요해서 textarea 유지 */}
+              {(selectedType === 'fill_in_multiple_blanks' || selectedType === 'multiple_dropdowns' || selectedType === 'formula') ? (
+                <textarea
+                  ref={bodyTextareaRef}
+                  value={form.text}
+                  onChange={e => setForm(prev => ({ ...prev, text: e.target.value }))}
+                  placeholder={
+                    selectedType === 'formula'
+                      ? '예: a명의 학생이 b권의 책을 가지고 있을 때, 총 책의 수는?  (변수는 아래에서 정의)'
+                      : selectedType === 'fill_in_multiple_blanks'
+                      ? '예: 장미는 [빈칸1], 제비꽃은 [빈칸2] 색이다.  (아래 "본문에 빈칸 삽입" 버튼 사용)'
+                      : '예: 계절 중 가장 더운 때는 [드롭다운1]이다.  (아래 "본문에 드롭다운 삽입" 버튼 사용)'
+                  }
+                  rows={3}
+                  autoFocus
+                  className="w-full bg-white text-[15px] px-3 py-2.5 rounded-lg focus:outline-none resize-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
                 />
-              </div>
+              ) : (
+                <RichTextEditor
+                  value={form.text}
+                  onChange={val => setForm(prev => ({ ...prev, text: val }))}
+                  placeholder={selectedType === 'text' ? '학생에게 표시할 안내문을 입력하세요' : '문제를 입력하세요. 툴바에서 이미지/동영상을 본문 안에 삽입할 수 있습니다.'}
+                  minHeight="min-h-[120px]"
+                  autoFocus
+                />
+              )}
             </div>
 
             {/* 배점 / 난이도 — text 유형은 숨김 */}
