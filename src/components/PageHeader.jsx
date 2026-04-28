@@ -60,7 +60,9 @@ export default function PageHeader({
       )}
 
       {description && (
-        <p className="text-xs mt-2 text-muted-foreground">{description}</p>
+        typeof description === 'string'
+          ? <p className="text-xs mt-2 text-muted-foreground">{description}</p>
+          : <div className="mt-2">{description}</div>
       )}
     </div>
   )
