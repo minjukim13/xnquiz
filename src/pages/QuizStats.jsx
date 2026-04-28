@@ -1,6 +1,6 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
-import { AlertCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Check } from 'lucide-react'
+import { AlertCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Check, ListFilter } from 'lucide-react'
 import { downloadGradesXlsx, downloadItemAnalysisXlsx } from '../utils/excelUtils'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
@@ -14,6 +14,44 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import PageHeader from '../components/PageHeader'
+
+function CollapsibleDescription({ text }) {
+  const ref = useRef(null)
+  const [overflows, setOverflows] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const check = () => {
+      if (!expanded) setOverflows(el.scrollHeight > el.clientHeight + 1)
+    }
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [text, expanded])
+
+  return (
+    <div>
+      <p
+        ref={ref}
+        className={cn('text-xs text-muted-foreground whitespace-pre-line', !expanded && 'line-clamp-2')}
+      >
+        {text}
+      </p>
+      {overflows && (
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          className="mt-1 text-xs font-medium text-primary hover:underline underline-offset-2"
+        >
+          {expanded ? '접기' : '펼치기'}
+        </button>
+      )}
+    </div>
+  )
+}
 
 function TypeBadge({ type }) {
   const cfg = QUIZ_TYPES[type] || { label: type }
@@ -117,7 +155,14 @@ export default function QuizStats() {
         <PageHeader
           backTo="/"
           ariaLabel="퀴즈 목록"
-          title={quiz.title}
+          title={
+            <Link
+              to={`/quiz/${quiz.id}`}
+              className="block text-[22px] font-bold text-foreground leading-tight truncate hover:underline underline-offset-4"
+            >
+              {quiz.title}
+            </Link>
+          }
           actions={
             <Button asChild>
               <Link to={`/quiz/${quiz.id}/grade`}>채점 대시보드</Link>
@@ -133,7 +178,7 @@ export default function QuizStats() {
               </span>
             </>
           }
-          description={quiz.description}
+          description={quiz.description ? <CollapsibleDescription text={quiz.description} /> : null}
         />
 
         <StatsPageTabs quiz={quiz} quizQuestions={enrichedQuestions} quizStudents={quizStudents} />
@@ -191,18 +236,96 @@ function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
   )
 }
 
+const SUBMIT_FILTER_OPTIONS = [
+  { key: 'ontime', label: '정상제출' },
+  { key: 'late', label: '지각제출' },
+  { key: 'unsubmitted', label: '미제출' },
+]
+const GRADE_FILTER_OPTIONS = [
+  { key: 'graded', label: '채점 완료' },
+  { key: 'ungraded', label: '미채점' },
+]
+
+function ColumnFilter({ label, options, selected, onChange, isOpen, onToggle, containerRef }) {
+  const isActive = selected.length > 0
+  return (
+    <div ref={containerRef} className="relative inline-block">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          'group inline-flex items-center gap-1 text-[13px] font-medium transition-colors',
+          isActive || isOpen ? 'text-primary' : 'text-secondary-foreground hover:text-foreground'
+        )}
+      >
+        {label}
+        <ListFilter
+          size={12}
+          className={cn(
+            'transition-opacity',
+            isActive ? 'opacity-100' : 'opacity-30 group-hover:opacity-60'
+          )}
+        />
+      </button>
+      {isOpen && (
+        <div
+          className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-20 bg-white rounded-md shadow-lg border border-border min-w-[140px] py-1"
+          onClick={e => e.stopPropagation()}
+        >
+          {options.map(opt => {
+            const checked = selected.includes(opt.key)
+            return (
+              <label
+                key={opt.key}
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-secondary/50 cursor-pointer text-[13px] font-normal text-foreground"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onChange(checked ? selected.filter(k => k !== opt.key) : [...selected, opt.key])}
+                  className="sr-only"
+                />
+                <span className={cn(
+                  'w-4 h-4 inline-flex items-center justify-center rounded border shrink-0',
+                  checked ? 'bg-primary border-primary' : 'bg-white border-border'
+                )}>
+                  {checked && <Check size={11} strokeWidth={3} className="text-white" />}
+                </span>
+                {opt.label}
+              </label>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function GradesTab({ quiz, quizQuestions, students: allStudents }) {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
-  const [showUngradedOnly, setShowUngradedOnly] = useState(false)
+  const [submitFilter, setSubmitFilter] = useState([])
+  const [gradeFilter, setGradeFilter] = useState([])
+  const [openFilter, setOpenFilter] = useState(null)
+  const submitFilterRef = useRef(null)
+  const gradeFilterRef = useRef(null)
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('desc')
   const totalPoints = quizQuestions.reduce((s, q) => s + (q.points || 0), 0)
 
+  useEffect(() => {
+    if (!openFilter) return
+    const handler = (e) => {
+      const ref = openFilter === 'submit' ? submitFilterRef : gradeFilterRef
+      if (ref.current && !ref.current.contains(e.target)) setOpenFilter(null)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [openFilter])
+
   // 응시 시작 여부 기준 분류 (자동 0점 처리된 미시작자도 '미제출' 로 유지)
   const submittedStarted = allStudents.filter(s => !!s.startTime)
   const unsubmitted = allStudents.filter(s => !s.startTime)
-  const ungradedCount = allStudents.filter(s => s.score === null).length
 
   const lateThreshold = getLateThreshold(quiz)
   const getSubmissionStatus = (s) => {
@@ -215,10 +338,23 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
   }
 
   const filtered = useMemo(() => {
+    const submitOf = (s) => {
+      if (!s.submittedAt) return 'unsubmitted'
+      if (lateThreshold) {
+        const submittedDate = new Date(s.submittedAt.replace(' ', 'T'))
+        if (submittedDate > lateThreshold) return 'late'
+      }
+      return 'ontime'
+    }
     let base = filterStatus === 'unsubmitted' ? unsubmitted
       : filterStatus === 'submitted' ? submittedStarted
       : allStudents
-    if (showUngradedOnly) base = base.filter(s => s.score === null)
+    if (submitFilter.length > 0) {
+      base = base.filter(s => submitFilter.includes(submitOf(s)))
+    }
+    if (gradeFilter.length > 0) {
+      base = base.filter(s => gradeFilter.includes(s.score !== null ? 'graded' : 'ungraded'))
+    }
     let list = base.filter(s => {
       if (search !== '' && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.studentId.includes(search)) return false
       return true
@@ -230,13 +366,6 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
         if (sortKey === 'studentId')   { av = a.studentId;   bv = b.studentId }
         if (sortKey === 'department')  { av = a.department;  bv = b.department }
         if (sortKey === 'submittedAt') { av = a.submittedAt ?? ''; bv = b.submittedAt ?? '' }
-        if (sortKey === 'submitStatus') {
-          const rank = s => {
-            const st = getSubmissionStatus(s)
-            return st === 'ontime' ? 0 : st === 'late' ? 1 : 2
-          }
-          av = rank(a); bv = rank(b)
-        }
         if (sortKey === 'elapsed') {
           const toSec = s => {
             if (!s.startTime || !s.submittedAt) return -1
@@ -245,16 +374,13 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
           av = toSec(a); bv = toSec(b)
         }
         if (sortKey === 'score') { av = a.score ?? -1; bv = b.score ?? -1 }
-        if (sortKey === 'status') {
-          const rank = s => s.score !== null ? 0 : s.submitted ? 1 : 2
-          av = rank(a); bv = rank(b)
-        }
         if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
         return sortDir === 'asc' ? av - bv : bv - av
       })
     }
     return list
-  }, [allStudents, submittedStarted, unsubmitted, search, filterStatus, showUngradedOnly, sortKey, sortDir])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lateThreshold 는 quiz 변경 시에만 변하므로 allStudents 와 함께 무효화됨
+  }, [allStudents, submittedStarted, unsubmitted, search, filterStatus, submitFilter, gradeFilter, sortKey, sortDir])
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
@@ -266,7 +392,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
   return (
     <div>
       {/* 요약 필터 */}
-      <div className="flex items-center justify-between gap-2 mb-5">
+      <div className="flex items-center gap-2 mb-5">
         <div className="inline-flex items-center gap-1 p-0.5 rounded-lg bg-secondary">
           {[
             { key: 'all', label: '전체', value: allStudents.length, dotCls: null },
@@ -290,24 +416,6 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
             )
           })}
         </div>
-        <button
-          type="button"
-          onClick={() => setShowUngradedOnly(v => !v)}
-          aria-pressed={showUngradedOnly}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
-            showUngradedOnly
-              ? 'bg-accent text-primary border-primary/30'
-              : 'bg-white text-secondary-foreground border-border hover:bg-secondary'
-          )}
-        >
-          <Check
-            size={13}
-            strokeWidth={3}
-            className={showUngradedOnly ? 'text-primary' : 'text-muted-foreground'}
-          />
-          미채점만 보기
-        </button>
       </div>
 
       {/* 검색 + 다운로드 */}
@@ -333,18 +441,18 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
             <thead>
               <tr className="border-b border-border">
                 {[
-                  { key: 'name', label: '이름', align: 'left' },
-                  { key: 'studentId', label: '학번', align: 'center' },
-                  { key: 'department', label: '학과', align: 'left' },
-                  { key: 'elapsed', label: '소요 시간', align: 'center' },
-                  { key: 'submitStatus', label: '제출 상태', align: 'center' },
-                  { key: 'submittedAt', label: '제출 일시', align: 'center' },
-                  { key: 'score', label: `점수 / ${totalPoints}점`, align: 'center' },
-                  { key: 'status', label: '상태', align: 'center' },
-                  { key: null, label: '답안', align: 'center' },
-                ].map(({ key, label, align }) => (
+                  { key: 'name', label: '이름', align: 'left', kind: 'sort' },
+                  { key: 'studentId', label: '학번', align: 'center', kind: 'sort' },
+                  { key: 'department', label: '학과', align: 'left', kind: 'sort' },
+                  { key: 'elapsed', label: '소요 시간', align: 'center', kind: 'sort' },
+                  { key: 'submit', label: '제출 상태', align: 'center', kind: 'filter' },
+                  { key: 'submittedAt', label: '제출 일시', align: 'center', kind: 'sort' },
+                  { key: 'score', label: `점수 / ${totalPoints}점`, align: 'center', kind: 'sort' },
+                  { key: 'grade', label: '채점 상태', align: 'center', kind: 'filter' },
+                  { key: null, label: '답안', align: 'center', kind: 'plain' },
+                ].map(({ key, label, align, kind }) => (
                   <th key={label || '_action'} className={cn('px-4 py-2 whitespace-nowrap', `text-${align}`)}>
-                    {key ? (
+                    {kind === 'sort' ? (
                       <button
                         onClick={() => handleSort(key)}
                         className={cn('group inline-flex items-center gap-1 text-[13px] font-medium transition-colors', align === 'center' && 'justify-center', sortKey === key ? 'text-primary' : 'text-secondary-foreground')}
@@ -354,6 +462,16 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                         {sortKey === key && sortDir === 'desc' && <ArrowDown size={12} />}
                         {sortKey === key && sortDir === 'asc' && <ArrowUp size={12} />}
                       </button>
+                    ) : kind === 'filter' ? (
+                      <ColumnFilter
+                        containerRef={key === 'submit' ? submitFilterRef : gradeFilterRef}
+                        label={label}
+                        options={key === 'submit' ? SUBMIT_FILTER_OPTIONS : GRADE_FILTER_OPTIONS}
+                        selected={key === 'submit' ? submitFilter : gradeFilter}
+                        onChange={key === 'submit' ? setSubmitFilter : setGradeFilter}
+                        isOpen={openFilter === key}
+                        onToggle={() => setOpenFilter(prev => prev === key ? null : key)}
+                      />
                     ) : (
                       <span className="text-[13px] font-medium text-secondary-foreground">{label}</span>
                     )}
