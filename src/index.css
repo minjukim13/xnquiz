@@ -60,6 +60,9 @@
   }
 
   #root { min-height: 100svh; }
+
+  /* lucide 아이콘 전역 stroke-width 통일 (기본 2 → 1.5) */
+  svg.lucide { stroke-width: 1.5; }
 }
 
 @layer utilities {
