@@ -52,7 +52,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
 
   return (
     <div className="pb-10 border-b border-secondary">
-      {/* 문항 헤더 — Q번호 · 유형 + 점수를 한 줄에 */}
+      {/* 문항 헤더 — Q번호, 유형, 점수를 한 줄에 */}
       <div className="flex items-center justify-between mb-1">
         <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">Q{question.order} <TypeBadge type={question.type} small /></span>
         <span className="shrink-0">

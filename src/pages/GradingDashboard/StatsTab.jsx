@@ -87,7 +87,9 @@ function StatsTab({ question, students }) {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              정답 {correctCount}명 · 오답 {scoredStudents.length - correctCount}명
+              정답 {correctCount}명
+              <span className="mx-1.5 text-slate-300">|</span>
+              오답 {scoredStudents.length - correctCount}명
             </p>
           </div>
         </>

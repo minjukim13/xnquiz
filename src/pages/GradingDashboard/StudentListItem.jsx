@@ -37,10 +37,20 @@ export default function StudentListItem({ student, selected, onClick }) {
               <span className="shrink-0 text-[11px] font-medium text-slate-600 bg-slate-100 px-1.5 py-px rounded">자동 제출</span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-px">{student.studentId} · {student.department}</p>
+          <p className="text-xs text-muted-foreground mt-px">
+            <span className="inline-flex items-center px-1 py-px rounded bg-slate-100 text-slate-600 tabular-nums">{student.studentId}</span>
+            <span className="ml-1.5">{student.department}</span>
+          </p>
         </div>
         {isSubmitted && (
-          <span className={cn('shrink-0 text-sm font-bold', student.score !== null ? 'text-foreground' : 'text-destructive')}>
+          <span
+            className={cn(
+              'shrink-0',
+              student.score !== null
+                ? 'text-sm font-bold text-foreground'
+                : 'text-[11px] font-medium text-destructive'
+            )}
+          >
             {student.score !== null ? `${student.score}점` : '미채점'}
           </span>
         )}

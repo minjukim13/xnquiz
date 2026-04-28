@@ -76,11 +76,12 @@ export default function ActivityLogPanel({ student, quizId, questions }) {
 
   if (!log.length) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-12 gap-2 text-center">
+      <div className="flex flex-col items-center justify-center gap-2 text-center p-12 min-h-[280px]">
         <FileText size={28} className="text-muted-foreground/40" />
         <p className="text-sm font-medium text-slate-700">기록된 활동 로그가 없습니다</p>
-        <p className="text-xs text-muted-foreground">
-          이 학생이 응시한 기록이 아직 없거나, 활동 로그 기능 도입 이전에 응시한 경우입니다.
+        <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
+          학생이 응시 페이지에서 수행한 행동(시작 / 문항 이동 / 답변 변경 / 포커스 이탈 / 제출)이 자동으로 기록됩니다.
+          이 학생은 본 화면에서 직접 응시하지 않아 기록이 없습니다.
         </p>
       </div>
     )

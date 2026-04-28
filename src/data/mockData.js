@@ -419,6 +419,163 @@ export const mockQuizzes = [
     scoreRevealScope: 'wrong_only',
     scoreRevealTiming: 'after_due',
   },
+  {
+    // 진행 중 (지금 응시 가능): startDate 과거 / dueDate 미래 / 일부 제출 + 자동채점 완료
+    id: '10',
+    title: '주차별 퀴즈 6 - 회복 기법과 백업 전략',
+    description: 'Undo/Redo 로깅, 체크포인트, 백업 전략(전체/증분/차등)을 다룹니다. 응시 기간 내 자유롭게 제출하세요.',
+    course: 'CS301 데이터베이스',
+    status: 'open',
+    visible: true,
+    startDate: '2026-04-25 09:00',
+    dueDate: '2026-05-02 23:59',
+    lockDate: '2026-05-31 23:59',
+    week: 10,
+    session: 1,
+    totalStudents: 65,
+    submitted: 28,
+    graded: 28,
+    pendingGrade: 0,
+    questions: 6,
+    totalPoints: 20,
+    timeLimit: 25,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 2,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: 'immediately',
+  },
+  {
+    // 재응시 다회 시나리오: 3회 응시 허용, 평균 점수 정책
+    id: '11',
+    title: '연습 퀴즈 - SQL 쿼리 작성 (재응시 자유)',
+    description: '재응시 3회까지 가능합니다. 평균 점수가 최종 성적으로 반영됩니다.',
+    course: 'CS301 데이터베이스',
+    status: 'closed',
+    visible: true,
+    startDate: '2026-04-01 09:00',
+    dueDate: '2026-04-15 23:59',
+    lockDate: '2026-04-30 23:59',
+    week: 7,
+    session: 2,
+    totalStudents: 65,
+    submitted: 62,
+    graded: 62,
+    pendingGrade: 0,
+    questions: 5,
+    totalPoints: 25,
+    avgScore: 18.4,
+    timeLimit: 15,
+    scorePolicy: '평균 점수 유지',
+    allowAttempts: 3,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'with_answer',
+    scoreRevealTiming: 'after_due',
+  },
+  // CS102 자료구조 — 신규 코스
+  {
+    id: 'cs102_1',
+    title: '중간고사 - 스택과 큐',
+    description: '스택, 큐, 덱(Deque)의 동작 원리와 시간복잡도를 평가합니다.',
+    course: 'CS102 자료구조',
+    status: 'closed',
+    visible: true,
+    startDate: '2026-03-25 09:00',
+    dueDate: '2026-03-25 11:00',
+    lockDate: '2026-04-30 23:59',
+    week: 8,
+    session: 1,
+    totalStudents: 50,
+    submitted: 49,
+    graded: 49,
+    pendingGrade: 0,
+    questions: 6,
+    totalPoints: 40,
+    avgScore: 28.5,
+    timeLimit: 120,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'with_answer',
+    scoreRevealTiming: 'after_due',
+  },
+  {
+    // 채점 진행 중: 서술형 포함 → 일부만 채점 완료
+    id: 'cs102_2',
+    title: '주차별 과제 4 - 트리 순회 구현',
+    description: '이진 트리의 전위/중위/후위 순회를 의사 코드로 작성하고 시간복잡도를 분석하시오.',
+    course: 'CS102 자료구조',
+    status: 'grading',
+    visible: true,
+    startDate: '2026-04-07 09:00',
+    dueDate: '2026-04-14 23:59',
+    lockDate: '2026-05-07 23:59',
+    week: 9,
+    session: 1,
+    totalStudents: 50,
+    submitted: 47,
+    graded: 22,
+    pendingGrade: 25,
+    questions: 5,
+    totalPoints: 30,
+    timeLimit: null,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'with_answer',
+    scoreRevealTiming: 'after_due',
+  },
+  {
+    id: 'cs102_3',
+    title: '주차별 퀴즈 - 그래프 기초 (예정)',
+    description: '인접 행렬, 인접 리스트 표현 방식과 BFS/DFS 동작 차이를 다룹니다.',
+    course: 'CS102 자료구조',
+    status: 'draft',
+    visible: false,
+    startDate: '2026-05-12 09:00',
+    dueDate: '2026-05-12 23:59',
+    lockDate: '2026-06-12 23:59',
+    week: 12,
+    session: 1,
+    totalStudents: 50,
+    submitted: 0,
+    graded: 0,
+    pendingGrade: 0,
+    questions: 7,
+    totalPoints: 30,
+    timeLimit: 25,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 2,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: 'immediately',
+  },
+  {
+    // CS401 채점 진행 중 — 서술형 비중 큼
+    id: 'cs401_3',
+    title: '기말고사 - 그래프 알고리즘 종합',
+    description: '최단 경로(다익스트라/벨만-포드), 최소 신장 트리(MST), 위상 정렬을 종합 평가합니다.',
+    course: 'CS401 알고리즘',
+    status: 'grading',
+    visible: true,
+    startDate: '2026-04-22 09:00',
+    dueDate: '2026-04-22 11:30',
+    lockDate: '2026-05-22 23:59',
+    week: 11,
+    session: 1,
+    totalStudents: 38,
+    submitted: 36,
+    graded: 14,
+    pendingGrade: 22,
+    questions: 6,
+    totalPoints: 60,
+    timeLimit: 150,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
+    scoreRevealEnabled: false,
+    scoreRevealScope: null,
+    scoreRevealTiming: null,
+  },
 ]
 
 // ── mockQuizzes localStorage 동기화 ──
@@ -1350,6 +1507,12 @@ export function getQuizQuestions(quizId) {
   if (quizId === 'cs201_1') return mockCs201Quiz1Questions
   if (quizId === 'cs201_2') return mockCs201Quiz2Questions
   if (quizId === 'cs401_1') return mockCs401Quiz1Questions
+  if (quizId === '10') return mockQuiz10Questions
+  if (quizId === '11') return mockQuiz11Questions
+  if (quizId === 'cs102_1') return mockCs102Quiz1Questions
+  if (quizId === 'cs102_2') return mockCs102Quiz2Questions
+  if (quizId === 'cs102_3') return mockCs102Quiz3Questions
+  if (quizId === 'cs401_3') return mockCs401Quiz3Questions
   return []
 }
 
@@ -2073,6 +2236,8 @@ export const MOCK_BANKS = [
   { id: 'bank4', name: 'DB 입문',        course: 'CS301 데이터베이스', difficulty: 'low',    updatedAt: '2026-03-15', usedInQuizIds: [] },
   { id: 'bank5', name: '운영체제 종합',  course: 'CS201 운영체제',     difficulty: '',       updatedAt: '2026-03-10', usedInQuizIds: [] },
   { id: 'bank6', name: '알고리즘 심화',  course: 'CS401 알고리즘',     difficulty: 'high',   updatedAt: '2026-03-05', usedInQuizIds: [] },
+  { id: 'bank7', name: '자료구조 기초',  course: 'CS102 자료구조',     difficulty: 'low',    updatedAt: '2026-04-10', usedInQuizIds: ['cs102_1'] },
+  { id: 'bank8', name: '자료구조 심화',  course: 'CS102 자료구조',     difficulty: 'high',   updatedAt: '2026-04-12', usedInQuizIds: [] },
 ]
 
 export const MOCK_BANK_QUESTIONS = [
@@ -2198,6 +2363,285 @@ export const MOCK_BANK_QUESTIONS = [
   { id: 'bq32', bankId: 'bank6', type: 'essay',           difficulty: 'high',   points: 20, usageCount: 0,
     text: '그리디(Greedy) 알고리즘이 최적해를 보장하기 위한 조건을 설명하시오.',
     rubric: '탐욕적 선택 속성(Greedy Choice Property)과 최적 부분 구조(Optimal Substructure) 두 가지를 명확히 설명하고, 각각의 예시(활동 선택, 허프만 코딩 등)를 제시할 것.' },
+
+  // bank7: 자료구조 기초 (난이도: 하)
+  { id: 'bq33', bankId: 'bank7', type: 'multiple_choice', difficulty: 'low',    points: 4, usageCount: 2,
+    text: '스택(Stack)의 데이터 입출력 순서로 옳은 것은?',
+    options: ['FIFO (First In, First Out)', 'LIFO (Last In, First Out)', '랜덤 액세스', '우선순위 기반'],
+    correctAnswer: 1 },
+  { id: 'bq34', bankId: 'bank7', type: 'multiple_choice', difficulty: 'low',    points: 4, usageCount: 1,
+    text: '큐(Queue)에서 데이터를 삽입하는 위치는?',
+    options: ['front', 'rear', 'middle', '랜덤 위치'],
+    correctAnswer: 1 },
+  { id: 'bq35', bankId: 'bank7', type: 'true_false',      difficulty: 'low',    points: 3, usageCount: 1,
+    text: '연결 리스트는 배열보다 인덱스 접근(랜덤 액세스) 속도가 빠르다.',
+    correctAnswer: false },
+  { id: 'bq36', bankId: 'bank7', type: 'short_answer',    difficulty: 'low',    points: 5, usageCount: 0,
+    text: '이중 연결 리스트(Doubly Linked List)가 단일 연결 리스트보다 갖는 장점을 한 가지 쓰시오.',
+    correctAnswer: ['양방향 탐색 가능', '이전 노드 접근 O(1)', '역방향 순회'] },
+  { id: 'bq37', bankId: 'bank7', type: 'multiple_choice', difficulty: 'low',    points: 4, usageCount: 2,
+    text: '배열의 임의 인덱스 접근 시간복잡도는?',
+    options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
+    correctAnswer: 0 },
+  { id: 'bq38', bankId: 'bank7', type: 'true_false',      difficulty: 'low',    points: 3, usageCount: 0,
+    text: '원형 큐(Circular Queue)는 일반 큐보다 메모리 활용 효율이 높다.',
+    correctAnswer: true },
+
+  // bank8: 자료구조 심화 (난이도: 상)
+  { id: 'bq39', bankId: 'bank8', type: 'multiple_choice', difficulty: 'high',   points: 8, usageCount: 1,
+    text: 'AVL 트리에서 균형 인수(Balance Factor) 절댓값이 초과될 수 있는 최대 값은?',
+    options: ['0', '1', '2', '제한 없음'],
+    correctAnswer: 1 },
+  { id: 'bq40', bankId: 'bank8', type: 'essay',           difficulty: 'high',   points: 18, usageCount: 0,
+    text: '레드-블랙 트리(Red-Black Tree)의 5가지 속성을 설명하고 AVL 트리와의 차이점을 비교하시오.',
+    rubric: '5가지 속성(루트 검정, 잎 검정, 빨강 자식 검정, 모든 경로 검정 노드 수 동일 등) 명시. AVL은 엄격한 균형(균형 인수 ±1), RB는 느슨한 균형으로 삽입/삭제 비용이 낮다는 점 비교.' },
+  { id: 'bq41', bankId: 'bank8', type: 'short_answer',    difficulty: 'high',   points: 10, usageCount: 0,
+    text: '해시 충돌 해결 방법(Open Addressing, Separate Chaining)의 차이를 설명하시오.',
+    correctAnswer: ['Open Addressing은 빈 슬롯을 탐색', 'Separate Chaining은 연결 리스트로 충돌 처리'] },
+  { id: 'bq42', bankId: 'bank8', type: 'multiple_choice', difficulty: 'high',   points: 8, usageCount: 1,
+    text: '힙(Heap) 자료구조에서 삽입 후 균형을 맞추는 연산의 시간복잡도는?',
+    options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
+    correctAnswer: 1 },
+  { id: 'bq43', bankId: 'bank8', type: 'multiple_answers', difficulty: 'high',  points: 8, usageCount: 0,
+    text: '다음 중 자기 균형 이진 탐색 트리(Self-Balancing BST)에 해당하는 것을 모두 고르시오.',
+    options: ['AVL Tree', 'B-Tree', 'Red-Black Tree', 'Binary Heap', 'Splay Tree'],
+    correctAnswer: [0, 2, 4], scoringMode: 'partial' },
+  { id: 'bq44', bankId: 'bank8', type: 'essay',           difficulty: 'high',   points: 16, usageCount: 0,
+    text: '트라이(Trie) 자료구조의 구조와 활용 사례 두 가지를 서술하시오.',
+    rubric: '문자 단위 노드로 구성된 트리, 공통 접두사 공유 구조 명시. 활용: 자동완성, 사전 검색, IP 라우팅 등 두 가지 이상.' },
+]
+
+// ── 신규 퀴즈 문항 (구 9 이후 추가분) ────────────────────────────────────
+
+// 퀴즈 10: 회복 기법과 백업 전략 (6문항, 20점, 자동채점 위주)
+export const mockQuiz10Questions = [
+  { id: 'q10_1', order: 1, type: 'multiple_choice',
+    text: 'Undo 로깅의 목적으로 가장 적절한 것은?',
+    points: 3, autoGrade: true, gradedCount: 28, totalCount: 28, avgScore: 2.4,
+    correctAnswer: '커밋되지 않은 트랜잭션의 변경을 되돌리기 위해',
+    choices: [
+      '커밋되지 않은 트랜잭션의 변경을 되돌리기 위해',
+      '커밋된 트랜잭션을 다시 실행하기 위해',
+      '인덱스 손상을 복구하기 위해',
+      '디스크 단편화를 제거하기 위해',
+    ],
+  },
+  { id: 'q10_2', order: 2, type: 'multiple_choice',
+    text: '체크포인트(Checkpoint)의 효과로 옳은 것은?',
+    points: 3, autoGrade: true, gradedCount: 28, totalCount: 28, avgScore: 2.1,
+    correctAnswer: '복구 시 로그 분석 시간을 줄여준다',
+    choices: ['복구 시 로그 분석 시간을 줄여준다', '쓰기 성능을 항상 높인다', '백업 파일 크기를 줄인다', '쿼리 실행 계획을 캐싱한다'],
+  },
+  { id: 'q10_3', order: 3, type: 'true_false',
+    text: '증분 백업(Incremental Backup)은 마지막 전체 백업 이후 변경된 데이터만 저장한다.',
+    points: 2, autoGrade: true, gradedCount: 28, totalCount: 28, avgScore: 1.6,
+    correctAnswer: '거짓',
+    choices: ['참', '거짓'],
+  },
+  { id: 'q10_4', order: 4, type: 'multiple_choice',
+    text: 'WAL(Write-Ahead Logging)의 핵심 원칙은?',
+    points: 4, autoGrade: true, gradedCount: 28, totalCount: 28, avgScore: 2.7,
+    correctAnswer: '데이터 페이지를 쓰기 전에 로그를 먼저 영속화한다',
+    choices: [
+      '데이터 페이지를 쓰기 전에 로그를 먼저 영속화한다',
+      '로그를 메모리에만 유지한다',
+      '쓰기 작업을 비동기로 지연시킨다',
+      '백업을 매 트랜잭션마다 수행한다',
+    ],
+  },
+  { id: 'q10_5', order: 5, type: 'short_answer',
+    text: '백업 전략 중 RTO와 RPO의 의미를 각각 한 줄로 설명하시오.',
+    points: 4, autoGrade: 'partial', gradedCount: 28, totalCount: 28, avgScore: 3.1,
+    correctAnswer: 'RTO는 복구 목표 시간, RPO는 복구 목표 시점',
+  },
+  { id: 'q10_6', order: 6, type: 'multiple_choice',
+    text: '시점 복구(Point-In-Time Recovery)를 가능하게 하는 핵심 요소는?',
+    points: 4, autoGrade: true, gradedCount: 28, totalCount: 28, avgScore: 2.8,
+    correctAnswer: '아카이브된 트랜잭션 로그',
+    choices: ['아카이브된 트랜잭션 로그', '읽기 전용 복제본', '디스크 RAID 구성', '쿼리 캐시'],
+  },
+]
+
+// 퀴즈 11: SQL 쿼리 작성 연습 (5문항, 25점, 재응시 3회 / 평균 점수 정책)
+export const mockQuiz11Questions = [
+  { id: 'q11_1', order: 1, type: 'multiple_choice',
+    text: 'SELECT 문에서 중복을 제거할 때 사용하는 키워드는?',
+    points: 5, autoGrade: true, gradedCount: 62, totalCount: 62, avgScore: 4.2,
+    correctAnswer: 'DISTINCT',
+    choices: ['UNIQUE', 'DISTINCT', 'GROUP BY', 'ONLY'],
+  },
+  { id: 'q11_2', order: 2, type: 'short_answer',
+    text: '한 테이블에서 조건에 맞는 행 수를 세는 SQL 함수 이름을 쓰시오.',
+    points: 5, autoGrade: true, gradedCount: 62, totalCount: 62, avgScore: 4.5,
+    correctAnswer: 'COUNT',
+  },
+  { id: 'q11_3', order: 3, type: 'multiple_choice',
+    text: 'INNER JOIN 결과에 포함되는 행의 조건은?',
+    points: 5, autoGrade: true, gradedCount: 62, totalCount: 62, avgScore: 3.8,
+    correctAnswer: '두 테이블 모두에서 매칭되는 행',
+    choices: ['두 테이블 모두에서 매칭되는 행', '왼쪽 테이블의 모든 행', '오른쪽 테이블의 모든 행', '양쪽 테이블의 모든 행 합집합'],
+  },
+  { id: 'q11_4', order: 4, type: 'true_false',
+    text: 'WHERE 절은 GROUP BY 이전에, HAVING 절은 GROUP BY 이후에 평가된다.',
+    points: 5, autoGrade: true, gradedCount: 62, totalCount: 62, avgScore: 3.5,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  { id: 'q11_5', order: 5, type: 'short_answer',
+    text: 'ORDER BY 절에서 내림차순으로 정렬하는 키워드를 쓰시오.',
+    points: 5, autoGrade: true, gradedCount: 62, totalCount: 62, avgScore: 4.4,
+    correctAnswer: 'DESC',
+  },
+]
+
+// CS102 자료구조 — 중간고사 (스택과 큐, 6문항, 40점)
+export const mockCs102Quiz1Questions = [
+  { id: 'cs102_1_q1', order: 1, type: 'multiple_choice',
+    text: '스택(Stack)에서 가장 마지막에 삽입된 원소를 꺼내는 연산의 이름은?',
+    points: 5, autoGrade: true, gradedCount: 49, totalCount: 49, avgScore: 4.6,
+    correctAnswer: 'pop',
+    choices: ['push', 'pop', 'enqueue', 'dequeue'],
+  },
+  { id: 'cs102_1_q2', order: 2, type: 'multiple_choice',
+    text: '큐(Queue)의 동작 원리로 옳은 것은?',
+    points: 5, autoGrade: true, gradedCount: 49, totalCount: 49, avgScore: 4.3,
+    correctAnswer: 'FIFO (First In, First Out)',
+    choices: ['LIFO', 'FIFO (First In, First Out)', '우선순위 기반', '랜덤 접근'],
+  },
+  { id: 'cs102_1_q3', order: 3, type: 'true_false',
+    text: '덱(Deque)은 양쪽 끝에서 모두 삽입과 삭제가 가능한 자료구조이다.',
+    points: 4, autoGrade: true, gradedCount: 49, totalCount: 49, avgScore: 3.7,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  { id: 'cs102_1_q4', order: 4, type: 'multiple_choice',
+    text: '함수 호출 시 사용되는 호출 스택(Call Stack)의 데이터 구조는?',
+    points: 6, autoGrade: true, gradedCount: 49, totalCount: 49, avgScore: 5.1,
+    correctAnswer: '스택',
+    choices: ['스택', '큐', '힙', '연결 리스트'],
+  },
+  { id: 'cs102_1_q5', order: 5, type: 'short_answer',
+    text: '원형 큐를 사용하는 이유를 한 문장으로 설명하시오.',
+    points: 10, autoGrade: false, gradedCount: 49, totalCount: 49, avgScore: 7.2,
+    correctAnswer: '메모리 공간을 재활용하여 일반 큐의 false-overflow 문제를 해결',
+  },
+  { id: 'cs102_1_q6', order: 6, type: 'essay',
+    text: '괄호 검사 알고리즘을 스택으로 구현하는 절차를 의사 코드로 작성하시오.',
+    points: 10, autoGrade: false, gradedCount: 49, totalCount: 49, avgScore: 7.5,
+    correctAnswer: null,
+  },
+]
+
+// CS102 자료구조 — 트리 순회 과제 (5문항, 30점, 서술형 비중 큼)
+export const mockCs102Quiz2Questions = [
+  { id: 'cs102_2_q1', order: 1, type: 'multiple_choice',
+    text: '이진 트리 전위 순회(Pre-order)의 방문 순서는?',
+    points: 5, autoGrade: true, gradedCount: 47, totalCount: 47, avgScore: 4.0,
+    correctAnswer: '루트 → 왼쪽 → 오른쪽',
+    choices: ['루트 → 왼쪽 → 오른쪽', '왼쪽 → 루트 → 오른쪽', '왼쪽 → 오른쪽 → 루트', '오른쪽 → 루트 → 왼쪽'],
+  },
+  { id: 'cs102_2_q2', order: 2, type: 'multiple_choice',
+    text: '중위 순회(In-order)를 이진 탐색 트리에 적용하면 결과의 특징은?',
+    points: 5, autoGrade: true, gradedCount: 47, totalCount: 47, avgScore: 3.6,
+    correctAnswer: '오름차순으로 정렬된 결과',
+    choices: ['오름차순으로 정렬된 결과', '내림차순으로 정렬된 결과', '레벨 순서대로 정렬', '무작위 순서'],
+  },
+  { id: 'cs102_2_q3', order: 3, type: 'short_answer',
+    text: '레벨 순회(Level-order)를 구현할 때 사용하는 자료구조는?',
+    points: 5, autoGrade: true, gradedCount: 47, totalCount: 47, avgScore: 4.4,
+    correctAnswer: '큐',
+  },
+  { id: 'cs102_2_q4', order: 4, type: 'essay',
+    text: '재귀를 사용한 후위 순회 의사 코드를 작성하고 시간복잡도를 분석하시오.',
+    points: 10, autoGrade: false, gradedCount: 22, totalCount: 47, avgScore: 7.8,
+    correctAnswer: null,
+  },
+  { id: 'cs102_2_q5', order: 5, type: 'essay',
+    text: '반복(스택 사용) 방식의 중위 순회를 의사 코드로 작성하시오.',
+    points: 5, autoGrade: false, gradedCount: 22, totalCount: 47, avgScore: 3.6,
+    correctAnswer: null,
+  },
+]
+
+// CS102 자료구조 — 그래프 기초 (예정 / draft) (7문항, 30점)
+export const mockCs102Quiz3Questions = [
+  { id: 'cs102_3_q1', order: 1, type: 'multiple_choice',
+    text: '인접 행렬(Adjacency Matrix) 표현의 공간복잡도는?',
+    points: 4, autoGrade: true,
+    correctAnswer: 'O(V²)',
+    choices: ['O(V)', 'O(V + E)', 'O(V²)', 'O(E²)'],
+  },
+  { id: 'cs102_3_q2', order: 2, type: 'multiple_choice',
+    text: '인접 리스트(Adjacency List) 표현이 유리한 경우는?',
+    points: 4, autoGrade: true,
+    correctAnswer: '희소(Sparse) 그래프',
+    choices: ['밀집(Dense) 그래프', '희소(Sparse) 그래프', '완전 그래프', '가중 그래프 전용'],
+  },
+  { id: 'cs102_3_q3', order: 3, type: 'true_false',
+    text: 'BFS는 큐를 사용하고, DFS는 스택(또는 재귀)을 사용한다.',
+    points: 3, autoGrade: true,
+    correctAnswer: '참',
+    choices: ['참', '거짓'],
+  },
+  { id: 'cs102_3_q4', order: 4, type: 'multiple_choice',
+    text: '무방향 그래프에서 사이클 존재 여부를 확인하는 가장 간단한 방법은?',
+    points: 5, autoGrade: true,
+    correctAnswer: 'Union-Find 또는 DFS',
+    choices: ['Union-Find 또는 DFS', '다익스트라', '위상 정렬', '플로이드-워셜'],
+  },
+  { id: 'cs102_3_q5', order: 5, type: 'short_answer',
+    text: 'BFS의 시간복잡도를 정점 수 V와 간선 수 E를 사용해 표기하시오.',
+    points: 4, autoGrade: true,
+    correctAnswer: 'O(V + E)',
+  },
+  { id: 'cs102_3_q6', order: 6, type: 'multiple_choice',
+    text: '방향 그래프의 위상 정렬(Topological Sort)이 가능한 조건은?',
+    points: 5, autoGrade: true,
+    correctAnswer: '사이클이 없는 DAG일 때',
+    choices: ['사이클이 없는 DAG일 때', '연결 그래프일 때', '가중치가 양수일 때', '항상 가능'],
+  },
+  { id: 'cs102_3_q7', order: 7, type: 'essay',
+    text: 'BFS와 DFS 중 최단 경로를 찾기에 적합한 알고리즘과 그 이유를 설명하시오.',
+    points: 5, autoGrade: false,
+    correctAnswer: null,
+  },
+]
+
+// CS401 알고리즘 — 그래프 알고리즘 종합 (6문항, 60점, 서술형 비중 큼)
+export const mockCs401Quiz3Questions = [
+  { id: 'cs401_3_q1', order: 1, type: 'multiple_choice',
+    text: '다익스트라(Dijkstra) 알고리즘이 잘못된 결과를 반환할 수 있는 그래프는?',
+    points: 8, autoGrade: true, gradedCount: 36, totalCount: 36, avgScore: 6.4,
+    correctAnswer: '음의 가중치를 포함한 그래프',
+    choices: ['모든 가중치가 양수인 그래프', '음의 가중치를 포함한 그래프', '방향 그래프', '연결 그래프'],
+  },
+  { id: 'cs401_3_q2', order: 2, type: 'multiple_choice',
+    text: '벨만-포드 알고리즘의 시간복잡도는?',
+    points: 8, autoGrade: true, gradedCount: 36, totalCount: 36, avgScore: 5.5,
+    correctAnswer: 'O(V × E)',
+    choices: ['O(V + E)', 'O(V²)', 'O(V × E)', 'O((V + E) log V)'],
+  },
+  { id: 'cs401_3_q3', order: 3, type: 'multiple_choice',
+    text: 'MST(최소 신장 트리)를 구하는 알고리즘이 아닌 것은?',
+    points: 8, autoGrade: true, gradedCount: 36, totalCount: 36, avgScore: 6.0,
+    correctAnswer: '플로이드-워셜',
+    choices: ['Kruskal', 'Prim', 'Borůvka', '플로이드-워셜'],
+  },
+  { id: 'cs401_3_q4', order: 4, type: 'short_answer',
+    text: '플로이드-워셜 알고리즘이 푸는 문제와 시간복잡도를 한 줄로 설명하시오.',
+    points: 8, autoGrade: 'partial', gradedCount: 14, totalCount: 36, avgScore: 5.8,
+    correctAnswer: '모든 정점 쌍 간 최단 경로, O(V³)',
+  },
+  { id: 'cs401_3_q5', order: 5, type: 'essay',
+    text: 'Kruskal과 Prim 알고리즘의 차이를 설명하고 각각이 유리한 그래프 형태를 비교하시오.',
+    points: 14, autoGrade: false, gradedCount: 14, totalCount: 36, avgScore: 10.2,
+    correctAnswer: null,
+  },
+  { id: 'cs401_3_q6', order: 6, type: 'essay',
+    text: '위상 정렬을 활용해 강의 선수 과목 순서를 결정하는 알고리즘을 설계하고 의사 코드로 작성하시오.',
+    points: 14, autoGrade: false, gradedCount: 14, totalCount: 36, avgScore: 10.5,
+    correctAnswer: null,
+  },
 ]
 
 // 데모용 가상 데이터 — 실제 개인정보 아님
@@ -2659,3 +3103,86 @@ export function getQuizStudents(quizId) {
   studentCache[quizId] = students
   return students
 }
+
+// ── 활동 로그 시드 (프로토타입 시연용) ──
+// 실제 응시한 학생만 활동 로그가 있는 게 정상인데, mock 학생은 시드 데이터라 실제 응시 기록이 없음.
+// 시연용으로 제출 완료 학생에게 그럴듯한 응시 행동 로그를 한 번만 생성.
+// api 모드에서는 실행하지 않음 (서버 데이터 사용).
+function _seedActivityLogsOnce() {
+  if (typeof localStorage === 'undefined') return
+  if (import.meta.env.VITE_DATA_SOURCE === 'api') return
+
+  const FLAG = 'xnq_activity_log_seed_v1'
+  try {
+    if (localStorage.getItem(FLAG)) return
+
+    const parseTs = (str) => {
+      if (!str) return null
+      const ts = new Date(str.replace(' ', 'T')).getTime()
+      return Number.isFinite(ts) ? ts : null
+    }
+
+    for (const quiz of mockQuizzes) {
+      const students = getQuizStudents(quiz.id)
+      const questions = getQuizQuestions(quiz.id) || []
+      if (!questions.length || !students?.length) continue
+
+      for (const student of students) {
+        if (!student.submitted) continue
+        const startTs = parseTs(student.startTime)
+        const endTs = parseTs(student.submittedAt) || parseTs(student.endTime)
+        if (!startTs || !endTs || endTs <= startTs) continue
+
+        const key = `xnq_activity_log_${quiz.id}_${student.id}`
+        if (localStorage.getItem(key)) continue
+
+        const logs = []
+        const totalSpan = endTs - startTs
+        const sIdx = parseInt(String(student.id).replace(/\D/g, '')) || 0
+
+        // 응시 시작
+        logs.push({ ts: startTs, type: 'start' })
+
+        // 문항 순회 + 답변 변경 (1~3회)
+        const segPerQ = Math.max(8000, Math.floor(totalSpan / Math.max(1, questions.length + 1)))
+        let cursor = startTs + Math.min(3000, segPerQ / 3)
+        for (let i = 0; i < questions.length; i++) {
+          if (i > 0) {
+            logs.push({ ts: cursor, type: 'navigate', from: i - 1, to: i })
+          }
+          const changeCount = 1 + ((sIdx + i) % 3)
+          for (let c = 0; c < changeCount; c++) {
+            logs.push({ ts: cursor + 1500 * (c + 1), type: 'answer_change', qId: questions[i].id })
+          }
+          cursor += segPerQ
+        }
+
+        // 일부 학생: 포커스 이탈 (5명 중 1명 꼴)
+        if (sIdx % 5 === 0) {
+          const lossTs = startTs + Math.floor(totalSpan * 0.45)
+          logs.push({ ts: lossTs, type: 'focus_loss' })
+          logs.push({ ts: lossTs + 7000 + (sIdx % 5) * 1000, type: 'focus_gain' })
+        }
+
+        // 자동 저장 1회
+        logs.push({ ts: startTs + Math.floor(totalSpan * 0.5), type: 'autosave' })
+
+        // 제출
+        logs.push({ ts: endTs, type: 'submit', auto: !!student.autoSubmitted })
+
+        // 시간순 정렬
+        logs.sort((a, b) => a.ts - b.ts)
+
+        try {
+          localStorage.setItem(key, JSON.stringify(logs))
+        } catch { /* quota 초과 시 중단 */ break }
+      }
+    }
+
+    localStorage.setItem(FLAG, '1')
+  } catch (e) {
+    console.warn('[mockData] activity log seed failed', e)
+  }
+}
+
+_seedActivityLogsOnce()
