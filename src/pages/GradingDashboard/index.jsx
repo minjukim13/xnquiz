@@ -12,6 +12,7 @@ import { useRole } from '../../context/role'
 import { downloadAnswerSheetsXlsx } from '../../utils/excelUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
 import ConditionalRetakeModal from '../../components/ConditionalRetakeModal'
 import { printQuizQuestions, printBulkAnswerSheets } from '../../utils/pdfUtils'
@@ -24,6 +25,73 @@ import ExcelModal from './ExcelModal'
 import EmptyState from './EmptyState'
 import QuizInfoCard from './QuizInfoCard'
 import StudentListPanel from './StudentListPanel'
+
+
+function GradingDashboardSkeleton() {
+  return (
+    <div className="pt-4 pb-6">
+      {/* 퀴즈 정보 카드 */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 mb-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-12 rounded-md" />
+          <Skeleton className="h-4 w-20" />
+        </div>
+        <Skeleton className="h-6 w-1/3" />
+        <div className="flex gap-6 pt-2">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+      </div>
+
+      {/* 액션 바 */}
+      <div className="flex items-center justify-between border-b border-gray-200 mb-4 h-11">
+        <div className="flex items-center gap-6 h-full">
+          <Skeleton className="h-5 w-16" />
+          <Skeleton className="h-5 w-16" />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+      </div>
+
+      {/* split-pane */}
+      <div className="flex gap-4 min-h-[calc(100vh-360px)]">
+        <aside className="hidden sm:flex flex-col w-72 lg:w-80 shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100">
+            <Skeleton className="h-3.5 w-20" />
+            <Skeleton className="h-7 w-16" />
+          </div>
+          <div className="flex-1 p-2 space-y-2">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="rounded-lg border border-slate-100 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-12" />
+                  <Skeleton className="h-4 w-10" />
+                </div>
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-2 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        <div className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+          <Skeleton className="h-5 w-1/2" />
+          <Skeleton className="h-24 w-full" />
+          <div className="space-y-2 pt-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/6" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 
 export default function GradingDashboard() {
@@ -190,11 +258,7 @@ export default function GradingDashboard() {
 
   // ── 로딩 중 ──
   if (loading) {
-    return (
-      <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-        <p className="text-sm text-muted-foreground">불러오는 중</p>
-      </div>
-    )
+    return <GradingDashboardSkeleton />
   }
 
   // ── 유효하지 않은 quiz id ──
