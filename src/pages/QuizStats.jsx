@@ -7,6 +7,7 @@ import {
 } from 'recharts'
 import { QUIZ_TYPES } from '../data/mockData'
 import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
+import { getLateThreshold } from '../utils/deadlineUtils'
 import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -203,6 +204,16 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
   const unsubmitted = allStudents.filter(s => !s.startTime)
   const ungradedCount = allStudents.filter(s => s.score === null).length
 
+  const lateThreshold = getLateThreshold(quiz)
+  const getSubmissionStatus = (s) => {
+    if (!s.submittedAt) return 'unsubmitted'
+    if (lateThreshold) {
+      const submittedDate = new Date(s.submittedAt.replace(' ', 'T'))
+      if (submittedDate > lateThreshold) return 'late'
+    }
+    return 'ontime'
+  }
+
   const filtered = useMemo(() => {
     let base = filterStatus === 'unsubmitted' ? unsubmitted
       : filterStatus === 'submitted' ? submittedStarted
@@ -219,6 +230,13 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
         if (sortKey === 'studentId')   { av = a.studentId;   bv = b.studentId }
         if (sortKey === 'department')  { av = a.department;  bv = b.department }
         if (sortKey === 'submittedAt') { av = a.submittedAt ?? ''; bv = b.submittedAt ?? '' }
+        if (sortKey === 'submitStatus') {
+          const rank = s => {
+            const st = getSubmissionStatus(s)
+            return st === 'ontime' ? 0 : st === 'late' ? 1 : 2
+          }
+          av = rank(a); bv = rank(b)
+        }
         if (sortKey === 'elapsed') {
           const toSec = s => {
             if (!s.startTime || !s.submittedAt) return -1
@@ -313,12 +331,13 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead>
-              <tr className="bg-secondary border-b border-border">
+              <tr className="border-b border-border">
                 {[
                   { key: 'name', label: '이름', align: 'left' },
                   { key: 'studentId', label: '학번', align: 'center' },
                   { key: 'department', label: '학과', align: 'left' },
                   { key: 'elapsed', label: '소요 시간', align: 'center' },
+                  { key: 'submitStatus', label: '제출 상태', align: 'center' },
                   { key: 'submittedAt', label: '제출 일시', align: 'center' },
                   { key: 'score', label: `점수 / ${totalPoints}점`, align: 'center' },
                   { key: 'status', label: '상태', align: 'center' },
@@ -346,6 +365,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
               {filtered.map((s) => {
                 const scorePct = s.score !== null ? Math.round((s.score / totalPoints) * 100) : null
                 const elapsed = calcElapsed(s.startTime, s.submittedAt)
+                const submitStatus = getSubmissionStatus(s)
                 return (
                   <tr key={s.id} className="border-b border-border hover:bg-accent/30 transition-colors">
                     <td className="px-4 py-2.5">{s.name}</td>
@@ -353,6 +373,15 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                     <td className="px-4 py-2.5 text-muted-foreground">{s.department}</td>
                     <td className="px-3 py-2.5 text-center whitespace-nowrap text-secondary-foreground">
                       {elapsed ?? <span className="text-muted-foreground">-</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
+                      {submitStatus === 'ontime' ? (
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-emerald-50 text-emerald-700">정상제출</span>
+                      ) : submitStatus === 'late' ? (
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-amber-50 text-amber-700">지각제출</span>
+                      ) : (
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-secondary text-muted-foreground">미제출</span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-center whitespace-nowrap text-secondary-foreground">
                       {s.submittedAt ? s.submittedAt.split(' ')[1] : <span className="text-muted-foreground">-</span>}
@@ -379,7 +408,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">검색 결과가 없습니다</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">검색 결과가 없습니다</td></tr>
               )}
             </tbody>
           </table>
