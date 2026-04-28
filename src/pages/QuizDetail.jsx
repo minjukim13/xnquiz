@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom'
-import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, ChevronDown } from 'lucide-react'
+import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/PageHeader'
 import { mockQuizzes } from '../data/mockData'
@@ -49,7 +49,7 @@ function isDefaultValue(value) {
 function InfoRow({ label, value, muted = false }) {
   const isDefault = muted || isDefaultValue(value)
   return (
-    <div className="flex items-baseline justify-between gap-4 py-1.5">
+    <div className="flex items-baseline justify-between gap-4 py-1">
       <span className="text-sm text-muted-foreground shrink-0">{label}</span>
       {isDefault ? (
         <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground shrink-0">
@@ -64,32 +64,18 @@ function InfoRow({ label, value, muted = false }) {
   )
 }
 
-function Section({ title, summary, defaultOpen = true, children }) {
-  const [open, setOpen] = useState(defaultOpen)
+function Section({ title, summary, children }) {
   return (
-    <Card className="overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-        className="w-full flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-secondary transition-colors text-left"
-      >
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <h3 className="text-base font-semibold text-foreground shrink-0">{title}</h3>
-          {summary && (
-            <span className="text-xs text-muted-foreground truncate">{summary}</span>
-          )}
-        </div>
-        <ChevronDown
-          size={16}
-          className={cn('text-muted-foreground transition-transform shrink-0', open && 'rotate-180')}
-        />
-      </button>
-      {open && (
-        <div className="px-5 py-1 border-t border-border divide-y divide-border">
-          {children}
-        </div>
-      )}
+    <Card className="overflow-hidden py-0 gap-0">
+      <div className="flex items-center gap-3 px-5 py-3.5">
+        <h3 className="text-base font-semibold text-foreground shrink-0">{title}</h3>
+        {summary && (
+          <span className="text-xs text-muted-foreground truncate">{summary}</span>
+        )}
+      </div>
+      <div className="px-5 py-3 border-t border-border divide-y divide-border">
+        {children}
+      </div>
     </Card>
   )
 }
@@ -189,7 +175,7 @@ export default function QuizDetail() {
       <div className="max-w-4xl mx-auto pb-10">
         <PageHeader
           backTo="/"
-          ariaLabel="퀴즈 목록으로"
+          ariaLabel="퀴즈 목록"
           title={quiz.title}
           actions={
             <>
@@ -244,7 +230,7 @@ export default function QuizDetail() {
                 </span>
               )}
               <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground">
-                <CalendarRange size={11} className="text-muted-foreground" />
+                <CalendarRange size={11} />
                 {formatDateRange(quiz.startDate, quiz.dueDate)}
               </span>
             </>
@@ -287,9 +273,9 @@ export default function QuizDetail() {
         </Card>
 
         {/* 상세 섹션들 */}
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 items-start">
           {/* 응시 조건 */}
-          <Section title="응시 조건" defaultOpen>
+          <Section title="응시 조건">
             <InfoRow label="응시 기간" value={formatDateRange(quiz.startDate, quiz.dueDate)} />
             <InfoRow
               label="이용 종료"

@@ -115,7 +115,7 @@ export default function QuizStats() {
       <div className="max-w-7xl mx-auto pb-10">
         <PageHeader
           backTo="/"
-          ariaLabel="퀴즈 목록으로"
+          ariaLabel="퀴즈 목록"
           title={quiz.title}
           actions={
             <Button asChild>

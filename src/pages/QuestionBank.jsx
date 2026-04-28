@@ -116,7 +116,7 @@ export default function QuestionBank() {
 
         <PageHeader
           backTo="/question-banks"
-          ariaLabel="문제모음 목록으로"
+          ariaLabel="문제모음 목록"
           title={
             editingBankName ? (
               <input
