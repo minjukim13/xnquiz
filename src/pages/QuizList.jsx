@@ -11,6 +11,7 @@ import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import QuizSettingsDialog from '../components/QuizSettingsDialog'
 import StatusBadge from '../components/StatusBadge'
@@ -177,6 +178,8 @@ function InstructorQuizList() {
     const ltiCode = currentLtiCourseCode()
     return ltiCode ? [...mockQuizzes] : mockQuizzes.filter(q => q.course === CURRENT_COURSE)
   })
+  // api 모드는 서버 왕복이 끝날 때까지 skeleton 표시. mock 모드는 즉시 데이터 있어 skeleton 불필요
+  const [loading, setLoading] = useState(() => isApiMode())
 
   // 데이터 레이어 경유 — mock/api 모드 자동 분기
   // LTI 모드: 서버가 이미 Canvas courseCode 로 필터링하므로 클라이언트 필터 skip
@@ -197,6 +200,7 @@ function InstructorQuizList() {
       if (!mounted) return
       const ltiCode = currentLtiCourseCode()
       setQuizzes(ltiCode ? all : all.filter(q => q.course === CURRENT_COURSE))
+      setLoading(false)
     })()
     return () => { mounted = false }
   }, [])
@@ -367,7 +371,11 @@ function InstructorQuizList() {
           />
         </div>
 
-        {sortedQuizzes.length > 0 ? (
+        {loading ? (
+          <div className="grid gap-3">
+            {[0, 1, 2].map(i => <QuizCardSkeleton key={i} />)}
+          </div>
+        ) : sortedQuizzes.length > 0 ? (
           <div className="grid gap-3">
             {sortedQuizzes.map(quiz => (
               <QuizCard key={quiz.id} quiz={quiz} onCopy={setCopySourceQuiz} onDelete={handleDeleteQuiz} />
@@ -526,6 +534,39 @@ function QuizCard({ quiz, onCopy, onDelete }) {
         ) : (
           <ActiveStats quiz={quiz} />
         )}
+      </div>
+    </Card>
+  )
+}
+
+
+function QuizCardSkeleton() {
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex items-start gap-4 px-6 pt-3 pb-3">
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-12 rounded-md" />
+            <Skeleton className="h-3.5 w-16" />
+          </div>
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+        <div className="flex items-center gap-2 shrink-0 mt-0.5">
+          <Skeleton className="h-9 w-14" />
+          <Skeleton className="h-9 w-14" />
+          <Skeleton className="h-7 w-7 rounded-md" />
+        </div>
+      </div>
+      <div className="px-6 py-4 bg-secondary border-t border-border">
+        <div className="grid grid-cols-3">
+          {[0, 1, 2].map(i => (
+            <div key={i} className={cn('flex flex-col items-center gap-1.5 px-4', i < 2 && 'border-r border-border')}>
+              <Skeleton className="h-5 w-12" />
+              <Skeleton className="h-3 w-10" />
+            </div>
+          ))}
+        </div>
       </div>
     </Card>
   )
@@ -928,6 +969,7 @@ function StudentQuizList() {
     if (isApiMode()) return []
     return mockQuizzes.filter(q => q.status !== 'draft' && q.visible !== false)
   })
+  const [loading, setLoading] = useState(() => isApiMode())
   // api 모드용 — 학생 본인 attempt 전체 (quiz.id 별 그룹핑용)
   // null = mock 모드 (StudentQuizCard 가 getStudentAttempts 로 직접 로드)
   const [apiAttempts, setApiAttempts] = useState(null)
@@ -938,6 +980,7 @@ function StudentQuizList() {
       if (!mounted) return
       // 학생 뷰는 draft 제외 + visible !== false (api 모드는 서버에서 이미 처리되지만 mock 모드 호환)
       setAllQuizzes(rows.filter(q => q.status !== 'draft' && q.visible !== false))
+      setLoading(false)
     })()
     if (isApiMode()) {
       ;(async () => {
@@ -991,7 +1034,11 @@ function StudentQuizList() {
           />
         </div>
 
-        {hasAny ? (
+        {loading ? (
+          <div className="grid gap-3">
+            {[0, 1, 2].map(i => <QuizCardSkeleton key={i} />)}
+          </div>
+        ) : hasAny ? (
           <div className="grid gap-3">
             {filteredAll.map(quiz => (
               isLockDatePassed(quiz)
