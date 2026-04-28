@@ -158,7 +158,7 @@ export default function QuizStats() {
           title={
             <Link
               to={`/quiz/${quiz.id}`}
-              className="block text-[22px] font-bold text-foreground leading-tight truncate hover:underline underline-offset-4"
+              className="block text-[22px] font-bold text-foreground leading-tight truncate"
             >
               {quiz.title}
             </Link>

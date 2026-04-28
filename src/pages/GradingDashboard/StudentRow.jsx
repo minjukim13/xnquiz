@@ -1,8 +1,7 @@
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { getLocalFudgePoints, getInitScore, hasActualScoreChange } from './utils'
 import { getStudentAnswer, isAnswerCorrect, getStudentFileSubmission } from '../../data/mockData'
-import { Paperclip, ChevronDown, ChevronUp, Download, Sparkles } from 'lucide-react'
+import { Paperclip, Download, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 // 복합 답안(객체/배열)을 표시용 문자열로 변환
@@ -24,57 +23,125 @@ function formatAnswerForDisplay(question, answer) {
   return JSON.stringify(answer)
 }
 
-function UnsubmittedRow({ student, question, quizId, onScoreChange, pendingScore, onRowSave }) {
-  const unsubInitScore = getInitScore(student, question, quizId, null)
-  const unsubDisplayScore = pendingScore !== undefined ? pendingScore : unsubInitScore
-  const isChanged = hasActualScoreChange(pendingScore, unsubInitScore)
+function SubmitBadge({ status }) {
+  if (status === 'late') {
+    return <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-amber-50 text-amber-700">지각제출</span>
+  }
+  if (status === 'unsubmitted') {
+    return <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-slate-100 text-slate-500">미제출</span>
+  }
+  return <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-emerald-50 text-emerald-700">정상제출</span>
+}
+
+export function CorrectBadge({ correct }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-3 border-b border-slate-100 bg-slate-50">
-      <div className="w-28 shrink-0">
-        <p className="text-[14px] font-medium truncate text-muted-foreground text-center">{student.name}</p>
-      </div>
-      <div className="w-28 shrink-0">
-        <p className="text-[14px] truncate text-muted-foreground text-center">{student.studentId}</p>
-      </div>
-      <p className="flex-1 min-w-0 text-sm text-muted-foreground">미제출</p>
-      {question.type === 'file_upload' && <div className="w-12 shrink-0" />}
-      <div className="w-28 shrink-0 text-center">
-        <span className="text-xs text-muted-foreground">-</span>
-      </div>
-      {question.autoGrade && <div className="w-16 shrink-0" />}
-      <div className="flex items-center gap-1.5 w-40 shrink-0 justify-center">
-        <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0 text-muted-foreground bg-slate-100">
-          미제출
-        </span>
+    <span className={cn('inline-block text-[11px] px-1.5 py-0.5 rounded font-medium', correct ? 'text-correct bg-correct-bg' : 'text-incorrect bg-incorrect-bg')}>
+      {correct ? '정답' : '오답'}
+    </span>
+  )
+}
+
+export function GradeStatusBadge({ ungraded }) {
+  return ungraded ? (
+    <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-amber-50 text-amber-600">미채점</span>
+  ) : (
+    <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-slate-100 text-slate-600">채점완료</span>
+  )
+}
+
+function FudgeBadge({ value }) {
+  if (!value) return null
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-px rounded bg-amber-50 text-amber-700"
+      title={`가산점 ${value > 0 ? '+' : ''}${value}점`}
+    >
+      <Sparkles size={9} />
+      {value > 0 ? `+${value}` : value}
+    </span>
+  )
+}
+
+function StudentMeta({ student, accent = false }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+      <span className={cn('font-semibold text-[15px] shrink-0', accent ? 'text-foreground' : 'text-muted-foreground')}>
+        {student.name}
+      </span>
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 tabular-nums shrink-0">
+        {student.studentId}
+      </span>
+      {student.department && (
+        <span className="text-[13px] text-muted-foreground shrink-0">{student.department}</span>
+      )}
+    </div>
+  )
+}
+
+function ScoreControls({ student, question, displayScore, isChanged, isUngraded, fudge, onScoreChange, onRowSave }) {
+  return (
+    <div className="flex items-center gap-2 shrink-0">
+      <FudgeBadge value={fudge} />
+      <GradeStatusBadge ungraded={isUngraded && !isChanged} />
+      <div className="flex items-center gap-1.5">
         <input
           type="number"
-          value={unsubDisplayScore}
+          value={displayScore}
           onChange={e => onScoreChange(student.id, e.target.value)}
           placeholder="-"
           min={0}
           max={question.points}
           step={0.5}
           className={cn(
-            'w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-blue-200 text-center border text-slate-900',
+            'w-16 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-blue-100 text-center border tabular-nums text-slate-900',
             isChanged ? 'border-primary' : 'border-slate-200'
           )}
         />
-        <span className="text-sm shrink-0 text-muted-foreground">/ {question.points}</span>
-        {isChanged && (
-          <Button size="xs" onClick={() => onRowSave?.(student.id)}>
-            저장
-          </Button>
-        )}
+        <span className="text-sm text-muted-foreground">/ {question.points}점</span>
+      </div>
+      <Button size="xs" onClick={() => onRowSave?.(student.id)} disabled={!isChanged}>
+        저장
+      </Button>
+    </div>
+  )
+}
+
+function UnsubmittedCard({ student, question, quizId, onScoreChange, pendingScore, onRowSave }) {
+  const initScore = getInitScore(student, question, quizId, null)
+  const displayScore = pendingScore !== undefined ? pendingScore : initScore
+  const isChanged = hasActualScoreChange(pendingScore, initScore)
+  const studentFudge = getLocalFudgePoints()[`${quizId}_${student.id}`] || 0
+
+  return (
+    <div className="border-b border-slate-200 bg-white">
+      <div className="px-5 py-3.5">
+        <div className="flex items-center justify-between gap-3 mb-2.5">
+          <StudentMeta student={student} />
+          <SubmitBadge status="unsubmitted" />
+        </div>
+
+        <p className="text-[13px] text-muted-foreground italic mb-3 px-1">제출되지 않았습니다</p>
+
+        <div className="flex items-center justify-end">
+          <ScoreControls
+            student={student}
+            question={question}
+            displayScore={displayScore}
+            isChanged={isChanged}
+            isUngraded={initScore === '' || initScore === null}
+            fudge={studentFudge}
+            onScoreChange={onScoreChange}
+            onRowSave={onRowSave}
+          />
+        </div>
       </div>
     </div>
   )
 }
 
 function StudentRow({ student, question, quizId, onScoreChange, pendingScore, isChanged, onRowSave }) {
-  const [expanded, setExpanded] = useState(false)
-
   if (!student.submitted) {
-    return <UnsubmittedRow student={student} question={question} quizId={quizId} onScoreChange={onScoreChange} pendingScore={pendingScore} onRowSave={onRowSave} />
+    return <UnsubmittedCard student={student} question={question} quizId={quizId} onScoreChange={onScoreChange} pendingScore={pendingScore} onRowSave={onRowSave} />
   }
 
   const studentIdx = parseInt(student.id.replace('s', ''))
@@ -83,14 +150,14 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
       ? getStudentAnswer(studentIdx, question.id)
       : (student.response || getStudentAnswer(studentIdx, question.id)))
 
-  let compactAnswer
+  let normalizedAnswer
   if (question.type === 'true_false') {
     const lower = (typeof rawAnswer === 'string' ? rawAnswer : '').toLowerCase()
-    compactAnswer = (lower === '참' || lower === 'true') ? '참' : (lower === '거짓' || lower === 'false') ? '거짓' : rawAnswer
+    normalizedAnswer = (lower === '참' || lower === 'true') ? '참' : (lower === '거짓' || lower === 'false') ? '거짓' : rawAnswer
   } else {
-    compactAnswer = rawAnswer
+    normalizedAnswer = rawAnswer
   }
-  compactAnswer = formatAnswerForDisplay(question, compactAnswer)
+  const displayAnswer = formatAnswerForDisplay(question, normalizedAnswer)
 
   const autoCorrect = question.autoGrade ? isAnswerCorrect(rawAnswer, question.id) : null
 
@@ -100,123 +167,89 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
 
   const isUngraded = initScore === '' || initScore === null
   const studentFudge = getLocalFudgePoints()[`${quizId}_${student.id}`] || 0
+  const submitStatus = student.isLate ? 'late' : 'ontime'
+  const submittedAtShort = student.submittedAt ? student.submittedAt.slice(5, 16) : null
+
+  // 좌측 강조 바: 변경됨(파란) > 미채점(주황)
+  const showAccent = isChanged || isUngraded
+  const accentBar = isChanged ? 'bg-primary' : 'bg-amber-300'
 
   return (
-    <div className="border-b border-slate-100">
-      <div className={cn('flex items-center gap-2 px-3 py-3', isChanged ? 'bg-blue-50/60' : isUngraded ? 'bg-amber-50/30' : '')}>
-        {/* 이름 */}
-        <div className="w-28 shrink-0">
-          <p className="text-[14px] font-medium truncate text-gray-700 flex items-center gap-1 justify-center">
-            {student.name}
-            {isChanged && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" title="점수 변경됨" />}
-            {studentFudge !== 0 && (
-              <span
-                className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-px rounded bg-amber-50 text-amber-700 shrink-0"
-                title={`가산점 ${studentFudge > 0 ? '+' : ''}${studentFudge}점`}
-              >
-                <Sparkles size={9} />
-                {studentFudge > 0 ? `+${studentFudge}` : studentFudge}
-              </span>
+    <div className={cn('relative border-b border-slate-200 bg-white transition-colors', isChanged && 'bg-blue-50/30')}>
+      {/* 좌측 강조 바 — 카드 좌측 4px */}
+      {showAccent && (
+        <span className={cn('absolute left-0 top-0 bottom-0 w-1', accentBar)} aria-hidden />
+      )}
+
+      <div className="px-5 py-3.5">
+        {/* 학생 정보 + 제출 상태 / 제출일시 / 정답 배지 */}
+        <div className="flex items-center justify-between gap-3 mb-2.5">
+          <StudentMeta student={student} accent />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <SubmitBadge status={submitStatus} />
+            {submittedAtShort && (
+              <span className="text-[12px] text-muted-foreground tabular-nums">{submittedAtShort}</span>
             )}
-          </p>
+            {autoCorrect !== null && <CorrectBadge correct={autoCorrect} />}
+          </div>
         </div>
 
-        {/* 학번 */}
-        <div className="w-28 shrink-0">
-          <p className="text-[14px] truncate text-black text-center">{student.studentId}</p>
-        </div>
-
-        {/* 답안 */}
-        {question.type === 'file_upload' ? (() => {
-          const file = getStudentFileSubmission(studentIdx, question.id)
-          const extIcon = { pdf: 'text-red-500', png: 'text-blue-500', jpg: 'text-green-500', hwp: 'text-sky-600' }
-          return (
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-              <Paperclip size={13} className={extIcon[file.fileType] || 'text-muted-foreground'} />
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium text-black truncate">{file.fileName}</p>
-                <p className="text-[11px] text-muted-foreground">{file.fileSize} · {file.uploadedAt}</p>
-              </div>
-            </div>
-          )
-        })() : ['essay', 'short_answer', 'multiple_answers'].includes(question.type) ? (
-          <button className="flex-1 min-w-0 text-left flex items-center gap-1" onClick={() => setExpanded(!expanded)}>
-            <p className="truncate flex-1 text-[14px] text-black">{compactAnswer || '(답안 없음)'}</p>
-            {expanded
-              ? <ChevronUp size={13} className="text-gray-300 flex-shrink-0" />
-              : <ChevronDown size={13} className="text-gray-300 flex-shrink-0" />
-            }
-          </button>
+        {/* 답안 영역 — border만, 배경 없음 */}
+        {question.type === 'file_upload' ? (
+          <FileSubmissionView studentIdx={studentIdx} question={question} />
         ) : (
-          <p className="flex-1 min-w-0 truncate text-[14px] text-black">{compactAnswer || '(답안 없음)'}</p>
-        )}
-
-        {/* 파일 다운로드 버튼 */}
-        {question.type === 'file_upload' && (
-          <div className="w-12 shrink-0 text-center">
-            <button className="p-1.5 rounded hover:bg-slate-100 transition-colors text-muted-foreground hover:text-primary" title="파일 다운로드">
-              <Download size={14} />
-            </button>
+          <div className="rounded-lg border border-slate-200 px-4 py-3 mb-3">
+            <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-slate-100 text-slate-600 mb-1.5">제출한 답안</span>
+            <p className="text-[14px] leading-relaxed whitespace-pre-line break-words text-slate-900">
+              {displayAnswer || <span className="text-muted-foreground italic">(답안 없음)</span>}
+            </p>
           </div>
         )}
 
-        {/* 제출 일시 */}
-        <div className="w-28 shrink-0 text-center">
-          <span className={cn('text-xs', student.isLate ? 'text-amber-600 font-semibold' : 'text-muted-foreground')}>
-            {student.submittedAt ? student.submittedAt.slice(5, 16) : '-'}
-          </span>
-        </div>
-
-        {/* 정답 여부 */}
-        {question.autoGrade && (
-          <div className="w-16 shrink-0 text-center">
-            {autoCorrect !== null && (
-              <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', autoCorrect ? 'text-correct bg-correct-bg' : 'text-incorrect bg-incorrect-bg')}>
-                {autoCorrect ? '정답' : '오답'}
-              </span>
-            )}
-          </div>
+        {/* 정답 (자동채점 오답 시) */}
+        {autoCorrect === false && question.correctAnswer != null && (
+          <p className="mb-3 px-1 text-[13px] text-muted-foreground">
+            <span className="font-medium text-slate-600">정답</span>
+            <span className="mx-1.5 text-slate-300">·</span>
+            {Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : question.correctAnswer}
+          </p>
         )}
 
-        {/* 채점여부 + 점수 */}
-        <div className="flex items-center gap-1.5 w-40 shrink-0 justify-center">
-          {isUngraded && !isRowChanged && (
-            <span className="text-xs px-1.5 py-0.5 rounded font-medium shrink-0 text-amber-600 bg-amber-50">
-              미채점
-            </span>
-          )}
-          <input
-            type="number"
-            value={displayScore}
-            onChange={e => onScoreChange(student.id, e.target.value)}
-            placeholder="-"
-            min={0}
-            max={question.points}
-            step={0.5}
-            className={cn(
-              'w-14 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-blue-200 text-center border text-slate-900',
-              isRowChanged ? 'border-primary' : 'border-slate-200'
-            )}
+        {/* 채점 영역 */}
+        <div className="flex items-center justify-end">
+          <ScoreControls
+            student={student}
+            question={question}
+            displayScore={displayScore}
+            isChanged={isRowChanged}
+            isUngraded={isUngraded}
+            fudge={studentFudge}
+            onScoreChange={onScoreChange}
+            onRowSave={onRowSave}
           />
-          <span className="text-sm shrink-0 text-muted-foreground">/ {question.points}</span>
-          {isRowChanged && (
-            <Button size="xs" onClick={() => onRowSave?.(student.id)}>
-              저장
-            </Button>
-          )}
         </div>
       </div>
+    </div>
+  )
+}
 
-      {expanded && ['essay', 'short_answer', 'multiple_answers'].includes(question.type) && (
-        <div className="px-3 pb-3">
-          <div className="p-3 rounded bg-slate-50 border border-slate-200">
-            <p className="leading-relaxed text-[14px] text-black">{formatAnswerForDisplay(question, rawAnswer) || '(답안 없음)'}</p>
-            {autoCorrect !== null && !autoCorrect && (
-              <p className="mt-2 text-xs text-muted-foreground">정답: {Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : (question.correctAnswer ?? '')}</p>
-            )}
-          </div>
-        </div>
-      )}
+function FileSubmissionView({ studentIdx, question }) {
+  const file = getStudentFileSubmission(studentIdx, question.id)
+  const extColor = { pdf: 'text-red-500', png: 'text-blue-500', jpg: 'text-green-500', hwp: 'text-sky-600' }
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 mb-3 flex items-center gap-3">
+      <Paperclip size={16} className={cn('shrink-0', extColor[file.fileType] || 'text-muted-foreground')} />
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] font-medium text-slate-900 truncate">{file.fileName}</p>
+        <p className="text-[12px] text-muted-foreground">
+          <span>{file.fileSize}</span>
+          <span className="mx-1.5 text-slate-300">|</span>
+          <span>{file.uploadedAt}</span>
+        </p>
+      </div>
+      <button className="p-2 rounded hover:bg-white transition-colors text-muted-foreground hover:text-primary" title="파일 다운로드">
+        <Download size={16} />
+      </button>
     </div>
   )
 }

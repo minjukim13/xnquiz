@@ -129,7 +129,11 @@ export default function ExcelModal({ question, students: allStudents, onClose, o
             <div className="rounded border border-slate-200">
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-slate-50">
                 <span className="text-[15px] font-semibold text-slate-800">업로드 내용 확인</span>
-                <span className="text-xs text-muted-foreground">{previewRows.length}명 · {fileName}</span>
+                <span className="text-xs text-muted-foreground">
+                  {previewRows.length}명
+                  <span className="mx-1.5 text-slate-300">|</span>
+                  {fileName}
+                </span>
               </div>
               {/* 표 헤더 */}
               <div className="grid grid-cols-[1fr_1fr_48px] text-xs px-4 py-2 text-muted-foreground border-b border-slate-100">

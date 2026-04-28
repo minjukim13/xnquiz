@@ -56,7 +56,7 @@ export default function QuestionDetailPanel({ question, students, search, onSear
                 <span className="text-[13px] font-bold text-muted-foreground shrink-0">Q{question.order}</span>
                 <TypeBadge type={question.type} small />
                 {/* 헤더 한 줄: HTML 안의 태그 제거 후 plain text 로만 표시 (line-clamp 동작) */}
-                <p className={cn('text-[14px] font-semibold text-foreground line-clamp-2', !showChoices && 'flex-1')}>
+                <p className={cn('text-[14px] font-semibold text-foreground truncate', !showChoices && 'flex-1')}>
                   {String(question.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
                 </p>
               </div>

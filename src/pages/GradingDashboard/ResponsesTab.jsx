@@ -4,19 +4,70 @@ import { getLocalGrades, setLocalGrades, getInitScore, hasActualScoreChange, PAG
 import { isAnswerCorrect, getStudentAnswer } from '../../data/mockData'
 import StudentRow from './StudentRow'
 import { Button } from '@/components/ui/button'
-import { Search, ArrowUpDown, Check } from 'lucide-react'
+import { Search, Check, ListFilter } from 'lucide-react'
 import { DropdownSelect } from '../../components/DropdownSelect'
 
-function SortTh({ col, children, className = '', sortBy, sortDir, onSort }) {
-  const active = sortBy === col
+const GRADE_STATUS_OPTIONS = [
+  { key: 'graded', label: '채점 완료' },
+  { key: 'ungraded', label: '미채점' },
+]
+const SORT_OPTIONS = [
+  { value: 'name', label: '이름순' },
+  { value: 'studentId', label: '학번순' },
+  { value: 'submittedAt', label: '제출일시순' },
+]
+
+function ToolbarFilter({ label, options, selected, onChange, isOpen, onToggle, containerRef }) {
+  const isActive = selected.length > 0
   return (
-    <button
-      onClick={() => onSort(col)}
-      className={cn('flex items-center justify-center gap-0.5 w-full transition-colors text-[14px] font-semibold', active ? 'text-primary' : 'text-gray-500', className)}
-    >
-      {children}
-      <ArrowUpDown size={11} className={cn('flex-shrink-0', active ? 'text-primary' : 'text-gray-300')} style={active && sortDir === 'desc' ? { transform: 'scaleY(-1)' } : undefined} />
-    </button>
+    <div ref={containerRef} className="relative inline-flex">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          'inline-flex items-center gap-1.5 h-[30px] px-3 rounded-md border text-xs font-medium transition-colors whitespace-nowrap',
+          isActive || isOpen
+            ? 'bg-accent text-primary border-primary/30'
+            : 'bg-white text-gray-700 border-slate-200 hover:bg-slate-50'
+        )}
+      >
+        <ListFilter size={12} className={isActive ? 'text-primary' : 'text-slate-400'} />
+        {label}
+        {isActive && (
+          <span className="text-[11px] font-bold text-primary">{selected.length}</span>
+        )}
+      </button>
+      {isOpen && (
+        <div
+          className="absolute top-full right-0 mt-1 z-20 bg-white rounded-md shadow-lg border border-slate-200 min-w-[140px] py-1"
+          onClick={e => e.stopPropagation()}
+        >
+          {options.map(opt => {
+            const checked = selected.includes(opt.key)
+            return (
+              <label
+                key={opt.key}
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 cursor-pointer text-[13px] font-normal text-slate-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onChange(checked ? selected.filter(k => k !== opt.key) : [...selected, opt.key])}
+                  className="sr-only"
+                />
+                <span className={cn(
+                  'w-4 h-4 inline-flex items-center justify-center rounded border shrink-0',
+                  checked ? 'bg-primary border-primary' : 'bg-white border-slate-300'
+                )}>
+                  {checked && <Check size={11} strokeWidth={3} className="text-white" />}
+                </span>
+                {opt.label}
+              </label>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -26,24 +77,34 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const [pendingScores, setPendingScores] = useState({})
   const [saveStatus, setSaveStatus] = useState('idle')
   const [sortBy, setSortBy] = useState('name')
-  const [sortDir, setSortDir] = useState('asc')
-  const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'submitted' | 'unsubmitted'
-  const [showUngradedOnly, setShowUngradedOnly] = useState(false)
+  const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'ontime' | 'late' | 'unsubmitted'
+  const [gradeStatusFilter, setGradeStatusFilter] = useState([])
+  const [openFilter, setOpenFilter] = useState(null)
+  const gradeStatusFilterRef = useRef(null)
   const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    if (!openFilter) return
+    const handler = (e) => {
+      if (gradeStatusFilterRef.current && !gradeStatusFilterRef.current.contains(e.target)) setOpenFilter(null)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [openFilter])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset page on filter change
     setPage(1)
-  }, [search, pageSize, sortBy, sortDir, filterStatus, showUngradedOnly])
+  }, [search, pageSize, sortBy, filterStatus, gradeStatusFilter])
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- reset per question change */
     setPendingScores({})
     setSaveStatus('idle')
     setSortBy('name')
-    setSortDir('asc')
     setFilterStatus('all')
-    setShowUngradedOnly(false)
+    setGradeStatusFilter([])
+    setOpenFilter(null)
     isFirstRender.current = true
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [question?.id])
@@ -70,32 +131,33 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const sorted = useMemo(() => {
     const list = [...students]
     list.sort((a, b) => {
-      let cmp = 0
-      if (sortBy === 'name') cmp = a.name.localeCompare(b.name, 'ko')
-      if (sortBy === 'studentId') cmp = a.studentId.localeCompare(b.studentId)
-      if (sortBy === 'score') cmp = (a.score ?? -1) - (b.score ?? -1)
-      return sortDir === 'asc' ? cmp : -cmp
+      if (sortBy === 'name') return a.name.localeCompare(b.name, 'ko')
+      if (sortBy === 'studentId') return a.studentId.localeCompare(b.studentId)
+      if (sortBy === 'submittedAt') {
+        const av = a.submittedAt ?? ''
+        const bv = b.submittedAt ?? ''
+        return av.localeCompare(bv)
+      }
+      return 0
     })
     return list
-  }, [students, sortBy, sortDir])
+  }, [students, sortBy])
 
   const filtered = useMemo(() => {
     let list = sorted
-    // 탭 필터: 응시 시작 여부 기준 (자동 0점 처리된 미시작자도 "미제출" 로 유지)
-    if (filterStatus === 'submitted') list = list.filter(s => !!s.startTime)
-    else if (filterStatus === 'unsubmitted') list = list.filter(s => !s.startTime)
-    // 미채점만 보기 토글 (score === null): 수동채점 대기 상태 학생만
-    if (showUngradedOnly) list = list.filter(s => s.score === null)
+    // 제출 상태 단일 선택 필터
+    if (filterStatus === 'ontime') list = list.filter(s => s.submittedAt && !s.isLate)
+    else if (filterStatus === 'late') list = list.filter(s => s.submittedAt && s.isLate)
+    else if (filterStatus === 'unsubmitted') list = list.filter(s => !s.submittedAt)
+    // 채점 상태 다중 선택 필터
+    if (gradeStatusFilter.length > 0) {
+      list = list.filter(s => gradeStatusFilter.includes(s.score !== null ? 'graded' : 'ungraded'))
+    }
     return list
-  }, [sorted, filterStatus, showUngradedOnly])
+  }, [sorted, filterStatus, gradeStatusFilter])
 
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(filtered.length / pageSize)
   const visible = pageSize === 'all' ? filtered : filtered.slice((page - 1) * pageSize, page * pageSize)
-
-  const handleSortClick = (col) => {
-    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortBy(col); setSortDir('asc') }
-  }
 
   const handleScoreChange = useCallback((studentId, score) => {
     setPendingScores(prev => ({ ...prev, [studentId]: score }))
@@ -169,48 +231,19 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     onStudentChanged?.(studentId)
   }, [pendingScores, students, question, quizId, computeAutoCorrect, persistScore, onGradeSaved, onStudentChanged])
 
-  const submittedCount = students.filter(s => !!s.startTime).length
-  const unsubmittedCount = students.filter(s => !s.startTime).length
-  const ungradedCount = students.filter(s => s.score === null).length
+  const ontimeCount = students.filter(s => s.submittedAt && !s.isLate).length
+  const lateCount = students.filter(s => s.submittedAt && s.isLate).length
+  const unsubmittedCount = students.filter(s => !s.submittedAt).length
 
   return (
     <div className="flex-1 bg-white overflow-hidden flex flex-col border border-slate-200 rounded-lg">
-      {/* 툴바 */}
-      <div className="px-3 py-2 flex items-center gap-2 border-b border-slate-100 bg-slate-50">
-        <div className="flex-1 relative">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => onSearch(e.target.value)}
-            placeholder="이름 또는 학번"
-            className="w-full bg-white text-xs pl-7 pr-3 py-1.5 rounded border border-slate-200 text-slate-900 focus:outline-none"
-          />
-        </div>
-        <DropdownSelect
-          size="sm"
-          value={pageSize}
-          onChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}
-          options={PAGE_SIZE_OPTIONS}
-          ghost
-          className="w-20"
-        />
-        <div className="flex items-center gap-2 shrink-0 border-l border-slate-200 pl-2">
-          {saveStatus === 'saved' && (
-            <span className="text-xs font-medium text-emerald-600">저장 완료</span>
-          )}
-          <Button size="xs" onClick={handleBulkSave} disabled={pendingCount === 0}>
-            일괄 저장
-          </Button>
-        </div>
-      </div>
-
-      {/* 필터 */}
-      <div className="px-3 py-2 border-b border-slate-100 bg-white flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 inline-flex">
+      {/* 필터: 제출 상태 세그먼트 + 채점 상태 필터 */}
+      <div className="px-3 py-2 border-b border-slate-100 bg-white flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 inline-flex flex-wrap">
           {[
-            { key: 'all',          label: '전체',    count: students.length,  dotCls: null },
-            { key: 'submitted',    label: '제출완료', count: submittedCount,   dotCls: 'bg-emerald-500' },
+            { key: 'all',          label: '전체',     count: students.length,  dotCls: null },
+            { key: 'ontime',       label: '정상제출', count: ontimeCount,      dotCls: 'bg-emerald-500' },
+            { key: 'late',         label: '지각제출', count: lateCount,        dotCls: 'bg-amber-500' },
             { key: 'unsubmitted',  label: '미제출',   count: unsubmittedCount, dotCls: 'bg-gray-300' },
           ].map(({ key, label, count, dotCls }) => {
             const isActive = filterStatus === key
@@ -234,39 +267,57 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
             )
           })}
         </div>
-        <button
-          type="button"
-          onClick={() => setShowUngradedOnly(v => !v)}
-          aria-pressed={showUngradedOnly}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
-            showUngradedOnly
-              ? 'bg-accent text-primary border-primary/30'
-              : 'bg-white text-gray-600 border-slate-200 hover:bg-slate-50'
-          )}
-        >
-          <Check
-            size={13}
-            strokeWidth={3}
-            className={showUngradedOnly ? 'text-primary' : 'text-slate-300'}
+        <ToolbarFilter
+          containerRef={gradeStatusFilterRef}
+          label="채점 상태"
+          options={GRADE_STATUS_OPTIONS}
+          selected={gradeStatusFilter}
+          onChange={setGradeStatusFilter}
+          isOpen={openFilter === 'gradeStatus'}
+          onToggle={() => setOpenFilter(prev => prev === 'gradeStatus' ? null : 'gradeStatus')}
+        />
+      </div>
+
+      {/* 툴바: 검색 + 정렬 + 페이지 크기 + 일괄 저장 */}
+      <div className="px-3 py-2 flex items-center gap-2 border-b border-slate-100 bg-slate-50">
+        <div className="flex-1 relative">
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => onSearch(e.target.value)}
+            placeholder="이름 또는 학번"
+            className="w-full bg-white text-xs pl-7 pr-3 py-1.5 rounded border border-slate-200 text-slate-900 focus:outline-none"
           />
-          미채점만 보기
-        </button>
+        </div>
+        <DropdownSelect
+          size="sm"
+          value={sortBy}
+          onChange={setSortBy}
+          options={SORT_OPTIONS}
+          ghost
+          className="w-28"
+        />
+        <DropdownSelect
+          size="sm"
+          value={pageSize}
+          onChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}
+          options={PAGE_SIZE_OPTIONS}
+          ghost
+          className="w-20"
+        />
+        <div className="flex items-center gap-2 shrink-0 border-l border-slate-200 pl-2">
+          {saveStatus === 'saved' && (
+            <span className="text-xs font-medium text-emerald-600">저장 완료</span>
+          )}
+          <Button size="xs" onClick={handleBulkSave} disabled={pendingCount === 0}>
+            일괄 저장
+          </Button>
+        </div>
       </div>
 
-      {/* 테이블 헤더 */}
-      <div className="flex items-center px-3 py-2 gap-2 border-b-2 border-slate-200 bg-slate-50">
-        <div className="w-28 shrink-0 text-center"><SortTh col="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSortClick}>이름</SortTh></div>
-        <div className="w-28 shrink-0 text-center"><SortTh col="studentId" sortBy={sortBy} sortDir={sortDir} onSort={handleSortClick}>학번</SortTh></div>
-        <div className="flex-1 text-[14px] font-semibold text-gray-500">{question.type === 'file_upload' ? '제출 파일' : '제출 답안'}</div>
-        {question.type === 'file_upload' && <div className="w-12 shrink-0 text-center text-[14px] font-semibold text-gray-500" />}
-        <div className="w-28 shrink-0 text-center text-[14px] font-semibold text-gray-500">제출 일시</div>
-        {question.autoGrade && <div className="w-16 shrink-0 text-center text-[14px] font-semibold text-gray-500">정답 여부</div>}
-        <div className="w-40 shrink-0 text-center"><SortTh col="score" sortBy={sortBy} sortDir={sortDir} onSort={handleSortClick}>점수</SortTh></div>
-      </div>
-
-      {/* 행 목록 */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      {/* 학생 카드 리스트 */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin bg-slate-50/30">
         {visible.length === 0 ? (
           <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">검색 결과가 없습니다</div>
         ) : (
