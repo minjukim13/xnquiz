@@ -68,7 +68,7 @@ function Section({ title, summary, children }) {
   return (
     <Card className="overflow-hidden py-0 gap-0">
       <div className="flex items-center gap-3 px-5 py-3.5">
-        <h3 className="text-base font-semibold text-foreground shrink-0">{title}</h3>
+        <h3 className="text-[15px] font-semibold text-foreground shrink-0">{title}</h3>
         {summary && (
           <span className="text-xs text-muted-foreground truncate">{summary}</span>
         )}
