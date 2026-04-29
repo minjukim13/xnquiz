@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
 import {
   AlertCircle, Download, FileDown,
-  ChevronDown, ChevronUp, BarChart3,
+  ChevronDown, ChevronUp,
   FileEdit, UserCheck, Printer
 } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
@@ -368,14 +368,6 @@ export default function GradingDashboard() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="w-px h-4 bg-border mx-0.5" />
-
-            <Button asChild>
-              <Link to={`/quiz/${QUIZ_INFO.id}/stats`}>
-                <BarChart3 size={14} />
-                <span className="hidden sm:block">퀴즈 통계</span>
-              </Link>
-            </Button>
           </div>
         </div>
 

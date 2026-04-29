@@ -39,7 +39,6 @@ export default function StudentListItem({ student, selected, onClick }) {
           </div>
           <p className="text-xs text-muted-foreground mt-px">
             <span className="inline-flex items-center px-1 py-px rounded bg-slate-100 text-slate-600 tabular-nums">{student.studentId}</span>
-            <span className="ml-1.5">{student.department}</span>
           </p>
         </div>
         {isSubmitted && (

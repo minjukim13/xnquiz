@@ -71,9 +71,6 @@ function StudentMeta({ student, accent = false }) {
       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 tabular-nums shrink-0">
         {student.studentId}
       </span>
-      {student.department && (
-        <span className="text-[13px] text-muted-foreground shrink-0">{student.department}</span>
-      )}
     </div>
   )
 }

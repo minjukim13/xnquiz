@@ -71,17 +71,15 @@ function ToolbarFilter({ label, options, selected, onChange, isOpen, onToggle, c
   )
 }
 
-function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, changedStudentIds, onStudentChanged }) {
+function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved, excelRows, onExcelRowsConsumed, changedStudentIds, onStudentChanged, clearPendingSignal }) {
   const [pageSize, setPageSize] = useState(20)
   const [page, setPage] = useState(1)
   const [pendingScores, setPendingScores] = useState({})
-  const [saveStatus, setSaveStatus] = useState('idle')
   const [sortBy, setSortBy] = useState('name')
   const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'ontime' | 'late' | 'unsubmitted'
   const [gradeStatusFilter, setGradeStatusFilter] = useState([])
   const [openFilter, setOpenFilter] = useState(null)
   const gradeStatusFilterRef = useRef(null)
-  const isFirstRender = useRef(true)
 
   useEffect(() => {
     if (!openFilter) return
@@ -100,12 +98,10 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- reset per question change */
     setPendingScores({})
-    setSaveStatus('idle')
     setSortBy('name')
     setFilterStatus('all')
     setGradeStatusFilter([])
     setOpenFilter(null)
-    isFirstRender.current = true
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [question?.id])
 
@@ -122,11 +118,10 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   }, [excelRows]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- transient "saved" flash
-    setSaveStatus('saved')
-    setTimeout(() => setSaveStatus('idle'), 3000)
-  }, [gradeVersion])
+    if (!clearPendingSignal) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- triggered by parent bulk grade
+    setPendingScores({})
+  }, [clearPendingSignal])
 
   const sorted = useMemo(() => {
     const list = [...students]
@@ -161,7 +156,6 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
 
   const handleScoreChange = useCallback((studentId, score) => {
     setPendingScores(prev => ({ ...prev, [studentId]: score }))
-    setSaveStatus('idle')
   }, [])
 
   const computeAutoCorrect = useCallback((student) => {
@@ -170,20 +164,6 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     const rawAnswer = student.selections?.[question.id] ?? getStudentAnswer(studentIdx, question.id)
     return isAnswerCorrect(rawAnswer, question.id)
   }, [question])
-
-  const changedIds = useMemo(() => {
-    return Object.entries(pendingScores)
-      .filter(([studentId, score]) => {
-        const student = students.find(s => s.id === studentId)
-        if (!student) return false
-        const autoCorrect = computeAutoCorrect(student)
-        const initScore = getInitScore(student, question, quizId, autoCorrect)
-        return hasActualScoreChange(score, initScore)
-      })
-      .map(([id]) => id)
-  }, [pendingScores, students, question, quizId, computeAutoCorrect])
-
-  const pendingCount = changedIds.length
 
   const persistScore = useCallback((student, score) => {
     const grades = getLocalGrades()
@@ -196,21 +176,6 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
     student.score = autoTotal + manualTotal
   }, [quizId, question])
-
-  const handleBulkSave = () => {
-    const savedIds = []
-    for (const studentId of changedIds) {
-      const student = students.find(s => s.id === studentId)
-      if (!student) continue
-      persistScore(student, pendingScores[studentId])
-      savedIds.push(studentId)
-    }
-    setPendingScores({})
-    setSaveStatus('saved')
-    setTimeout(() => setSaveStatus('idle'), 3000)
-    onGradeSaved?.()
-    savedIds.forEach(id => onStudentChanged?.(id))
-  }
 
   const handleRowSave = useCallback((studentId) => {
     const score = pendingScores[studentId]
@@ -225,8 +190,6 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
       delete next[studentId]
       return next
     })
-    setSaveStatus('saved')
-    setTimeout(() => setSaveStatus('idle'), 3000)
     onGradeSaved?.()
     onStudentChanged?.(studentId)
   }, [pendingScores, students, question, quizId, computeAutoCorrect, persistScore, onGradeSaved, onStudentChanged])
@@ -278,7 +241,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
         />
       </div>
 
-      {/* 툴바: 검색 + 정렬 + 페이지 크기 + 일괄 저장 */}
+      {/* 툴바: 검색 + 정렬 + 페이지 크기 */}
       <div className="px-3 py-2 flex items-center gap-2 border-b border-slate-100 bg-slate-50">
         <div className="flex-1 relative">
           <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -306,14 +269,6 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
           ghost
           className="w-20"
         />
-        <div className="flex items-center gap-2 shrink-0 border-l border-slate-200 pl-2">
-          {saveStatus === 'saved' && (
-            <span className="text-xs font-medium text-emerald-600">저장 완료</span>
-          )}
-          <Button size="xs" onClick={handleBulkSave} disabled={pendingCount === 0}>
-            일괄 저장
-          </Button>
-        </div>
       </div>
 
       {/* 학생 카드 리스트 */}
