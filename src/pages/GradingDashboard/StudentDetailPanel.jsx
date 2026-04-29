@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { getLocalGrades, setLocalGrades, getLocalComments, setLocalComments, getLocalFudgePoints, setLocalFudgePoints } from './utils'
+import { getLocalGrades, setLocalGrades, getLocalFudgePoints, setLocalFudgePoints, getUnreadCount } from './utils'
 import { getStudentAnswer, isAnswerCorrect, getStudentFileSubmission } from '../../data/mockData'
 import TypeBadge from '../../components/TypeBadge'
 import { Button } from '@/components/ui/button'
-import { Paperclip, Download, MessageSquare, Plus, Minus, MoreVertical } from 'lucide-react'
-import { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from '@/components/ui/popover'
+import { Paperclip, Download, Plus, Minus, MoreVertical } from 'lucide-react'
+import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
 import ActivityLogPanel from './ActivityLogPanel'
+import CommentThread from './CommentThread'
 import { CorrectBadge, GradeStatusBadge } from './StudentRow'
 
 // 복합 답안(객체/배열)을 표시용 문자열로 변환
@@ -167,45 +167,33 @@ function QuestionCard({ question, student, studentIdx, quizId, pendingScore, onS
 export default function StudentDetailPanel({ student, questions, quizId, onGradeSaved }) {
   const studentIdx = parseInt(student.id.replace('s', '')) - 1
   const [pendingScores, setPendingScores] = useState({})
-  const commentKey = `${quizId}_${student.id}`
   const fudgeKey = `${quizId}_${student.id}`
-  const [savedComment, setSavedComment] = useState(() => getLocalComments()[commentKey] || '')
-  const [comment, setComment] = useState(() => getLocalComments()[commentKey] || '')
   const [savedFudge, setSavedFudge] = useState(() => getLocalFudgePoints()[fudgeKey] || 0)
   const [fudge, setFudge] = useState(() => getLocalFudgePoints()[fudgeKey] || 0)
   const [fudgeOpen, setFudgeOpen] = useState(false)
+  const [commentUnread, setCommentUnread] = useState(() => getUnreadCount(quizId, student.id, 'professor'))
+  const [activeTab, setActiveTab] = useState('answers')
 
   useEffect(() => {
     setPendingScores({})
     const key = `${quizId}_${student.id}`
-    const c = getLocalComments()[key] || ''
-    setSavedComment(c)
-    setComment(c)
     const f = getLocalFudgePoints()[key] || 0
     setSavedFudge(f)
     setFudge(f)
+    setCommentUnread(getUnreadCount(quizId, student.id, 'professor'))
+    setActiveTab('answers')
   }, [student?.id, quizId])
+
+  // 코멘트 탭 진입 시 안 읽은 카운트 초기화 (CommentThread 가 markRead 호출함)
+  useEffect(() => {
+    if (activeTab === 'comments') setCommentUnread(0)
+  }, [activeTab])
 
   const handleScoreChange = useCallback((questionId, score) => {
     setPendingScores(prev => ({ ...prev, [questionId]: score }))
   }, [])
 
   const scorePendingCount = Object.values(pendingScores).filter(v => v !== '' && !isNaN(Number(v)) && Number(v) >= 0).length
-  const [commentOpen, setCommentOpen] = useState(false)
-  const [showCommentCancelConfirm, setShowCommentCancelConfirm] = useState(false)
-
-  const commentDirty = comment !== savedComment
-
-  const handleCommentCancel = () => {
-    if (commentDirty) setShowCommentCancelConfirm(true)
-    else setCommentOpen(false)
-  }
-
-  const confirmCommentDiscard = () => {
-    setComment(savedComment)
-    setShowCommentCancelConfirm(false)
-    setCommentOpen(false)
-  }
 
   const handleBulkSave = () => {
     const grades = getLocalGrades()
@@ -282,125 +270,141 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
     onGradeSaved?.()
   }
 
+  const hasScore = student.score !== null
+  const totalPoints = questions.reduce((s, q) => s + (q.points || 0), 0)
+
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-white rounded-xl border border-slate-200">
+      {/* 학생 정보 헤더 — 식별 + 결과 (제출 정보는 활동 로그 탭으로 이동) */}
+      <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-5">
+        {/* 프로필 아바타 */}
+        <div className="shrink-0 w-11 h-11 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-base font-semibold">
+          {student.name[0]}
+        </div>
+
+        {/* 이름 · 학번 */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[18px] font-bold text-foreground truncate leading-tight">
+            {student.name}
+          </p>
+          <p className="text-[13px] text-muted-foreground tabular-nums leading-tight mt-1.5">
+            {student.studentId}
+          </p>
+        </div>
+
+        {/* 점수 + 채점 상태 */}
+        <div className="shrink-0 text-right">
+          <p className="leading-tight tabular-nums">
+            <span className="text-[20px] font-bold text-foreground">
+              {hasScore ? student.score : '—'}
+            </span>
+            <span className="text-[13px] font-medium text-muted-foreground ml-1">
+              / {totalPoints}점
+            </span>
+          </p>
+          <p className={cn(
+            'text-[13px] font-medium leading-tight mt-1.5',
+            hasScore ? 'text-muted-foreground' : 'text-amber-600'
+          )}>
+            {hasScore ? '채점완료' : '미채점'}
+          </p>
+        </div>
+      </div>
+
       {!student.submitted ? (
         <div className="flex-1 flex items-center justify-center p-12">
           <p className="text-sm text-caption">제출된 답안이 없습니다</p>
         </div>
       ) : (
-        <Tabs defaultValue="answers" className="flex-1 min-h-0 gap-0 flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 gap-0 flex flex-col">
           {/* 탭 + 액션 툴바 */}
           <div className="px-3 pt-2 pb-1 border-b border-slate-100 flex items-center justify-between gap-2">
             <TabsList variant="line" className="h-9">
               <TabsTrigger value="answers">답안</TabsTrigger>
               <TabsTrigger value="activity">활동 로그</TabsTrigger>
+              <TabsTrigger value="comments" className="gap-1">
+                코멘트
+                {commentUnread > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-destructive text-white text-[10px] font-semibold tabular-nums">
+                    {commentUnread}
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
 
-            <div className="flex items-center gap-1.5">
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {student.endTime || '-'}
-              </p>
+            {activeTab === 'answers' && (
+              <div className="flex items-center gap-1.5">
+                {/* 점수 저장 */}
+                <Button size="sm" onClick={handleBulkSave} disabled={scorePendingCount === 0}>
+                  점수 저장{scorePendingCount > 0 ? ` (${scorePendingCount})` : ''}
+                </Button>
 
-              {/* 코멘트 */}
-              <Popover
-                open={commentOpen}
-                onOpenChange={open => {
-                  if (open) { setCommentOpen(true); return }
-                  if (commentDirty) setShowCommentCancelConfirm(true)
-                  else setCommentOpen(false)
-                }}
-              >
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" title="코멘트" className={savedComment ? 'text-primary hover:text-primary' : 'text-muted-foreground hover:text-foreground'}>
-                    <MessageSquare size={14} />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-72 p-3">
-                  <textarea
-                    value={comment}
-                    onChange={e => setComment(e.target.value)}
-                    placeholder="코멘트 입력"
-                    rows={3}
-                    className="w-full text-sm resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-200 text-foreground placeholder:text-muted-foreground leading-relaxed"
-                  />
-                  <div className="flex justify-end gap-1.5 mt-1.5">
-                    <Button variant="ghost" size="xs" onClick={handleCommentCancel}>취소</Button>
-                    <Button size="xs" onClick={() => { const c = getLocalComments(); c[commentKey] = comment; setLocalComments(c); setSavedComment(comment); setCommentOpen(false) }}>저장</Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              {/* 더보기 (모든 문항 정답/오답 + 가산점) — 가산점 팝오버는 더보기 버튼에 앵커링 */}
-              <Popover open={fudgeOpen} onOpenChange={open => { if (!open) setFudge(savedFudge); setFudgeOpen(open) }}>
-                <PopoverAnchor asChild>
-                  <span className="inline-flex">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" title="더보기">
-                          <MoreVertical size={16} />
+                {/* 더보기 (모든 문항 정답/오답 + 가산점) — 가산점 팝오버는 더보기 버튼에 앵커링 */}
+                <Popover open={fudgeOpen} onOpenChange={open => { if (!open) setFudge(savedFudge); setFudgeOpen(open) }}>
+                  <PopoverAnchor asChild>
+                    <span className="inline-flex">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" title="더보기">
+                            <MoreVertical size={16} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem onSelect={() => handleAllQuestionsGrade('full')}>
+                            모든 문항 정답
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleAllQuestionsGrade('zero')}>
+                            모든 문항 오답
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => setFudgeOpen(true)}>
+                            가산점{savedFudge !== 0 ? ` (${savedFudge > 0 ? '+' : ''}${savedFudge})` : ''}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </span>
+                  </PopoverAnchor>
+                  <PopoverContent align="end" className="w-64 p-3">
+                    <div className="space-y-2.5">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">가산점 부여</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">총점에 +/- 점수를 가감합니다</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 h-8 w-8 p-0"
+                          onClick={() => setFudge(Number(fudge || 0) - 0.5)}
+                        >
+                          <Minus size={14} />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-52">
-                        <DropdownMenuItem onSelect={() => handleAllQuestionsGrade('full')}>
-                          모든 문항 정답
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => handleAllQuestionsGrade('zero')}>
-                          모든 문항 오답
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => setFudgeOpen(true)}>
-                          가산점{savedFudge !== 0 ? ` (${savedFudge > 0 ? '+' : ''}${savedFudge})` : ''}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </PopoverAnchor>
-                <PopoverContent align="end" className="w-64 p-3">
-                  <div className="space-y-2.5">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">가산점 부여</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">총점에 +/- 점수를 가감합니다</p>
+                        <input
+                          type="number"
+                          step={0.5}
+                          value={fudge}
+                          onChange={e => setFudge(e.target.value === '' ? '' : Number(e.target.value))}
+                          className="flex-1 min-w-0 text-center text-sm px-2 py-1.5 rounded border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-200 text-foreground"
+                          placeholder="0"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 h-8 w-8 p-0"
+                          onClick={() => setFudge(Number(fudge || 0) + 0.5)}
+                        >
+                          <Plus size={14} />
+                        </Button>
+                      </div>
+                      <div className="flex justify-end gap-1.5">
+                        <Button variant="ghost" size="xs" onClick={() => { setFudge(savedFudge); setFudgeOpen(false) }}>취소</Button>
+                        <Button size="xs" onClick={handleFudgeSave}>저장</Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0 h-8 w-8 p-0"
-                        onClick={() => setFudge(Number(fudge || 0) - 0.5)}
-                      >
-                        <Minus size={14} />
-                      </Button>
-                      <input
-                        type="number"
-                        step={0.5}
-                        value={fudge}
-                        onChange={e => setFudge(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="flex-1 min-w-0 text-center text-sm px-2 py-1.5 rounded border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-200 text-foreground"
-                        placeholder="0"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0 h-8 w-8 p-0"
-                        onClick={() => setFudge(Number(fudge || 0) + 0.5)}
-                      >
-                        <Plus size={14} />
-                      </Button>
-                    </div>
-                    <div className="flex justify-end gap-1.5">
-                      <Button variant="ghost" size="xs" onClick={() => { setFudge(savedFudge); setFudgeOpen(false) }}>취소</Button>
-                      <Button size="xs" onClick={handleFudgeSave}>저장</Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              {/* 일괄 저장 */}
-              <Button size="xs" onClick={handleBulkSave} disabled={scorePendingCount === 0}>
-                일괄 저장{scorePendingCount > 0 ? ` (${scorePendingCount})` : ''}
-              </Button>
-            </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
           </div>
 
           <TabsContent value="answers" className="flex flex-col min-h-0">
@@ -423,19 +427,11 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
           <TabsContent value="activity" className="flex flex-col min-h-0">
             <ActivityLogPanel student={student} quizId={quizId} questions={questions} />
           </TabsContent>
-        </Tabs>
-      )}
 
-      {showCommentCancelConfirm && (
-        <ConfirmDialog
-          title="코멘트 작성 취소"
-          message="작성 중인 코멘트가 저장되지 않습니다. 정말 취소하시겠습니까?"
-          confirmLabel="취소하기"
-          cancelLabel="계속 작성"
-          confirmDanger
-          onConfirm={confirmCommentDiscard}
-          onCancel={() => setShowCommentCancelConfirm(false)}
-        />
+          <TabsContent value="comments" className="flex flex-col min-h-0">
+            <CommentThread quizId={quizId} studentId={student.id} role="professor" className="flex-1" />
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   )

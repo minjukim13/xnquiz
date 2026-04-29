@@ -69,6 +69,24 @@ function describeEntry(entry, questions) {
   }
 }
 
+// 제출 셀 — 통계 요약의 첫 셀 (일시만 표시, 정상이 아닌 경우 옆에 배지)
+function SubmitSummaryCell({ student }) {
+  return (
+    <div>
+      <p className="text-[11px] text-muted-foreground mb-0.5">제출일시</p>
+      <p className="text-sm font-semibold text-foreground flex items-center gap-1.5 tabular-nums">
+        <span>{student.endTime ? formatDateTime(student.endTime) : '-'}</span>
+        {student.isLate && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700">지각</span>
+        )}
+        {student.autoSubmitted && !student.isLate && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600">자동</span>
+        )}
+      </p>
+    </div>
+  )
+}
+
 export default function ActivityLogPanel({ student, quizId, questions }) {
   const key = buildActivityLogKey(quizId, student.id)
   const log = useMemo(() => loadActivityLog(key), [key])
@@ -89,8 +107,9 @@ export default function ActivityLogPanel({ student, quizId, questions }) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* 요약 */}
-      <div className="grid grid-cols-4 gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+      {/* 통계 요약 — 제출 / 응시 시작 / 소요 시간 / 포커스 이탈 / 답변 변경 */}
+      <div className="grid grid-cols-5 gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+        <SubmitSummaryCell student={student} />
         <SummaryCell label="응시 시작" value={summary.startedAt ? formatDateTime(summary.startedAt) : '-'} />
         <SummaryCell label="소요 시간" value={formatDuration(summary.durationSec)} accent={summary.autoSubmitted ? 'amber' : undefined} />
         <SummaryCell label="포커스 이탈" value={`${summary.focusLossCount}회`} accent={summary.focusLossCount > 0 ? 'amber' : undefined} />

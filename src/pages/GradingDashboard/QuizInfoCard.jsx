@@ -79,12 +79,12 @@ export default function QuizInfoCard({ quiz, students }) {
 
           <div className="flex items-stretch shrink-0 overflow-hidden rounded-[14px] bg-background">
             <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[90px]">
-              <p className="text-xs mb-2 text-muted-foreground">제출률</p>
+              <p className="text-xs mb-2 text-muted-foreground">응시율</p>
               <p className="text-2xl leading-none font-extrabold text-primary">{submitRate}%</p>
             </div>
             <div className="w-px bg-border" />
             <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
-              <p className="text-xs mb-2 text-muted-foreground">제출 인원</p>
+              <p className="text-xs mb-2 text-muted-foreground">응시 인원</p>
               <p className="text-2xl leading-none font-extrabold text-foreground">
                 {effectiveSubmitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.totalStudents}명</span>
               </p>
