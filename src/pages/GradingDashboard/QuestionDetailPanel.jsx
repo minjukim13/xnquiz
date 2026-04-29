@@ -2,10 +2,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import TypeBadge from '../../components/TypeBadge'
-import { Download, FolderDown, ChevronDown, RefreshCw } from 'lucide-react'
+import { Download, FolderDown, ChevronDown } from 'lucide-react'
 import ResponsesTab from './ResponsesTab'
 import StatsTab from './StatsTab'
 import { RichTextRenderer } from '../../components/RichText'
+import { getLocalGrades, setLocalGrades } from './utils'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
 const REGRADE_OPTION_LABELS = {
   award_both: '이전 정답과 수정된 정답 모두 인정',
@@ -17,6 +19,7 @@ const REGRADE_OPTION_LABELS = {
 export default function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, showToast }) {
   const [changedStudentIds, setChangedStudentIds] = useState(new Set())
   const [showChoices, setShowChoices] = useState(false)
+  const [clearPendingSignal, setClearPendingSignal] = useState(0)
 
   // 재채점 로그 읽기
   const regradeInfo = useMemo(() => {
@@ -34,6 +37,48 @@ export default function QuestionDetailPanel({ question, students, search, onSear
     setShowChoices(false)
   }, [question?.id])
 
+  // mode: 'all_full' = 전체 만점 / 'all_zero' = 전체 0점 / 'unsubmitted_zero' = 미제출자만 0점
+  const handleBulkGrade = (mode) => {
+    const isFull = mode === 'all_full'
+    const targetScore = isFull ? question.points : 0
+    const label = isFull ? '정답' : '오답'
+
+    let targets
+    let scopeLabel
+    if (mode === 'unsubmitted_zero') {
+      targets = students.filter(s => !s.submitted)
+      scopeLabel = '미제출자'
+    } else {
+      targets = students
+      scopeLabel = '전체 학생'
+    }
+
+    if (targets.length === 0) {
+      showToast?.(`${scopeLabel}가 없어 적용할 수 없습니다`)
+      return
+    }
+    if (!window.confirm(`${scopeLabel} ${targets.length}명 전원에게 ${label}(${targetScore}점) 처리합니다.\n기존 채점 결과는 모두 덮어씁니다. 진행할까요?`)) return
+
+    const grades = getLocalGrades()
+    targets.forEach(student => {
+      const storageKey = `${quizId}_${student.id}_${question.id}`
+      grades[storageKey] = targetScore
+      if (!student.manualScores) student.manualScores = {}
+      student.manualScores[question.id] = targetScore
+      const autoTotal = Object.values(student.autoScores || {}).reduce((a, b) => a + b, 0)
+      const manualTotal = Object.values(student.manualScores).reduce((a, b) => a + (b || 0), 0)
+      student.score = autoTotal + manualTotal
+    })
+    setLocalGrades(grades)
+    setChangedStudentIds(prev => {
+      const next = new Set(prev)
+      targets.forEach(s => next.add(s.id))
+      return next
+    })
+    setClearPendingSignal(s => s + 1)
+    onGradeSaved?.()
+    showToast?.(`${scopeLabel} ${targets.length}명에게 ${label} 처리했습니다`)
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -155,6 +200,25 @@ export default function QuestionDetailPanel({ question, students, search, onSear
                 제출물 일괄 다운로드
               </Button>
             )}
+            <Button variant="outline" onClick={() => handleBulkGrade('all_full')}>
+              전체 정답
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  전체 오답
+                  <ChevronDown size={12} className="text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-2 border-0 rounded-xl shadow-lg">
+                <DropdownMenuItem onClick={() => handleBulkGrade('all_zero')}>
+                  전체 학생 0점 처리
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkGrade('unsubmitted_zero')}>
+                  미제출자만 0점 처리
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="outline" onClick={onExcel}>
               <Download size={14} />
               엑셀 일괄 채점
@@ -164,7 +228,7 @@ export default function QuestionDetailPanel({ question, students, search, onSear
       </div>
 
       {activeTab === 'responses' ? (
-        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} changedStudentIds={changedStudentIds} onStudentChanged={id => setChangedStudentIds(prev => new Set(prev).add(id))} />
+        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} changedStudentIds={changedStudentIds} onStudentChanged={id => setChangedStudentIds(prev => new Set(prev).add(id))} clearPendingSignal={clearPendingSignal} />
       ) : (
         <StatsTab question={question} students={students} />
       )}

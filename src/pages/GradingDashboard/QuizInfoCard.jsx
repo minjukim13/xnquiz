@@ -26,10 +26,6 @@ export default function QuizInfoCard({ quiz, students }) {
     () => quiz.totalStudents > 0 ? Math.round((effectiveSubmitted / quiz.totalStudents) * 100) : 0,
     [effectiveSubmitted, quiz.totalStudents]
   )
-  const gradeProgress = useMemo(
-    () => quiz.totalStudents > 0 ? Math.round((effectiveGraded / quiz.totalStudents) * 100) : 0,
-    [effectiveGraded, quiz.totalStudents]
-  )
 
   return (
     <div className="mb-5 overflow-hidden bg-card rounded-2xl shadow-md">
@@ -100,20 +96,6 @@ export default function QuizInfoCard({ quiz, students }) {
                 {effectiveGraded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.totalStudents}명</span>
               </p>
             </div>
-          </div>
-        </div>
-
-        {/* 채점 진행률 */}
-        <div className="mt-4 pt-4 border-t border-secondary">
-          <div className="flex justify-between text-xs mb-2">
-            <span className="text-muted-foreground">채점 진행률</span>
-            <span className="font-bold text-primary">{gradeProgress}%</span>
-          </div>
-          <div className="h-[5px] rounded-full overflow-hidden bg-border">
-            <div
-              className="h-full rounded-full transition-all bg-primary"
-              style={{ width: `${gradeProgress}%` }}
-            />
           </div>
         </div>
       </div>
