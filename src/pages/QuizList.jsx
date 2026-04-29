@@ -455,7 +455,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <StatusBadge status={displayStatus} />
             {(quiz.week > 0 || quiz.session > 0) && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-secondary text-secondary-foreground">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
               </span>
             )}
@@ -1086,7 +1086,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
               </span>
             )}
             {(quiz.week > 0 || quiz.session > 0) && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-secondary text-secondary-foreground">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
               </span>
             )}

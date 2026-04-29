@@ -227,9 +227,8 @@ export default function Layout() {
           {/* 학생 모드 안내 배너 — 데스크톱 */}
           {role === 'student' && (
             <div className="hidden sm:flex items-center gap-2 mx-6 lg:mx-10 mt-4 px-4 py-2.5 rounded-lg text-xs bg-accent">
-              <GraduationCap size={12} className="text-primary" />
               <span className="text-primary font-medium">학생 모드</span>
-              <span className="text-primary">— {currentStudent.name} ({currentStudent.studentId}) 로 응시 중 · 데모 전용</span>
+              <span className="text-primary">- {currentStudent.name} ({currentStudent.studentId})</span>
             </div>
           )}
 
