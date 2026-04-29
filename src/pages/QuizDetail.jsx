@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate, Navigate } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/PageHeader'
-import { mockQuizzes } from '../data/mockData'
-import { getQuiz, deleteQuiz, isApiMode } from '@/lib/data'
+import { mockQuizzes, getStudentAttempts } from '../data/mockData'
+import { getQuiz, deleteQuiz, isApiMode, listAttempts } from '@/lib/data'
 import { useRole } from '../context/role'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -49,7 +49,7 @@ function isDefaultValue(value) {
 function InfoRow({ label, value, muted = false }) {
   const isDefault = muted || isDefaultValue(value)
   return (
-    <div className="flex items-baseline justify-between gap-4 py-1">
+    <div className="flex items-baseline justify-between gap-4 py-2">
       <span className="text-sm text-muted-foreground shrink-0">{label}</span>
       {isDefault ? (
         <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground shrink-0">
@@ -73,7 +73,7 @@ function Section({ title, summary, children }) {
           <span className="text-xs text-muted-foreground truncate">{summary}</span>
         )}
       </div>
-      <div className="px-5 py-3 border-t border-border divide-y divide-border">
+      <div className="px-5 py-2 border-t border-border/60 divide-y divide-border/50">
         {children}
       </div>
     </Card>
@@ -104,10 +104,8 @@ function scoreRevealSummary(quiz) {
 export default function QuizDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { role } = useRole()
-
-  // 학생은 상세 페이지 접근 불가 — 목록으로 리다이렉트
-  if (role === 'student') return <Navigate to="/" replace />
+  const { role, currentStudent } = useRole()
+  const isStudent = role === 'student'
 
   const [quiz, setQuiz] = useState(() => {
     if (isApiMode()) return null
@@ -116,6 +114,7 @@ export default function QuizDetail() {
   const [loaded, setLoaded] = useState(!isApiMode() && !!quiz)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [toast, setToast] = useState(null)
+  const [myAttempts, setMyAttempts] = useState([])
 
   useEffect(() => {
     let mounted = true
@@ -132,6 +131,28 @@ export default function QuizDetail() {
     })()
     return () => { mounted = false }
   }, [id])
+
+  useEffect(() => {
+    if (!isStudent) return
+    let mounted = true
+    ;(async () => {
+      try {
+        if (isApiMode()) {
+          const rows = await listAttempts({ quizId: id })
+          if (!mounted) return
+          setMyAttempts(rows)
+        } else {
+          const all = getStudentAttempts(id)
+          const mine = all.filter(a => a.studentId === currentStudent?.id)
+          if (!mounted) return
+          setMyAttempts(mine)
+        }
+      } catch (err) {
+        console.error('[QuizDetail] listAttempts 실패', err)
+      }
+    })()
+    return () => { mounted = false }
+  }, [id, isStudent, currentStudent?.id])
 
   const showToast = (msg) => {
     setToast(msg)
@@ -154,6 +175,11 @@ export default function QuizDetail() {
   const displayStatus = resolveDisplayStatus(quiz)
   const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
   const canStats = quiz.status !== 'draft'
+  const pastDue = isDeadlinePassed(quiz)
+  const isOpenForStudent = quiz.status === 'open' && !scheduled && !pastDue
+  const attemptCount = myAttempts.length
+  const maxAttempts = quiz.allowAttempts ?? 1
+  const isAttemptExceeded = maxAttempts !== -1 && attemptCount >= maxAttempts
 
   const handleDelete = async () => {
     setDeleteConfirm(false)
@@ -178,46 +204,71 @@ export default function QuizDetail() {
           ariaLabel="퀴즈 목록"
           title={quiz.title}
           actions={
-            <>
-              {canGrade && (
-                <Button asChild>
-                  <Link to={`/quiz/${quiz.id}/grade`}>
-                    <ClipboardCheck size={15} />
-                    채점
-                  </Link>
-                </Button>
-              )}
-              {canStats && (
-                <Button asChild variant="outline">
-                  <Link to={`/quiz/${quiz.id}/stats`}>
-                    <BarChart3 size={15} />
-                    통계
-                  </Link>
-                </Button>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
-                    <MoreVertical size={16} />
+            isStudent ? (
+              <>
+                {scheduled && (
+                  <span className="text-xs text-amber-600 font-medium">
+                    {quiz.startDate} 시작
+                  </span>
+                )}
+                {isOpenForStudent && !isAttemptExceeded && (
+                  <Button asChild>
+                    <Link to={`/quiz/${quiz.id}/attempt`}>
+                      {attemptCount > 0 ? '재응시' : '응시하기'}
+                    </Link>
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/edit`)}>
-                    <Pencil size={14} />
-                    편집
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/attempt?preview=true`)}>
-                    <Eye size={14} />
-                    미리보기
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onClick={() => setDeleteConfirm(true)}>
-                    <Trash2 size={14} />
-                    삭제
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
+                )}
+                {isOpenForStudent && isAttemptExceeded && (
+                  <div className="relative group">
+                    <Button disabled>응시하기</Button>
+                    <div className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10 bg-foreground text-white">
+                      응시 가능 횟수({maxAttempts}회)를 초과했습니다
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {canGrade && (
+                  <Button asChild>
+                    <Link to={`/quiz/${quiz.id}/grade`}>
+                      <ClipboardCheck size={15} />
+                      채점
+                    </Link>
+                  </Button>
+                )}
+                {canStats && (
+                  <Button asChild variant="outline">
+                    <Link to={`/quiz/${quiz.id}/stats`}>
+                      <BarChart3 size={15} />
+                      통계
+                    </Link>
+                  </Button>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+                      <MoreVertical size={16} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/edit`)}>
+                      <Pencil size={14} />
+                      편집
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/attempt?preview=true`)}>
+                      <Eye size={14} />
+                      미리보기
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onClick={() => setDeleteConfirm(true)}>
+                      <Trash2 size={14} />
+                      삭제
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )
           }
           meta={
             <>
@@ -333,11 +384,13 @@ export default function QuizDetail() {
               value={quiz.ipRestriction ? quiz.ipRestriction : '설정 안함'}
               muted={!quiz.ipRestriction}
             />
-            <InfoRow
-              label="학생 노출"
-              value={quiz.visible === false ? '숨김' : '공개'}
-            />
-            {Array.isArray(quiz.assignments) && quiz.assignments.length > 0 && (
+            {!isStudent && (
+              <InfoRow
+                label="학생 노출"
+                value={quiz.visible === false ? '숨김' : '공개'}
+              />
+            )}
+            {!isStudent && Array.isArray(quiz.assignments) && quiz.assignments.length > 0 && (
               <InfoRow label="추가 기간 설정" value={`${quiz.assignments.length}건`} />
             )}
           </Section>

@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import QuestionAnswer from '../components/QuestionAnswer'
 import { RichTextRenderer } from '../components/RichText'
+import CommentThread from './GradingDashboard/CommentThread'
 import { generateStudentVariables } from '@/utils/formulaEngine'
 import {
   buildAttemptSessionKey,
@@ -666,7 +667,7 @@ export default function QuizAttempt() {
       </div>
 
       {/* 제출 완료 결과 모달 */}
-      {result && <ResultModal result={result} quiz={quiz} questions={questions} onClose={() => navigate('/')} />}
+      {result && <ResultModal result={result} quiz={quiz} questions={questions} quizId={id} studentId={currentStudent?.id} onClose={() => navigate('/')} />}
       {alertDialog && (
         <AlertDialog
           title={alertDialog.title}
@@ -1083,7 +1084,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
   )
 }
 
-function ResultModal({ result, quiz, questions, onClose }) {
+function ResultModal({ result, quiz, questions, quizId, studentId, onClose }) {
   const autoTotal = result.totalAutoScore
   const totalPoints = questions.reduce((s, q) => s + (q.points || 0), 0)
   const autoMax = totalPoints > 0 ? totalPoints : result.totalPossibleAuto
@@ -1317,6 +1318,16 @@ function ResultModal({ result, quiz, questions, onClose }) {
                     </div>
                   )
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* 교수자 코멘트 thread */}
+          {quizId && studentId && (
+            <div className="mx-6 mt-5">
+              <p className="text-[13px] font-medium mb-2 text-foreground">교수자 코멘트</p>
+              <div className="rounded-lg border border-border overflow-hidden h-[280px] flex flex-col">
+                <CommentThread quizId={quizId} studentId={studentId} role="student" className="flex-1" />
               </div>
             </div>
           )}

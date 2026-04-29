@@ -165,7 +165,7 @@ export default function QuizStats() {
           }
           actions={
             <Button asChild>
-              <Link to={`/quiz/${quiz.id}/grade`}>채점 대시보드</Link>
+              <Link to={`/quiz/${quiz.id}/grade`}>채점</Link>
             </Button>
           }
           meta={

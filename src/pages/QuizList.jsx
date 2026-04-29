@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown, Pencil, ClipboardCheck } from 'lucide-react'
+import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3 } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
@@ -440,6 +440,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
   const displayStatus = resolveDisplayStatus(quiz)
 
   const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
+  const stats = getInlineStats(quiz, scheduled)
 
   return (
     <Card
@@ -449,7 +450,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
       )}
       onClick={() => navigate(`/quiz/${quiz.id}`)}
     >
-      <div className="flex items-start gap-4 px-6 pt-3 pb-3">
+      <div className="flex items-center gap-4 px-6 py-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <StatusBadge status={displayStatus} />
@@ -487,17 +488,12 @@ function QuizCard({ quiz, onCopy, onDelete }) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-          {canGrade && (
-            <>
-              <Button asChild variant="outline" className="border-border text-foreground bg-white hover:bg-secondary">
-                <Link to={`/quiz/${quiz.id}/grade`}>채점</Link>
-              </Button>
-              <Button asChild>
-                <Link to={`/quiz/${quiz.id}/stats`}>통계</Link>
-              </Button>
-            </>
-          )}
+        <div className="flex items-center gap-5 shrink-0" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-5">
+            {stats.map(s => (
+              <InlineStat key={s.label} label={s.label} value={s.value} cls={s.cls} />
+            ))}
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -506,6 +502,19 @@ function QuizCard({ quiz, onCopy, onDelete }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {canGrade && (
+                <>
+                  <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/grade`)}>
+                    <ClipboardList size={14} />
+                    채점
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/stats`)}>
+                    <BarChart3 size={14} />
+                    통계
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/edit`)}>
                 <Pencil size={14} />
                 편집
@@ -527,23 +536,44 @@ function QuizCard({ quiz, onCopy, onDelete }) {
           </DropdownMenu>
         </div>
       </div>
-
-      <div className="px-6 py-4 bg-secondary border-t border-border" onClick={e => e.stopPropagation()}>
-        {quiz.status === 'draft' || scheduled ? (
-          <DraftSpecs quiz={quiz} />
-        ) : (
-          <ActiveStats quiz={quiz} />
-        )}
-      </div>
     </Card>
   )
+}
+
+function InlineStat({ label, value, cls }) {
+  return (
+    <div className="flex flex-col items-center gap-1 min-w-[56px]">
+      <p className={cn('text-[15px] font-bold leading-none', cls || 'text-foreground')}>{value}</p>
+      <p className="text-[11px] text-muted-foreground leading-none">{label}</p>
+    </div>
+  )
+}
+
+function getInlineStats(quiz, scheduled) {
+  if (quiz.status === 'draft' || scheduled) {
+    return [
+      { label: '문항 수',  value: `${quiz.questions}개` },
+      { label: '총점',     value: `${quiz.totalPoints}점` },
+      { label: '제한시간', value: !quiz.timeLimit ? '없음' : `${quiz.timeLimit}분` },
+    ]
+  }
+  const submitted = quiz.submitted ?? 0
+  const totalStudents = quiz.totalStudents ?? 0
+  const submitRate = totalStudents > 0 ? Math.round((submitted / totalStudents) * 100) : 0
+  const unsubmitted = Math.max(0, totalStudents - submitted)
+  return [
+    { label: '응시율',   value: `${submitRate}%` },
+    { label: '응시인원', value: `${submitted}명` },
+    { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-red-500' : 'text-muted-foreground' },
+    { label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-primary' },
+  ]
 }
 
 
 function QuizCardSkeleton() {
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-start gap-4 px-6 pt-3 pb-3">
+      <div className="flex items-center gap-4 px-6 py-4">
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-12 rounded-md" />
@@ -552,74 +582,17 @@ function QuizCardSkeleton() {
           <Skeleton className="h-5 w-2/3" />
           <Skeleton className="h-3 w-1/2" />
         </div>
-        <div className="flex items-center gap-2 shrink-0 mt-0.5">
-          <Skeleton className="h-9 w-14" />
-          <Skeleton className="h-9 w-14" />
+        <div className="flex items-center gap-5 shrink-0">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="flex flex-col items-center gap-1 min-w-[56px]">
+              <Skeleton className="h-4 w-10" />
+              <Skeleton className="h-3 w-8" />
+            </div>
+          ))}
           <Skeleton className="h-7 w-7 rounded-md" />
         </div>
       </div>
-      <div className="px-6 py-4 bg-secondary border-t border-border">
-        <div className="grid grid-cols-3">
-          {[0, 1, 2].map(i => (
-            <div key={i} className={cn('flex flex-col items-center gap-1.5 px-4', i < 2 && 'border-r border-border')}>
-              <Skeleton className="h-5 w-12" />
-              <Skeleton className="h-3 w-10" />
-            </div>
-          ))}
-        </div>
-      </div>
     </Card>
-  )
-}
-
-
-function DraftSpecs({ quiz }) {
-  // quiz.questions / quiz.totalPoints 는 API 응답에서 서버가 실시간 집계해 내려주는 요약 필드(스탬프가 아님).
-  // 목록 화면에서는 개별 문항 배열을 로드하지 않으므로 이 집계값을 사용한다.
-  const cols = [
-    { label: '문항 수',   value: `${quiz.questions}개` },
-    { label: '총점',       value: `${quiz.totalPoints}점` },
-    { label: '제한시간',   value: !quiz.timeLimit ? '없음' : `${quiz.timeLimit}분` },
-  ]
-
-  return (
-    <div className="grid grid-cols-3">
-      {cols.map((item, idx) => (
-        <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < cols.length - 1 && 'border-r border-border')}>
-          <p className="text-base font-semibold leading-none text-secondary-foreground">{item.value}</p>
-          <p className="text-xs mt-1 text-muted-foreground">{item.label}</p>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-
-function ActiveStats({ quiz }) {
-  // 집계값(submitted · totalStudents · avgScore) 은 listQuizzes 응답에서 서버/mock 이 제공
-  // — 프론트에서 재계산하면 mock 학생 배열(120명 등) 과 api totalStudents(45) 가 섞여 왜곡됨
-  const submitted = quiz.submitted ?? 0
-  const totalStudents = quiz.totalStudents ?? 0
-  const submitRate = totalStudents > 0 ? Math.round((submitted / totalStudents) * 100) : 0
-  const unsubmitted = Math.max(0, totalStudents - submitted)
-  const isClosed = quiz.status === 'closed' || quiz.status === 'grading' || isDeadlinePassed(quiz)
-
-  const cols = [
-    { label: '응시율',   value: `${submitRate}%`,   cls: 'text-foreground' },
-    { label: '응시인원', value: `${submitted}명`,   cls: 'text-foreground' },
-    { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-red-500' : 'text-muted-foreground' },
-    ...(isClosed ? [{ label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-primary' }] : []),
-  ]
-
-  return (
-    <div className={cn('grid', cols.length === 4 ? 'grid-cols-4' : 'grid-cols-3')}>
-      {cols.map((item, idx) => (
-        <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < cols.length - 1 && 'border-r border-border')}>
-          <p className={cn('text-lg font-bold leading-none', item.cls)}>{item.value}</p>
-          <p className="text-xs mt-1 text-muted-foreground">{item.label}</p>
-        </div>
-      ))}
-    </div>
   )
 }
 
@@ -1077,19 +1050,17 @@ function StudentQuizList() {
 }
 
 function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = null }) {
+  const navigate = useNavigate()
   // api 모드면 부모가 내려준 실제 응시 기록, 아니면 mock localStorage 에서 조회
   // api 모드는 서버가 이미 본인 것만 반환 → studentId 추가 필터 스킵 (LTI 유저 ID 매칭 오류 방지)
   const attempts = apiAttempts ?? getStudentAttempts(quiz.id)
   const myAttempts = apiAttempts ? apiAttempts : attempts.filter(a => a.studentId === studentId)
   const myAttempt = myAttempts[myAttempts.length - 1] ?? null
-  const attemptCount = myAttempts.length
   const [showHistory, setShowHistory] = useState(false)
-  const maxAttempts = quiz.allowAttempts ?? 1
-  const isAttemptExceeded = maxAttempts !== -1 && attemptCount >= maxAttempts
-  const pastDue = isDeadlinePassed(quiz)
-  const isOpen = quiz.status === 'open' && !scheduled && !pastDue
   const displayStatus = resolveDisplayStatus(quiz)
   const ddayBadge = getDdayBadge(quiz)
+  const pastDue = isDeadlinePassed(quiz)
+  const isOpen = quiz.status === 'open' && !scheduled && !pastDue
 
   // 학생 혼란 방지 — 채점 상태(대기/완료)는 학생 목록 배지에 표시하지 않음.
   // 응시 여부만 표시: 미응시(마감) = 미제출, 그 외(응시중 / 응시 완료)는 배지 없음.
@@ -1097,9 +1068,15 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
     ? { label: '미제출', cls: 'text-muted-foreground bg-secondary' }
     : null
 
+  const reveal = myAttempt ? computeScoreReveal(quiz, myAttempt) : null
+  const showSubInfo = myAttempt && (myAttempt.manualPending > 0 || myAttempts.length > 1)
+
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-start gap-4 px-6 pt-3 pb-3">
+    <Card
+      className="overflow-hidden transition-shadow cursor-pointer hover:shadow-md"
+      onClick={() => navigate(`/quiz/${quiz.id}`)}
+    >
+      <div className="flex items-center gap-4 px-6 py-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <StatusBadge status={displayStatus} />
@@ -1138,54 +1115,40 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 mt-0.5">
-          {scheduled && (
-            <span className="text-xs text-amber-600 font-medium">
-              {quiz.startDate} 시작
-            </span>
-          )}
-          {!scheduled && isOpen && !isAttemptExceeded && (
-            <Button asChild>
-              <Link to={`/quiz/${quiz.id}/attempt`}>
-                {attemptCount > 0 ? '재응시' : '응시하기'}
-              </Link>
-            </Button>
-          )}
-          {!scheduled && isOpen && isAttemptExceeded && (
-            <div className="relative group">
-              <Button disabled>응시하기</Button>
-              <div className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10 bg-foreground text-white">
-                응시 가능 횟수({maxAttempts}회)를 초과했습니다
-              </div>
+        <div className="flex items-center gap-5 shrink-0">
+          {!myAttempt ? (
+            <div className="flex items-center gap-5">
+              <InlineStat label="문항 수"   value={`${quiz.questions}개`} />
+              <InlineStat label="총점"       value={`${quiz.totalPoints}점`} />
+              <InlineStat label="제한시간"   value={!quiz.timeLimit ? '없음' : `${quiz.timeLimit}분`} />
             </div>
+          ) : (
+            <InlineStat
+              label="내 점수"
+              value={reveal.released ? `${reveal.totalScore}/${reveal.totalPossible}점` : reveal.label}
+              cls={reveal.released ? 'text-primary' : 'text-muted-foreground'}
+            />
           )}
         </div>
       </div>
 
-      {/* 카드 하단: 퀴즈 메타 정보 or 성적 */}
-      <div className="px-6 py-4 bg-secondary border-t border-border">
-        {!myAttempt ? (
-          <div className="grid grid-cols-3">
-            {[
-              { label: '문항 수', value: `${quiz.questions}개` },
-              { label: '총점', value: `${quiz.totalPoints}점` },
-              { label: '제한시간', value: !quiz.timeLimit ? '없음' : `${quiz.timeLimit}분` },
-            ].map((item, idx) => (
-              <div key={item.label} className={cn('text-center px-4 first:pl-0 last:pr-0', idx < 2 && 'border-r border-border')}>
-                <p className="text-lg font-bold leading-none text-foreground">{item.value}</p>
-                <p className="text-xs mt-1 text-muted-foreground">{item.label}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <StudentScoreFooter quiz={quiz} myAttempt={myAttempt} myAttempts={myAttempts} showHistory={showHistory} setShowHistory={setShowHistory} />
-        )}
-      </div>
+      {showSubInfo && (
+        <div onClick={e => e.stopPropagation()}>
+          <StudentScoreFooter
+            quiz={quiz}
+            myAttempt={myAttempt}
+            myAttempts={myAttempts}
+            showHistory={showHistory}
+            setShowHistory={setShowHistory}
+            reveal={reveal}
+          />
+        </div>
+      )}
     </Card>
   )
 }
 
-function StudentScoreFooter({ quiz, myAttempt, myAttempts, showHistory, setShowHistory }) {
+function computeScoreReveal(quiz, myAttempt) {
   const now = new Date()
   const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null
   const inPeriod = (() => {
@@ -1214,32 +1177,28 @@ function StudentScoreFooter({ quiz, myAttempt, myAttempts, showHistory, setShowH
   const manualScore = myAttempt.manualPending > 0 ? 0 : (myAttempt.totalManualScore ?? 0)
   const totalScore = autoScore + manualScore
   const totalPossible = quiz.totalPoints ?? myAttempt.totalPossibleAuto
+  const isHidden = quiz.scoreRevealEnabled === false || quiz.scoreReleasePolicy === null
+  const label = isHidden ? '비공개' : '공개 예정'
+
+  return { released, totalScore, totalPossible, label }
+}
+
+function StudentScoreFooter({ quiz, myAttempt, myAttempts, showHistory, setShowHistory, reveal }) {
+  const { released, totalPossible } = reveal
 
   return (
-    <div>
-      <div className="flex items-center gap-4 text-xs flex-wrap">
-        {released ? (
-          <span className="text-primary font-semibold">
-            {totalScore}점 / {totalPossible}점
-            {myAttempt.manualPending > 0 && <span className="text-muted-foreground font-normal"> (수동채점 대기 0점 반영)</span>}
-          </span>
-        ) : (
-          <span className="text-muted-foreground">
-            {quiz.scoreRevealEnabled === false || quiz.scoreReleasePolicy === null ? '성적 비공개' : '공개 예정'}
-          </span>
-        )}
+    <div className="px-6 py-2.5 bg-secondary border-t border-border">
+      <div className="flex items-center gap-3 text-xs flex-wrap">
         {myAttempt.manualPending > 0 && released && (
           <span className="flex items-center gap-1 text-amber-600">
             <AlertCircle size={11} />
-            수동채점 {myAttempt.manualPending}문항 대기 중
+            수동채점 {myAttempt.manualPending}문항 대기 중 (0점 반영)
           </span>
         )}
-        <span className="text-muted-foreground">제출 {myAttempt.submittedAt}</span>
-
         {myAttempts.length > 1 && (
           <button
             onClick={() => setShowHistory(h => !h)}
-            className={cn('text-xs ml-auto transition-colors', showHistory ? 'text-primary' : 'text-muted-foreground')}
+            className={cn('ml-auto transition-colors', showHistory ? 'text-primary' : 'text-muted-foreground')}
           >
             응시 기록 {myAttempts.length}회 {showHistory ? '▲' : '▼'}
           </button>
