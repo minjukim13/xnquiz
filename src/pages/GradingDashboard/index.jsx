@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useParams, Link, Navigate } from 'react-router-dom'
+import { useParams, Link, Navigate, useNavigate } from 'react-router-dom'
 import {
-  AlertCircle, Download, FileDown,
+  AlertCircle, ArrowLeft, Download, FileDown,
   ChevronDown, ChevronUp,
   FileEdit, UserCheck, Printer
 } from 'lucide-react'
@@ -96,6 +96,7 @@ function GradingDashboardSkeleton() {
 
 export default function GradingDashboard() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { role } = useRole()
   const [QUIZ_INFO, setQUIZ_INFO] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -296,6 +297,16 @@ export default function GradingDashboard() {
   return (
     <>
       <div className="pt-4 pb-6">
+
+        {/* ── 뒤로가기 ── */}
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="-ml-1 mb-3 inline-flex items-center gap-0.5 px-1 py-1 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+        >
+          <ArrowLeft size={16} />
+          뒤로가기
+        </button>
 
         {/* ── 퀴즈 정보 카드 ── */}
         <QuizInfoCard quiz={QUIZ_INFO} students={quizStudents} />

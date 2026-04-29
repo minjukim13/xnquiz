@@ -115,8 +115,7 @@ export default function QuestionBank() {
       <div className="max-w-6xl mx-auto pb-8">
 
         <PageHeader
-          backTo="/question-banks"
-          ariaLabel="문제모음 목록"
+          ariaLabel="뒤로가기"
           title={
             editingBankName ? (
               <input

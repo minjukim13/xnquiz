@@ -46,13 +46,23 @@ function isDefaultValue(value) {
   return DEFAULT_VALUE_TOKENS.has(value.trim())
 }
 
-function InfoRow({ label, value, muted = false }) {
-  const isDefault = muted || isDefaultValue(value)
+const BADGE_VARIANT_CLASS = {
+  default: 'bg-secondary text-muted-foreground',
+  accent: 'bg-accent text-primary',
+  amber: 'bg-amber-50 text-amber-700',
+}
+
+function InfoRow({ label, value, muted = false, badgeVariant }) {
+  const showBadge = !!badgeVariant || muted || isDefaultValue(value)
+  const variantKey = badgeVariant ?? 'default'
   return (
     <div className="flex items-baseline justify-between gap-4 py-2">
       <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-      {isDefault ? (
-        <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground shrink-0">
+      {showBadge ? (
+        <span className={cn(
+          'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0',
+          BADGE_VARIANT_CLASS[variantKey] ?? BADGE_VARIANT_CLASS.default
+        )}>
           {value}
         </span>
       ) : (
@@ -85,20 +95,29 @@ function formatDateRange(start, end) {
   return `${start || '제한 없음'} ~ ${end || '제한 없음'}`
 }
 
-function scoreRevealSummary(quiz) {
-  if (quiz.scoreRevealEnabled === undefined && quiz.scoreReleasePolicy === undefined) return '설정 없음'
+function scoreRevealBadge(quiz) {
+  if (quiz.scoreRevealEnabled === undefined && quiz.scoreReleasePolicy === undefined) {
+    return { label: '설정 없음', variant: 'default' }
+  }
   const enabled = quiz.scoreRevealEnabled ?? (quiz.scoreReleasePolicy !== null)
-  if (!enabled) return '비공개'
+  if (!enabled) return { label: '비공개', variant: 'default' }
+
   const isWithAnswer = quiz.scoreRevealScope === 'with_answer'
   const timing = quiz.scoreRevealTiming ?? quiz.scoreReleasePolicy
-  const timingLabel = timing === 'after_due' ? '마감 후 공개'
-    : timing === 'period' ? '공개 기간 지정'
-    : '즉시 공개'
   const scopeLabel = isWithAnswer ? '정답 포함' : '점수만'
-  if (timing === 'period' && (quiz.scoreRevealStart || quiz.scoreRevealEnd)) {
-    return `${scopeLabel} · ${timingLabel} (${quiz.scoreRevealStart?.split(' ')[0] || ''} ~ ${quiz.scoreRevealEnd?.split(' ')[0] || ''})`
+
+  if (timing === 'after_due') {
+    return { label: `${scopeLabel} · 마감 후 공개`, variant: 'amber' }
   }
-  return `${scopeLabel} · ${timingLabel}`
+  if (timing === 'period') {
+    if (quiz.scoreRevealStart || quiz.scoreRevealEnd) {
+      const start = quiz.scoreRevealStart?.split(' ')[0] || ''
+      const end = quiz.scoreRevealEnd?.split(' ')[0] || ''
+      return { label: `${scopeLabel} · ${start} ~ ${end}`, variant: 'accent' }
+    }
+    return { label: `${scopeLabel} · 공개 기간 지정`, variant: 'accent' }
+  }
+  return { label: `${scopeLabel} · 즉시 공개`, variant: 'accent' }
 }
 
 export default function QuizDetail() {
@@ -200,8 +219,7 @@ export default function QuizDetail() {
     <>
       <div className="max-w-4xl mx-auto pb-10">
         <PageHeader
-          backTo="/"
-          ariaLabel="퀴즈 목록"
+          ariaLabel="뒤로가기"
           title={quiz.title}
           actions={
             isStudent ? (
@@ -324,77 +342,119 @@ export default function QuizDetail() {
         </Card>
 
         {/* 상세 섹션들 */}
-        <div className="grid gap-3 md:grid-cols-2 items-start">
-          {/* 응시 조건 */}
-          <Section title="응시 조건">
-            <InfoRow label="응시 기간" value={formatDateRange(quiz.startDate, quiz.dueDate)} />
-            <InfoRow
-              label="이용 종료"
-              value={quiz.lockDate
-                ? `${quiz.lockDate}${new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}`
-                : '설정 안함'}
-            />
-            <InfoRow
-              label="지각 제출"
-              value={
-                quiz.allowLateSubmit
-                  ? (quiz.lateSubmitDeadline ? `${quiz.lateSubmitDeadline.replace('T', ' ')}까지 허용` : '무제한 허용')
-                  : '비허용'
-              }
-            />
-            <InfoRow label="제한 시간" value={timeLimitLabel} />
-          </Section>
+        {isStudent ? (
+          <div className="grid gap-3 md:grid-cols-2 items-start">
+            <Section title="응시 조건">
+              <InfoRow label="응시 기간" value={formatDateRange(quiz.startDate, quiz.dueDate)} />
+              <InfoRow
+                label="지각 제출"
+                value={
+                  quiz.allowLateSubmit
+                    ? (quiz.lateSubmitDeadline ? `${quiz.lateSubmitDeadline.replace('T', ' ')}까지 허용` : '무제한 허용')
+                    : '비허용'
+                }
+              />
+              <InfoRow label="제한 시간" value={timeLimitLabel} />
+            </Section>
 
-          {/* 응시 정책 */}
-          <Section title="응시 정책">
-            <InfoRow label="응시 횟수" value={attemptLabel} />
-            {(quiz.allowAttempts === -1 || (quiz.allowAttempts ?? 1) > 1) && (
-              <InfoRow label="점수 정책" value={quiz.scorePolicy ?? '최고 점수 유지'} />
-            )}
-            <InfoRow label="문항 셔플" value={quiz.shuffleQuestions ? '사용' : '사용 안함'} />
-            <InfoRow label="보기 셔플" value={quiz.shuffleChoices ? '사용' : '사용 안함'} />
-            <InfoRow label="한 문항씩 표시" value={quiz.oneQuestionAtATime ? '사용' : '사용 안함'} />
-            <InfoRow label="답변 후 잠금" value={quiz.lockAfterAnswer ? '사용' : '사용 안함'} />
-          </Section>
+            <Section title="응시 정책">
+              <InfoRow label="응시 횟수" value={attemptLabel} />
+              {(quiz.allowAttempts === -1 || (quiz.allowAttempts ?? 1) > 1) && (
+                <InfoRow label="점수 정책" value={quiz.scorePolicy ?? '최고 점수 유지'} />
+              )}
+            </Section>
 
-          {/* 성적 공개 */}
-          <Section title="성적 공개">
-            <InfoRow label="공개 정책" value={scoreRevealSummary(quiz)} />
-            {(quiz.scoreRevealStart || quiz.scoreRevealEnd) && (
-              <>
-                <InfoRow label="공개 시작" value={quiz.scoreRevealStart || '-'} />
-                <InfoRow label="공개 종료" value={quiz.scoreRevealEnd || '-'} />
-              </>
-            )}
-            <InfoRow
-              label="결과 확인"
-              value={quiz.oneTimeResults ? '1회만 허용' : '제한 없음'}
-            />
-          </Section>
+            <Section title="성적 공개">
+              {(() => {
+                const badge = scoreRevealBadge(quiz)
+                return <InfoRow label="공개 정책" value={badge.label} badgeVariant={badge.variant} />
+              })()}
+              {(quiz.scoreRevealStart || quiz.scoreRevealEnd) && (
+                <>
+                  <InfoRow label="공개 시작" value={quiz.scoreRevealStart || '-'} />
+                  <InfoRow label="공개 종료" value={quiz.scoreRevealEnd || '-'} />
+                </>
+              )}
+              <InfoRow
+                label="결과 확인"
+                value={quiz.oneTimeResults ? '1회만 허용' : '제한 없음'}
+              />
+            </Section>
+          </div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 items-start">
+            {/* 응시 조건 */}
+            <Section title="응시 조건">
+              <InfoRow label="응시 기간" value={formatDateRange(quiz.startDate, quiz.dueDate)} />
+              <InfoRow
+                label="이용 종료"
+                value={quiz.lockDate
+                  ? `${quiz.lockDate}${new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}`
+                  : '설정 안함'}
+              />
+              <InfoRow
+                label="지각 제출"
+                value={
+                  quiz.allowLateSubmit
+                    ? (quiz.lateSubmitDeadline ? `${quiz.lateSubmitDeadline.replace('T', ' ')}까지 허용` : '무제한 허용')
+                    : '비허용'
+                }
+              />
+              <InfoRow label="제한 시간" value={timeLimitLabel} />
+            </Section>
 
-          {/* 접근 제한 */}
-          <Section title="접근 제한">
-            <InfoRow
-              label="접근 코드"
-              value={quiz.accessCode ? '설정됨' : '설정 안함'}
-              muted={!quiz.accessCode}
-            />
-            <InfoRow
-              label="IP 제한"
-              value={quiz.ipRestriction ? quiz.ipRestriction : '설정 안함'}
-              muted={!quiz.ipRestriction}
-            />
-            {!isStudent && (
+            {/* 응시 정책 */}
+            <Section title="응시 정책">
+              <InfoRow label="응시 횟수" value={attemptLabel} />
+              {(quiz.allowAttempts === -1 || (quiz.allowAttempts ?? 1) > 1) && (
+                <InfoRow label="점수 정책" value={quiz.scorePolicy ?? '최고 점수 유지'} />
+              )}
+              <InfoRow label="문항 셔플" value={quiz.shuffleQuestions ? '사용' : '사용 안함'} />
+              <InfoRow label="보기 셔플" value={quiz.shuffleChoices ? '사용' : '사용 안함'} />
+              <InfoRow label="한 문항씩 표시" value={quiz.oneQuestionAtATime ? '사용' : '사용 안함'} />
+              <InfoRow label="답변 후 잠금" value={quiz.lockAfterAnswer ? '사용' : '사용 안함'} />
+            </Section>
+
+            {/* 성적 공개 */}
+            <Section title="성적 공개">
+              {(() => {
+                const badge = scoreRevealBadge(quiz)
+                return <InfoRow label="공개 정책" value={badge.label} badgeVariant={badge.variant} />
+              })()}
+              {(quiz.scoreRevealStart || quiz.scoreRevealEnd) && (
+                <>
+                  <InfoRow label="공개 시작" value={quiz.scoreRevealStart || '-'} />
+                  <InfoRow label="공개 종료" value={quiz.scoreRevealEnd || '-'} />
+                </>
+              )}
+              <InfoRow
+                label="결과 확인"
+                value={quiz.oneTimeResults ? '1회만 허용' : '제한 없음'}
+              />
+            </Section>
+
+            {/* 접근 제한 */}
+            <Section title="접근 제한">
+              <InfoRow
+                label="접근 코드"
+                value={quiz.accessCode ? '설정됨' : '설정 안함'}
+                muted={!quiz.accessCode}
+              />
+              <InfoRow
+                label="IP 제한"
+                value={quiz.ipRestriction ? quiz.ipRestriction : '설정 안함'}
+                muted={!quiz.ipRestriction}
+              />
               <InfoRow
                 label="학생 노출"
                 value={quiz.visible === false ? '숨김' : '공개'}
               />
-            )}
-            {!isStudent && Array.isArray(quiz.assignments) && quiz.assignments.length > 0 && (
-              <InfoRow label="추가 기간 설정" value={`${quiz.assignments.length}건`} />
-            )}
-          </Section>
-        </div>
+              {Array.isArray(quiz.assignments) && quiz.assignments.length > 0 && (
+                <InfoRow label="추가 기간 설정" value={`${quiz.assignments.length}건`} />
+              )}
+            </Section>
+          </div>
+        )}
 
       </div>
 

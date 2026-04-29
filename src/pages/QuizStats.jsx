@@ -153,8 +153,7 @@ export default function QuizStats() {
     <>
       <div className="max-w-7xl mx-auto pb-10">
         <PageHeader
-          backTo="/"
-          ariaLabel="퀴즈 목록"
+          ariaLabel="뒤로가기"
           title={
             <Link
               to={`/quiz/${quiz.id}`}
