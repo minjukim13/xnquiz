@@ -1459,88 +1459,193 @@
     </div>
   </div>
 
-  <!-- ── 슬라이드: 장기 로드맵 ── -->
+  <!-- ── 슬라이드: 로드맵 1 — 지금까지의 여정과 현재 위치 ── -->
   <div class="slide" style="aspect-ratio: unset; min-height: 700px;">
     <div class="slide-header">
       <div class="slide-header-left">
-        <span class="slide-number">Roadmap · 장기 방향</span>
-        <span class="slide-title">1차 목표 너머 — 다음 단계로 검토할 영역</span>
-        <span class="slide-desc">이번 1차에서는 기존 Canvas Quiz 기능 그대로 + 고객사 요구사항 반영을 목표로 의도적으로 범위를 좁혔음. 검증된 1차 표준 위에 단계적으로 확장 검토</span>
+        <span class="slide-number">Roadmap · 여정 1</span>
+        <span class="slide-title">XN 퀴즈 로드맵 — 지금까지의 여정과 현재 위치</span>
+        <span class="slide-desc">어디까지 왔고, 지금 무엇을 다듬고 있는지를 한눈에 보여주는 여정 지도</span>
+      </div>
+      <span class="req-badge indigo">Roadmap</span>
+    </div>
+
+    <div class="slide-body full" style="padding: 18px 36px 24px; display: flex; flex-direction: column; gap: 14px;">
+
+      <!-- 진행 요약 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+        <div style="background: var(--accent); border: 1px solid var(--slate-200); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 12px;">
+          <span style="width: 32px; height: 32px; border-radius: 50%; background: var(--indigo-600); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 0.9em; font-weight: 800;">✓</span>
+          <div>
+            <div style="font-size: 0.7em; color: var(--slate-500); font-weight: 700;">완료</div>
+            <div style="font-size: 1em; font-weight: 800; color: var(--slate-900);">4 단계</div>
+          </div>
+        </div>
+        <div style="background: var(--accent); border: 1px solid var(--slate-200); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 12px;">
+          <span style="width: 32px; height: 32px; border-radius: 50%; background: var(--white); border: 2px dashed var(--indigo-600); color: var(--indigo-600); display: flex; align-items: center; justify-content: center; font-size: 0.85em; font-weight: 800;">◐</span>
+          <div>
+            <div style="font-size: 0.7em; color: var(--slate-500); font-weight: 700;">진행중</div>
+            <div style="font-size: 1em; font-weight: 800; color: var(--slate-900);">3 단계</div>
+          </div>
+        </div>
+        <div style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 12px;">
+          <span style="width: 32px; height: 32px; border-radius: 50%; background: var(--white); border: 1px solid var(--slate-300); color: var(--slate-500); display: flex; align-items: center; justify-content: center; font-size: 0.9em;">⚐</span>
+          <div>
+            <div style="font-size: 0.7em; color: var(--slate-500); font-weight: 700;">예정</div>
+            <div style="font-size: 1em; font-weight: 800; color: var(--slate-900);">3 단계</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 여정 타임라인: 좌측 완료 4 + 우측 진행중 3 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px; flex: 1;">
+
+        <!-- 좌측: 완료 -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.74em; font-weight: 800; color: var(--indigo-600); letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 0;">
+            <span style="display: inline-block; width: 8px; height: 8px; background: var(--indigo-600); border-radius: 50%;"></span>
+            완료 — 1차 목표까지의 여정
+          </div>
+
+          <div style="background: var(--white); border: 1px solid var(--slate-200); border-left: 3px solid var(--indigo-600); border-radius: 8px; padding: 9px 12px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+              <span style="background: var(--indigo-600); color: var(--white); font-size: 0.55em; font-weight: 800; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;">완료</span>
+              <span style="font-size: 0.78em; font-weight: 800; color: var(--slate-900);">Canvas 기본 퀴즈 기능 구현</span>
+            </div>
+            <div style="font-size: 0.66em; color: var(--slate-600); line-height: 1.5;">문항 작성·배포, 응시·자동 채점·결과 확인까지의 핵심 플로우</div>
+          </div>
+
+          <div style="background: var(--white); border: 1px solid var(--slate-200); border-left: 3px solid var(--indigo-600); border-radius: 8px; padding: 9px 12px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+              <span style="background: var(--indigo-600); color: var(--white); font-size: 0.55em; font-weight: 800; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;">완료</span>
+              <span style="font-size: 0.78em; font-weight: 800; color: var(--slate-900);">고객사 요구사항 반영</span>
+            </div>
+            <div style="font-size: 0.66em; color: var(--slate-600); line-height: 1.5;">주차/차시 분류, 점수 공개·지각 제출 정책, 역할별 화면 분기 등</div>
+          </div>
+
+          <div style="background: var(--white); border: 1px solid var(--slate-200); border-left: 3px solid var(--indigo-600); border-radius: 8px; padding: 9px 12px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+              <span style="background: var(--indigo-600); color: var(--white); font-size: 0.55em; font-weight: 800; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;">완료</span>
+              <span style="font-size: 0.78em; font-weight: 800; color: var(--slate-900);">Canvas 기능 보완</span>
+            </div>
+            <div style="font-size: 0.66em; color: var(--slate-600); line-height: 1.5;">가산점·부분점수 등 Canvas 에 있던 보조 기능을 XN 퀴즈에 보완 적용</div>
+          </div>
+
+          <div style="background: var(--white); border: 1px solid var(--slate-200); border-left: 3px solid var(--indigo-600); border-radius: 8px; padding: 9px 12px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+              <span style="background: var(--indigo-600); color: var(--white); font-size: 0.55em; font-weight: 800; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;">완료</span>
+              <span style="font-size: 0.78em; font-weight: 800; color: var(--slate-900);">백엔드 구현</span>
+            </div>
+            <div style="font-size: 0.66em; color: var(--slate-600); line-height: 1.5;">Mock 기반 → 실 API 연동 가능 구조로 전환, LTI 1.3 진입 + Canvas 성적 메뉴 연동 확인</div>
+          </div>
+        </div>
+
+        <!-- 우측: 진행중 -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.74em; font-weight: 800; color: var(--indigo-600); letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 0;">
+            <span style="display: inline-block; width: 8px; height: 8px; background: var(--white); border: 2px solid var(--indigo-600); border-radius: 50%;"></span>
+            진행중 — 현재 다듬고 있는 영역
+          </div>
+
+          <div style="background: var(--accent); border: 1px solid var(--slate-300); border-left: 3px dashed var(--indigo-600); border-radius: 8px; padding: 11px 14px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+              <span style="background: var(--white); color: var(--indigo-600); border: 1px solid var(--indigo-600); font-size: 0.55em; font-weight: 800; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;">진행중</span>
+              <span style="font-size: 0.82em; font-weight: 800; color: var(--slate-900);">다중 PM 에이전트 검토 체계 운영</span>
+            </div>
+            <div style="font-size: 0.7em; color: var(--slate-700); line-height: 1.55;">디자인·기획·개발·QA·PO 등 7개 시각의 AI 에이전트가 같은 산출물을 병렬로 교차 검토</div>
+          </div>
+
+          <div style="background: var(--accent); border: 1px solid var(--slate-300); border-left: 3px dashed var(--indigo-600); border-radius: 8px; padding: 11px 14px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+              <span style="background: var(--white); color: var(--indigo-600); border: 1px solid var(--indigo-600); font-size: 0.55em; font-weight: 800; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;">진행중</span>
+              <span style="font-size: 0.82em; font-weight: 800; color: var(--slate-900);">시스템 UX 재검증</span>
+            </div>
+            <div style="font-size: 0.7em; color: var(--slate-700); line-height: 1.55;">교수자/학생 핵심 시나리오의 사용성 점검, 휴리스틱 평가, 빈/오류 상태 일관성 보강</div>
+          </div>
+
+          <div style="background: var(--accent); border: 1px solid var(--slate-300); border-left: 3px dashed var(--indigo-600); border-radius: 8px; padding: 11px 14px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+              <span style="background: var(--white); color: var(--indigo-600); border: 1px solid var(--indigo-600); font-size: 0.55em; font-weight: 800; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;">진행중</span>
+              <span style="font-size: 0.82em; font-weight: 800; color: var(--slate-900);">디자인 시스템 구축</span>
+            </div>
+            <div style="font-size: 0.7em; color: var(--slate-700); line-height: 1.55;">시맨틱 컬러 토큰·공용 컴포넌트 체계 정립 — 안정화 후 LMS 모듈에 단계적 적용 예정</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 슬라이드: 로드맵 2 — 다음 단계로 검토할 영역 ── -->
+  <div class="slide" style="aspect-ratio: unset; min-height: 700px;">
+    <div class="slide-header">
+      <div class="slide-header-left">
+        <span class="slide-number">Roadmap · 여정 2</span>
+        <span class="slide-title">XN 퀴즈 로드맵 — 다음 단계로 검토할 영역</span>
+        <span class="slide-desc">1차 목표 너머, 후속으로 검토하면 좋을 세 가지 방향. 기능 고도화부터 비즈니스 확장까지 단계적으로 검토 예정</span>
       </div>
       <span class="req-badge indigo">Long-term</span>
     </div>
 
-    <div class="slide-body full" style="padding: 22px 36px 24px; display: flex; flex-direction: column; gap: 16px;">
+    <div class="slide-body full" style="padding: 18px 36px 24px; display: flex; flex-direction: column; gap: 16px;">
 
-      <!-- 1차 목표 명시 -->
-      <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 20px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span class="status-chip done" style="font-size: 0.7em; padding: 4px 10px;">1차 목표 (완료)</span>
-          <span style="font-size: 0.92em; font-weight: 800; color: #14532d;">기존 Canvas Quiz 기능 + 고객사 요구사항 17건 통합 적용</span>
-        </div>
-        <div style="font-size: 0.78em; color: #166534; line-height: 1.55; margin-top: 6px;">
-          1차 검증된 표준이 정립되어야 다음 확장도 일관되게 진행됨. 신규 기능은 의도적으로 범위 외로 분리.
-        </div>
-      </div>
+      <!-- 예정 3개 카드 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; flex: 1;">
 
-      <!-- 후속 검토 영역 3분할 -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
-
-        <!-- 1. Canvas New Quizzes 신규 기능 -->
-        <div style="background: var(--white); border: 1px solid var(--slate-200); border-radius: 10px; padding: 14px 16px;">
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-            <span style="width: 24px; height: 24px; border-radius: 6px; background: var(--accent); color: var(--accent-foreground); font-size: 0.72em; font-weight: 800; display: flex; align-items: center; justify-content: center;">01</span>
-            <span style="font-size: 0.85em; font-weight: 800; color: var(--slate-900);">Canvas New Quizzes 신규 기능</span>
+        <!-- 1. LMS 환경 호환성 -->
+        <div style="background: var(--white); border: 1px solid var(--slate-200); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 32px; height: 32px; border-radius: 50%; background: var(--slate-50); border: 1px solid var(--slate-300); color: var(--slate-500); display: flex; align-items: center; justify-content: center; font-size: 0.9em;">⚐</span>
+            <span style="background: var(--slate-100); color: var(--slate-600); font-size: 0.6em; font-weight: 800; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.05em;">예정 01</span>
           </div>
-          <div style="font-size: 0.72em; color: var(--slate-500); margin-bottom: 6px;">Classic Quizzes 후속 — 검토 대상</div>
-          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.7em; color: var(--slate-700); line-height: 1.5;">
-            <div>· Item Bank 정밀화 (태그/메타데이터 강화)</div>
-            <div>· Stimulus (지문 공유 묶음)</div>
-            <div>· Categorization / Hot Spot 등 신규 유형</div>
-            <div>· 응시 기록 상세 분석 강화</div>
-            <div>· 시간 가산 / 부분 채점 정책 다양화</div>
+          <div style="font-size: 0.92em; font-weight: 800; color: var(--slate-900); line-height: 1.35;">실제 LMS 환경 호환성 검증</div>
+          <div style="font-size: 0.7em; color: var(--slate-500); line-height: 1.5;">실 LMS에 붙였을 때 주변 LTI/모듈과의 정합성 점검</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 0.7em; color: var(--slate-700); line-height: 1.5;">
+            <div>· 주차학습, 학습활동현황, 진단평가 등 기존 LTI 와의 호환성</div>
+            <div>· 기존 퀴즈를 활용하던 학습 활동에서의 동작 검증</div>
+            <div>· 프로토타입이 아닌 실 LMS 환경에서의 통합 테스트</div>
           </div>
         </div>
 
-        <!-- 2. 추가 문항 유형 -->
-        <div style="background: var(--white); border: 1px solid var(--slate-200); border-radius: 10px; padding: 14px 16px;">
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-            <span style="width: 24px; height: 24px; border-radius: 6px; background: var(--accent); color: var(--accent-foreground); font-size: 0.72em; font-weight: 800; display: flex; align-items: center; justify-content: center;">02</span>
-            <span style="font-size: 0.85em; font-weight: 800; color: var(--slate-900);">신규 문항 유형 확대</span>
+        <!-- 2. 내부 선제 기능 발굴 -->
+        <div style="background: var(--white); border: 1px solid var(--slate-200); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 32px; height: 32px; border-radius: 50%; background: var(--slate-50); border: 1px solid var(--slate-300); color: var(--slate-500); display: flex; align-items: center; justify-content: center; font-size: 0.9em;">⚐</span>
+            <span style="background: var(--slate-100); color: var(--slate-600); font-size: 0.6em; font-weight: 800; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.05em;">예정 02</span>
           </div>
-          <div style="font-size: 0.72em; color: var(--slate-500); margin-bottom: 6px;">현재는 Canvas 기본 12종 — 외부 LMS 참고 검토</div>
-          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.7em; color: var(--slate-700); line-height: 1.5;">
-            <div>· Hot Spot — 이미지 위 좌표 응답</div>
-            <div>· Drag &amp; Drop 분류형</div>
-            <div>· 순서 정렬형</div>
-            <div>· Stimulus 묶음 (지문 + 다문항)</div>
-            <div>· 음성/영상 답안</div>
+          <div style="font-size: 0.92em; font-weight: 800; color: var(--slate-900); line-height: 1.35;">내부 선제 기능 발굴 및 고도화</div>
+          <div style="font-size: 0.7em; color: var(--slate-500); line-height: 1.5;">고객사 요청 외, 내부 아이디어 기반의 추가 가치 탐구</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 0.7em; color: var(--slate-700); line-height: 1.5;">
+            <div>· 운영자 관점 기능 강화: 통계/현황 모니터링, 문항 품질 점검</div>
+            <div>· 교수자 효율 도구: 응시 결과 인사이트, 문항 재사용 권장</div>
+            <div>· 학습자 측면: 응시 후 피드백/복습 흐름 보완</div>
           </div>
         </div>
 
-        <!-- 3. 학습/운영 기능 확장 -->
-        <div style="background: var(--white); border: 1px solid var(--slate-200); border-radius: 10px; padding: 14px 16px;">
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-            <span style="width: 24px; height: 24px; border-radius: 6px; background: var(--accent); color: var(--accent-foreground); font-size: 0.72em; font-weight: 800; display: flex; align-items: center; justify-content: center;">03</span>
-            <span style="font-size: 0.85em; font-weight: 800; color: var(--slate-900);">학습 / 운영 기능 확장</span>
+        <!-- 3. 비즈니스 측면 확장 -->
+        <div style="background: var(--white); border: 1px solid var(--slate-200); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 32px; height: 32px; border-radius: 50%; background: var(--slate-50); border: 1px solid var(--slate-300); color: var(--slate-500); display: flex; align-items: center; justify-content: center; font-size: 0.9em;">⚐</span>
+            <span style="background: var(--slate-100); color: var(--slate-600); font-size: 0.6em; font-weight: 800; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.05em;">예정 03</span>
           </div>
-          <div style="font-size: 0.72em; color: var(--slate-500); margin-bottom: 6px;">퀴즈 = 평가 도구를 넘어 학습 도구로 확장</div>
-          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.7em; color: var(--slate-700); line-height: 1.5;">
-            <div>· AI 기반 문항 자동 생성 / 보강</div>
-            <div>· AI 자동 채점 (서술형 보조)</div>
-            <div>· 학생 학습 분석 / 약점 진단</div>
-            <div>· 실시간 피드백 (응시 중 힌트)</div>
-            <div>· 시험 부정 방지 (TrustLock 연동)</div>
+          <div style="font-size: 0.92em; font-weight: 800; color: var(--slate-900); line-height: 1.35;">비즈니스 측면 확장</div>
+          <div style="font-size: 0.7em; color: var(--slate-500); line-height: 1.5;">기능 고도화 너머의 사업 가치 설계</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 0.7em; color: var(--slate-700); line-height: 1.5;">
+            <div>· 대학/학과 단위 사용 현황 리포트로 도입 효과 가시화</div>
+            <div>· 문항 공유·재사용 자산화 (공동 문제은행, 우수 문항 큐레이션)</div>
+            <div>· 타 LMS(Moodle, Blackboard 등) 연계 가능성 검토</div>
           </div>
         </div>
 
       </div>
 
       <!-- 결정 원칙 -->
-      <div class="req-box">
+      <div class="req-box" style="border-left-color: #0f172a;">
         <div class="req-box-label">확장 결정 원칙</div>
-        <div class="req-box-text">신규 기능 도입은 <strong>1차 표준 검증 완료 + 사용자 요구 명확화 + 디자인 시스템 안정화</strong> 이후 단계적으로 검토. 1차 안정화를 흔들면서 신규 기능을 얹는 방식은 피함.</div>
+        <div class="req-box-text">신규 영역 도입은 <strong>1차 표준 검증 완료 + 사용자 요구 명확화 + 디자인 시스템 안정화</strong> 이후 단계적으로 검토. 1차 안정화를 흔들면서 새로운 영역을 얹는 방식은 피함.</div>
       </div>
+
     </div>
   </div>
 

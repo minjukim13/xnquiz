@@ -1,6 +1,6 @@
 import { useState, useEffect, Suspense } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
-import { GraduationCap, BookOpen, LayoutList, Menu, Map } from 'lucide-react'
+import { GraduationCap, BookOpen, LayoutList, Menu } from 'lucide-react'
 import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -126,7 +126,6 @@ export default function Layout() {
   const navItems = role === 'student'
     ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
     : [
-        { label: '로드맵', href: '/roadmap', icon: Map },
         { label: '퀴즈', href: '/', icon: LayoutList },
         { label: '문제모음', href: '/question-banks', icon: BookOpen },
       ]
