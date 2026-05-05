@@ -12,6 +12,7 @@ import { useRole } from '../context/role'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import AssignmentOverrides from '../components/AssignmentOverrides'
 import { hasDuplicateStudent, sanitizeAssignments } from '../utils/assignments'
+import { htmlToPlainText } from '../components/RichText'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -207,7 +208,7 @@ export default function QuizCreate() {
   return (
     <>
       <div className="max-w-5xl mx-auto pb-4">
-        <h1 className="text-[22px] font-bold text-foreground pt-8 pb-5">새 퀴즈 만들기</h1>
+        <h1 className="text-[20px] sm:text-[22px] font-bold text-foreground pt-6 sm:pt-8 pb-4 sm:pb-5">새 퀴즈 만들기</h1>
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList variant="line" className="gap-4 border-b border-border pb-0">
@@ -226,9 +227,9 @@ export default function QuizCreate() {
         </Tabs>
 
         {/* 하단 버튼 */}
-        <div className="flex items-center justify-between mt-8 pt-5 border-t border-border">
+        <div className="flex items-center justify-between gap-2 mt-8 pt-5 border-t border-border flex-wrap">
           <Button size="lg" variant="ghost" onClick={handleCancel} className="text-muted-foreground hover:text-foreground px-4">취소</Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button size="lg" variant="outline" onClick={handleSaveDraft} className="px-4">임시저장</Button>
             {tab === 'info' ? (
               <Button size="lg" onClick={() => setTab('questions')} className="px-4">문항 구성 →</Button>
@@ -287,7 +288,7 @@ function InfoTab({ form, set }) {
       </Section>
 
       <Section title="응시 기간">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="시작 일시"><input type="datetime-local" value={form.startDate} onChange={e => set('startDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
           <Field label={<span className="inline-flex items-center gap-1">마감 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
         </div>
@@ -332,7 +333,7 @@ function InfoTab({ form, set }) {
       </Section>
 
       <Section title="응시 설정">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="응시 시간 제한">
             <div className="flex items-center gap-2">
               <div className={cn('flex items-center gap-2 flex-1 transition-opacity', form.unlimitedTimeLimit && 'opacity-40 pointer-events-none')}>
@@ -427,7 +428,7 @@ function InfoTab({ form, set }) {
                   ))}
                 </div>
                 {form.scoreRevealTiming === 'period' && (
-                  <div className="mt-3 pt-3 grid grid-cols-2 gap-3 border-t border-blue-100">
+                  <div className="mt-3 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-blue-100">
                     <div>
                       <label className="block text-xs font-medium mb-1 text-secondary-foreground">공개 시작일</label>
                       <input type="datetime-local" value={form.scoreRevealStart} onChange={e => set('scoreRevealStart', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" />
@@ -459,7 +460,7 @@ function InfoTab({ form, set }) {
         </Field>
         <Field label="접근 가능한 IP 주소">
           <textarea value={form.ipRestriction} onChange={e => set('ipRestriction', e.target.value)} placeholder={'허용할 IP 주소를 한 줄에 하나씩 입력하세요\n예) 192.168.1.0/24\n    203.0.113.10'} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-none" />
-          <p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP에서 접근 가능합니다. CIDR 표기법 지원.</p>
+          <p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP에서 접근 가능합니다. (CIDR 표기법 지원)</p>
         </Field>
       </Section>
 
@@ -496,13 +497,13 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
   return (
     <div>
       {/* 헤더: 문항 수/점수 + 액션 버튼 */}
-      <div className="flex items-center justify-between mb-4 px-1 py-0.5">
+      <div className="flex items-center justify-between gap-2 mb-4 px-1 py-0.5 flex-wrap">
         <p className="text-[13px] text-secondary-foreground leading-none">
           <span className="font-semibold text-foreground">{questions.length}</span>문항
           <span className="text-muted-foreground mx-1.5">|</span>
           총 <span className="font-semibold text-foreground">{totalPoints}</span>점
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button size="lg" variant="outline" onClick={onShowAdd}>문항 만들기</Button>
           <Popover>
             <PopoverTrigger asChild>
@@ -560,7 +561,7 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
                 </div>
 
                 {/* 중단 행: 문제 본문 (HTML 태그 제거 후 요약 표시) */}
-                <p className="text-sm font-medium text-secondary-foreground line-clamp-2 mt-2 ml-8">{String(q.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}</p>
+                <p className="text-sm font-medium text-secondary-foreground line-clamp-2 mt-2 ml-8">{htmlToPlainText(q.text)}</p>
 
                 {/* 하단 행: 정답 영역 */}
                 {q.type !== 'essay' && q.type !== 'file_upload' && q.type !== 'text' && (

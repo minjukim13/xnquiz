@@ -1,6 +1,6 @@
 import { useState, useEffect, Suspense } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
-import { GraduationCap, BookOpen, LayoutList, Menu } from 'lucide-react'
+import { GraduationCap, BookOpen, LayoutList, Menu, Map } from 'lucide-react'
 import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -126,6 +126,7 @@ export default function Layout() {
   const navItems = role === 'student'
     ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
     : [
+        { label: '로드맵', href: '/roadmap', icon: Map },
         { label: '퀴즈', href: '/', icon: LayoutList },
         { label: '문제모음', href: '/question-banks', icon: BookOpen },
       ]
@@ -159,7 +160,7 @@ export default function Layout() {
                       <rect x="8" y="8" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
                     </svg>
                   </div>
-                  <span className="text-sm font-bold">XN Quizzes</span>
+                  <span className="text-sm font-bold">XN Quiz</span>
                 </Link>
               </div>
               <Separator />
@@ -179,7 +180,7 @@ export default function Layout() {
                 <rect x="8" y="8" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
               </svg>
             </div>
-            <span className="text-sm font-bold">XN Quizzes</span>
+            <span className="text-sm font-bold">XN Quiz</span>
           </Link>
 
         </div>
@@ -208,7 +209,7 @@ export default function Layout() {
                   <rect x="8" y="8" width="5" height="5" rx="1" fill="white" fillOpacity="0.9"/>
                 </svg>
               </div>
-              <span className="text-sm font-bold text-foreground">XN Quizzes</span>
+              <span className="text-sm font-bold text-foreground">XN Quiz</span>
             </Link>
           </div>
 
@@ -232,7 +233,7 @@ export default function Layout() {
             </div>
           )}
 
-          <main className="flex-1 min-w-0 px-6 lg:px-10 pb-6">
+          <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 pb-6">
             <Suspense fallback={<ContentFallback />}>
               <Outlet />
             </Suspense>

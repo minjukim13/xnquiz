@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useParams, Link, Navigate, useNavigate } from 'react-router-dom'
+import { useParams, Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   AlertCircle, ArrowLeft, Download, FileDown,
   ChevronDown, ChevronUp,
@@ -97,12 +97,15 @@ function GradingDashboardSkeleton() {
 export default function GradingDashboard() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const initialMode = searchParams.get('mode') === 'student' ? 'student' : 'question'
+  const initialStudentId = searchParams.get('studentId')
   const { role } = useRole()
   const [QUIZ_INFO, setQUIZ_INFO] = useState(null)
   const [loading, setLoading] = useState(true)
 
   // 채점 모드: 'question' = 문항 중심, 'student' = 학생 중심
-  const [gradingMode, setGradingMode] = useState('question')
+  const [gradingMode, setGradingMode] = useState(initialMode)
 
   // 문항 중심 상태
   const [selectedQ, setSelectedQ] = useState(null)
@@ -247,13 +250,16 @@ export default function GradingDashboard() {
     setMobileView('detail')
   }
 
-  // 학생 중심 탭: 첫 번째 제출 학생 자동 선택
+  // 학생 중심 탭: URL studentId 우선, 없으면 첫 번째 제출 학생 자동 선택
   useEffect(() => {
     if (gradingMode === 'student' && !selectedStudent) {
-      const first = submittedStudents[0] || allStudents[0]
+      const fromUrl = initialStudentId
+        ? quizStudents.find(s => String(s.id) === String(initialStudentId))
+        : null
+      const first = fromUrl || submittedStudents[0] || allStudents[0]
       if (first) setSelectedStudent(first)
     }
-  }, [gradingMode, submittedStudents, allStudents]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gradingMode, submittedStudents, allStudents, quizStudents, initialStudentId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (role !== 'instructor') return <Navigate to="/" replace />
 

@@ -6,14 +6,14 @@
 // }
 //
 // 처리:
-//   1) 수동채점된 답안(manualScore != null) 은 보존 — skip
+//   1) 수동채점된 답안(manualScore != null) 은 보존 — skip (skippedManualGraded 로 카운트)
 //   2) 옵션별 newScore 계산
 //        - full_points     : question.points 만점 부여
 //        - new_answer_only : 현재 정답 기준 자동채점 (null=수동채점 대기 → skip)
 //        - award_both      : 이전 정답 / 새 정답 중 높은 점수
 //        - no_regrade      : 즉시 0 반환
 //   3) 영향 받은 Attempt 합계 재계산 — 미채점(autoScore=null && manualScore=null) 답안 있으면 graded=false
-//   4) { changedAnswers, changedAttempts, regradedStudents }
+//   4) { changedAnswers, changedAttempts, regradedStudents, skippedManualGraded }
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../../../lib/prisma.js'
 import { getAuthFromRequest } from '../../../lib/auth.js'
@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (option === 'no_regrade') {
-    return res.status(200).json({ changedAnswers: 0, changedAttempts: 0, regradedStudents: 0 })
+    return res.status(200).json({ changedAnswers: 0, changedAttempts: 0, regradedStudents: 0, skippedManualGraded: 0 })
   }
 
   const question = await prisma.question.findUnique({ where: { id } })
@@ -53,6 +53,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const answers = await prisma.answer.findMany({
       where: { questionId: id, manualScore: null },
       include: { attempt: { select: { id: true, userId: true, quizId: true } } },
+    })
+
+    // 수동채점되어 스킵될 답안 수 (같은 quiz 한정)
+    const skippedManualGraded = await prisma.answer.count({
+      where: {
+        questionId: id,
+        manualScore: { not: null },
+        attempt: { quizId: question.quizId },
+      },
     })
 
     let changedAnswers = 0
@@ -125,6 +134,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       changedAnswers,
       changedAttempts: affectedAttemptIds.size,
       regradedStudents: affectedUserIds.size,
+      skippedManualGraded,
     })
   } catch (err) {
     return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })

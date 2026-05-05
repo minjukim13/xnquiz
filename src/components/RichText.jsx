@@ -51,6 +51,27 @@ export function richTextHasContent(html) {
   return /<(img|iframe|video)\b/i.test(html)
 }
 
+// ── HTML → plain text (목록/요약용) ──────────────────────────
+// 태그(이미지 data URL 포함)는 모두 제거하고 텍스트만 반환.
+// 텍스트가 비었지만 이미지/동영상이 들어 있으면 placeholder 라벨로 대체.
+export function htmlToPlainText(html) {
+  if (!html) return ''
+  const raw = String(html)
+  const text = raw
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (text) return text
+  if (/<img\b/i.test(raw)) return '[이미지]'
+  if (/<(video|iframe)\b/i.test(raw)) return '[동영상]'
+  return ''
+}
+
 // ── 편집기 ───────────────────────────────────────────────────
 // props:
 //   value: HTML string

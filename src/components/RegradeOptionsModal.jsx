@@ -15,7 +15,7 @@ const REGRADE_OPTIONS = [
   {
     id: 'new_answer_only',
     title: '수정된 정답 기준으로만 재채점',
-    desc: '새 정답 기준으로 전원 재채점됩니다. 일부 학생의 점수가 낮아질 수 있습니다.',
+    desc: '새 정답 기준으로 자동 재채점됩니다. 일부 학생의 점수가 낮아질 수 있습니다.',
     color: 'text-amber-600',
     bg: 'bg-amber-50',
     activeBorder: 'border-amber-500',
@@ -23,7 +23,7 @@ const REGRADE_OPTIONS = [
   {
     id: 'full_points',
     title: '모든 학생에게 만점 부여',
-    desc: '이 문항에 대해 응시한 전원에게 만점을 부여합니다.',
+    desc: '이 문항에 응시한 학생 전원에게 만점을 부여합니다.',
     color: 'text-primary',
     bg: 'bg-accent',
     activeBorder: 'border-primary',
@@ -57,6 +57,13 @@ export default function RegradeOptionsModal({ submittedCount, onConfirm, onCance
             <p className="text-[13px] leading-relaxed text-slate-600">
               이미 답안을 제출한 <span className="font-bold">{submittedCount}명</span>의 학생에 대한 재채점 옵션을 선택하십시오.
               퀴즈 저장 시 일괄 재채점됩니다.
+            </p>
+          </div>
+
+          {/* 수동채점 보존 안내 */}
+          <div className="rounded-lg bg-secondary border border-border px-4 py-2.5">
+            <p className="text-[12px] leading-relaxed text-secondary-foreground">
+              교수자가 이미 수동으로 점수를 매긴 답안은 어떤 옵션을 선택해도 변경되지 않습니다.
             </p>
           </div>
 

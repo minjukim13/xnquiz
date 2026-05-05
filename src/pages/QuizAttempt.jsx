@@ -827,7 +827,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
                 key={i}
                 className={cn(
                   'flex items-start gap-3 px-3 py-2.5 rounded-md border transition-colors',
-                  value === choice ? 'bg-accent border-blue-200' : 'bg-secondary border-border',
+                  value === choice ? 'bg-accent border-blue-200' : 'bg-white border-border',
                   !disabled && 'cursor-pointer hover:border-blue-200',
                   disabled && 'cursor-default'
                 )}
@@ -863,7 +863,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
                   key={i}
                   className={cn(
                     'flex items-start gap-3 px-3 py-2.5 rounded-md border transition-colors',
-                    selected ? 'bg-blue-50 border-blue-200' : 'bg-secondary border-border',
+                    selected ? 'bg-blue-50 border-blue-200' : 'bg-white border-border',
                     !disabled && 'cursor-pointer hover:border-blue-200',
                     disabled && 'cursor-default'
                   )}
@@ -939,7 +939,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           return (
             <div className="space-y-2">
               {question.pairs.map((p, i) => (
-                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-border bg-secondary">
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-border bg-white">
                   <span className="text-sm text-secondary-foreground flex-1 truncate">{p.left}</span>
                   <span className="text-muted-foreground text-xs shrink-0">↔</span>
                   <select
@@ -964,7 +964,7 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           return (
             <div className="space-y-2">
               {question.dropdowns.map((dd, i) => (
-                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-border bg-secondary">
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-border bg-white">
                   {dd.label && <span className="text-sm font-medium text-secondary-foreground flex-shrink-0">{dd.label}</span>}
                   <select
                     value={arr[i] ?? ''} disabled={disabled}
@@ -1050,16 +1050,6 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           )
         })()}
       </CardContent>
-
-      {/* 답변 완료 표시 */}
-      {isAnswered && !showAnswer && (
-        <div className="px-5 py-2 bg-accent/60 border-t border-blue-100">
-          <p className="text-xs flex items-center gap-1.5 text-primary">
-            <CheckCircle2 size={11} />
-            답변 완료
-          </p>
-        </div>
-      )}
 
       {/* 정답 표시 (미리보기 모드 전용) */}
       {showAnswer && (() => {

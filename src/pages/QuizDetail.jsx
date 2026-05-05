@@ -195,7 +195,10 @@ export default function QuizDetail() {
   const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
   const canStats = quiz.status !== 'draft'
   const pastDue = isDeadlinePassed(quiz)
-  const isOpenForStudent = quiz.status === 'open' && !scheduled && !pastDue
+  // 학생은 진행기간 내라면 grading 상태에서도 응시 가능 (채점은 교수자 작업, 응시 가능 여부와 별개)
+  const isOpenForStudent = (quiz.status === 'open' || quiz.status === 'grading') && !scheduled && !pastDue
+  // 학생용 status 라벨은 진행중/마감/예정 으로만 단순화 — '채점중' 은 학생에게 노출하지 않음
+  const studentDisplayStatus = scheduled ? 'scheduled' : isOpenForStudent ? 'open' : 'closed'
   const attemptCount = myAttempts.length
   const maxAttempts = quiz.allowAttempts ?? 1
   const isAttemptExceeded = maxAttempts !== -1 && attemptCount >= maxAttempts
@@ -290,7 +293,7 @@ export default function QuizDetail() {
           }
           meta={
             <>
-              <StatusBadge status={displayStatus} />
+              <StatusBadge status={isStudent ? studentDisplayStatus : displayStatus} />
               {(quiz.week > 0 || quiz.session > 0) && (
                 <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-accent text-primary">
                   {quiz.week > 0 ? `${quiz.week}주차` : ''}

@@ -327,9 +327,9 @@ function InstructorQuizList() {
   return (
     <>
       <div className="max-w-5xl mx-auto pb-6">
-        <div className="flex items-center justify-between gap-4 pt-8 pb-5">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-[24px] font-bold text-foreground leading-tight">퀴즈 관리</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-6 sm:pt-8 pb-4 sm:pb-5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h1 className="text-[20px] sm:text-[24px] font-bold text-foreground leading-tight truncate">퀴즈 관리</h1>
             <Button
               variant="ghost"
               size="icon-sm"
@@ -339,7 +339,7 @@ function InstructorQuizList() {
               <Settings2 size={18} />
             </Button>
           </div>
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <Button variant="outline" onClick={() => setShowImportModal(true)}>
               <FolderInput size={14} />
               가져오기
@@ -353,7 +353,7 @@ function InstructorQuizList() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-1 mb-3">
+        <div className="flex items-center justify-between gap-2 mt-1 mb-3 flex-wrap">
           <WeekSessionFilter
             quizzes={quizzes}
             filterWeek={filterWeek}
@@ -450,19 +450,19 @@ function QuizCard({ quiz, onCopy, onDelete }) {
       )}
       onClick={() => navigate(`/quiz/${quiz.id}`)}
     >
-      <div className="flex items-center gap-4 px-6 py-4">
+      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <StatusBadge status={displayStatus} />
             {(quiz.week > 0 || quiz.session > 0) && (
-              <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-secondary text-secondary-foreground">
+              <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-secondary text-secondary-foreground whitespace-nowrap">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
               </span>
             )}
           </div>
           <h3 className="text-base font-semibold leading-snug mb-1 truncate text-foreground">{quiz.title}</h3>
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground break-keep">
               {quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}
               {quiz.lockDate && (
                 <>
@@ -473,7 +473,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
             </p>
             {ddayBadge && (
               <span className={cn(
-                'text-xs font-semibold px-1.5 py-0.5 rounded',
+                'text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap',
                 ddayBadge.urgent ? 'text-red-700 bg-red-50' : 'text-amber-600 bg-amber-50'
               )}>
                 {ddayBadge.label}
@@ -488,11 +488,14 @@ function QuizCard({ quiz, onCopy, onDelete }) {
           )}
         </div>
 
-        <div className="flex items-center gap-5 shrink-0" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center gap-5">
-            {stats.map(s => (
-              <InlineStat key={s.label} label={s.label} value={s.value} cls={s.cls} />
-            ))}
+        <div className="flex items-center gap-3 sm:gap-5 shrink-0" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-3 sm:gap-5">
+            {(() => {
+              const hasPrimary = stats.some(x => x.primary)
+              return stats.map(s => (
+                <InlineStat key={s.label} label={s.label} value={s.value} cls={s.cls} hideOnMobile={hasPrimary && !s.primary} />
+              ))
+            })()}
           </div>
 
           <DropdownMenu>
@@ -540,11 +543,11 @@ function QuizCard({ quiz, onCopy, onDelete }) {
   )
 }
 
-function InlineStat({ label, value, cls }) {
+function InlineStat({ label, value, cls, hideOnMobile = false }) {
   return (
-    <div className="flex flex-col items-center gap-1 min-w-[56px]">
-      <p className={cn('text-[15px] font-bold leading-none', cls || 'text-foreground')}>{value}</p>
-      <p className="text-[11px] text-muted-foreground leading-none">{label}</p>
+    <div className={cn('flex-col items-center gap-1 min-w-[44px] sm:min-w-[56px]', hideOnMobile ? 'hidden sm:flex' : 'flex')}>
+      <p className={cn('text-[14px] sm:text-[15px] font-bold leading-none whitespace-nowrap', cls || 'text-foreground')}>{value}</p>
+      <p className="text-[11px] text-muted-foreground leading-none whitespace-nowrap">{label}</p>
     </div>
   )
 }
@@ -562,10 +565,10 @@ function getInlineStats(quiz, scheduled) {
   const submitRate = totalStudents > 0 ? Math.round((submitted / totalStudents) * 100) : 0
   const unsubmitted = Math.max(0, totalStudents - submitted)
   return [
-    { label: '응시율',   value: `${submitRate}%` },
+    { label: '응시율',   value: `${submitRate}%`, primary: true },
     { label: '응시인원', value: `${submitted}명` },
     { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-red-500' : 'text-muted-foreground' },
-    { label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-primary' },
+    { label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-primary', primary: true },
   ]
 }
 
@@ -573,7 +576,7 @@ function getInlineStats(quiz, scheduled) {
 function QuizCardSkeleton() {
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-center gap-4 px-6 py-4">
+      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4">
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-12 rounded-md" />
@@ -582,9 +585,9 @@ function QuizCardSkeleton() {
           <Skeleton className="h-5 w-2/3" />
           <Skeleton className="h-3 w-1/2" />
         </div>
-        <div className="flex items-center gap-5 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-5 shrink-0">
           {[0, 1, 2].map(i => (
-            <div key={i} className="flex flex-col items-center gap-1 min-w-[56px]">
+            <div key={i} className={cn('flex-col items-center gap-1 min-w-[44px] sm:min-w-[56px]', i === 1 ? 'hidden sm:flex' : 'flex')}>
               <Skeleton className="h-4 w-10" />
               <Skeleton className="h-3 w-8" />
             </div>
@@ -985,11 +988,11 @@ function StudentQuizList() {
   return (
     <>
       <div className="max-w-5xl mx-auto pb-6">
-        <div className="flex items-center justify-between gap-4 pt-8 pb-5">
-          <h1 className="text-[24px] font-bold text-foreground leading-tight">내 퀴즈</h1>
+        <div className="flex items-center justify-between gap-4 pt-6 sm:pt-8 pb-4 sm:pb-5">
+          <h1 className="text-[20px] sm:text-[24px] font-bold text-foreground leading-tight">내 퀴즈</h1>
         </div>
 
-        <div className="flex items-center justify-between mt-1 mb-3">
+        <div className="flex items-center justify-between gap-2 mt-1 mb-3 flex-wrap">
           <WeekSessionFilter
             quizzes={allQuizzes}
             filterWeek={filterWeek}
@@ -1057,16 +1060,19 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
   const myAttempts = apiAttempts ? apiAttempts : attempts.filter(a => a.studentId === studentId)
   const myAttempt = myAttempts[myAttempts.length - 1] ?? null
   const [showHistory, setShowHistory] = useState(false)
-  const displayStatus = resolveDisplayStatus(quiz)
   const ddayBadge = getDdayBadge(quiz)
   const pastDue = isDeadlinePassed(quiz)
-  const isOpen = quiz.status === 'open' && !scheduled && !pastDue
+  // 학생은 진행기간 내라면 grading 상태에서도 응시 가능
+  const isOpen = (quiz.status === 'open' || quiz.status === 'grading') && !scheduled && !pastDue
+  // 학생용 status 라벨은 진행중/마감/예정 으로만 단순화 — '채점중' 은 학생에게 노출하지 않음
+  const studentDisplayStatus = scheduled ? 'scheduled' : isOpen ? 'open' : 'closed'
 
-  // 학생 혼란 방지 — 채점 상태(대기/완료)는 학생 목록 배지에 표시하지 않음.
-  // 응시 여부만 표시: 미응시(마감) = 미제출, 그 외(응시중 / 응시 완료)는 배지 없음.
-  const myBadge = (!myAttempt && !isOpen)
-    ? { label: '미제출', cls: 'text-muted-foreground bg-secondary' }
-    : null
+  // 응시완료/미응시 항상 표시 (예정 상태는 응시 전 단계라 배지 생략)
+  const myBadge = scheduled
+    ? null
+    : myAttempt
+      ? { label: '응시완료', cls: 'text-primary bg-accent' }
+      : { label: '미응시', cls: 'text-muted-foreground bg-secondary' }
 
   const reveal = myAttempt ? computeScoreReveal(quiz, myAttempt) : null
   const showSubInfo = myAttempt && (myAttempt.manualPending > 0 || myAttempts.length > 1)
@@ -1076,17 +1082,17 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
       className="overflow-hidden transition-shadow cursor-pointer hover:shadow-md"
       onClick={() => navigate(`/quiz/${quiz.id}`)}
     >
-      <div className="flex items-center gap-4 px-6 py-4">
+      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <StatusBadge status={displayStatus} />
+            <StatusBadge status={studentDisplayStatus} />
             {myBadge && (
-              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-md', myBadge.cls)}>
+              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-md whitespace-nowrap', myBadge.cls)}>
                 {myBadge.label}
               </span>
             )}
             {(quiz.week > 0 || quiz.session > 0) && (
-              <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-secondary text-secondary-foreground">
+              <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-secondary text-secondary-foreground whitespace-nowrap">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
               </span>
             )}
@@ -1095,7 +1101,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
           <h3 className="text-base font-semibold leading-snug mb-1 truncate text-foreground">{quiz.title}</h3>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground break-keep">
               {quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}
               {quiz.lockDate && (
                 <>
@@ -1106,7 +1112,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
             </p>
             {ddayBadge && (
               <span className={cn(
-                'text-xs font-semibold px-1.5 py-0.5 rounded',
+                'text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap',
                 ddayBadge.urgent ? 'text-red-700 bg-red-50' : 'text-amber-600 bg-amber-50'
               )}>
                 {ddayBadge.label}
@@ -1115,11 +1121,11 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
           </div>
         </div>
 
-        <div className="flex items-center gap-5 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-5 shrink-0">
           {!myAttempt ? (
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-3 sm:gap-5">
               <InlineStat label="문항 수"   value={`${quiz.questions}개`} />
-              <InlineStat label="총점"       value={`${quiz.totalPoints}점`} />
+              <InlineStat label="총점"       value={`${quiz.totalPoints}점`} hideOnMobile />
               <InlineStat label="제한시간"   value={!quiz.timeLimit ? '없음' : `${quiz.timeLimit}분`} />
             </div>
           ) : (

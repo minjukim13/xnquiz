@@ -518,7 +518,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       <Button asChild variant="outline" size="xs">
-                        <Link to={`/quiz/${quiz.id}/grade`}>답안 확인</Link>
+                        <Link to={`/quiz/${quiz.id}/grade?mode=student&studentId=${s.id}`}>답안 확인</Link>
                       </Button>
                     </td>
                   </tr>

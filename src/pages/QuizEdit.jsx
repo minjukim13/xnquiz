@@ -13,6 +13,8 @@ import { useRole } from '../context/role'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import AssignmentOverrides from '../components/AssignmentOverrides'
 import { hasDuplicateStudent, sanitizeAssignments } from '../utils/assignments'
+import { htmlToPlainText } from '../components/RichText'
+import { isDeadlinePassed } from '@/utils/deadlineUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -229,13 +231,26 @@ export default function QuizEdit() {
     }
   }
 
-  const buildUpdateBody = () => ({
+  // 마감 처리된 퀴즈에서 마감일을 미래로 변경하면 자동 재오픈 (status: closed → open).
+  // 효과적인 마감 시점(allowLateSubmit + lateSubmitDeadline 우선 / dueDate + grace) 이 미래일 때만 전환.
+  const computeNextStatus = () => {
+    if (quiz.status !== 'closed') return quiz.status
+    const synthetic = {
+      dueDate: form.dueDate || null,
+      allowLateSubmit: form.allowLateSubmit,
+      lateSubmitDeadline: form.allowLateSubmit ? form.lateSubmitDeadline : null,
+      gracePeriod: form.gracePeriod,
+    }
+    return isDeadlinePassed(synthetic) ? 'closed' : 'open'
+  }
+
+  const buildUpdateBody = (statusOverride) => ({
     title: form.title,
     description: form.description,
     courseCode: quiz.courseCode ?? undefined,
     course: quiz.course,
     quizMode: form.quizMode,
-    status: quiz.status,
+    status: statusOverride ?? quiz.status,
     visible: form.visible,
     startDate: form.startDate || null,
     dueDate: form.dueDate || null,
@@ -304,9 +319,11 @@ export default function QuizEdit() {
       return
     }
     let savedQuestions = questions
+    const nextStatus = computeNextStatus()
+    const reopened = nextStatus === 'open' && quiz.status === 'closed'
     try {
       if (form.scorePolicy !== quiz.scorePolicy) await recalculateScorePolicy(quiz.id, form.scorePolicy)
-      await updateQuiz(quiz.id, buildUpdateBody())
+      await updateQuiz(quiz.id, buildUpdateBody(nextStatus))
       savedQuestions = await setQuizQuestions(quiz.id, questions) ?? questions
     } catch (err) {
       console.error('[QuizEdit] 저장 실패', err)
@@ -322,6 +339,7 @@ export default function QuizEdit() {
       } catch { /* ignore */ }
     }
     let totalRegraded = 0
+    let totalSkipped = 0
     const regradeLog = {}
     for (const [oldQId, { option, oldQuestion }] of Object.entries(regradeMap)) {
       const idx = questions.findIndex(x => x.id === oldQId)
@@ -330,8 +348,10 @@ export default function QuizEdit() {
       try {
         const result = await regradeQuestion(quiz.id, target, option, oldQuestion)
         const count = result.regradedStudents ?? 0
+        const skipped = result.skippedManualGraded ?? 0
         totalRegraded += count
-        regradeLog[oldQId] = { option, count, timestamp: new Date().toISOString() }
+        totalSkipped += skipped
+        regradeLog[oldQId] = { option, count, skipped, timestamp: new Date().toISOString() }
       } catch (err) {
         console.error('[QuizEdit] 재채점 실패', oldQId, err)
       }
@@ -343,9 +363,13 @@ export default function QuizEdit() {
         localStorage.setItem('xnq_regrade_log', JSON.stringify(existing))
       } catch { /* ignore */ }
     }
+    const reopenMsg = reopened ? ' 마감 처리된 퀴즈가 다시 게시되었습니다.' : ''
+    const skipMsg = totalSkipped > 0 ? ` 수동채점된 ${totalSkipped}건은 보존되었습니다.` : ''
     const toastMsg = totalRegraded > 0
-      ? `저장되었습니다. ${totalRegraded}명의 점수가 재채점되었습니다.`
-      : '저장되었습니다.'
+      ? `저장되었습니다. ${totalRegraded}명의 점수가 재채점되었습니다.${skipMsg}${reopenMsg}`
+      : totalSkipped > 0
+        ? `저장되었습니다. 수동채점된 ${totalSkipped}건은 보존되어 점수 변동이 없습니다.${reopenMsg}`
+        : `저장되었습니다.${reopenMsg}`
     sessionStorage.setItem('xnq_toast', toastMsg)
     navigate('/')
   }
@@ -353,7 +377,7 @@ export default function QuizEdit() {
   return (
     <>
       <div className="max-w-5xl mx-auto pb-4">
-        <h1 className="text-[22px] font-bold text-foreground pt-8 pb-5">퀴즈 편집</h1>
+        <h1 className="text-[20px] sm:text-[22px] font-bold text-foreground pt-6 sm:pt-8 pb-4 sm:pb-5">퀴즈 편집</h1>
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList variant="line" className="gap-4 border-b border-border pb-0">
@@ -380,9 +404,9 @@ export default function QuizEdit() {
           </TabsContent>
         </Tabs>
 
-        <div className="flex items-center justify-between mt-8 pt-5 border-t border-border">
+        <div className="flex items-center justify-between gap-2 mt-8 pt-5 border-t border-border flex-wrap">
           <Button size="lg" variant="ghost" onClick={handleCancel} className="text-muted-foreground hover:text-foreground px-4">취소</Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {quiz.status === 'draft' && (
               <Button size="lg" variant="outline" onClick={handleSaveDraft} className="px-4">임시저장</Button>
             )}
@@ -397,11 +421,7 @@ export default function QuizEdit() {
                 <Printer size={15} />문제지 인쇄
               </Button>
             )}
-            {tab === 'info' ? (
-              <Button size="lg" onClick={() => setTab('questions')} className="px-4">문항 구성 →</Button>
-            ) : (
-              <Button size="lg" onClick={handleSave} className="px-4">저장</Button>
-            )}
+            <Button size="lg" onClick={handleSave} className="px-4">저장</Button>
           </div>
         </div>
       </div>
@@ -455,7 +475,7 @@ function InfoTab({ form, set }) {
       </Section>
 
       <Section title="응시 기간">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="시작 일시"><input type="datetime-local" value={form.startDate} onChange={e => set('startDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
           <Field label={<span className="inline-flex items-center gap-1">마감 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} min={form.startDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
         </div>
@@ -500,7 +520,7 @@ function InfoTab({ form, set }) {
       </Section>
 
       <Section title="응시 설정">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="응시 시간 제한">
             <div className="flex items-center gap-2">
               <div className={cn('flex items-center gap-2 flex-1 transition-opacity', form.unlimitedTimeLimit && 'opacity-40 pointer-events-none')}>
@@ -595,7 +615,7 @@ function InfoTab({ form, set }) {
                   ))}
                 </div>
                 {form.scoreRevealTiming === 'period' && (
-                  <div className="mt-3 pt-3 grid grid-cols-2 gap-3 border-t border-blue-100">
+                  <div className="mt-3 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-blue-100">
                     <div>
                       <label className="block text-xs font-medium mb-1 text-secondary-foreground">공개 시작일</label>
                       <input type="datetime-local" value={form.scoreRevealStart} onChange={e => set('scoreRevealStart', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" />
@@ -627,7 +647,7 @@ function InfoTab({ form, set }) {
         </Field>
         <Field label="접근 가능한 IP 주소">
           <textarea value={form.ipRestriction} onChange={e => set('ipRestriction', e.target.value)} placeholder={'허용할 IP 주소를 한 줄에 하나씩 입력하세요\n예) 192.168.1.0/24\n    203.0.113.10'} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-none" />
-          <p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP에서 접근 가능합니다. CIDR 표기법 지원.</p>
+          <p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP에서 접근 가능합니다. (CIDR 표기법 지원)</p>
         </Field>
       </Section>
 
@@ -663,13 +683,13 @@ function QuestionsTab({ questions, totalPoints, regradeMap, onShowBank, onShowRa
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 px-1 py-0.5">
+      <div className="flex items-center justify-between gap-2 mb-4 px-1 py-0.5 flex-wrap">
         <p className="text-[13px] text-secondary-foreground leading-none">
           <span className="font-semibold text-foreground">{questions.length}</span>문항
           <span className="text-muted-foreground mx-1.5">|</span>
           총 <span className="font-semibold text-foreground">{totalPoints}</span>점
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button size="lg" variant="outline" onClick={onShowAdd}>문항 만들기</Button>
           <Popover>
             <PopoverTrigger asChild>
@@ -725,7 +745,7 @@ function QuestionsTab({ questions, totalPoints, regradeMap, onShowBank, onShowRa
                   </div>
                 </div>
 
-                <p className="text-sm font-medium text-secondary-foreground line-clamp-2 mt-2 ml-8">{String(q.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}</p>
+                <p className="text-sm font-medium text-secondary-foreground line-clamp-2 mt-2 ml-8">{htmlToPlainText(q.text)}</p>
 
                 {q.type !== 'essay' && q.type !== 'file_upload' && q.type !== 'text' && (
                   <div className="mt-1.5 ml-8 bg-secondary/80 rounded px-2.5 py-1.5">

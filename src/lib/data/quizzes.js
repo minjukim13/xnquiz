@@ -163,11 +163,12 @@ export async function deleteQuestion(id) {
  * @param {object} question      재채점 기준 문항 (id 필수)
  * @param {'full_points'|'new_answer_only'|'award_both'|'no_regrade'} option
  * @param {object} [oldQuestion] award_both 일 때 이전 정답 비교용
- * @returns {Promise<{ changedAnswers: number, changedAttempts: number, regradedStudents: number }>}
+ * @returns {Promise<{ changedAnswers: number, changedAttempts: number, regradedStudents: number, skippedManualGraded: number }>}
+ *   skippedManualGraded: 교수자가 수동채점한 답안은 보존되며, 그 건수
  */
 export async function regradeQuestion(quizId, question, option, oldQuestion) {
   if (option === 'no_regrade') {
-    return { changedAnswers: 0, changedAttempts: 0, regradedStudents: 0 }
+    return { changedAnswers: 0, changedAttempts: 0, regradedStudents: 0, skippedManualGraded: 0 }
   }
   if (shouldUseApi()) {
     return await api(`/api/questions/${question.id}/regrade`, {
@@ -178,8 +179,13 @@ export async function regradeQuestion(quizId, question, option, oldQuestion) {
       }),
     })
   }
-  const count = mockRegradeQuestion(quizId, question, option, oldQuestion)
-  return { changedAnswers: count, changedAttempts: count, regradedStudents: count }
+  const { changedCount, skippedManualGraded } = mockRegradeQuestion(quizId, question, option, oldQuestion)
+  return {
+    changedAnswers: changedCount,
+    changedAttempts: changedCount,
+    regradedStudents: changedCount,
+    skippedManualGraded,
+  }
 }
 
 /**

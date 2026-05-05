@@ -9,6 +9,7 @@ import { useQuestionBank } from '../context/questionBank'
 import AddQuestionModal from '../components/AddQuestionModal'
 import TypeBadge from '../components/TypeBadge'
 import PageHeader from '../components/PageHeader'
+import { htmlToPlainText } from '../components/RichText'
 import { downloadQuestionTemplate, parseExcelOrCsv } from '../utils/excelUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -319,7 +320,7 @@ function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDr
                 </Badge>
               )}
             </div>
-            <p className="text-sm leading-relaxed line-clamp-3">{String(question.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}</p>
+            <p className="text-sm leading-relaxed line-clamp-3">{htmlToPlainText(question.text)}</p>
           </div>
           <Button
             variant="ghost" size="icon-xs"

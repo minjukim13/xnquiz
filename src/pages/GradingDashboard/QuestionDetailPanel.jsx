@@ -5,7 +5,7 @@ import TypeBadge from '../../components/TypeBadge'
 import { Download, FolderDown, ChevronDown } from 'lucide-react'
 import ResponsesTab from './ResponsesTab'
 import StatsTab from './StatsTab'
-import { RichTextRenderer } from '../../components/RichText'
+import { RichTextRenderer, htmlToPlainText } from '../../components/RichText'
 import { getLocalGrades, setLocalGrades } from './utils'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
@@ -102,7 +102,7 @@ export default function QuestionDetailPanel({ question, students, search, onSear
                 <TypeBadge type={question.type} small />
                 {/* 헤더 한 줄: HTML 안의 태그 제거 후 plain text 로만 표시 (line-clamp 동작) */}
                 <p className={cn('text-[14px] font-semibold text-foreground truncate', !showChoices && 'flex-1')}>
-                  {String(question.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
+                  {htmlToPlainText(question.text)}
                 </p>
               </div>
               <span className="text-[13px] text-muted-foreground shrink-0">{question.points}점</span>

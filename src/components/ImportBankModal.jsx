@@ -11,6 +11,7 @@ import {
   WizardDifficultySelector,
   WizardStep1,
 } from './BankWizardShared'
+import { isBankCompatible } from './bankDifficulty'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
@@ -61,7 +62,6 @@ export default function ImportBankModal({ onClose, onImport }) {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([])
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
-  const [inlineToast, setInlineToast] = useState(null)
 
   const sourceQuestions = selectedSourceIds.flatMap(bankId => {
     const bankName = allBanks.find(b => b.id === bankId)?.name || ''
@@ -115,7 +115,15 @@ export default function ImportBankModal({ onClose, onImport }) {
   // mock 모드에서는 전체 뱅크가 있어서 CURRENT_COURSE 로 필터.
   const currentCourseBanks = apiMode ? contextBanks : contextBanks.filter(b => b.course === CURRENT_COURSE)
   const existingTargetBanks = currentCourseBanks.filter(b => !selectedSourceIds.includes(b.id))
-  const targetBank = targetMode === 'existing' && targetBankId ? allBanks.find(b => b.id === targetBankId) : null
+  const compatibleTargetBanks = existingTargetBanks.filter(b => isBankCompatible(b, selectedQuestions))
+
+  // 선택 문항이 바뀌어 현재 선택된 대상 문제모음이 더 이상 호환되지 않으면 선택 해제
+  useEffect(() => {
+    if (!targetBankId) return
+    const tb = allBanks.find(b => b.id === targetBankId)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset stale selection when source changes
+    if (tb && !isBankCompatible(tb, selectedQuestions)) setTargetBankId(null)
+  }, [selectedQuestionIds, targetBankId, allBanks, selectedQuestions])
 
   const handleSourceToggle = (bankId) => {
     const isChecked = selectedSourceIds.includes(bankId)
@@ -125,25 +133,6 @@ export default function ImportBankModal({ onClose, onImport }) {
       setSelectedQuestionIds(prev => prev.filter(id => !bankQIds.includes(id)))
     }
     if (!isChecked && bankId === targetBankId) setTargetBankId(null)
-  }
-
-  const handleTargetBankChange = (id) => {
-    setTargetBankId(id)
-    const tb = allBanks.find(b => b.id === id)
-    if (tb?.difficulty) {
-      setSelectedQuestionIds(prev => {
-        const next = prev.filter(qId => {
-          const q = sourceQuestions.find(x => x.id === qId)
-          return q?.difficulty === tb.difficulty
-        })
-        const removed = prev.length - next.length
-        if (removed > 0) {
-          setInlineToast(`난이도 불일치로 ${removed}개 문항이 제외되었습니다`)
-          setTimeout(() => setInlineToast(null), 3000)
-        }
-        return next
-      })
-    }
   }
 
   // 사이드바 과목 목록: 실제 뱅크가 있는 과목들에서 동적 생성 (MOCK_COURSES 하드코딩 제거)
@@ -175,24 +164,7 @@ export default function ImportBankModal({ onClose, onImport }) {
     prevSourceLen.current = selectedSourceIds.length
   }, [selectedSourceIds, allBanks, newBankName])
 
-  const goToStep2 = () => {
-    if (targetBank?.difficulty) {
-      const diff = targetBank.difficulty
-      setSelectedQuestionIds(prev => {
-        const next = prev.filter(id => {
-          const q = sourceQuestions.find(x => x.id === id)
-          return q?.difficulty === diff
-        })
-        const removed = prev.length - next.length
-        if (removed > 0) {
-          setInlineToast(`난이도 불일치로 ${removed}개 문항이 제외되었습니다`)
-          setTimeout(() => setInlineToast(null), 3000)
-        }
-        return next
-      })
-    }
-    setStep(2)
-  }
+  const goToStep2 = () => setStep(2)
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
@@ -295,13 +267,17 @@ export default function ImportBankModal({ onClose, onImport }) {
                   </div>
                   {targetMode === 'existing' && (
                     <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-primary/15" onClick={e => e.stopPropagation()}>
-                      {existingTargetBanks.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-3">선택 가능한 문제모음이 없습니다</p>
+                      {compatibleTargetBanks.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-3">
+                          {existingTargetBanks.length === 0
+                            ? '선택 가능한 문제모음이 없습니다'
+                            : '선택한 문항의 난이도와 일치하는 문제모음이 없습니다'}
+                        </p>
                       ) : (
-                        existingTargetBanks.map(b => (
+                        compatibleTargetBanks.map(b => (
                           <button
                             key={b.id}
-                            onClick={() => handleTargetBankChange(b.id)}
+                            onClick={() => setTargetBankId(b.id)}
                             className={cn(
                               'w-full max-w-xs text-left px-3 py-2 rounded-lg border transition-colors text-xs flex items-center gap-2',
                               b.id === targetBankId ? 'border-primary bg-accent font-semibold text-primary' : 'border-border text-secondary-foreground hover:border-primary/40 bg-white'
@@ -317,12 +293,6 @@ export default function ImportBankModal({ onClose, onImport }) {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {inlineToast && (
-          <div className="px-5 py-2 shrink-0 text-xs flex items-center gap-1.5 bg-amber-50 text-amber-700 border-t border-amber-200">
-            {inlineToast}
           </div>
         )}
 

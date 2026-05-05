@@ -1,5 +1,8 @@
 import { ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { htmlToPlainText } from './RichText'
+
+const toText = v => htmlToPlainText(typeof v === 'string' ? v : v == null ? '' : String(v))
 
 const BADGE = "text-[12px] font-medium px-1.5 py-0.5 rounded bg-correct-bg text-correct shrink-0"
 const PILL_ACTIVE = "bg-primary text-primary-foreground"
@@ -28,7 +31,10 @@ export default function QuestionAnswer({ q }) {
 
   // 복수 정답: 개별 배지
   if (t === 'multiple_answers' && Array.isArray(ans)) {
-    const items = ans.map(a => typeof a === 'number' ? (q.choices ?? q.options)?.[a] : a).filter(Boolean)
+    const items = ans
+      .map(a => typeof a === 'number' ? (q.choices ?? q.options)?.[a] : a)
+      .map(toText)
+      .filter(Boolean)
     if (items.length === 0) return null
     return (
       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
@@ -46,7 +52,7 @@ export default function QuestionAnswer({ q }) {
       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
         <span className={BADGE}>정답</span>
         {ans.map((item, i) => (
-          <span key={i} className={ITEM_BADGE}>{item}</span>
+          <span key={i} className={ITEM_BADGE}>{toText(item)}</span>
         ))}
       </div>
     )
@@ -59,14 +65,14 @@ export default function QuestionAnswer({ q }) {
         <span className={BADGE}>정답</span>
         {q.pairs.map((p, i) => (
           <span key={i} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary">
-            {p.left} <ArrowRight size={10} className="text-muted-foreground" /> {p.right}
+            {toText(p.left)} <ArrowRight size={10} className="text-muted-foreground" /> {toText(p.right)}
           </span>
         ))}
         {q.distractors?.length > 0 && (
           <>
             <span className="text-[11px] text-muted-foreground shrink-0 ml-1">오답 보기</span>
             {q.distractors.map((d, i) => (
-              <span key={i} className="text-[12px] px-2 py-0.5 rounded-full bg-slate-100 text-muted-foreground">{d}</span>
+              <span key={i} className="text-[12px] px-2 py-0.5 rounded-full bg-slate-100 text-muted-foreground">{toText(d)}</span>
             ))}
           </>
         )}
@@ -77,7 +83,7 @@ export default function QuestionAnswer({ q }) {
   // 드롭다운: 정답 배지 우측에 라벨(또는 [드롭다운N])→정답
   if (t === 'multiple_dropdowns' && Array.isArray(q.dropdowns) && q.dropdowns.length > 0) {
     const items = q.dropdowns
-      .map((dd, i) => ({ label: dd.label || `[드롭다운${i + 1}]`, answer: dd.options?.[dd.answerIdx] }))
+      .map((dd, i) => ({ label: dd.label || `[드롭다운${i + 1}]`, answer: toText(dd.options?.[dd.answerIdx]) }))
       .filter(it => it.answer)
     if (items.length === 0) return null
     return (
@@ -114,7 +120,7 @@ export default function QuestionAnswer({ q }) {
       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
         <span className={BADGE}>정답</span>
         {ans.map((item, i) => {
-          const answers = Array.isArray(item) ? item : [item]
+          const answers = (Array.isArray(item) ? item : [item]).map(toText).filter(Boolean)
           return (
             <span key={i} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary">
               <span className="font-semibold">[빈칸{i + 1}]</span> <ArrowRight size={10} className="text-muted-foreground" />
@@ -129,9 +135,10 @@ export default function QuestionAnswer({ q }) {
   // 그 외: 텍스트 표시 (알려진 타입만)
   let display = ''
   if (t === 'multiple_choice') {
-    display = typeof ans === 'string' ? ans : (q.choices ?? q.options)?.[ans] ?? ''
+    const raw = typeof ans === 'string' ? ans : (q.choices ?? q.options)?.[ans] ?? ''
+    display = toText(raw)
   } else if (t === 'short_answer') {
-    display = Array.isArray(ans) ? ans[0] : String(ans ?? '')
+    display = toText(Array.isArray(ans) ? ans[0] : ans)
   } else if (t === 'numerical') {
     if (ans === undefined || ans === null || ans === '') return null
     display = `${ans}` + (q.tolerance ? ` (±${q.tolerance})` : '')

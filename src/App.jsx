@@ -49,6 +49,7 @@ const QuizStats = lazy(() => import('./pages/QuizStats'))
 const QuestionBankList = lazy(prefetchRoute.questionBankList)
 const QuestionBank = lazy(() => import('./pages/QuestionBank'))
 const QuizAttempt = lazy(() => import('./pages/QuizAttempt'))
+const Roadmap = lazy(() => import('./pages/Roadmap'))
 
 export default function App() {
   return (
@@ -59,6 +60,7 @@ export default function App() {
           {/* Layout Route — 사이드바를 라우트 전환 사이에 유지 (Suspense 는 Layout 내부 main 영역에) */}
           <Route element={<Layout />}>
             <Route path="/" element={<QuizList />} />
+            <Route path="/roadmap" element={<Roadmap />} />
             <Route path="/quiz/new" element={<QuizCreate />} />
             <Route path="/quiz/:id" element={<QuizDetail />} />
             <Route path="/quiz/:id/edit" element={<QuizEdit />} />

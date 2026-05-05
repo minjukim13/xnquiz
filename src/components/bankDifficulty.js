@@ -6,3 +6,12 @@ export const DIFFICULTY_META = {
 }
 
 export const DIFF_LABEL = { '': '미지정', high: '상', medium: '중', low: '하' }
+
+// 문제모음(bank)이 선택된 문항 묶음을 받을 수 있는지 판단.
+// 난이도가 미지정인 문제모음은 모든 문항을 허용하고, 고정 난이도가 있는 문제모음은
+// 모든 문항의 난이도가 일치할 때만 호환된다.
+export function isBankCompatible(bank, questions) {
+  if (!bank?.difficulty) return true
+  if (!questions || questions.length === 0) return true
+  return questions.every(q => q.difficulty === bank.difficulty)
+}

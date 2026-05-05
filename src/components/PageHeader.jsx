@@ -40,16 +40,16 @@ export default function PageHeader({
     <div className={cn('pt-2 pb-4', className)}>
       <div className="mb-3">{BackBtn}</div>
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         {typeof title === 'string' ? (
-          <h1 className="text-[22px] font-bold text-foreground leading-tight truncate flex-1 min-w-0">
+          <h1 className="text-[20px] sm:text-[22px] font-bold text-foreground leading-tight truncate flex-1 min-w-0">
             {title}
           </h1>
         ) : (
           <div className="flex-1 min-w-0">{title}</div>
         )}
         {actions && (
-          <div className="flex items-center gap-2 shrink-0">{actions}</div>
+          <div className="flex items-center gap-2 flex-wrap sm:shrink-0">{actions}</div>
         )}
       </div>
 
