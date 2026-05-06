@@ -442,12 +442,9 @@ function TypeForm({ type, form, setForm, textareaRef }) {
         <div className="space-y-5">
           {/* 변수 설정 */}
           <div>
-            <div className="mb-1.5">
+            <div className="mb-2.5">
               <Label required>변수 설정</Label>
             </div>
-            <p className="text-xs mb-2.5 text-muted-foreground">
-              본문에 <span className="font-mono text-teal-700">[변수명]</span> 형태로 넣으면 학생 화면에서 실제 값으로 표시됩니다. 예: <span className="font-mono text-teal-700">[{validVars[0]?.name || 'a'}]</span>명, <span className="font-mono text-teal-700">[{validVars[1]?.name || 'b'}]</span>권
-            </p>
             {(() => {
               const showDel = vars.length > 1
               const cols = showDel ? '4.5rem 1fr 0.75rem 1fr 4.5rem 1.5rem' : '4.5rem 1fr 0.75rem 1fr 4.5rem'
