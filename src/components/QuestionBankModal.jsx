@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { BookOpen, Search, ChevronLeft } from 'lucide-react'
+import { Search, ChevronLeft } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
 import { useQuestionBank } from '../context/questionBank'
 import { DropdownSelect } from './DropdownSelect'
@@ -154,10 +154,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                           onClick={() => setSelectedBankId(b.id)}
                           className="w-full flex items-center justify-between py-3 px-4 text-left rounded-lg transition-colors hover:bg-muted"
                         >
-                          <div className="flex items-center gap-2">
-                            <BookOpen size={14} className="text-muted-foreground" />
-                            <span className="text-[15px] font-medium text-foreground">{b.name}</span>
-                          </div>
+                          <span className="text-[15px] font-medium text-foreground">{b.name}</span>
                           <span className="text-[15px] text-muted-foreground">{count}개 문항</span>
                         </button>
                       )
@@ -204,10 +201,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                                 onClick={() => setSelectedBankId(b.id)}
                                 className="w-full flex items-center justify-between py-3 px-4 text-left rounded-lg transition-colors hover:bg-muted"
                               >
-                                <div className="flex items-center gap-2">
-                                  <BookOpen size={14} className="text-muted-foreground" />
-                                  <span className="text-[15px] font-medium text-foreground">{b.name}</span>
-                                </div>
+                                <span className="text-[15px] font-medium text-foreground">{b.name}</span>
                                 <span className="text-[15px] text-muted-foreground">{count}개 문항</span>
                               </button>
                             )

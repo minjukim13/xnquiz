@@ -1269,65 +1269,6 @@
     </div>
   </div>
 
-  <!-- ── 슬라이드: 현재 포커스 & 다음 스텝 ── -->
-  <div class="slide" style="aspect-ratio: unset; min-height: 660px;">
-    <div class="slide-header">
-      <div class="slide-header-left">
-        <span class="slide-number">Roadmap · 현재 포커스</span>
-        <span class="slide-title">백엔드 신규 구현은 일시 중단 — UI/UX 사용성과 디자인 시스템 안정화에 집중</span>
-        <span class="slide-desc">기능 17건은 모두 구현 완료. 이제 사용 흐름의 정밀도와 화면 일관성을 높이는 단계</span>
-      </div>
-      <span class="req-badge indigo">Current Focus</span>
-    </div>
-
-    <div class="slide-body full" style="padding: 18px 36px 24px; display: flex; flex-direction: column; gap: 14px;">
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
-        <!-- DOING -->
-        <div style="background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px 16px;">
-          <div style="font-size: 0.62em; font-weight: 800; color: #0f172a; letter-spacing: 0.08em; margin-bottom: 6px;">DOING · 진행 중</div>
-          <div style="font-size: 0.85em; font-weight: 800; color: #0f172a; margin-bottom: 8px;">UI/UX 사용성 다듬기</div>
-          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 0.68em; color: #0f172a; line-height: 1.5;">
-            <div>· 화면별 마이크로카피 정리 (오류/안내/빈 상태 메시지)</div>
-            <div>· 로딩·빈 상태·에러 상태 표준 패턴 적용</div>
-            <div>· Nielsen 휴리스틱 자체 점검 (10원칙 체크리스트)</div>
-            <div>· 디자인 시스템 컴포넌트 일관성 검증</div>
-            <div>· 컬러·타이포 토큰 정리 및 인라인 스타일 제거</div>
-          </div>
-        </div>
-
-        <!-- PAUSED -->
-        <div style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 10px; padding: 14px 16px;">
-          <div style="font-size: 0.62em; font-weight: 800; color: var(--slate-500); letter-spacing: 0.08em; margin-bottom: 6px;">PAUSED · 일시 보류</div>
-          <div style="font-size: 0.85em; font-weight: 800; color: var(--slate-700); margin-bottom: 8px;">백엔드 신규 구현</div>
-          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 0.68em; color: var(--slate-600); line-height: 1.5;">
-            <div>· API 신규 엔드포인트 추가 작업 보류</div>
-            <div>· 운영 환경은 현재 mock 모드 유지 (목업 데이터 기반)</div>
-            <div>· LTI 1.3 POC: Stage 1~4 완료, Stage 5(정리/회귀)만 남음</div>
-            <div>· 채점 재계산 서버화는 향후 인계 시 작업</div>
-            <div>· 동시성/IP 제한/시간 락 등 백엔드 영역은 개발팀 인계 대상</div>
-          </div>
-        </div>
-
-        <!-- NEXT -->
-        <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 16px;">
-          <div style="font-size: 0.62em; font-weight: 800; color: #16a34a; letter-spacing: 0.08em; margin-bottom: 6px;">NEXT · 다음 스텝</div>
-          <div style="font-size: 0.85em; font-weight: 800; color: #14532d; margin-bottom: 8px;">검토 + 산출물 정리</div>
-          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 0.68em; color: #166534; line-height: 1.5;">
-            <div>· PD 정성 검토 → 디자인 의사결정 확정</div>
-            <div>· 화면별 Before/After 캡처 정리 (SSD)</div>
-            <div>· 디자인 의사결정 로그(Decision Log) 누적</div>
-            <div>· 개발팀 인계용 명세서 작성 (FCL · FSD)</div>
-            <div>· Eval Report — 휴리스틱 평가 종합</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="req-box" style="border-left-color: #0f172a;">
-        <div class="req-box-label">왜 백엔드 신규 구현을 멈추는가</div>
-        <div class="req-box-text">백엔드 구현까지 직접 시도해 <strong>실제 동작까지 확인</strong>했지만, 보안·IP 검증 등 운영 신뢰성이 핵심인 영역은 <strong>실제 개발을 잘 아는 개발자가 진행하는 것이 맞다고 판단</strong>해 중단함. 본인의 역할인 UI/UX 측면, 새로 담당하게 된 디자인 시스템을 견고하게 다듬는 것이 우선순위상 더 높다고 봤고, 그것이 본인의 책임 영역이기 때문에 지금 단계에서 백엔드 본구현을 이어가는 것은 이르다고 판단.</div>
-      </div>
-    </div>
-  </div>
 
   <!-- ── 슬라이드: 로드맵 — 곡선 도로 여정 지도 ── -->
   <div class="slide" style="aspect-ratio: unset; min-height: 720px;">
