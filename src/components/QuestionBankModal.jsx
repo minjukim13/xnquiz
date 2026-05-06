@@ -118,9 +118,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
               <DialogTitle>
                 {selectedBank ? selectedBank.name : '문제모음에서 추가'}
               </DialogTitle>
-              {selectedBank ? (
-                <DialogDescription>{bankQuestions.length}개 문항</DialogDescription>
-              ) : (
+              {!selectedBank && (
                 <DialogDescription>문제를 가져올 은행을 선택하세요</DialogDescription>
               )}
             </div>
@@ -152,7 +150,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                         <button
                           key={b.id}
                           onClick={() => setSelectedBankId(b.id)}
-                          className="w-full flex items-center justify-between py-3 px-4 text-left rounded-lg transition-colors hover:bg-muted"
+                          className="w-full flex items-center justify-between py-2.5 px-4 text-left rounded-lg transition-colors hover:bg-muted"
                         >
                           <span className="text-[15px] font-medium text-foreground">{b.name}</span>
                           <span className="text-[15px] text-muted-foreground">{count}개 문항</span>
@@ -169,7 +167,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
               <div>
                 <button
                   onClick={() => setShowOtherCourses(v => !v)}
-                  className="w-full flex items-center gap-1.5 py-3 px-4 mb-2 rounded-lg transition-colors text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="w-full flex items-center gap-1.5 py-2.5 px-4 mb-1 rounded-lg transition-colors text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   <ChevronLeft
                     size={13}
@@ -199,7 +197,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                               <button
                                 key={b.id}
                                 onClick={() => setSelectedBankId(b.id)}
-                                className="w-full flex items-center justify-between py-3 px-4 text-left rounded-lg transition-colors hover:bg-muted"
+                                className="w-full flex items-center justify-between py-2.5 px-4 text-left rounded-lg transition-colors hover:bg-muted"
                               >
                                 <span className="text-[15px] font-medium text-foreground">{b.name}</span>
                                 <span className="text-[15px] text-muted-foreground">{count}개 문항</span>
@@ -228,9 +226,9 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                   className="w-full text-[15px] pl-9 pr-3 py-2 focus:outline-none bg-secondary border border-border rounded text-foreground"
                 />
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 {filtered.length > 0 && (
-                  <label className="flex items-center gap-1.5 cursor-pointer mr-1">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={allChecked}
@@ -242,33 +240,35 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                     <span className="text-xs font-medium text-foreground">전체</span>
                   </label>
                 )}
-                <DropdownSelect
-                  value={filterType}
-                  onChange={v => { setFilterType(v); setVisibleCount(15) }}
-                  filterMode
-                  options={[
-                    { value: 'all', label: '모든 유형' },
-                    ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
-                  ]}
-                />
-                <DropdownSelect
-                  value={filterDifficulty}
-                  onChange={v => { setFilterDifficulty(v); setVisibleCount(15) }}
-                  filterMode
-                  options={[
-                    { value: 'all', label: '모든 난이도' },
-                    { value: '', label: '미지정' },
-                    { value: 'high', label: '상' },
-                    { value: 'medium', label: '중' },
-                    { value: 'low', label: '하' },
-                  ]}
-                />
-                <span className="text-xs ml-auto text-muted-foreground">{filtered.length}개</span>
+                <div className="flex items-center gap-2">
+                  <DropdownSelect
+                    value={filterType}
+                    onChange={v => { setFilterType(v); setVisibleCount(15) }}
+                    filterMode
+                    options={[
+                      { value: 'all', label: '모든 유형' },
+                      ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
+                    ]}
+                  />
+                  <DropdownSelect
+                    value={filterDifficulty}
+                    onChange={v => { setFilterDifficulty(v); setVisibleCount(15) }}
+                    filterMode
+                    options={[
+                      { value: 'all', label: '모든 난이도' },
+                      { value: '', label: '미지정' },
+                      { value: 'high', label: '상' },
+                      { value: 'medium', label: '중' },
+                      { value: 'low', label: '하' },
+                    ]}
+                  />
+                </div>
+                <span className="text-xs ml-auto text-muted-foreground">총 {filtered.length}개</span>
               </div>
             </div>
 
             {/* 문항 목록 */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2" onScroll={handleScroll}>
+            <div className="flex-1 overflow-y-auto px-6 py-3 space-y-1.5" onScroll={handleScroll}>
               {visible.map(q => {
                 const isAdded = added.includes(q.id)
                 const isChecked = checked.has(q.id)
@@ -276,7 +276,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                 return (
                   <label
                     key={q.id}
-                    className={`flex items-start gap-3 p-3 transition-all cursor-pointer border rounded-lg ${
+                    className={`flex items-start gap-3 px-3 py-2.5 transition-all cursor-pointer border rounded-lg ${
                       isAdded ? 'border-accent bg-accent/50' : isChecked ? 'border-primary/30 bg-accent/30' : 'border-border bg-white'
                     }`}
                   >
@@ -289,7 +289,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                       style={{ width: 14, height: 14 }}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                         <TypeBadge type={q.type} small />
                         <span className="text-xs text-muted-foreground">{q.points}점</span>
                         {q.difficulty && (
@@ -301,7 +301,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                           <span className="text-xs px-1.5 py-0.5 rounded bg-accent text-primary">추가됨</span>
                         )}
                       </div>
-                      <p className="text-[15px] leading-relaxed text-foreground">{q.text}</p>
+                      <p className="text-[15px] leading-snug text-foreground">{q.text}</p>
                     </div>
                   </label>
                 )
