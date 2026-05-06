@@ -438,35 +438,53 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                         <span className="text-[13px] text-muted-foreground">{cfg.totalAvailable}개 출제 가능</span>
                       </div>
                       <div className="space-y-3 pl-1">
-                        {/* 출제 문항 수 */}
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-slate-500 w-20 shrink-0">출제 문항 수</span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={cfg.maxCount}
-                            value={cfg.count}
-                            onChange={e => updateConfig(bankId, 'count', Math.max(1, Math.min(cfg.maxCount, Number(e.target.value) || 1)))}
-                            className="w-16 text-center text-[15px] rounded-lg bg-background border-0 focus:outline-none transition-colors px-3 py-2"
-                          />
-                          <span className="text-xs text-muted-foreground">/ {cfg.maxCount}개</span>
-                        </div>
-
-                        {/* 배점 */}
+                        {/* 출제 문항 수 + 문항당 배점 (한 줄) */}
                         {!useDifficultyScoring ? (
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-slate-500 w-20 shrink-0">문항당 배점</span>
-                            <input
-                              type="number"
-                              min={1}
-                              max={100}
-                              value={cfg.points}
-                              onChange={e => updateConfig(bankId, 'points', Math.max(1, Number(e.target.value) || 1))}
-                              className="w-16 text-center text-[15px] rounded-lg bg-background border-0 focus:outline-none transition-colors px-3 py-2"
-                            />
-                            <span className="text-xs text-muted-foreground">점</span>
+                          <div className="flex items-center gap-6 flex-wrap">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-slate-500 w-20 shrink-0">출제 문항 수</span>
+                              <input
+                                type="number"
+                                min={1}
+                                max={cfg.maxCount}
+                                value={cfg.count}
+                                onChange={e => updateConfig(bankId, 'count', Math.max(1, Math.min(cfg.maxCount, Number(e.target.value) || 1)))}
+                                className="w-16 text-center text-[15px] rounded-lg bg-white border border-border focus:outline-none focus:border-primary transition-colors px-3 py-2"
+                              />
+                              <span className="text-xs text-muted-foreground">/ {cfg.maxCount}개</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-slate-500 w-20 shrink-0">문항당 배점</span>
+                              <input
+                                type="number"
+                                min={1}
+                                max={100}
+                                value={cfg.points}
+                                onChange={e => updateConfig(bankId, 'points', Math.max(1, Number(e.target.value) || 1))}
+                                className="w-16 text-center text-[15px] rounded-lg bg-white border border-border focus:outline-none focus:border-primary transition-colors px-3 py-2"
+                              />
+                              <span className="text-xs text-muted-foreground">점</span>
+                            </div>
                           </div>
                         ) : (
+                          <>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-slate-500 w-20 shrink-0">출제 문항 수</span>
+                              <input
+                                type="number"
+                                min={1}
+                                max={cfg.maxCount}
+                                value={cfg.count}
+                                onChange={e => updateConfig(bankId, 'count', Math.max(1, Math.min(cfg.maxCount, Number(e.target.value) || 1)))}
+                                className="w-16 text-center text-[15px] rounded-lg bg-white border border-border focus:outline-none focus:border-primary transition-colors px-3 py-2"
+                              />
+                              <span className="text-xs text-muted-foreground">/ {cfg.maxCount}개</span>
+                            </div>
+                          </>
+                        )}
+
+                        {/* 난이도별 배점 (옵션) */}
+                        {useDifficultyScoring && (
                           <div className="space-y-2">
                             <span className="text-xs text-slate-500">난이도별 배점</span>
                             <div className="grid grid-cols-3 gap-2">
@@ -483,7 +501,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                                     max={100}
                                     value={cfg.difficultyPoints[key]}
                                     onChange={e => updateDifficultyPoints(bankId, key, Math.max(1, Number(e.target.value) || 1))}
-                                    className="w-10 text-center text-xs py-1 rounded-md bg-white focus:outline-none transition-colors"
+                                    className="w-10 text-center text-xs py-1 rounded-md bg-white border border-border focus:outline-none focus:border-primary transition-colors"
                                   />
                                   <span className="text-xs text-muted-foreground">점</span>
                                   {cfg.byDifficulty[key] > 0 && (
@@ -501,7 +519,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                                 max={100}
                                 value={cfg.points}
                                 onChange={e => updateConfig(bankId, 'points', Math.max(1, Number(e.target.value) || 1))}
-                                className="w-10 text-center text-xs py-1 rounded-md bg-white focus:outline-none transition-colors"
+                                className="w-10 text-center text-xs py-1 rounded-md bg-white border border-border focus:outline-none focus:border-primary transition-colors"
                               />
                               <span className="text-xs text-muted-foreground">점</span>
                             </div>
