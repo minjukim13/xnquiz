@@ -14,6 +14,29 @@ export function countDropdowns(text) {
   return (String(text || '').match(DROPDOWN_RE) || []).length
 }
 
+// 본문에서 [빈칸N] / [드롭다운N] 의 N 최댓값 — 사용자가 수동으로 [빈칸5] 같이 입력한 경우 form 동기화에 사용
+export function maxBlankNumber(text) {
+  let max = 0
+  const re = /\[빈칸(\d+)\]/g
+  let m
+  while ((m = re.exec(String(text || ''))) !== null) {
+    const n = Number(m[1])
+    if (n > max) max = n
+  }
+  return max
+}
+
+export function maxDropdownNumber(text) {
+  let max = 0
+  const re = /\[드롭다운(\d+)\]/g
+  let m
+  while ((m = re.exec(String(text || ''))) !== null) {
+    const n = Number(m[1])
+    if (n > max) max = n
+  }
+  return max
+}
+
 export function hasAllBlankPlaceholders(text, n) {
   for (let i = 1; i <= n; i++) if (!String(text || '').includes(`[빈칸${i}]`)) return false
   return true

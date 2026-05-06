@@ -13,6 +13,8 @@ import {
   countDropdowns,
   hasAllBlankPlaceholders,
   hasAllDropdownPlaceholders,
+  maxBlankNumber,
+  maxDropdownNumber,
   removeAndShiftBlank,
   removeAndShiftDropdown,
 } from '@/utils/placeholderUtils'
@@ -1073,7 +1075,32 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                 <textarea
                   ref={bodyTextareaRef}
                   value={form.text}
-                  onChange={e => setForm(prev => ({ ...prev, text: e.target.value }))}
+                  onChange={e => {
+                    const newText = e.target.value
+                    setForm(prev => {
+                      const next = { ...prev, text: newText }
+                      // 본문에 [빈칸N] / [드롭다운N] 을 직접 입력했을 때 form 항목 자동 확장
+                      // (button 캡 6/4 까지만 확장; 캡 초과는 mismatch 경고로 안내)
+                      if (selectedType === 'fill_in_multiple_blanks') {
+                        const target = Math.min(maxBlankNumber(newText), 6)
+                        const cur = prev.blanks || []
+                        if (target > cur.length) {
+                          const ext = [...cur]
+                          while (ext.length < target) ext.push([''])
+                          next.blanks = ext
+                        }
+                      } else if (selectedType === 'multiple_dropdowns') {
+                        const target = Math.min(maxDropdownNumber(newText), 4)
+                        const cur = prev.dropdowns || []
+                        if (target > cur.length) {
+                          const ext = [...cur]
+                          while (ext.length < target) ext.push({ options: ['', ''], answerIdx: 0 })
+                          next.dropdowns = ext
+                        }
+                      }
+                      return next
+                    })
+                  }}
                   placeholder={
                     selectedType === 'formula'
                       ? '예: a명의 학생이 b권의 책을 가지고 있을 때, 총 책의 수는?  (변수는 아래에서 정의)'

@@ -60,13 +60,6 @@ export default function RegradeOptionsModal({ submittedCount, onConfirm, onCance
             </p>
           </div>
 
-          {/* 수동채점 보존 안내 */}
-          <div className="rounded-lg bg-secondary border border-border px-4 py-2.5">
-            <p className="text-[12px] leading-relaxed text-secondary-foreground">
-              교수자가 이미 수동으로 점수를 매긴 답안은 어떤 옵션을 선택해도 변경되지 않습니다.
-            </p>
-          </div>
-
           {/* 옵션 목록 */}
           <div className="space-y-2">
             {REGRADE_OPTIONS.map(opt => {

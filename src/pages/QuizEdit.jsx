@@ -339,7 +339,6 @@ export default function QuizEdit() {
       } catch { /* ignore */ }
     }
     let totalRegraded = 0
-    let totalSkipped = 0
     const regradeLog = {}
     for (const [oldQId, { option, oldQuestion }] of Object.entries(regradeMap)) {
       const idx = questions.findIndex(x => x.id === oldQId)
@@ -348,10 +347,8 @@ export default function QuizEdit() {
       try {
         const result = await regradeQuestion(quiz.id, target, option, oldQuestion)
         const count = result.regradedStudents ?? 0
-        const skipped = result.skippedManualGraded ?? 0
         totalRegraded += count
-        totalSkipped += skipped
-        regradeLog[oldQId] = { option, count, skipped, timestamp: new Date().toISOString() }
+        regradeLog[oldQId] = { option, count, timestamp: new Date().toISOString() }
       } catch (err) {
         console.error('[QuizEdit] 재채점 실패', oldQId, err)
       }
@@ -364,12 +361,9 @@ export default function QuizEdit() {
       } catch { /* ignore */ }
     }
     const reopenMsg = reopened ? ' 마감 처리된 퀴즈가 다시 게시되었습니다.' : ''
-    const skipMsg = totalSkipped > 0 ? ` 수동채점된 ${totalSkipped}건은 보존되었습니다.` : ''
     const toastMsg = totalRegraded > 0
-      ? `저장되었습니다. ${totalRegraded}명의 점수가 재채점되었습니다.${skipMsg}${reopenMsg}`
-      : totalSkipped > 0
-        ? `저장되었습니다. 수동채점된 ${totalSkipped}건은 보존되어 점수 변동이 없습니다.${reopenMsg}`
-        : `저장되었습니다.${reopenMsg}`
+      ? `저장되었습니다. ${totalRegraded}명의 점수가 재채점되었습니다.${reopenMsg}`
+      : `저장되었습니다.${reopenMsg}`
     sessionStorage.setItem('xnq_toast', toastMsg)
     navigate('/')
   }

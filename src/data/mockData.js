@@ -1998,40 +1998,36 @@ function gradeByQuestion(question, answer) {
 }
 
 /**
- * 옵션별 재채점
+ * 옵션별 재채점 — 교수자가 수동채점한 답안도 함께 재채점됨
  * @param {string} quizId
  * @param {object} updatedQuestion - 수정된 문항
  * @param {'award_both'|'new_answer_only'|'full_points'|'no_regrade'} option
  * @param {object} [oldQuestion] - award_both일 때 이전 문항 (이전 정답 비교용)
- * @returns {{ changedCount: number, skippedManualGraded: number }} 점수 변경된 학생 수 / 수동채점되어 스킵된 답안 수
+ * @returns {{ changedCount: number }} 점수 변경된 학생 수
  */
 export function regradeQuestionWithOption(quizId, updatedQuestion, option, oldQuestion) {
-  if (option === 'no_regrade') return { changedCount: 0, skippedManualGraded: 0 }
+  if (option === 'no_regrade') return { changedCount: 0 }
 
   try {
     const raw = localStorage.getItem('xnq_student_attempts')
-    if (!raw) return { changedCount: 0, skippedManualGraded: 0 }
+    if (!raw) return { changedCount: 0 }
     const all = JSON.parse(raw)
     const attempts = all[quizId]
-    if (!attempts || attempts.length === 0) return { changedCount: 0, skippedManualGraded: 0 }
+    if (!attempts || attempts.length === 0) return { changedCount: 0 }
 
     const manualGradesRaw = localStorage.getItem('xnq_manual_grades')
     const manualGrades = manualGradesRaw ? JSON.parse(manualGradesRaw) : {}
+    let manualGradesChanged = false
 
     let changedCount = 0
-    let skippedManualGraded = 0
     attempts.forEach(attempt => {
       const answer = attempt.answers?.[updatedQuestion.id]
       if (answer === undefined) return
 
-      const manualKey = `${attempt.studentId}_${quizId}_${updatedQuestion.id}`
-      if (manualGrades[manualKey] !== undefined) {
-        skippedManualGraded++
-        return
-      }
-
       if (!attempt.autoScores) attempt.autoScores = {}
-      const currentScore = attempt.autoScores[updatedQuestion.id] ?? 0
+      const prevAuto = attempt.autoScores[updatedQuestion.id] ?? 0
+      const prevManual = attempt.manualScores?.[updatedQuestion.id] ?? null
+      const currentScore = prevManual != null ? prevManual : prevAuto
       let newScore
 
       if (option === 'full_points') {
@@ -2048,19 +2044,32 @@ export function regradeQuestionWithOption(quizId, updatedQuestion, option, oldQu
         newScore = graded
       }
 
-      if (newScore !== currentScore) {
-        const diff = newScore - currentScore
+      // 수동채점 오버라이드가 있었다면 제거 (재채점 결과를 우선시)
+      if (prevManual != null && attempt.manualScores) {
+        delete attempt.manualScores[updatedQuestion.id]
+      }
+      const manualStorageKey = `${quizId}_${attempt.studentId}_${updatedQuestion.id}`
+      if (manualGrades[manualStorageKey] !== undefined) {
+        delete manualGrades[manualStorageKey]
+        manualGradesChanged = true
+      }
+
+      if (newScore !== currentScore || prevManual != null) {
+        const diff = newScore - prevAuto
         attempt.autoScores[updatedQuestion.id] = newScore
         attempt.totalAutoScore = (attempt.totalAutoScore ?? 0) + diff
-        changedCount++
+        if (newScore !== currentScore) changedCount++
       }
     })
 
     localStorage.setItem('xnq_student_attempts', JSON.stringify(all))
-    return { changedCount, skippedManualGraded }
+    if (manualGradesChanged) {
+      localStorage.setItem('xnq_manual_grades', JSON.stringify(manualGrades))
+    }
+    return { changedCount }
   } catch (err) {
     console.error('[xnquiz] 옵션별 재채점 실패:', err)
-    return { changedCount: 0, skippedManualGraded: 0 }
+    return { changedCount: 0 }
   }
 }
 

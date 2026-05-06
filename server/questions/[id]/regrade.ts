@@ -6,14 +6,14 @@
 // }
 //
 // 처리:
-//   1) 수동채점된 답안(manualScore != null) 은 보존 — skip (skippedManualGraded 로 카운트)
-//   2) 옵션별 newScore 계산
+//   1) 옵션별 newScore 계산 — 수동채점된 답안도 함께 재채점
 //        - full_points     : question.points 만점 부여
 //        - new_answer_only : 현재 정답 기준 자동채점 (null=수동채점 대기 → skip)
 //        - award_both      : 이전 정답 / 새 정답 중 높은 점수
 //        - no_regrade      : 즉시 0 반환
+//   2) 새 점수가 적용되면 manualScore 는 null 로 초기화 (재채점 결과를 우선)
 //   3) 영향 받은 Attempt 합계 재계산 — 미채점(autoScore=null && manualScore=null) 답안 있으면 graded=false
-//   4) { changedAnswers, changedAttempts, regradedStudents, skippedManualGraded }
+//   4) { changedAnswers, changedAttempts, regradedStudents }
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../../../lib/prisma.js'
 import { getAuthFromRequest } from '../../../lib/auth.js'
@@ -42,26 +42,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (option === 'no_regrade') {
-    return res.status(200).json({ changedAnswers: 0, changedAttempts: 0, regradedStudents: 0, skippedManualGraded: 0 })
+    return res.status(200).json({ changedAnswers: 0, changedAttempts: 0, regradedStudents: 0 })
   }
 
   const question = await prisma.question.findUnique({ where: { id } })
   if (!question) return res.status(404).json({ error: '문항을 찾을 수 없습니다' })
 
   try {
-    // 수동채점되지 않은 답안만 — 같은 quiz 의 attempt 안에 있는 것
+    // 같은 quiz 의 attempt 안에 있는 모든 답안 (수동채점 여부와 무관하게 일괄 재채점)
     const answers = await prisma.answer.findMany({
-      where: { questionId: id, manualScore: null },
+      where: { questionId: id },
       include: { attempt: { select: { id: true, userId: true, quizId: true } } },
-    })
-
-    // 수동채점되어 스킵될 답안 수 (같은 quiz 한정)
-    const skippedManualGraded = await prisma.answer.count({
-      where: {
-        questionId: id,
-        manualScore: { not: null },
-        attempt: { quizId: question.quizId },
-      },
     })
 
     let changedAnswers = 0
@@ -72,7 +63,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       for (const ans of answers) {
         if (ans.attempt.quizId !== question.quizId) continue
 
-        const currentScore = ans.autoScore ?? 0
+        const prevManual = ans.manualScore
+        const currentScore = prevManual ?? ans.autoScore ?? 0
         let newScore: number | null
 
         if (option === 'full_points') {
@@ -101,12 +93,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (newScore === null) continue
         }
 
-        if (newScore !== currentScore) {
+        if (newScore !== currentScore || prevManual !== null) {
           await tx.answer.update({
             where: { id: ans.id },
-            data: { autoScore: newScore },
+            data: { autoScore: newScore, manualScore: null },
           })
-          changedAnswers++
+          if (newScore !== currentScore) changedAnswers++
           affectedAttemptIds.add(ans.attemptId)
           affectedUserIds.add(ans.attempt.userId)
         }
@@ -134,7 +126,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       changedAnswers,
       changedAttempts: affectedAttemptIds.size,
       regradedStudents: affectedUserIds.size,
-      skippedManualGraded,
     })
   } catch (err) {
     return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
