@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { cn } from '@/lib/utils'
 import RegradeOptionsModal from './RegradeOptionsModal'
 import QuestionTypePreview from './QuestionTypePreview'
-import { evalFormulaPreview, generateSolutions } from '@/utils/formulaEngine'
+import { evalFormulaPreview } from '@/utils/formulaEngine'
 import {
   countBlanks,
   countDropdowns,
@@ -54,7 +54,7 @@ const getTypeTw = (key) => TYPE_TW[key] ?? { text: 'text-muted-foreground', bg: 
 
 // ── 폼 초기값 ───────────────────────────────────────────────────────────────
 function initForm(type) {
-  const base = { text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '' }
+  const base = { title: '', text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '' }
   switch (type) {
     case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
     case 'true_false':              return { ...base, correctBool: true }
@@ -67,7 +67,7 @@ function initForm(type) {
     case 'fill_in_multiple_blanks': return { ...base, blanks: [] }
     case 'multiple_dropdowns':      return { ...base, dropdowns: [] }
     case 'file_upload':             return base
-    case 'text':                    return { text: '', points: 0, difficulty: '' }
+    case 'text':                    return { title: '', text: '', points: 0, difficulty: '' }
     default:                        return base
   }
 }
@@ -84,7 +84,7 @@ function pickComments(form) {
 // ── 폼 → 문항 객체 ─────────────────────────────────────────────────────────
 function buildQuestion(type, form) {
   // 본문 text 는 RichTextEditor 의 HTML 문자열일 수 있음 (이미지/iframe 인라인 포함)
-  const base = { type, text: form.text || '', points: Number.isFinite(Number(form.points)) ? Number(form.points) : 0, difficulty: form.difficulty || '', ...pickComments(form) }
+  const base = { type, title: (form.title || '').trim(), text: form.text || '', points: Number.isFinite(Number(form.points)) ? Number(form.points) : 0, difficulty: form.difficulty || '', ...pickComments(form) }
   switch (type) {
     case 'multiple_choice': {
       const filtered = form.options.filter(o => richTextHasContent(o))
@@ -107,7 +107,7 @@ function buildQuestion(type, form) {
       return { options: opts, answerIdx: idx }
     }) }
     case 'file_upload':             return base
-    case 'text':                    return { type, text: form.text || '', points: 0, difficulty: '' }
+    case 'text':                    return { type, title: (form.title || '').trim(), text: form.text || '', points: 0, difficulty: '' }
     default:                        return base
   }
 }
@@ -198,7 +198,6 @@ function Label({ children, required }) {
 // ── 유형별 전용 폼 ──────────────────────────────────────────────────────────
 function TypeForm({ type, form, setForm, textareaRef }) {
   const upd = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
-  const [showFnRef, setShowFnRef] = useState(false)
 
   const insertAtCursor = (tag) => {
     const el = textareaRef?.current
@@ -438,30 +437,20 @@ function TypeForm({ type, form, setForm, textareaRef }) {
         return `${v.name}=${mid}`
       }).join(', ')
       const answerDec = Number(form.answerDecimals) || 0
-      const solutions = form.solutions || []
       const varInputCls = 'text-[15px] px-2 py-1.5 bg-white text-center focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30'
       return (
         <div className="space-y-5">
-          {/* 변수 참조 안내 */}
-          {validVars.length > 0 && (
-            <div className="px-3.5 py-2.5 rounded-lg text-xs bg-teal-50/60 border border-teal-200">
-              <span className="text-teal-700 font-medium">변수 참조 안내</span>
-              <span className="text-muted-foreground ml-1.5">문제 설명에 변수명을 대괄호로 감싸면 학생에게 실제 값으로 표시됩니다.</span>
-              <div className="mt-1.5 font-mono text-teal-600">
-                예: "[{validVars[0]?.name || 'a'}]명의 학생이 [{validVars[1]?.name || 'b'}]권의 책을 가지고 있을 때"
-              </div>
-            </div>
-          )}
-
           {/* 변수 설정 */}
           <div>
-            <div className="flex items-center justify-between mb-2.5">
+            <div className="mb-1.5">
               <Label required>변수 설정</Label>
-              <span className="text-xs text-muted-foreground">학생마다 범위 안에서 무작위 값 부여</span>
             </div>
+            <p className="text-xs mb-2.5 text-muted-foreground">
+              본문에 <span className="font-mono text-teal-700">[변수명]</span> 형태로 넣으면 학생 화면에서 실제 값으로 표시됩니다. 예: <span className="font-mono text-teal-700">[{validVars[0]?.name || 'a'}]</span>명, <span className="font-mono text-teal-700">[{validVars[1]?.name || 'b'}]</span>권
+            </p>
             {(() => {
               const showDel = vars.length > 1
-              const cols = showDel ? '4.5rem 5rem auto 5rem 4.5rem 1.5rem' : '4.5rem 1fr auto 1fr 4.5rem'
+              const cols = showDel ? '4.5rem 1fr 0.75rem 1fr 4.5rem 1.5rem' : '4.5rem 1fr 0.75rem 1fr 4.5rem'
               const headers = showDel ? ['변수명', '최솟값', '', '최댓값', '소수점', ''] : ['변수명', '최솟값', '', '최댓값', '소수점']
               return <>
                 <div className="grid gap-1.5 mb-1.5 px-0.5" style={{ gridTemplateColumns: cols }}>
@@ -474,12 +463,12 @@ function TypeForm({ type, form, setForm, textareaRef }) {
                     <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: cols }}>
                       <input type="text" value={v.name} placeholder="a"
                         maxLength={4}
-                        onChange={e => { const n = [...vars]; n[i] = { ...n[i], name: e.target.value }; upd('variables', n) }}
+                        onChange={e => { const filtered = e.target.value.replace(/[^a-zA-Z0-9]/g, '').replace(/^[0-9]+/, ''); const n = [...vars]; n[i] = { ...n[i], name: filtered }; upd('variables', n) }}
                         className={cn(varInputCls, 'font-mono placeholder:font-sans text-teal-600')} />
                       <input type="number" value={v.min} placeholder="1"
                         onChange={e => { const n = [...vars]; n[i] = { ...n[i], min: e.target.value }; upd('variables', n) }}
                         className={varInputCls} />
-                      <span className="text-xs text-center text-muted-foreground">~</span>
+                      <span className="text-sm text-center text-muted-foreground select-none">~</span>
                       <input type="number" value={v.max} placeholder="10"
                         onChange={e => { const n = [...vars]; n[i] = { ...n[i], max: e.target.value }; upd('variables', n) }}
                         className={varInputCls} />
@@ -502,28 +491,10 @@ function TypeForm({ type, form, setForm, textareaRef }) {
 
           {/* 수식 입력 */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <Label required>수식</Label>
-              <button type="button" onClick={() => setShowFnRef(!showFnRef)}
-                className="text-xs text-primary hover:text-primary-hover transition-colors">
-                {showFnRef ? '함수 목록 접기' : '사용 가능한 함수 보기'}
-              </button>
-            </div>
+            <Label required>수식</Label>
             <p className="text-xs mb-2 text-muted-foreground">
               변수명을 그대로 입력하세요. 사칙연산(+, -, *, /), ^(거듭제곱), 수학 함수, 상수(pi, e) 사용 가능
             </p>
-            {showFnRef && (
-              <div className="mb-2.5 p-3 rounded-lg border border-border bg-secondary text-xs space-y-2">
-                <div><span className="font-medium text-foreground">기본 연산</span> <span className="font-mono text-muted-foreground">+ - * / ^(거듭제곱) (괄호)</span></div>
-                <div><span className="font-medium text-foreground">상수</span> <span className="font-mono text-muted-foreground">pi (3.14159...) e (2.71828...)</span></div>
-                <div><span className="font-medium text-foreground">삼각함수</span> <span className="font-mono text-muted-foreground">sin(x) cos(x) tan(x) asin(x) acos(x) atan(x)</span></div>
-                <div><span className="font-medium text-foreground">지수/로그</span> <span className="font-mono text-muted-foreground">sqrt(x) ln(x) log(x) log(x,밑)</span></div>
-                <div><span className="font-medium text-foreground">반올림</span> <span className="font-mono text-muted-foreground">abs(x) round(x) ceil(x) floor(x)</span></div>
-                <div><span className="font-medium text-foreground">조합/순열</span> <span className="font-mono text-muted-foreground">fact(n) comb(n,k) perm(n,k)</span></div>
-                <div><span className="font-medium text-foreground">각도 변환</span> <span className="font-mono text-muted-foreground">deg_to_rad(x) rad_to_deg(x)</span></div>
-                <div><span className="font-medium text-foreground">비교</span> <span className="font-mono text-muted-foreground">min(a,b) max(a,b)</span></div>
-              </div>
-            )}
             <input type="text" value={form.formula} placeholder="예: sqrt(a^2 + b^2)"
               onChange={e => upd('formula', e.target.value)}
               className={cn(
@@ -546,7 +517,7 @@ function TypeForm({ type, form, setForm, textareaRef }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>정답 소수점 자릿수</Label>
-              <DropdownSelect size="sm"
+              <DropdownSelect size="md"
                 value={form.answerDecimals || '2'}
                 onChange={val => upd('answerDecimals', val)}
                 options={[0, 1, 2, 3, 4, 5, 6].map(d => ({ value: String(d), label: `${d}자리` }))} />
@@ -555,68 +526,21 @@ function TypeForm({ type, form, setForm, textareaRef }) {
             <div>
               <Label>허용 오차</Label>
               <div className="flex gap-2">
-                <input type="number" value={form.tolerance} min="0" placeholder="0"
-                  onChange={e => upd('tolerance', e.target.value)}
-                  className="flex-1 text-[15px] px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30" />
-                <DropdownSelect size="sm"
+                <DropdownSelect size="md"
                   value={form.toleranceType || 'absolute'}
                   onChange={val => upd('toleranceType', val)}
                   options={[{ value: 'absolute', label: '절대값' }, { value: 'percent', label: '%' }]}
-                  className="w-[5.5rem]" />
+                  className="w-[5.5rem] shrink-0" />
+                <input type="number" value={form.tolerance} min="0" placeholder="0"
+                  onChange={e => upd('tolerance', e.target.value)}
+                  className="flex-1 min-w-0 h-9 text-[15px] px-2.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30" />
               </div>
               <p className="text-xs mt-1 text-muted-foreground">
                 {(form.toleranceType || 'absolute') === 'percent'
-                  ? `정답의 ±${form.tolerance || 0}% 범위 내 정답 처리`
-                  : `정답 ±${form.tolerance || 0} 범위 내 정답 처리 (0 = 완전 일치)`}
+                  ? `정답의 ±${form.tolerance || 0}% 범위까지 정답 처리`
+                  : `정답 ±${form.tolerance || 0} 범위까지 정답 처리 (0 = 완전 일치)`}
               </p>
             </div>
-          </div>
-
-          {/* 정답 생성 및 검증 테이블 */}
-          <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <Label>정답 생성 및 검증</Label>
-              <Button type="button" variant="soft" size="sm"
-                disabled={preview === null}
-                onClick={() => {
-                  const sols = generateSolutions(vars, form.formula, 10)
-                  upd('solutions', sols)
-                }}>
-                {solutions.length > 0 ? '다시 생성' : '10개 생성'}
-              </Button>
-            </div>
-            {solutions.length === 0 && preview !== null && (
-              <p className="text-xs text-muted-foreground">수식이 유효합니다. "10개 생성" 버튼을 눌러 변수 조합별 정답을 미리 확인하세요.</p>
-            )}
-            {solutions.length === 0 && preview === null && (
-              <p className="text-xs text-muted-foreground">수식과 변수를 먼저 설정하세요.</p>
-            )}
-            {solutions.length > 0 && (
-              <div className="border border-border rounded-lg overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-secondary border-b border-border">
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground w-8">#</th>
-                      {validVars.map(v => (
-                        <th key={v.name} className="px-3 py-2 text-right font-medium text-teal-700">{v.name}</th>
-                      ))}
-                      <th className="px-3 py-2 text-right font-medium text-foreground">정답</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {solutions.map((sol, i) => (
-                      <tr key={i} className={cn('border-b border-border last:border-b-0', i % 2 === 0 ? 'bg-white' : 'bg-secondary/40')}>
-                        <td className="px-3 py-1.5 text-muted-foreground">{sol.index}</td>
-                        {validVars.map(v => (
-                          <td key={v.name} className="px-3 py-1.5 text-right font-mono">{sol.variables[v.name]}</td>
-                        ))}
-                        <td className="px-3 py-1.5 text-right font-mono font-medium text-teal-600">{Number(sol.answer.toFixed(answerDec))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
         </div>
       )
@@ -811,6 +735,7 @@ function TypeForm({ type, form, setForm, textareaRef }) {
 // ── 문항 객체 → 폼 상태 변환 ────────────────────────────────────────────────
 function questionToForm(q) {
   const base = {
+    title: q.title || '',
     text: q.text || '',
     points: q.points ?? 5,
     difficulty: q.difficulty || '',
@@ -885,7 +810,7 @@ function questionToForm(q) {
     case 'file_upload':
       return base
     case 'text':
-      return { text: q.text || '', points: 0, difficulty: '' }
+      return { title: q.title || '', text: q.text || '', points: 0, difficulty: '' }
     default:
       return base
   }
@@ -944,7 +869,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
       if (bankDifficulty) f.difficulty = bankDifficulty
       return f
     }
-    return { text: '', points: 5 }
+    return { title: '', text: '', points: 5 }
   })
 
   const handleSelectType = (type) => {
@@ -1064,6 +989,51 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                 </p>
               </div>
             )}
+            {/* 제목 + 배점 + 난이도 */}
+            <div className={cn('grid gap-3', selectedType === 'text' ? 'grid-cols-1' : 'grid-cols-[1fr_5rem_8rem]')}>
+              <div>
+                <label className="text-[15px] font-medium block mb-1.5 text-foreground">
+                  {selectedType === 'text' ? '안내문 제목' : '문제 제목'}
+                </label>
+                <input type="text" value={form.title || ''} maxLength={120}
+                  onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder={selectedType === 'text' ? '안내문 제목을 입력하세요' : '문제 제목을 입력하세요'}
+                  className="w-full h-9 bg-white text-[15px] px-3 rounded-lg focus:outline-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                />
+              </div>
+              {selectedType !== 'text' && (
+                <>
+                  <div>
+                    <label className="text-[15px] font-medium block mb-1.5 text-foreground">배점 <span className="text-destructive">*</span></label>
+                    <input type="number" value={form.points} min={0} step={0.5}
+                      onChange={e => setForm(prev => ({ ...prev, points: e.target.value }))}
+                      className="w-full h-9 bg-white text-[15px] px-3 rounded-lg focus:outline-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[15px] font-medium block mb-1.5 text-foreground">난이도</label>
+                    {bankDifficulty ? (
+                      <div className="text-[13px] h-9 px-3 flex items-center gap-2 bg-muted border border-border rounded-lg text-foreground">
+                        <span className="font-medium">{bankDifficulty === 'high' ? '상' : bankDifficulty === 'medium' ? '중' : '하'}</span>
+                        <span className="text-xs text-muted-foreground">고정</span>
+                      </div>
+                    ) : (
+                      <DropdownSelect
+                        value={form.difficulty || ''}
+                        onChange={v => setForm(prev => ({ ...prev, difficulty: v }))}
+                        options={[
+                          { value: '', label: '미지정' },
+                          { value: 'high', label: '상' },
+                          { value: 'medium', label: '중' },
+                          { value: 'low', label: '하' },
+                        ]}
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* 문제 내용 */}
             <div>
               <label className="text-[15px] font-medium block mb-1.5 text-foreground">
@@ -1103,7 +1073,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                   }}
                   placeholder={
                     selectedType === 'formula'
-                      ? '예: a명의 학생이 b권의 책을 가지고 있을 때, 총 책의 수는?  (변수는 아래에서 정의)'
+                      ? '예: 5 더하기 [x]는 무엇입니까?  (변수는 아래에서 정의)'
                       : selectedType === 'fill_in_multiple_blanks'
                       ? '예: 장미는 [빈칸1], 제비꽃은 [빈칸2] 색이다.  (아래 "본문에 빈칸 삽입" 버튼 사용)'
                       : '예: 계절 중 가장 더운 때는 [드롭다운1]이다.  (아래 "본문에 드롭다운 삽입" 버튼 사용)'
@@ -1122,37 +1092,6 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                 />
               )}
             </div>
-
-            {/* 배점 / 난이도 — text 유형은 숨김 */}
-            {selectedType !== 'text' && <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[15px] font-medium block mb-1.5 text-foreground">배점 <span className="text-destructive">*</span></label>
-                <input type="number" value={form.points} min={0} step={0.5}
-                  onChange={e => setForm(prev => ({ ...prev, points: e.target.value }))}
-                  className="w-full bg-white text-[15px] px-3 py-2 rounded-lg focus:outline-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
-                />
-              </div>
-              <div>
-                <label className="text-[15px] font-medium block mb-1.5 text-foreground">난이도</label>
-                {bankDifficulty ? (
-                  <div className="text-[15px] h-[30px] px-3 flex items-center gap-2 bg-muted border border-border rounded-lg text-foreground">
-                    <span className="font-medium">{bankDifficulty === 'high' ? '상' : bankDifficulty === 'medium' ? '중' : '하'}</span>
-                    <span className="text-xs text-muted-foreground">이 문제모음 고정</span>
-                  </div>
-                ) : (
-                  <DropdownSelect
-                    value={form.difficulty || ''}
-                    onChange={v => setForm(prev => ({ ...prev, difficulty: v }))}
-                    options={[
-                      { value: '', label: '미지정' },
-                      { value: 'high', label: '상' },
-                      { value: 'medium', label: '중' },
-                      { value: 'low', label: '하' },
-                    ]}
-                  />
-                )}
-              </div>
-            </div>}
 
             {selectedType !== 'text' && <div className="border-t border-border" />}
 

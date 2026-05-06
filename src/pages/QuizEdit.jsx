@@ -32,8 +32,10 @@ const WEEK_OPTIONS = [
 ]
 const SESSION_BASE = [1, 2, 3, 4].map(s => ({ value: s, label: `${s}차시` }))
 const SESSION_OPTIONS_WITH_NONE = [{ value: null, label: '선택 안함' }, ...SESSION_BASE]
-const ATTEMPT_MIN = 1
-const ATTEMPT_MAX = 99
+const ATTEMPT_OPTIONS = [
+  ...Array.from({ length: 9 }, (_, i) => ({ value: i + 2, label: `${i + 2}회` })),
+  { value: -1, label: '무제한' },
+]
 const SCORE_POLICIES = ['최고 점수 유지', '최신 점수 유지', '평균 점수'].map(v => ({ value: v, label: v }))
 
 const DEFAULT_NOTICE = `- 제출 후에는 답안을 수정할 수 없습니다.
@@ -82,6 +84,7 @@ export default function QuizEdit() {
     allowLateSubmit: quiz?.allowLateSubmit ?? false,
     lateSubmitDeadline: quiz?.lateSubmitDeadline ?? '',
     gracePeriod: quiz?.gracePeriod ?? 0,
+    disableAutoSubmit: quiz?.disableAutoSubmit ?? false,
     oneQuestionAtATime: quiz?.oneQuestionAtATime ?? false,
     lockAfterAnswer: quiz?.lockAfterAnswer ?? false,
     assignments: Array.isArray(quiz?.assignments)
@@ -150,6 +153,7 @@ export default function QuizEdit() {
       allowLateSubmit: quiz.allowLateSubmit ?? false,
       lateSubmitDeadline: quiz.lateSubmitDeadline ?? '',
       gracePeriod: quiz.gracePeriod ?? 0,
+      disableAutoSubmit: quiz.disableAutoSubmit ?? false,
       oneQuestionAtATime: quiz.oneQuestionAtATime ?? false,
       lockAfterAnswer: quiz.lockAfterAnswer ?? false,
       assignments: Array.isArray(quiz.assignments)
@@ -273,6 +277,7 @@ export default function QuizEdit() {
     allowLateSubmit: form.allowLateSubmit,
     lateSubmitDeadline: form.allowLateSubmit && form.lateSubmitDeadline ? form.lateSubmitDeadline : null,
     gracePeriod: form.dueDate && Number(form.gracePeriod) > 0 ? Number(form.gracePeriod) : 0,
+    disableAutoSubmit: !form.unlimitedTimeLimit && !!form.disableAutoSubmit,
     oneQuestionAtATime: form.oneQuestionAtATime,
     lockAfterAnswer: form.oneQuestionAtATime && form.lockAfterAnswer,
     assignments: sanitizeAssignments(form.assignments),
@@ -474,13 +479,6 @@ function InfoTab({ form, set }) {
           <Field label={<span className="inline-flex items-center gap-1">마감 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} min={form.startDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">미설정 시 응시 기간 제한 없이 학생이 언제든 응시할 수 있습니다.</p>
-        <Field label={<span className="inline-flex items-center gap-1">유예 시간<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>마감 직후 네트워크 지연 등으로 늦게 제출될 수 있는 경우를<br />대비한 버퍼 시간입니다. 이 시간 이내 제출은 지각으로 처리하지 않습니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
-          <div className={cn('flex items-center gap-2', !form.dueDate && 'opacity-40 pointer-events-none')}>
-            <input type="number" value={form.gracePeriod} onChange={e => set('gracePeriod', e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} min={0} placeholder="0" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
-            <span className="text-sm shrink-0 text-muted-foreground">분</span>
-          </div>
-          <p className="text-xs mt-1.5 text-muted-foreground">{form.dueDate ? '0분 또는 미설정 시 유예 없이 마감 일시에 지각 처리됩니다.' : '마감 일시가 설정되어야 사용할 수 있습니다.'}</p>
-        </Field>
         <Field label={<span className="inline-flex items-center gap-1">이용 종료 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>퀴즈 페이지 자체에 접근할 수 없게 되는 시점입니다.<br />마감 이후에도 학생이 결과를 확인할 수 있도록<br />종료 일시는 마감 일시 이후로 설정하는 것을 권장합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
           <input type="datetime-local" value={form.lockDate} onChange={e => set('lockDate', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
           <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
@@ -491,10 +489,7 @@ function InfoTab({ form, set }) {
           )}
         </Field>
         <div className="mt-1 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-secondary-foreground">마감 후 지각 제출 허용</span>
-            <Switch checked={form.allowLateSubmit} onCheckedChange={v => set('allowLateSubmit', v)} className="data-[state=checked]:bg-foreground data-[state=unchecked]:bg-border" />
-          </div>
+          <Toggle checked={form.allowLateSubmit} onChange={v => set('allowLateSubmit', v)} label="마감 후 지각 제출 허용" />
           {form.allowLateSubmit && (
             <div className="border-l-2 border-border pl-4 ml-0.5 space-y-2">
               <label className="block text-sm font-medium text-secondary-foreground">지각 제출 마감 일시</label>
@@ -514,30 +509,72 @@ function InfoTab({ form, set }) {
       </Section>
 
       <Section title="응시 설정">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="응시 시간 제한">
-            <div className="flex items-center gap-2">
-              <div className={cn('flex items-center gap-2 flex-1 transition-opacity', form.unlimitedTimeLimit && 'opacity-40 pointer-events-none')}>
-                <input type="number" value={form.timeLimit} onChange={e => set('timeLimit', e.target.value)} placeholder="60" min={1} disabled={form.unlimitedTimeLimit} className={cn('w-full text-sm px-3.5 py-2.5 rounded-md border transition-all', form.unlimitedTimeLimit ? 'border-border bg-secondary text-muted-foreground cursor-not-allowed' : 'border-border bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary')} />
-                <span className="text-sm shrink-0 text-muted-foreground">분</span>
+        <div className="space-y-5">
+          <div className="space-y-3">
+            <Toggle
+              checked={!form.unlimitedTimeLimit}
+              onChange={v => {
+                set('unlimitedTimeLimit', !v)
+                if (!v) set('disableAutoSubmit', false)
+              }}
+              label="시간 제한 사용"
+            />
+            {!form.unlimitedTimeLimit && (
+              <div className="border-l-2 border-border pl-4 ml-0.5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <input type="number" value={form.timeLimit} onChange={e => set('timeLimit', e.target.value)} placeholder="60" min={1} className="w-24 text-sm px-3 py-2 rounded-md border border-border bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
+                  <span className="text-sm text-muted-foreground">분</span>
+                </div>
+                <Toggle
+                  checked={form.disableAutoSubmit}
+                  onChange={v => set('disableAutoSubmit', v)}
+                  label={
+                    <span className="inline-flex items-center gap-1">
+                      자동 제출 비활성화
+                      <TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>제한 시간이 끝나도 자동으로 제출되지 않습니다.<br />학생이 직접 제출 버튼을 눌러야 응시가 종료됩니다.</p></TooltipContent></Tooltip></TooltipProvider>
+                    </span>
+                  }
+                  description="제한 시간이 끝나도 학생이 직접 제출할 때까지 응시가 유지됩니다"
+                />
               </div>
-              <button type="button" onClick={() => set('unlimitedTimeLimit', !form.unlimitedTimeLimit)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', form.unlimitedTimeLimit ? 'bg-primary text-white border-primary' : 'bg-white text-muted-foreground border-border hover:bg-secondary hover:text-foreground')}>무제한</button>
-            </div>
-          </Field>
-          <Field label="최대 응시 횟수">
-            <div className="flex items-center gap-2">
-              <div className={cn('flex items-center border rounded-md overflow-hidden transition-opacity', form.unlimitedAttempts ? 'border-border opacity-40 pointer-events-none' : 'border-border')}>
-                <button type="button" onClick={() => set('allowAttempts', Math.max(ATTEMPT_MIN, form.allowAttempts - 1))} disabled={form.allowAttempts <= ATTEMPT_MIN || form.unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', form.unlimitedAttempts ? 'text-muted-foreground cursor-not-allowed' : 'text-muted-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed')}>-</button>
-                <span className={cn('px-4 py-2.5 text-sm font-medium min-w-[48px] text-center border-x', form.unlimitedAttempts ? 'border-border bg-secondary text-muted-foreground' : 'border-border bg-white text-foreground')}>{form.allowAttempts}회</span>
-                <button type="button" onClick={() => set('allowAttempts', Math.min(ATTEMPT_MAX, form.allowAttempts + 1))} disabled={form.allowAttempts >= ATTEMPT_MAX || form.unlimitedAttempts} className={cn('px-3 py-2.5 text-sm font-medium transition-colors', form.unlimitedAttempts ? 'text-muted-foreground cursor-not-allowed' : 'text-muted-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed')}>+</button>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <Toggle
+              checked={form.allowAttempts >= 2 || form.unlimitedAttempts}
+              onChange={v => {
+                if (v) { set('unlimitedAttempts', false); set('allowAttempts', 2) }
+                else { set('unlimitedAttempts', false); set('allowAttempts', 1) }
+              }}
+              label="재응시 허용"
+              description="학생이 같은 퀴즈에 여러 번 응시할 수 있습니다"
+            />
+            {(form.allowAttempts >= 2 || form.unlimitedAttempts) && (
+              <div className="border-l-2 border-border pl-4 ml-0.5 space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-secondary-foreground shrink-0 w-24">적용할 점수</span>
+                  <div className="w-48">
+                    <CustomSelect value={form.scorePolicy} onChange={v => set('scorePolicy', v)} options={SCORE_POLICIES} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-secondary-foreground shrink-0 w-24">제출 횟수 제한</span>
+                  <div className="w-48">
+                    <CustomSelect
+                      value={form.unlimitedAttempts ? -1 : form.allowAttempts}
+                      onChange={v => {
+                        if (v === -1) set('unlimitedAttempts', true)
+                        else { set('unlimitedAttempts', false); set('allowAttempts', v) }
+                      }}
+                      options={ATTEMPT_OPTIONS}
+                    />
+                  </div>
+                </div>
               </div>
-              <button type="button" onClick={() => set('unlimitedAttempts', !form.unlimitedAttempts)} className={cn('px-3.5 py-2.5 text-sm font-medium rounded-md border transition-all shrink-0', form.unlimitedAttempts ? 'bg-primary text-white border-primary' : 'bg-white text-muted-foreground border-border hover:bg-secondary hover:text-foreground')}>무제한</button>
-            </div>
-          </Field>
+            )}
+          </div>
         </div>
-        {(form.allowAttempts >= 2 || form.unlimitedAttempts) && (
-          <Field label="복수 응시 시 채점 방식"><CustomSelect value={form.scorePolicy} onChange={v => set('scorePolicy', v)} options={SCORE_POLICIES} /></Field>
-        )}
       </Section>
 
       <Section title="문항 표시 설정">
@@ -651,13 +688,12 @@ function InfoTab({ form, set }) {
       </Section>
 
       <Section title="퀴즈 공개 여부">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-secondary-foreground">학생에게 퀴즈 공개</p>
-            <p className="text-xs text-muted-foreground mt-0.5">비공개 시 학생 화면에 퀴즈가 표시되지 않습니다</p>
-          </div>
-          <Switch checked={form.visible} onCheckedChange={v => set('visible', v)} className="data-[state=checked]:bg-primary" />
-        </div>
+        <Toggle
+          checked={form.visible}
+          onChange={v => set('visible', v)}
+          label="학생에게 퀴즈 공개"
+          description="비공개 시 학생 화면에 퀴즈가 표시되지 않습니다"
+        />
       </Section>
     </div>
   )
@@ -777,10 +813,10 @@ function Field({ label, required, children }) {
   )
 }
 
-function Toggle({ checked, onChange, label, description }) {
+function Toggle({ checked, onChange, label, description, disabled = false }) {
   return (
-    <label className="flex items-start gap-3 cursor-pointer">
-      <Switch checked={checked} onCheckedChange={onChange} className="mt-0.5 data-[state=checked]:bg-primary" />
+    <label className={cn('flex items-start gap-3', disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer')}>
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} className="mt-0.5 data-[state=checked]:bg-primary" />
       <div>
         <p className="text-sm font-medium text-secondary-foreground">{label}</p>
         {description && <p className="text-xs mt-0.5 text-muted-foreground">{description}</p>}

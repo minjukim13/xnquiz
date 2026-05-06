@@ -86,7 +86,7 @@ export function DropdownSelect({
       {open && !disabled && options.length > 0 && createPortal(
         <div
           ref={menuRef}
-          style={{ position: 'fixed', top: pos.top, left: pos.left, minWidth: pos.width, zIndex: 9999 }}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, minWidth: pos.width, zIndex: 9999, pointerEvents: 'auto' }}
           className={cn(
             'py-1.5 w-max max-h-80 overflow-y-auto',
             'bg-white rounded-xl ring-1 ring-black/[0.06]',
@@ -100,6 +100,7 @@ export function DropdownSelect({
               <button
                 key={o.value}
                 type="button"
+                onMouseDown={e => e.preventDefault()}
                 onClick={() => { onChange(o.value); setOpen(false) }}
                 className={cn(
                   'w-full flex items-center justify-between gap-3 px-3 mx-0 whitespace-nowrap transition-colors focus:outline-none rounded-lg',
