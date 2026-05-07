@@ -1,4 +1,4 @@
-# XN Quizzes — 화면 흐름도 (Mermaid)
+# XN Quizzes - 화면 흐름도 (Mermaid)
 
 내부 검토용. FigJam에 import하여 사용.
 

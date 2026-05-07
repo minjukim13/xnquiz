@@ -191,8 +191,8 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
               </p>
 
               <div className="border border-border rounded-xl overflow-hidden">
-                {/* 테이블 헤더 */}
-                <div className="grid grid-cols-[36px_1fr_1fr_1fr_0.7fr] items-center px-4 py-2.5 bg-slate-50 border-b border-border">
+                {/* 테이블 헤더 (sm 이상에서만 표시) */}
+                <div className="hidden sm:grid grid-cols-[36px_1fr_1fr_1fr_0.7fr] items-center px-4 py-2.5 bg-slate-50 border-b border-border">
                   <button
                     type="button"
                     onClick={() => {
@@ -213,6 +213,25 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                   <span className="text-xs font-semibold text-muted-foreground text-center">학과</span>
                   <span className="text-xs font-semibold text-muted-foreground text-center">사유</span>
                 </div>
+                {/* 모바일 헤더 (전체 선택 토글) */}
+                <div className="sm:hidden flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-border">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (excludedIds.size === 0) setExcludedIds(new Set(matchedStudents.map(s => s.id)))
+                      else setExcludedIds(new Set())
+                    }}
+                    className={cn(
+                      'w-5 h-5 rounded-md flex items-center justify-center cursor-pointer p-0 transition-all shrink-0',
+                      excludedIds.size === 0 && matchedStudents.length > 0
+                        ? 'bg-primary border-[1.5px] border-primary'
+                        : 'bg-white border-[1.5px] border-slate-300',
+                    )}
+                  >
+                    {excludedIds.size === 0 && matchedStudents.length > 0 && <Check size={12} className="text-white" />}
+                  </button>
+                  <span className="text-xs font-semibold text-muted-foreground">전체 선택/해제</span>
+                </div>
                 {/* 테이블 바디 */}
                 <div className="max-h-80 overflow-y-auto">
                   {matchedStudents.length === 0 ? (
@@ -225,7 +244,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                           key={s.id} type="button"
                           onClick={() => toggleExclude(s.id)}
                           className={cn(
-                            'grid grid-cols-[36px_1fr_1fr_1fr_0.7fr] items-center w-full text-center px-4 py-3 border-0 cursor-pointer transition-all hover:bg-slate-50',
+                            'flex sm:grid sm:grid-cols-[36px_1fr_1fr_1fr_0.7fr] items-center w-full text-left sm:text-center gap-3 sm:gap-0 px-3 sm:px-4 py-3 border-0 cursor-pointer transition-all hover:bg-slate-50',
                             isExcluded ? 'bg-slate-50 opacity-45' : 'bg-white',
                             idx < matchedStudents.length - 1 && 'border-b border-secondary',
                           )}
@@ -238,11 +257,23 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                           )}>
                             {!isExcluded && <Check size={12} className="text-white" />}
                           </span>
-                          <span className="text-[15px] font-semibold text-foreground text-center">{s.name}</span>
-                          <span className="text-[13px] text-slate-500 text-center">{s.studentId}</span>
-                          <span className="text-[13px] text-slate-500 text-center">{s.department}</span>
+                          {/* 모바일: 한 행에 정보 압축 / sm 이상: 컬럼 분리 */}
+                          <div className="flex-1 min-w-0 sm:hidden flex items-center gap-2 flex-wrap">
+                            <span className="text-[14px] font-semibold text-foreground">{s.name}</span>
+                            <span className="text-[12px] text-slate-500">{s.studentId}</span>
+                            <span className="text-[12px] text-slate-400 truncate">{s.department}</span>
+                            <span className={cn(
+                              'text-[12px] font-medium ml-auto whitespace-nowrap',
+                              s.retakeReason === '미응시' ? 'text-muted-foreground' : 'text-destructive',
+                            )}>
+                              {s.retakeReason}
+                            </span>
+                          </div>
+                          <span className="hidden sm:block text-[15px] font-semibold text-foreground text-center">{s.name}</span>
+                          <span className="hidden sm:block text-[13px] text-slate-500 text-center">{s.studentId}</span>
+                          <span className="hidden sm:block text-[13px] text-slate-500 text-center">{s.department}</span>
                           <span className={cn(
-                            'text-[13px] font-medium text-center',
+                            'hidden sm:block text-[13px] font-medium text-center',
                             s.retakeReason === '미응시' ? 'text-muted-foreground' : 'text-destructive',
                           )}>
                             {s.retakeReason}

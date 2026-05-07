@@ -157,18 +157,19 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl min-h-[640px] max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-5xl w-[calc(100vw-24px)] sm:w-auto min-h-[480px] sm:min-h-[640px] max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
 
         {/* 헤더 */}
-        <DialogHeader className="px-6 pt-5 pb-4 shrink-0 border-b border-border">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 shrink-0 border-b border-border">
           <DialogTitle>문제모음에서 추가</DialogTitle>
-          <DialogDescription>좌측에서 문제모음을 선택하고, 우측에서 추가할 문항을 골라주세요</DialogDescription>
+          <DialogDescription className="hidden sm:block">좌측에서 문제모음을 선택하고, 우측에서 추가할 문항을 골라주세요</DialogDescription>
+          <DialogDescription className="sm:hidden">상단에서 문제모음을 선택하고 문항을 골라주세요</DialogDescription>
         </DialogHeader>
 
         {/* 본문: 사이드바 + 문항 목록 */}
-        <div className="flex flex-1 min-h-0">
-          {/* ── 좌측 사이드바 ── */}
-          <div className="flex flex-col shrink-0 w-[240px] border-r border-border">
+        <div className="flex flex-col sm:flex-row flex-1 min-h-0">
+          {/* ── 좌측 사이드바 (모바일에서는 상단 가로 스크롤) ── */}
+          <div className="flex flex-col shrink-0 w-full sm:w-[240px] sm:border-r border-b sm:border-b-0 border-border max-h-[180px] sm:max-h-none">
             <div className="px-3 pt-3 pb-2 shrink-0">
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">문제모음</p>
               <div className="relative">
@@ -240,7 +241,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
             ) : (
               <>
                 {/* 필터 영역 */}
-                <div className="px-5 pt-3 pb-3 space-y-2 shrink-0 border-b border-border">
+                <div className="px-3 sm:px-5 pt-3 pb-3 space-y-2 shrink-0 border-b border-border">
                   <div className="relative">
                     <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <input
@@ -293,7 +294,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                 </div>
 
                 {/* 문항 목록 */}
-                <div className="flex-1 overflow-y-auto px-5 pt-2 pb-3 space-y-1.5" onScroll={handleScroll}>
+                <div className="flex-1 overflow-y-auto px-3 sm:px-5 pt-2 pb-3 space-y-1.5" onScroll={handleScroll}>
                   {visible.map(q => {
                     const isAdded = added.includes(q.id)
                     const isChecked = checked.has(q.id)
@@ -344,7 +345,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
         </div>
 
         {/* 하단 푸터 */}
-        <div className="px-6 py-4 flex items-center justify-end gap-2 shrink-0 border-t border-border">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-end gap-2 shrink-0 border-t border-border">
           <Button variant="ghost" onClick={handleClose}>닫기</Button>
           <Button
             onClick={handleConfirmAdd}

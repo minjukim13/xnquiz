@@ -363,7 +363,7 @@ function TypeForm({ type, form, setForm, textareaRef }) {
     case 'numerical':
       return (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label required>정답 (숫자)</Label>
               <input type="number" value={form.correctNum} placeholder="예: 3.14"
@@ -391,15 +391,18 @@ function TypeForm({ type, form, setForm, textareaRef }) {
           <Label required>연결 항목</Label>
           <div className="space-y-2">
             {form.pairs.map((pair, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <input type="text" value={pair.left} placeholder={`왼쪽 ${i + 1}`}
                   onChange={e => { const n = [...form.pairs]; n[i] = { ...n[i], left: e.target.value }; upd('pairs', n) }}
                   className={inputCls} />
-                <span className="text-xs flex-shrink-0 text-muted-foreground">↔</span>
-                <input type="text" value={pair.right} placeholder={`오른쪽 ${i + 1}`}
-                  onChange={e => { const n = [...form.pairs]; n[i] = { ...n[i], right: e.target.value }; upd('pairs', n) }}
-                  className={inputCls} />
-                {form.pairs.length > 2 && <TrashBtn onClick={() => upd('pairs', form.pairs.filter((_, j) => j !== i))} />}
+                <span className="text-xs flex-shrink-0 text-muted-foreground self-center hidden sm:inline">↔</span>
+                <span className="text-xs flex-shrink-0 text-muted-foreground self-center sm:hidden text-center">↕</span>
+                <div className="flex items-center gap-2">
+                  <input type="text" value={pair.right} placeholder={`오른쪽 ${i + 1}`}
+                    onChange={e => { const n = [...form.pairs]; n[i] = { ...n[i], right: e.target.value }; upd('pairs', n) }}
+                    className={inputCls} />
+                  {form.pairs.length > 2 && <TrashBtn onClick={() => upd('pairs', form.pairs.filter((_, j) => j !== i))} />}
+                </div>
               </div>
             ))}
           </div>
@@ -916,9 +919,9 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
 
   return (<>
     <Dialog open={true} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-4xl min-h-[600px] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-4xl w-[calc(100vw-24px)] sm:w-auto min-h-[480px] sm:min-h-[600px] max-h-[90vh] flex flex-col p-0 gap-0">
         {/* 헤더 */}
-        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-border">
           <DialogTitle>{isEditMode ? '문항 편집' : '문항 직접 추가'}</DialogTitle>
           {step === 'form' && typeInfo && (
             <DialogDescription className="flex items-center gap-1">
@@ -936,9 +939,9 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
 
         {step === 'type' ? (
           /* 유형 선택 — 좌: 목록, 우: 미리보기 */
-          <div className="flex flex-1 min-h-[400px]">
-            <div className="flex-1 p-6 border-r border-border">
-              <div className="grid grid-cols-2 gap-2.5 overflow-y-auto scrollbar-thin">
+          <div className="flex flex-1 min-h-[360px] sm:min-h-[400px]">
+            <div className="flex-1 p-4 sm:p-6 sm:border-r border-border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto scrollbar-thin">
                 {Object.entries(QUIZ_TYPES).map(([key, val]) => (
                   <button
                     key={key}
@@ -978,7 +981,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
           </div>
         ) : (
           /* 문항 폼 */
-          <div className="flex-1 px-6 pt-5 pb-6 space-y-5 overflow-y-auto max-h-[70vh]">
+          <div className="flex-1 px-4 sm:px-6 pt-4 sm:pt-5 pb-5 sm:pb-6 space-y-5 overflow-y-auto max-h-[70vh]">
             {isEditMode && submittedCount > 0 && (
               <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-orange-50/40 border border-orange-200">
                 <p className="text-xs leading-relaxed text-slate-600">
@@ -987,7 +990,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
               </div>
             )}
             {/* 제목 + 배점 + 난이도 */}
-            <div className={cn('grid gap-3', selectedType === 'text' ? 'grid-cols-1' : 'grid-cols-[1fr_5rem_8rem]')}>
+            <div className={cn('grid gap-3', selectedType === 'text' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-[1fr_5rem_8rem]')}>
               <div>
                 <label className="text-[15px] font-medium block mb-1.5 text-foreground">
                   {selectedType === 'text' ? '안내문 제목' : '문제 제목'}

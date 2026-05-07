@@ -275,9 +275,9 @@ export default function DateTimePicker({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-3.5 py-2.5 border-t border-border">
+        <div className="flex items-center gap-2 px-3 sm:px-3.5 py-2.5 border-t border-border">
           <span className="text-xs font-medium text-secondary-foreground shrink-0">시각</span>
-          <div className="flex items-center gap-1 flex-1">
+          <div className="flex items-center gap-1 flex-1 flex-wrap sm:flex-nowrap">
             <input
               type="text"
               inputMode="numeric"

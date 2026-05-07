@@ -254,7 +254,7 @@ function InfoTab({ form, set }) {
   return (
     <div className="space-y-3">
       <Section title="퀴즈 유형">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { value: 'graded', label: '평가용 퀴즈', desc: '성적에 반영됩니다' },
             { value: 'practice', label: '연습용 퀴즈', desc: '성적에 반영되지 않습니다' },
@@ -282,7 +282,7 @@ function InfoTab({ form, set }) {
         <Field label="설명">
           <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder="학생에게 표시될 퀴즈 설명 (선택)" rows={2} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-none" />
         </Field>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <Field label="주차"><CustomSelect value={form.week} onChange={v => { set('week', v); if (v !== null && !form.session) set('session', 1); if (v === null) set('session', null) }} options={WEEK_OPTIONS} placeholder="주차 선택" /></Field>
           <Field label="차시"><CustomSelect value={form.session} onChange={v => set('session', v)} options={form.week !== null ? SESSION_BASE : SESSION_OPTIONS_WITH_NONE} placeholder="차시 선택" /></Field>
         </div>
@@ -425,7 +425,7 @@ function InfoTab({ form, set }) {
             <div className="space-y-4 pt-1">
               <div>
                 <p className="text-xs font-semibold mb-2 text-secondary-foreground">공개 범위</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {[
                     { value: 'wrong_only', label: '오답 여부만', desc: '정오답(✓/✗) + 점수 표시\n정답은 공개하지 않습니다' },
                     { value: 'with_answer', label: '정답까지', desc: '정오답(✓/✗) + 점수 + 정답 표시' },

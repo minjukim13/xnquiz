@@ -153,7 +153,7 @@ export default function AssignmentOverrides({ assignments, onChange, baseDueDate
                 excludeStudentIds={usedStudents}
               />
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
                 <label className="block text-xs mb-1 text-muted-foreground">마감 일시</label>
                 <DateTimePicker

@@ -155,9 +155,9 @@ export function WizardSourceBankList({ availableCourses, courseGroups, selectedS
 // Step 1 공통: 소스 사이드바 + 문항 체크리스트
 export function WizardStep1({ courseSearch, setCourseSearch, availableCourses, courseGroups, selectedSourceIds, handleSourceToggle, filterType, setFilterType, filterDifficulty, setFilterDifficulty, filtered, selectedQuestionIds, allFilteredSelected, someFilteredSelected, toggle, toggleAll }) {
   return (
-    <div className="flex flex-1 min-h-0">
-      {/* 사이드바 */}
-      <div className="flex flex-col shrink-0 w-[200px] border-r border-border">
+    <div className="flex flex-col sm:flex-row flex-1 min-h-0">
+      {/* 사이드바 (모바일에서는 상단 collapsed 영역) */}
+      <div className="flex flex-col shrink-0 w-full sm:w-[200px] sm:border-r border-b sm:border-b-0 border-border max-h-[180px] sm:max-h-none">
         <div className="px-3 pt-3 pb-2 shrink-0">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">소스 문제모음</p>
           <div className="relative">

@@ -30,7 +30,7 @@ function StatsTab({ question, students }) {
   return (
     <div className="flex-1 bg-white overflow-y-auto scrollbar-thin border border-slate-200 rounded-lg">
       {/* 요약 카드 */}
-      <div className="grid grid-cols-4 gap-3 p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
         <StatCard label="문항 평균" value={avg} unit="점" accent />
         <StatCard label="최고" value={maxScore} unit="점" />
         <StatCard label="최저" value={minScore} unit="점" />

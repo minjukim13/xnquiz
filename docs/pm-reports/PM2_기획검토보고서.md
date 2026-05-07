@@ -1,4 +1,4 @@
-# PM2 기획검토보고서 — XN Quizzes Prototype
+# PM2 기획검토보고서 - XN Quizzes Prototype
 
 **검토자**: PM2 (서비스 기획자)
 **초판**: 2026-04-07 / **업데이트**: 2026-04-16

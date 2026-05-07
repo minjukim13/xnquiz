@@ -168,8 +168,8 @@ export default function ImportBankModal({ onClose, onImport }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-5xl min-h-[640px] max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <div className="px-6 py-5 border-b border-border shrink-0">
+      <DialogContent className="max-w-5xl w-[calc(100vw-24px)] sm:w-auto min-h-[480px] sm:min-h-[640px] max-h-[90vh] sm:max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-border shrink-0">
           <div className="flex items-center justify-between mb-3">
             <DialogHeader className="p-0 space-y-0">
               <DialogTitle>가져오기</DialogTitle>

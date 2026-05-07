@@ -175,10 +175,10 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl min-h-[600px] max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl w-[calc(100vw-24px)] sm:w-auto min-h-[480px] sm:min-h-[600px] max-h-[90vh] sm:max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
 
         {/* ── 상단 고정 헤더 ── */}
-        <div className="shrink-0 px-6 pt-6 pb-4 border-b border-gray-200">
+        <div className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-gray-200">
           <DialogHeader>
             <DialogTitle>복수 문제모음 랜덤 출제</DialogTitle>
             <DialogDescription>여러 문제모음에서 조건에 맞는 문항을 랜덤으로 출제합니다.</DialogDescription>
@@ -211,7 +211,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
         </div>
 
         {/* ── 본문 스크롤 영역 ── */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
 
           {/* Step 1: 문제모음 복수 선택 */}
           {step === 1 && (
@@ -288,8 +288,8 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                           {/* 인라인 미리보기 패널 */}
                           {isPreview && (
                             <div className="mx-4 mb-3 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
-                              <div className="max-h-[220px] overflow-y-auto">
-                                <table className="w-full text-xs table-fixed">
+                              <div className="max-h-[220px] overflow-auto">
+                                <table className="w-full min-w-[480px] text-xs table-fixed">
                                   <thead className="sticky top-0 bg-gray-50">
                                     <tr className="border-y border-gray-200 text-gray-500">
                                       <th className="text-left font-medium px-4 py-2.5 w-[52px] whitespace-nowrap">번호</th>
@@ -487,7 +487,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                         {useDifficultyScoring && (
                           <div className="space-y-2">
                             <span className="text-xs text-slate-500">난이도별 배점</span>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               {[
                                 { key: 'high', label: '상', cls: 'text-destructive' },
                                 { key: 'medium', label: '중', cls: 'text-amber-500' },
@@ -550,7 +550,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
         </div>
 
         {/* ── 하단 고정 푸터 ── */}
-        <div className="shrink-0 border-t border-gray-200 px-6 py-4">
+        <div className="shrink-0 border-t border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between w-full">
             <div>
               {step > 1 && (

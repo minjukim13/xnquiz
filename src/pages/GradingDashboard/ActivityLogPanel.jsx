@@ -108,7 +108,7 @@ export default function ActivityLogPanel({ student, quizId, questions }) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* 통계 요약 — 제출 / 응시 시작 / 소요 시간 / 포커스 이탈 / 답변 변경 */}
-      <div className="grid grid-cols-5 gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50/60">
         <SubmitSummaryCell student={student} />
         <SummaryCell label="응시 시작" value={summary.startedAt ? formatDateTime(summary.startedAt) : '-'} />
         <SummaryCell label="소요 시간" value={formatDuration(summary.durationSec)} accent={summary.autoSubmitted ? 'amber' : undefined} />
