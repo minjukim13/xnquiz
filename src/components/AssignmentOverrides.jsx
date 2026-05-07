@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { X, Plus } from 'lucide-react'
 import { mockStudents } from '../data/mockData'
 import { Button } from '@/components/ui/button'
+import DateTimePicker from './DateTimePicker'
 
 const STUDENT_OPTIONS = mockStudents.slice(0, 30).map(s => ({
   type: 'student', id: s.id, label: s.name, sub: s.studentId,
@@ -155,30 +156,28 @@ export default function AssignmentOverrides({ assignments, onChange, baseDueDate
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <label className="block text-xs mb-1 text-muted-foreground">마감 일시</label>
-                <input
-                  type="datetime-local"
+                <DateTimePicker
                   value={a.dueDate}
-                  onChange={e => update(a.id, 'dueDate', e.target.value)}
-                  placeholder={baseDueDate || ''}
-                  className="w-full text-xs px-2.5 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all"
+                  onChange={v => update(a.id, 'dueDate', v)}
+                  placeholder={baseDueDate || '연도-월-일 --:--'}
+                  size="sm"
                 />
               </div>
               <div>
                 <label className="block text-xs mb-1 text-muted-foreground">열람 시작</label>
-                <input
-                  type="datetime-local"
+                <DateTimePicker
                   value={a.availableFrom}
-                  onChange={e => update(a.id, 'availableFrom', e.target.value)}
-                  className="w-full text-xs px-2.5 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all"
+                  onChange={v => update(a.id, 'availableFrom', v)}
+                  size="sm"
                 />
               </div>
               <div>
                 <label className="block text-xs mb-1 text-muted-foreground">열람 마감</label>
-                <input
-                  type="datetime-local"
+                <DateTimePicker
                   value={a.availableUntil}
-                  onChange={e => update(a.id, 'availableUntil', e.target.value)}
-                  className="w-full text-xs px-2.5 py-2 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all"
+                  onChange={v => update(a.id, 'availableUntil', v)}
+                  min={a.availableFrom || undefined}
+                  size="sm"
                 />
               </div>
             </div>

@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3 } from 'lucide-react'
+import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3 } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts } from '../data/mockData'
-import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, deleteQuiz, listAttempts, isApiMode, listCourses, listTeacherCourses } from '@/lib/data'
+import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, updateQuiz, deleteQuiz, listAttempts, isApiMode, listCourses, listTeacherCourses } from '@/lib/data'
 import { currentLtiCourseCode } from '@/lib/data/_common'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
@@ -301,6 +301,22 @@ function InstructorQuizList() {
     }
   }
 
+  const handleToggleVisibility = async (quiz) => {
+    if (quiz.status === 'draft') return
+    const nextVisible = quiz.visible === false
+    setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, visible: nextVisible } : q))
+    try {
+      await updateQuiz(quiz.id, { ...quiz, visible: nextVisible })
+      showToast(nextVisible
+        ? `'${quiz.title}'을(를) 학생에게 공개했습니다`
+        : `'${quiz.title}'을(를) 학생에게서 숨겼습니다`)
+    } catch (err) {
+      console.error('[QuizList] visibility toggle 실패', err)
+      setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, visible: !nextVisible } : q))
+      showToast('공개여부 변경 중 오류가 발생했습니다')
+    }
+  }
+
   const handleDeleteQuiz = (quiz) => {
     setDeleteConfirm(quiz)
   }
@@ -378,7 +394,13 @@ function InstructorQuizList() {
         ) : sortedQuizzes.length > 0 ? (
           <div className="grid gap-3">
             {sortedQuizzes.map(quiz => (
-              <QuizCard key={quiz.id} quiz={quiz} onCopy={setCopySourceQuiz} onDelete={handleDeleteQuiz} />
+              <QuizCard
+                key={quiz.id}
+                quiz={quiz}
+                onCopy={setCopySourceQuiz}
+                onDelete={handleDeleteQuiz}
+                onToggleVisibility={handleToggleVisibility}
+              />
             ))}
           </div>
         ) : (
@@ -433,11 +455,14 @@ function getDdayBadge(quiz) {
   return { label: diff === 0 ? 'D-0' : `D-${diff}`, urgent: diff === 0 }
 }
 
-function QuizCard({ quiz, onCopy, onDelete }) {
+function QuizCard({ quiz, onCopy, onDelete, onToggleVisibility }) {
   const ddayBadge = getDdayBadge(quiz)
   const navigate = useNavigate()
   const scheduled = isScheduled(quiz)
   const displayStatus = resolveDisplayStatus(quiz)
+  const isDraft = quiz.status === 'draft'
+  // 임시저장은 학생 화면에 노출되지 않으므로 visible 값과 무관하게 항상 비공개로 표시
+  const isVisible = !isDraft && quiz.visible !== false
 
   const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
   const stats = getInlineStats(quiz, scheduled)
@@ -453,6 +478,7 @@ function QuizCard({ quiz, onCopy, onDelete }) {
       <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <VisibilityBadge isVisible={isVisible} />
             <StatusBadge status={displayStatus} />
             {(quiz.week > 0 || quiz.session > 0) && (
               <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-secondary text-secondary-foreground whitespace-nowrap">
@@ -505,19 +531,6 @@ function QuizCard({ quiz, onCopy, onDelete }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {canGrade && (
-                <>
-                  <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/grade`)}>
-                    <ClipboardList size={14} />
-                    채점
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/stats`)}>
-                    <BarChart3 size={14} />
-                    통계
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                </>
-              )}
               <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/edit`)}>
                 <Pencil size={14} />
                 편집
@@ -531,6 +544,28 @@ function QuizCard({ quiz, onCopy, onDelete }) {
                 복사
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem
+                disabled={isDraft}
+                onClick={() => !isDraft && onToggleVisibility(quiz)}
+                title={isDraft ? '임시저장 상태에선 자동 비공개입니다' : undefined}
+              >
+                {isVisible ? <EyeOff size={14} /> : <Eye size={14} />}
+                {isDraft ? '비공개 (임시저장)' : isVisible ? '학생에게 숨기기' : '학생에게 공개'}
+              </DropdownMenuItem>
+              {canGrade && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/grade`)}>
+                    <ClipboardList size={14} />
+                    채점
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/stats`)}>
+                    <BarChart3 size={14} />
+                    통계
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => onDelete(quiz)}>
                 <Trash2 size={14} />
                 삭제
@@ -540,6 +575,22 @@ function QuizCard({ quiz, onCopy, onDelete }) {
         </div>
       </div>
     </Card>
+  )
+}
+
+function VisibilityBadge({ isVisible }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap',
+        isVisible
+          ? 'bg-accent text-primary'
+          : 'bg-secondary text-muted-foreground ring-1 ring-border'
+      )}
+    >
+      {isVisible ? <Eye size={11} /> : <EyeOff size={11} />}
+      {isVisible ? '공개' : '비공개'}
+    </span>
   )
 }
 

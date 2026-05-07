@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom'
-import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Check, AlertCircle, Send, Eye, X, Lock } from 'lucide-react'
+import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Check, AlertCircle, Send, X, Lock } from 'lucide-react'
 import { mockQuizzes, getQuizQuestions as mockGetQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
 import { getQuiz, getQuizQuestions, startAttempt, saveAnswers, submitAttempt } from '@/lib/data'
 import { useRole } from '../context/role'
@@ -11,13 +11,11 @@ import { isLateSubmission } from '../utils/deadlineUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import QuestionAnswer from '../components/QuestionAnswer'
 import { RichTextRenderer } from '../components/RichText'
-import CommentThread from './GradingDashboard/CommentThread'
 import { generateStudentVariables } from '@/utils/formulaEngine'
+import { computeRevealStatus } from '@/utils/scoreReveal'
 import {
   buildAttemptSessionKey,
   loadAttemptSession,
@@ -31,7 +29,6 @@ import {
   ACTIVITY_TYPES,
 } from '@/utils/activityLog'
 import { parseInlineBody, hasInlinePlaceholders } from '@/utils/placeholderUtils'
-import { isResultViewed, markResultViewed } from '@/utils/resultsViewedStorage'
 
 // 응시 여부 판정 (유형별 답안 구조 대응)
 function isQuestionAnswered(q, v) {
@@ -97,7 +94,6 @@ export default function QuizAttempt() {
   }
   const [timeRemaining, setTimeRemaining] = useState(computeRemaining)
   const [alertDialog, setAlertDialog] = useState(null)
-  const [showAnswerPreview, setShowAnswerPreview] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState(restored?.savedAt ?? null)
   const [saveError, setSaveError] = useState(null) // 'quota' | 'error' | null
 
@@ -463,11 +459,10 @@ export default function QuizAttempt() {
         {/* 미리보기 배너 */}
         {isPreview && (
           <div className="px-4 py-3 rounded-lg mb-5 bg-amber-50 border border-amber-200">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Eye size={15} className="text-amber-600" />
-                <span className="text-sm font-semibold text-amber-800">미리보기 모드</span>
-                <span className="text-xs text-amber-700">학생에게 보이는 화면입니다. 답변 선택 및 제출을 테스트할 수 있습니다.</span>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-amber-800">미리보기 모드</p>
+                <p className="text-xs text-amber-700 mt-1">학생에게 보이는 실제 화면입니다. 답변 선택 및 제출을 테스트할 수 있습니다.</p>
               </div>
               <Button
                 variant="outline"
@@ -477,19 +472,6 @@ export default function QuizAttempt() {
                 <X size={14} />
                 미리보기 종료
               </Button>
-            </div>
-            <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-amber-200">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <Switch
-                  checked={showAnswerPreview}
-                  onCheckedChange={setShowAnswerPreview}
-                  className="data-[state=checked]:bg-amber-600"
-                />
-                <span className="text-xs font-medium text-amber-800">정답 함께 표시</span>
-              </label>
-              {showAnswerPreview && (
-                <span className="text-xs text-amber-700">각 문항 하단에 정답이 표시됩니다.</span>
-              )}
             </div>
           </div>
         )}
@@ -511,13 +493,7 @@ export default function QuizAttempt() {
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="text-center">
-                  <p className="text-xs mb-0.5 text-muted-foreground">답변 완료</p>
-                  <p className={cn('text-base font-bold', answeredCount === questions.length ? 'text-green-700' : '')}>
-                    {answeredCount}<span className="text-xs font-normal text-muted-foreground">/{questions.length}</span>
-                  </p>
-                </div>
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
                 {noTimeLimit ? (
                   <div className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-muted text-secondary-foreground border border-border">
                     <Clock size={13} />
@@ -532,6 +508,12 @@ export default function QuizAttempt() {
                     {formatTime(timeRemaining)}
                   </div>
                 )}
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xs text-muted-foreground">답변 완료</span>
+                  <span className={cn('text-sm font-bold', answeredCount === questions.length ? 'text-green-700' : '')}>
+                    {answeredCount}<span className="text-xs font-normal text-muted-foreground">/{questions.length}</span>
+                  </span>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -570,7 +552,6 @@ export default function QuizAttempt() {
                 logAnswerChange(qId)
               }}
               disabled={submitted}
-              showAnswer={isPreview && showAnswerPreview}
               studentId={currentStudent?.id}
             />
 
@@ -642,7 +623,6 @@ export default function QuizAttempt() {
                     logAnswerChange(q.id)
                   }}
                   disabled={submitted}
-                  showAnswer={isPreview && showAnswerPreview}
                   studentId={currentStudent?.id}
                 />
               ))}
@@ -667,7 +647,16 @@ export default function QuizAttempt() {
       </div>
 
       {/* 제출 완료 결과 모달 */}
-      {result && <ResultModal result={result} quiz={quiz} questions={questions} quizId={id} studentId={currentStudent?.id} onClose={() => navigate('/')} />}
+      {result && (
+        <ResultModal
+          result={result}
+          quiz={quiz}
+          questions={questions}
+          quizId={id}
+          onClose={() => navigate('/')}
+          onViewDetail={() => navigate(`/quiz/${id}`)}
+        />
+      )}
       {alertDialog && (
         <AlertDialog
           title={alertDialog.title}
@@ -726,7 +715,7 @@ export default function QuizAttempt() {
   )
 }
 
-function QuestionCard({ question, index, value, onChange, disabled, showAnswer = false, studentId }) {
+function QuestionCard({ question, index, value, onChange, disabled, studentId }) {
   const typeLabels = {
     multiple_choice: '객관식', true_false: '참/거짓', short_answer: '단답형',
     essay: '서술형', numerical: '수치형', fill_in_blank: '빈칸 채우기',
@@ -1050,113 +1039,17 @@ function QuestionCard({ question, index, value, onChange, disabled, showAnswer =
           )
         })()}
       </CardContent>
-
-      {/* 정답 표시 (미리보기 모드 전용) */}
-      {showAnswer && (() => {
-        const hasAnswer = question.correctAnswer != null
-          || (question.type === 'matching' && question.pairs?.length > 0)
-          || (question.type === 'multiple_dropdowns' && question.dropdowns?.length > 0)
-          || (question.type === 'formula' && question.formula)
-        if (!hasAnswer) {
-          return (
-            <div className="px-5 py-2.5 bg-secondary border-t border-border">
-              <p className="text-xs text-muted-foreground">정답 없음 (수동 채점 문항)</p>
-            </div>
-          )
-        }
-        return (
-          <div className="px-5 py-2.5 bg-green-50 border-t border-green-200">
-            <QuestionAnswer q={question} />
-          </div>
-        )
-      })()}
     </Card>
   )
 }
 
-function ResultModal({ result, quiz, questions, quizId, studentId, onClose }) {
+function ResultModal({ result, quiz, questions, quizId, onClose, onViewDetail }) {
   const autoTotal = result.totalAutoScore
   const totalPoints = questions.reduce((s, q) => s + (q.points || 0), 0)
   const autoMax = totalPoints > 0 ? totalPoints : result.totalPossibleAuto
   const hasAutoGrade = totalPoints > 0
-  const scorePercent = hasAutoGrade ? Math.round((autoTotal / autoMax) * 100) : null
 
-  const now = new Date()
-  const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null
-
-  // 학생 응답 조회 제어 (one_time_results)
-  const oneTimeResults = !!quiz.oneTimeResults
-  // 마운트 시점의 조회 여부를 고정해 첫 진입 시 정상 공개 보장
-  const [initiallyViewed] = useState(() => isResultViewed(result.id))
-  const responsesHidden = oneTimeResults && initiallyViewed
-
-  useEffect(() => {
-    if (oneTimeResults && !initiallyViewed) {
-      markResultViewed(result.id)
-    }
-  }, [oneTimeResults, initiallyViewed, result.id])
-
-  let showScoreNow, showWrongAnswerNow, showAnswerNow
-
-  if (quiz.scoreRevealEnabled !== undefined) {
-    const afterDue = dueDate && now >= dueDate
-    const inPeriod = (() => {
-      const s = quiz.scoreRevealStart ? new Date(quiz.scoreRevealStart) : null
-      const e = quiz.scoreRevealEnd   ? new Date(quiz.scoreRevealEnd)   : null
-      return (!s || now >= s) && (!e || now <= e)
-    })()
-    const timingMet = quiz.scoreRevealTiming === 'immediately' ? true
-                    : quiz.scoreRevealTiming === 'after_due'   ? afterDue
-                    : quiz.scoreRevealTiming === 'period'      ? inPeriod
-                    : false
-    const released = quiz.scoreRevealEnabled && timingMet
-    showScoreNow       = released
-    showWrongAnswerNow = released
-    showAnswerNow      = released && quiz.scoreRevealScope === 'with_answer'
-  } else if (quiz.scoreReleasePolicy !== undefined) {
-    const policy = quiz.scoreReleasePolicy
-    const afterDue = dueDate && now >= dueDate
-    const inPeriod = (() => {
-      const s = quiz.scoreRevealStart ? new Date(quiz.scoreRevealStart) : null
-      const e = quiz.scoreRevealEnd   ? new Date(quiz.scoreRevealEnd)   : null
-      return (!s || now >= s) && (!e || now <= e)
-    })()
-    const released = policy === 'wrong_only' || policy === 'with_answer' ? true
-                   : policy === 'after_due'  ? afterDue
-                   : policy === 'period'     ? inPeriod
-                   : false
-    showScoreNow       = released
-    showWrongAnswerNow = released && policy !== null
-    showAnswerNow      = released && (policy === 'with_answer' || policy === 'after_due' || policy === 'period')
-  } else {
-    const isTimingMet = (timing, start, end) => {
-      if (timing === 'immediately') return true
-      if (timing === 'after_due')   return dueDate && now >= dueDate
-      if (timing === 'period') {
-        const s = start ? new Date(start) : null
-        const e = end   ? new Date(end)   : null
-        return (!s || now >= s) && (!e || now <= e)
-      }
-      return false
-    }
-    showScoreNow       = quiz.showScore === undefined ? true
-      : quiz.showScore && (
-          (!quiz.scoreRevealStartDate || now >= new Date(quiz.scoreRevealStartDate)) &&
-          (!quiz.scoreRevealEndDate   || now <= new Date(quiz.scoreRevealEndDate))
-        )
-    showWrongAnswerNow = quiz.showWrongAnswer &&
-      isTimingMet(quiz.wrongAnswerRevealTiming, quiz.wrongAnswerRevealStart, quiz.wrongAnswerRevealEnd)
-    showAnswerNow      = showWrongAnswerNow && quiz.showAnswer && (
-      quiz.answerRevealTiming === 'same' ||
-      isTimingMet(quiz.answerRevealTiming, quiz.answerRevealStart, quiz.answerRevealEnd)
-    )
-  }
-
-  // oneTimeResults: 이미 1회 조회한 상태면 응답/정답 공개 차단 (점수는 별도 정책)
-  if (responsesHidden) {
-    showWrongAnswerNow = false
-    showAnswerNow = false
-  }
+  const { showScore: showScoreNow } = computeRevealStatus(quiz)
 
   const totalQuestions = questions.filter(q => q.type !== 'text').length
   const totalPointsSum = questions.reduce((s, q) => s + (q.points || 0), 0)
@@ -1183,9 +1076,8 @@ function ResultModal({ result, quiz, questions, quizId, studentId, onClose }) {
           )}
         </div>
 
-        {/* 본문 (스크롤 영역) */}
+        {/* 본문 */}
         <div className="max-h-[70vh] overflow-y-auto">
-          {/* 구분선 */}
           <div className="mt-4 border-t border-border" />
 
           {/* 점수 영역 */}
@@ -1199,9 +1091,7 @@ function ResultModal({ result, quiz, questions, quizId, studentId, onClose }) {
                   {autoTotal} / {autoMax}
                 </span>
               ) : (
-                <span className="text-[15px] font-semibold text-primary">
-                  {quiz.showScore ? '공개 예정' : '비공개'}
-                </span>
+                <span className="text-[15px] font-semibold text-primary">공개 예정</span>
               )}
             </div>
             {result.manualPending > 0 && (
@@ -1233,100 +1123,14 @@ function ResultModal({ result, quiz, questions, quizId, studentId, onClose }) {
             </div>
           </div>
 
-          {responsesHidden && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg border border-border bg-secondary/60 mx-6 mt-4">
-              <Eye size={14} className="shrink-0 mt-0.5 text-muted-foreground" />
-              <div>
-                <p className="text-[13px] font-medium mb-0.5 text-foreground">응답은 1회만 조회할 수 있습니다</p>
-                <p className="text-xs text-muted-foreground">이미 결과를 확인하여 더 이상 응답과 정답을 조회할 수 없습니다.</p>
-              </div>
-            </div>
-          )}
-
-          {showWrongAnswerNow && (
-            <div className="mx-6 mt-5">
-              <p className="text-[13px] font-medium mb-2 text-foreground">문항별 채점 결과</p>
-              <div className="space-y-1.5">
-                {questions.map((q, idx) => {
-                  const scored = result.autoScores[q.id]
-                  const isAutoGraded = scored !== undefined
-                  const isCorrect = isAutoGraded && scored === q.points
-                  const isPartial = isAutoGraded && scored > 0 && scored < q.points
-                  return (
-                    <div
-                      key={q.id}
-                      className="p-3 rounded-lg text-[13px] border border-border bg-white"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs font-mono font-medium shrink-0 text-muted-foreground">Q{idx + 1}</span>
-                          <span className="text-xs truncate text-secondary-foreground">{q.text}</span>
-                        </div>
-                        <span className={cn(
-                          'shrink-0 text-xs font-medium px-2 py-0.5 rounded-full',
-                          !isAutoGraded && 'bg-secondary text-muted-foreground',
-                          isAutoGraded && isCorrect && 'bg-emerald-50 text-emerald-600',
-                          isAutoGraded && isPartial && 'bg-amber-50 text-amber-600',
-                          isAutoGraded && !isCorrect && !isPartial && 'bg-red-50 text-red-500',
-                        )}>
-                          {!isAutoGraded ? '채점 대기' : isCorrect ? '정답' : isPartial ? `부분점수 ${scored}/${q.points}` : '오답'}
-                        </span>
-                      </div>
-                      {showAnswerNow && isAutoGraded && !isCorrect && (
-                        <div className="mt-2 pt-2 border-t border-border">
-                          <QuestionAnswer q={q} />
-                        </div>
-                      )}
-                      {(() => {
-                        const showCorrect   = isAutoGraded && isCorrect && q.correct_comments
-                        const showIncorrect = isAutoGraded && !isCorrect && q.incorrect_comments
-                        const showNeutral   = !!q.neutral_comments
-                        if (!showCorrect && !showIncorrect && !showNeutral) return null
-                        return (
-                          <div className="mt-2 pt-2 border-t border-border space-y-1.5">
-                            {showCorrect && (
-                              <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-emerald-50 border border-emerald-200">
-                                <span className="shrink-0 text-[11px] font-semibold text-emerald-700 mt-0.5">정답</span>
-                                <p className="text-[13px] text-emerald-900 leading-relaxed whitespace-pre-wrap">{q.correct_comments}</p>
-                              </div>
-                            )}
-                            {showIncorrect && (
-                              <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-red-50 border border-red-200">
-                                <span className="shrink-0 text-[11px] font-semibold text-red-600 mt-0.5">오답</span>
-                                <p className="text-[13px] text-red-900 leading-relaxed whitespace-pre-wrap">{q.incorrect_comments}</p>
-                              </div>
-                            )}
-                            {showNeutral && (
-                              <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-secondary border border-border">
-                                <span className="shrink-0 text-[11px] font-semibold text-secondary-foreground mt-0.5">코멘트</span>
-                                <p className="text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">{q.neutral_comments}</p>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })()}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* 교수자 코멘트 thread */}
-          {quizId && studentId && (
-            <div className="mx-6 mt-5">
-              <p className="text-[13px] font-medium mb-2 text-foreground">교수자 코멘트</p>
-              <div className="rounded-lg border border-border overflow-hidden h-[280px] flex flex-col">
-                <CommentThread quizId={quizId} studentId={studentId} role="student" className="flex-1" />
-              </div>
-            </div>
-          )}
-
           {/* CTA */}
-          <div className="mt-5 mx-6 mb-6">
-            <Button onClick={onClose} className="w-full gap-1">
-              퀴즈 목록으로
+          <div className="mt-6 mx-6 mb-6 space-y-2">
+            <Button onClick={onViewDetail} className="w-full gap-1">
+              결과 자세히 보기
               <ChevronRight size={14} />
+            </Button>
+            <Button onClick={onClose} variant="outline" className="w-full">
+              퀴즈 목록으로
             </Button>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import DateTimePicker from './DateTimePicker'
 
 import { UserCheck, ChevronRight, ChevronLeft, Check } from 'lucide-react'
 
@@ -294,10 +295,9 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
 
                 <p className="text-[15px] font-semibold text-foreground mb-1.5">재응시 기한</p>
                 <p className="text-[13px] text-muted-foreground mb-3">미설정 시 기존 퀴즈 마감일을 따릅니다.</p>
-                <input
-                  type="datetime-local" value={retakeDeadline}
-                  onChange={e => setRetakeDeadline(e.target.value)}
-                  className="w-full text-[15px] px-3.5 py-2.5 rounded-[10px] border border-border text-foreground outline-none"
+                <DateTimePicker
+                  value={retakeDeadline}
+                  onChange={v => setRetakeDeadline(v)}
                 />
               </div>
 

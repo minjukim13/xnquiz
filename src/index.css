@@ -94,6 +94,12 @@
   .rich-text p + p { margin-top: 0.5em; }
 }
 
+@theme {
+  /* 가독성 개선: text-xs 기본 12px → 13px 상향 (line-height 동반 조정) */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

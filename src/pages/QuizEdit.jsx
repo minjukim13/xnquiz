@@ -23,6 +23,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
+import DateTimePicker from '../components/DateTimePicker'
 
 const DATA_MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
@@ -385,7 +386,7 @@ export default function QuizEdit() {
           </TabsList>
 
           <TabsContent value="info" className="pt-5">
-            <InfoTab form={form} set={set} />
+            <InfoTab form={form} set={set} quizStatus={quiz?.status} />
           </TabsContent>
           <TabsContent value="questions" className="pt-5">
             <QuestionsTab
@@ -435,7 +436,8 @@ export default function QuizEdit() {
   )
 }
 
-function InfoTab({ form, set }) {
+function InfoTab({ form, set, quizStatus }) {
+  const isDraft = quizStatus === 'draft'
   return (
     <div className="space-y-3">
       <Section title="퀴즈 유형">
@@ -475,12 +477,12 @@ function InfoTab({ form, set }) {
 
       <Section title="응시 기간">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="시작 일시"><input type="datetime-local" value={form.startDate} onChange={e => set('startDate', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
-          <Field label={<span className="inline-flex items-center gap-1">마감 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><input type="datetime-local" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} min={form.startDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" /></Field>
+          <Field label="시작 일시"><DateTimePicker value={form.startDate} onChange={v => set('startDate', v)} /></Field>
+          <Field label={<span className="inline-flex items-center gap-1">마감 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><DateTimePicker value={form.dueDate} onChange={v => set('dueDate', v)} min={form.startDate || undefined} /></Field>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">미설정 시 응시 기간 제한 없이 학생이 언제든 응시할 수 있습니다.</p>
         <Field label={<span className="inline-flex items-center gap-1">이용 종료 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>퀴즈 페이지 자체에 접근할 수 없게 되는 시점입니다.<br />마감 이후에도 학생이 결과를 확인할 수 있도록<br />종료 일시는 마감 일시 이후로 설정하는 것을 권장합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
-          <input type="datetime-local" value={form.lockDate} onChange={e => set('lockDate', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
+          <DateTimePicker value={form.lockDate} onChange={v => set('lockDate', v)} min={form.dueDate || undefined} />
           <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
           {form.lockDate && form.dueDate && new Date(form.lockDate) < new Date(form.dueDate) && (
             <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-amber-50/40 border border-amber-300 text-secondary-foreground mt-2">
@@ -493,7 +495,7 @@ function InfoTab({ form, set }) {
           {form.allowLateSubmit && (
             <div className="border-l-2 border-border pl-4 ml-0.5 space-y-2">
               <label className="block text-sm font-medium text-secondary-foreground">지각 제출 마감 일시</label>
-              <input type="datetime-local" value={form.lateSubmitDeadline} onChange={e => set('lateSubmitDeadline', e.target.value)} min={form.dueDate || undefined} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all" />
+              <DateTimePicker value={form.lateSubmitDeadline} onChange={v => set('lateSubmitDeadline', v)} min={form.dueDate || undefined} />
               {!form.lateSubmitDeadline && <p className="text-xs text-muted-foreground">미설정 시 무제한 허용</p>}
             </div>
           )}
@@ -649,11 +651,11 @@ function InfoTab({ form, set }) {
                   <div className="mt-3 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-blue-100">
                     <div>
                       <label className="block text-xs font-medium mb-1 text-secondary-foreground">공개 시작일</label>
-                      <input type="datetime-local" value={form.scoreRevealStart} onChange={e => set('scoreRevealStart', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" />
+                      <DateTimePicker value={form.scoreRevealStart} onChange={v => set('scoreRevealStart', v)} />
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1 text-secondary-foreground">공개 종료일</label>
-                      <input type="datetime-local" value={form.scoreRevealEnd} onChange={e => set('scoreRevealEnd', e.target.value)} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:border-primary transition-all" />
+                      <DateTimePicker value={form.scoreRevealEnd} onChange={v => set('scoreRevealEnd', v)} min={form.scoreRevealStart || undefined} />
                     </div>
                   </div>
                 )}
@@ -689,10 +691,13 @@ function InfoTab({ form, set }) {
 
       <Section title="퀴즈 공개 여부">
         <Toggle
-          checked={form.visible}
+          checked={isDraft ? false : form.visible}
           onChange={v => set('visible', v)}
+          disabled={isDraft}
           label="학생에게 퀴즈 공개"
-          description="비공개 시 학생 화면에 퀴즈가 표시되지 않습니다"
+          description={isDraft
+            ? '임시저장 상태에선 자동 비공개입니다. 게시 후 설정할 수 있습니다.'
+            : '비공개 시 학생 화면에 퀴즈가 표시되지 않습니다'}
         />
       </Section>
     </div>
