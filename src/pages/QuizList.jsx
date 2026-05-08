@@ -54,7 +54,7 @@ function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, o
   }, [quizzes, filterWeek])
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 min-w-0">
       <DropdownSelect
         value={filterWeek}
         onChange={v => { onWeekChange(v); onSessionChange('all') }}
@@ -62,7 +62,7 @@ function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, o
         size="md"
         filterMode
         ghost
-        style={{ width: 120 }}
+        className="w-[100px] sm:w-[120px]"
       />
       <DropdownSelect
         value={filterSession}
@@ -73,7 +73,7 @@ function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, o
         size="md"
         filterMode
         ghost
-        style={{ width: 108 }}
+        className="w-[92px] sm:w-[108px]"
       />
     </div>
   )
@@ -369,7 +369,7 @@ function InstructorQuizList() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 mt-1 mb-3 flex-wrap">
+        <div className="flex items-center justify-between gap-2 mt-1 mb-3">
           <WeekSessionFilter
             quizzes={quizzes}
             filterWeek={filterWeek}
@@ -383,7 +383,7 @@ function InstructorQuizList() {
             options={SORT_OPTIONS}
             size="md"
             ghost
-            style={{ width: 140 }}
+            className="w-[120px] sm:w-[140px] shrink-0"
           />
         </div>
 
@@ -477,8 +477,8 @@ function QuizCard({ quiz, onCopy, onDelete, onToggleVisibility }) {
     >
       <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <VisibilityBadge isVisible={isVisible} />
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-2 flex-wrap">
+            {!isDraft && <VisibilityBadge isVisible={isVisible} />}
             <StatusBadge status={displayStatus} />
             {(quiz.week > 0 || quiz.session > 0) && (
               <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-secondary text-secondary-foreground whitespace-nowrap">
@@ -1043,7 +1043,7 @@ function StudentQuizList() {
           <h1 className="text-[20px] sm:text-[24px] font-bold text-foreground leading-tight">내 퀴즈</h1>
         </div>
 
-        <div className="flex items-center justify-between gap-2 mt-1 mb-3 flex-wrap">
+        <div className="flex items-center justify-between gap-2 mt-1 mb-3">
           <WeekSessionFilter
             quizzes={allQuizzes}
             filterWeek={filterWeek}
@@ -1057,7 +1057,7 @@ function StudentQuizList() {
             options={STUDENT_SORT_OPTIONS}
             size="md"
             ghost
-            style={{ width: 140 }}
+            className="w-[120px] sm:w-[140px] shrink-0"
           />
         </div>
 
