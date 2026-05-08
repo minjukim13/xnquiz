@@ -515,13 +515,10 @@ function QuizCard({ quiz, onCopy, onDelete, onToggleVisibility }) {
         </div>
 
         <div className="flex items-center gap-3 sm:gap-5 shrink-0" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center gap-3 sm:gap-5">
-            {(() => {
-              const hasPrimary = stats.some(x => x.primary)
-              return stats.map(s => (
-                <InlineStat key={s.label} label={s.label} value={s.value} cls={s.cls} hideOnMobile={hasPrimary && !s.primary} />
-              ))
-            })()}
+          <div className="hidden sm:flex items-center gap-3 sm:gap-5">
+            {stats.map(s => (
+              <InlineStat key={s.label} label={s.label} value={s.value} cls={s.cls} />
+            ))}
           </div>
 
           <DropdownMenu>
@@ -637,12 +634,14 @@ function QuizCardSkeleton() {
           <Skeleton className="h-3 w-1/2" />
         </div>
         <div className="flex items-center gap-3 sm:gap-5 shrink-0">
-          {[0, 1, 2].map(i => (
-            <div key={i} className={cn('flex-col items-center gap-1 min-w-[44px] sm:min-w-[56px]', i === 1 ? 'hidden sm:flex' : 'flex')}>
-              <Skeleton className="h-4 w-10" />
-              <Skeleton className="h-3 w-8" />
-            </div>
-          ))}
+          <div className="hidden sm:flex items-center gap-5">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="flex flex-col items-center gap-1 min-w-[56px]">
+                <Skeleton className="h-4 w-10" />
+                <Skeleton className="h-3 w-8" />
+              </div>
+            ))}
+          </div>
           <Skeleton className="h-7 w-7 rounded-md" />
         </div>
       </div>
