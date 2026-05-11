@@ -18,7 +18,6 @@
 
 | **ID** | **화면명** | **라우트** | **진입 권한** | **문서** |
 |---|---|---|---|---|
-| S-00 | 전역 레이아웃 (Sidebar) | (전 화면 공통) | 전체 | S-00-layout-shell.md |
 | S-01 | 퀴즈 목록 | `/` | 교수자 / 학생 | S-01-quiz-list.md |
 | S-02 | 퀴즈 생성 | `/quiz/new` | 교수자 | S-02-quiz-create.md |
 | S-03 | 퀴즈 상세 | `/quiz/:id` | 교수자 / 학생 | S-03-quiz-detail.md |
@@ -35,7 +34,6 @@
 docs/ssd/
 ├── README.md                       ← 본 문서 (인덱스)
 ├── _template.md                    ← SSD 템플릿
-├── S-00-layout-shell.md
 ├── S-01-quiz-list.md
 ├── S-02-quiz-create.md
 ├── S-03-quiz-detail.md
