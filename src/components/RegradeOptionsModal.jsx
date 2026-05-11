@@ -43,7 +43,7 @@ export default function RegradeOptionsModal({ submittedCount, onConfirm, onCance
 
   return (
     <Dialog open onOpenChange={open => { if (!open) onCancel() }}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>재채점 옵션 선택</DialogTitle>
           <DialogDescription>

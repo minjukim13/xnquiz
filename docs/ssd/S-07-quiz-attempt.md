@@ -10,8 +10,6 @@
 | 라우트 | `/quiz/:id/attempt` (옵션: `?preview=true`, `?retake=true`) |
 | 진입 권한 | 학생 (실제 응시) / 교수자 (미리보기 only) |
 | 진입 경로 | 퀴즈 상세(S-03) → 응시하기/재응시 / 퀴즈 카드 메뉴 → 미리보기 |
-| 구현 파일 | QuizAttempt.jsx |
-| 연계 FRD | A-05, R-B-14, R-B-15 |
 
 ## 2. 화면 목적
 
@@ -33,41 +31,40 @@
 
 ### 4-1. [A] Canvas 기존 기능 - 기존 Canvas 제공 기능 재구현
 
-| **ID** | **기능** | **동작** | **구현 위치** |
-|---|---|---|---|
-| A-07-1 | 12개 문항 유형 렌더링 | 객관식/단답/서술/공식/파일업로드 등 | QuestionCard 분기 |
-| A-07-2 | 시간 제한 카운트다운 | 1초 간격 감소, 0 도달 시 자동 제출 | useEffect 타이머 |
-| A-07-3 | 자동 저장 (30초 간격 + 변경 시) | localStorage 에 answers/currentIndex/startedAt 저장 + 서버 동기화 | autoSave |
-| A-07-4 | 한 문항씩 표시 (oneQuestionAtATime) | 단일 문항 + 진행률 + 이전/다음 버튼 | navigation 분기 |
-| A-07-5 | 응답 후 잠금 (lockOnAnswer) | 한 문항씩 모드에서 다음 이동 후 이전 비활성 | lockAfterAnswer 검증 |
-| A-07-6 | 자동 채점 | 제출 시 autoGrade 항목 즉시 점수화 | autoGradeAnswer |
-| A-07-7 | 제출 → 결과 화면 | submitAttempt → 점수 표시 → 결과 페이지 리다이렉트 | ResultModal |
-| A-07-8 | 새로고침/재접속 시 세션 복원 | localStorage 의 sessionKey 로 currentIndex/answers 복원 | loadAttemptSession |
-| A-07-9 | 액세스 코드 / IP 검증 | 응시 진입 시 정책 검증 (서버 영역 일부) | 진입 검증 |
+| **ID** | **기능** | **동작** |
+|---|---|---|
+| A-07-1 | 12개 문항 유형 렌더링 | 객관식/단답/서술/공식/파일업로드 등 |
+| A-07-2 | 시간 제한 카운트다운 | 1초 간격 감소, 0 도달 시 자동 제출 |
+| A-07-3 | 자동 저장 (30초 간격 + 변경 시) | localStorage 에 answers/currentIndex/startedAt 저장 + 서버 동기화 |
+| A-07-4 | 한 문항씩 표시 (oneQuestionAtATime) | 단일 문항 + 진행률 + 이전/다음 버튼 |
+| A-07-5 | 응답 후 잠금 (lockOnAnswer) | 한 문항씩 모드에서 다음 이동 후 이전 비활성 |
+| A-07-6 | 자동 채점 | 제출 시 autoGrade 항목 즉시 점수화 |
+| A-07-7 | 제출 → 결과 화면 | submitAttempt → 점수 표시 → 결과 페이지 리다이렉트 |
+| A-07-8 | 새로고침/재접속 시 세션 복원 | localStorage 의 sessionKey 로 currentIndex/answers 복원 |
+| A-07-9 | 액세스 코드 / IP 검증 | 응시 진입 시 정책 검증 (서버 영역 일부) |
+| A-07-10 | 미리보기 모드 (preview=true) | 시간 제한 무시 + 세션 저장 안 함 + 활동 로그 안 함 + 제출 시 DB 미기록 (Canvas preview 와 동일 개념) |
+| A-07-11 | 자동 제출 결과 명시 | ResultModal 에 "시간 종료 - 자동 제출되었습니다" (Canvas 의 시간 만료 자동 제출 결과 표시) |
 
 ### 4-2. [B] 학교 요구사항 반영 - Canvas 에 없거나 부족하여 학교가 요구한 신규 기능
 
-| **ID** | **라벨** | **기능** | **동작** | **구현 위치** |
-|---|---|---|---|---|
-| F-07-1 | [B-#14] | 답변 입력창 확대 | 서술형/단답형 입력 영역 사이즈를 Canvas 기본보다 크게 | QuestionAnswer textarea |
-| F-07-2 | [B-#15] | 답변 입력창 줄바꿈 | textarea 자동 줄바꿈 + 줄 수 동적 확장 | QuestionAnswer textarea |
+| **ID** | **라벨** | **기능** | **동작** |
+|---|---|---|---|
+| F-07-1 | [B-#14] | 답변 입력창 확대 | 서술형/단답형 입력 영역 사이즈를 Canvas 기본보다 크게 |
+| F-07-2 | [B-#15] | 답변 입력창 줄바꿈 | textarea 자동 줄바꿈 + 줄 수 동적 확장 |
 
 ### 4-3. [C] 자체 도출 개선 - Canvas 기존 기능도 아니고 학교 요구도 아닌, 프로젝트 자체 발굴 개선
 
-| **ID** | **라벨** | **기능** | **동작** | **구현 위치** |
-|---|---|---|---|---|
-| F-07-3 | [C] | 미리보기 모드 (preview=true) | 시간 제한 무시 + 세션 저장 안 함 + 활동 로그 안 함 + 제출 시 DB 미기록 | isPreview 분기 |
-| F-07-4 | [C] | 미리보기 배너 | 황색 배너 + "미리보기 모드" 라벨 + 종료 버튼 | preview 배너 |
-| F-07-5 | [C] | 답변 변경 디바운스 1.5초 | 빠른 입력에도 활동 로그 ANSWER_CHANGE 이벤트 폭주 방지 | debounce 1500ms |
-| F-07-6 | [C] | 활동 로그 정밀 추적 | START/ANSWER_CHANGE/AUTOSAVE/NAVIGATE/FOCUS_LOSS/FOCUS_GAIN/SUBMIT 이벤트 | ACTIVITY_TYPES |
-| F-07-7 | [C] | 포커스 이탈 감지 | document.visibilitychange 로 탭/창 전환 감지 + amber 강조 로그 | FOCUS_LOSS / FOCUS_GAIN |
-| F-07-8 | [C] | 자동 저장 상태 라벨 | 헤더에 "마지막 저장: HH:MM:SS" / "저장 실패 - 답안 복사 권장" | 저장 상태 영역 |
-| F-07-9 | [C] | 자동 저장 실패 배너 (quota) | localStorage quota exceeded 시 사용자 경고 + 백업 조언 | saveError 배너 |
-| F-07-10 | [C] | 진행률 시각화 | 답변 완료 N/전체 + progress bar | 진행률 표시 |
-| F-07-11 | [C] | 한 문항씩 모드 - 첫 진입 안내 | "응답 후 문항 잠금" 사전 안내 모달 | startNotice |
-| F-07-12 | [C] | 응답 후 잠금 - 두 단계 경고 | 답변 완료 후 다음 = 일반 confirm / 미답변 후 다음 = 빨강 강조 confirm | ConfirmDialog 분기 |
-| F-07-13 | [C] | 자동 제출 결과 명시 | ResultModal 에 "시간 종료 - 자동 제출되었습니다" | ResultModal auto 플래그 |
-| F-07-14 | [C] | 응시 진입 차단 (5종) | lockDate/startDate/draft/grading/지각 마감 경과 등 5종 사전 차단 + 안내 화면 | 진입 가드 |
+| **ID** | **라벨** | **기능** | **동작** |
+|---|---|---|---|
+| F-07-3 | [C] | 미리보기 배너 | 황색 배너 + "미리보기 모드" 라벨 + 종료 버튼 |
+| F-07-4 | [C] | 답변 변경 디바운스 1.5초 | 빠른 입력에도 활동 로그 ANSWER_CHANGE 이벤트 폭주 방지 |
+| F-07-5 | [C] | 활동 로그 정밀 추적 | START/ANSWER_CHANGE/AUTOSAVE/NAVIGATE/FOCUS_LOSS/FOCUS_GAIN/SUBMIT 이벤트 |
+| F-07-6 | [C] | 포커스 이탈 감지 | document.visibilitychange 로 탭/창 전환 감지 + amber 강조 로그 |
+| F-07-7 | [C] | 자동 저장 상태 라벨 | 헤더에 "마지막 저장: HH:MM:SS" 표시 |
+| F-07-8 | [C] | 진행률 시각화 | 답변 완료 N/전체 + progress bar |
+| F-07-9 | [C] | 한 문항씩 모드 - 첫 진입 안내 | "응답 후 문항 잠금" 사전 안내 모달 |
+| F-07-10 | [C] | 응답 후 잠금 - 두 단계 경고 | 답변 완료 후 다음 = 일반 confirm / 미답변 후 다음 = 빨강 강조 confirm |
+| F-07-11 | [C] | 응시 진입 차단 (5종) | lockDate/startDate/draft/grading/지각 마감 경과 등 5종 사전 차단 + 안내 화면 |
 
 ## 5. 화면 상태 (State)
 
@@ -77,8 +74,7 @@
 | 미리보기 | preview=true | 황색 배너 + 종료 버튼 + 시간 무시 |
 | 응시 중 | 정상 진입 + 시간 남음 | 카운트다운 + 자동 저장 진행 |
 | 응답 후 잠금 모드 | oneQuestionAtATime + lockAfterAnswer | 이전 비활성 + 다음 이동 시 확인 |
-| 자동 저장 실패 | quota / 네트워크 오류 | 적색 배너 + 백업 조언 |
-| 시간 만료 | timeRemaining ≤ 0 | 자동 제출 트리거 |
+| 시간 만료 | timeRemaining ≤ 0 | 자동 제출 비활성화 OFF: 즉시 자동 제출 / ON: 헤더에 "시간 종료 — M:SS 내 제출" 카운트다운 (5분), 0 도달 시 강제 자동 제출 |
 | 제출 진행 | handleSubmit | 버튼 비활성 + 스피너 |
 | 제출 완료 | API 응답 성공 | ResultModal 표시 |
 
@@ -100,16 +96,11 @@
 ## 7. 예외/엣지 케이스
 
 - 새로고침 후 시간 차감 누적 반영 - 재접속 시 startedAt 으로 경과 시간 계산
-- 시간 초과 상태에서 재접속 - 즉시 자동 제출 트리거
+- 시간 만료(timeRemaining=0) - 기본 자동 제출. "자동 제출 비활성화" 토글 ON 인 경우 5분 grace 동안 학생 수동 제출 대기, 5분 경과 시 강제 자동 제출
+- 시간 초과 상태에서 재접속 - 자동 제출 비활성화 OFF: 즉시 자동 제출 / ON: 잔여 grace 시간만큼 추가 대기 후 자동 제출
+- 자동 제출 비활성화 ON 인 경우 lockDate(이용종료일) 입력 필수 (저장 시 검증 차단) - 무한정 응시 방지
 - 미리보기 모드 - 세션 저장/활동 로그/시간 제한/DB 기록 모두 차단
-- localStorage quota 초과 - 자동 저장 실패 배너 + "답안 복사로 백업 권장"
 - API 제출 실패 - AlertDialog "다시 시도" 버튼 + 본인 답안 보존
 - 한 문항씩 모드 + 응답 후 잠금 - 점수 손실 위험 명시
 - 부정행위 가능성 - 포커스 이탈 다회 감지 시 채점 대시보드에서 amber 강조
-- lockDate 도달 시 응시 중 - 자동 제출 트리거
-
-## 8. 미구현 / Open Issue
-
-- 부정행위 자동 차단 (포커스 이탈 N회 후 자동 제출) - 현재는 로그만 기록, 정책 미정
-- 멀티 디바이스 동시 응시 차단 미구현 - localStorage 기반이라 디바이스간 동기화 안 됨
-- 음성/이미지 첨부 (멀티미디어 답변) 백엔드 Creator 영역
+- lockDate(이용종료일) 도달 시 응시 중 - 답안 보호를 위해 무조건 자동 제출 (자동 제출 비활성화 토글과 무관)

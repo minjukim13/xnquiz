@@ -101,7 +101,8 @@ export default function QuestionBank() {
       id: `q_csv_${Date.now()}_${i}`,
       text: row.text, type: row.type, points: row.points,
       bankId: bank.id, usageCount: 0,
-      difficulty: row.difficulty || 'medium',
+      // 다른 난이도 행은 모달에서 사전 차단됨. 빈값은 은행 난이도(없으면 'medium')로 보정
+      difficulty: row.difficulty || bank.difficulty || 'medium',
       correctAnswer: row.type === 'multiple_answers' && row.answer
         ? row.answer.split(',').map(s => s.trim()).filter(Boolean)
         : row.answer || '',
@@ -262,6 +263,7 @@ export default function QuestionBank() {
         <ExcelUploadModal
           onClose={() => setShowUploadModal(false)}
           onImport={handleCsvImport}
+          bankDifficulty={bank.difficulty || ''}
         />
       )}
 
@@ -335,7 +337,9 @@ function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDr
   )
 }
 
-function ExcelUploadModal({ onClose, onImport }) {
+const DIFFICULTY_LABEL_MAP = { high: '상', medium: '중', low: '하' }
+
+function ExcelUploadModal({ onClose, onImport, bankDifficulty = '' }) {
   const [file, setFile] = useState(null)
   const [errors, setErrors] = useState([])
   const [loading, setLoading] = useState(false)
@@ -353,16 +357,33 @@ function ExcelUploadModal({ onClose, onImport }) {
     setLoading(false)
     if (result.error) {
       setErrors([result.error])
-    } else if (result.errors) {
-      setErrors(result.errors)
-    } else {
-      onImport(result.rows)
+      return
     }
+    if (result.errors) {
+      setErrors(result.errors)
+      return
+    }
+    // 은행 난이도와 다른 난이도가 명시된 행 차단 (자동 통일 금지)
+    if (bankDifficulty) {
+      const bankLabel = DIFFICULTY_LABEL_MAP[bankDifficulty] ?? bankDifficulty
+      const mismatchErrors = result.rows.reduce((acc, row, i) => {
+        if (row.difficulty && row.difficulty !== bankDifficulty) {
+          const rowLabel = DIFFICULTY_LABEL_MAP[row.difficulty] ?? row.difficulty
+          acc.push(`${i + 2}행: 문제은행 난이도("${bankLabel}")와 다른 난이도("${rowLabel}")가 지정되어 있습니다`)
+        }
+        return acc
+      }, [])
+      if (mismatchErrors.length > 0) {
+        setErrors(mismatchErrors)
+        return
+      }
+    }
+    onImport(result.rows)
   }
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>문항 일괄 업로드</DialogTitle>
           <DialogDescription>
@@ -371,7 +392,7 @@ function ExcelUploadModal({ onClose, onImport }) {
         </DialogHeader>
 
         <div
-          className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+          className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors shrink-0"
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload size={24} className="mx-auto mb-2 text-muted-foreground" />
@@ -390,7 +411,8 @@ function ExcelUploadModal({ onClose, onImport }) {
         </div>
 
         {errors.length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3 space-y-1">
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 space-y-1 min-h-0 overflow-y-auto">
+            <p className="text-xs font-semibold text-destructive mb-1">{errors.length}개 오류 — 수정 후 다시 업로드해 주세요</p>
             {errors.map((e, i) => (
               <p key={i} className="text-xs text-destructive flex items-start gap-1.5">
                 <AlertCircle size={13} className="shrink-0 mt-0.5" />
@@ -400,7 +422,7 @@ function ExcelUploadModal({ onClose, onImport }) {
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between pt-1 shrink-0">
           <button
             onClick={downloadQuestionTemplate}
             className="text-xs text-primary hover:underline flex items-center gap-1"

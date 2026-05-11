@@ -67,6 +67,7 @@ function toApiQuizBody(body) {
     scoreRevealEnd: body.scoreRevealEnd || null,
     allowLateSubmit: !!body.allowLateSubmit,
     lateSubmitDeadline: body.lateSubmitDeadline || null,
+    disableAutoSubmit: !!body.disableAutoSubmit,
   }
 }
 

@@ -89,6 +89,7 @@ export default function QuizCreate() {
     if (form.startDate && form.dueDate && new Date(form.dueDate) <= new Date(form.startDate)) errors.push('마감 일시는 시작 일시 이후여야 합니다')
     if (!form.dueDate && form.allowLateSubmit && form.lateSubmitDeadline) errors.push('지각 제출 마감 일시는 마감 일시가 설정되어 있을 때만 사용할 수 있습니다')
     if (!form.unlimitedTimeLimit && (form.timeLimit === '' || Number(form.timeLimit) <= 0)) errors.push('제한 시간을 입력하거나 무제한으로 설정해주세요')
+    if (!form.unlimitedTimeLimit && form.disableAutoSubmit && !form.lockDate) errors.push('자동 제출 비활성화 사용 시 이용종료일을 반드시 설정해야 합니다')
     if (questions.length === 0) errors.push('최소 1개 이상의 문항을 추가해주세요')
     if (hasDuplicateStudent(form.assignments)) errors.push('동일한 학생이 여러 추가 기간 설정에 포함되어 있습니다')
     return errors
@@ -346,7 +347,7 @@ function InfoTab({ form, set }) {
                   label={
                     <span className="inline-flex items-center gap-1">
                       자동 제출 비활성화
-                      <TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>제한 시간이 끝나도 자동으로 제출되지 않습니다.<br />학생이 직접 제출 버튼을 눌러야 응시가 종료됩니다.</p></TooltipContent></Tooltip></TooltipProvider>
+                      <TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>제한 시간이 끝나도 5분간은 학생이 직접 제출할 수 있습니다.<br />5분 경과 시 자동 제출됩니다. 이용종료일 설정 필수입니다.</p></TooltipContent></Tooltip></TooltipProvider>
                     </span>
                   }
                   description="제한 시간이 끝나도 학생이 직접 제출할 때까지 응시가 유지됩니다"

@@ -43,6 +43,9 @@ function isQuestionAnswered(q, v) {
   return true
 }
 
+// 자동 제출 비활성화 ON 시, 시간 만료 후 학생 수동 제출 grace 시간 (초). 이후 강제 자동 제출
+const GRACE_AFTER_TIMEOUT_SEC = 300
+
 export default function QuizAttempt() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -93,6 +96,16 @@ export default function QuizAttempt() {
     return Math.max(0, total - elapsed)
   }
   const [timeRemaining, setTimeRemaining] = useState(computeRemaining)
+  // 자동 제출 비활성화 ON + 시간 만료 후 grace 카운트다운. null = 미적용 (토글 OFF 또는 noTimeLimit)
+  const computeGraceRemaining = () => {
+    if (noTimeLimit || !quiz?.disableAutoSubmit) return null
+    const remaining = computeRemaining()
+    if (remaining > 0) return GRACE_AFTER_TIMEOUT_SEC
+    const expirationAt = startedAt + (quiz?.timeLimit ?? 30) * 60 * 1000
+    const graceEndAt = expirationAt + GRACE_AFTER_TIMEOUT_SEC * 1000
+    return Math.max(0, Math.floor((graceEndAt - Date.now()) / 1000))
+  }
+  const [graceRemaining, setGraceRemaining] = useState(computeGraceRemaining)
   const [alertDialog, setAlertDialog] = useState(null)
   const [lastSavedAt, setLastSavedAt] = useState(restored?.savedAt ?? null)
   const [saveError, setSaveError] = useState(null) // 'quota' | 'error' | null
@@ -180,7 +193,7 @@ export default function QuizAttempt() {
       setTimeRemaining(prev => {
         if (prev <= 1) {
           clearInterval(timer)
-          handleSubmit(true)
+          if (!quiz?.disableAutoSubmit) handleSubmit(true)
           return 0
         }
         return Math.max(0, prev - 1)
@@ -192,10 +205,35 @@ export default function QuizAttempt() {
   // Canvas 정책: 세션 복원 시 제한시간이 이미 초과됐으면 즉시 자동 제출
   // (서버 타이머가 브라우저 종료 후에도 계속 진행된다는 Canvas 모델과 동일하게 동작)
   // 참고: https://canvas.instructure.com/doc/api/quiz_submissions.html
+  // disableAutoSubmit ON: 시간 만료 후 5분 grace 까지는 수동 제출 대기, 그 후 강제 자동 제출
   useEffect(() => {
     if (!loaded || submitted || noTimeLimit || isPreview) return
-    if (timeRemaining === 0) handleSubmit(true)
-  }, [loaded, submitted, noTimeLimit, isPreview, timeRemaining]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (timeRemaining > 0) return
+    if (!quiz?.disableAutoSubmit) {
+      handleSubmit(true)
+    } else if (graceRemaining === 0) {
+      handleSubmit(true)
+    }
+  }, [loaded, submitted, noTimeLimit, isPreview, timeRemaining, quiz?.disableAutoSubmit, graceRemaining]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 자동 제출 비활성화 ON + 시간 만료 후 grace 카운트다운 (1초 단위)
+  useEffect(() => {
+    if (submitted || noTimeLimit || isPreview) return
+    if (!quiz?.disableAutoSubmit) return
+    if (timeRemaining > 0) return
+    if (graceRemaining === null || graceRemaining <= 0) return
+    const timer = setInterval(() => {
+      setGraceRemaining(prev => {
+        if (prev === null) return prev
+        if (prev <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return Math.max(0, prev - 1)
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [submitted, noTimeLimit, isPreview, quiz?.disableAutoSubmit, timeRemaining, graceRemaining])
 
   // Canvas 정책: lockDate(lock_at) 도래 시 열려있는 attempt 자동 제출
   // 응시 중 lockDate 가 지나면 답안을 날리지 않고 즉시 제출 처리
@@ -498,6 +536,11 @@ export default function QuizAttempt() {
                   <div className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-muted text-secondary-foreground border border-border">
                     <Clock size={13} />
                     제한 없음
+                  </div>
+                ) : timeRemaining === 0 && quiz?.disableAutoSubmit ? (
+                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-red-50 text-red-700 border border-red-200">
+                    <Clock size={13} />
+                    시간 종료 — {formatTime(graceRemaining ?? 0)} 내 제출
                   </div>
                 ) : (
                   <div className={cn(

@@ -62,11 +62,11 @@ export default function ExcelModal({ question, students: allStudents, onClose, o
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>엑셀 일괄 채점</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 min-h-0 overflow-y-auto">
 
           {/* 가이드 + 버튼: 성공 이후엔 숨김 */}
           {step !== 'success' && (

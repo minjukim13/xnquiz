@@ -17,7 +17,7 @@ export default function AddBankModal({ onClose, onAdd }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>새 문제모음 만들기</DialogTitle>
         </DialogHeader>

@@ -688,7 +688,7 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>퀴즈 복사</DialogTitle>
           <p className="text-xs text-muted-foreground truncate">{quiz.title}</p>
