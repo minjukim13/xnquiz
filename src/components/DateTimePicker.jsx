@@ -81,8 +81,19 @@ export default function DateTimePicker({
   }, [open, value])
 
   const minDate = useMemo(() => parseValue(min), [min])
+  const minDisplay = useMemo(() => (minDate ? formatDisplay(min) : ''), [minDate, min])
   const display = formatDisplay(value)
   const hasValue = !!value
+
+  // 현재 입력값이 min 보다 이전인지 (날짜 + 시간 모두 고려)
+  const candidate = useMemo(() => {
+    if (!selectedDate) return null
+    const h24 = to24(hour12, period)
+    const d = new Date(selectedDate)
+    d.setHours(h24, minute, 0, 0)
+    return d
+  }, [selectedDate, hour12, minute, period])
+  const candidateBeforeMin = !!(minDate && candidate && candidate < minDate)
 
   const year = viewMonth.getFullYear()
   const month = viewMonth.getMonth()
@@ -256,6 +267,7 @@ export default function DateTimePicker({
                   type="button"
                   onClick={() => !dis && setSelectedDate(cell.date)}
                   disabled={dis}
+                  title={dis ? `${minDisplay} 이후로 설정해주세요` : ''}
                   className={cn(
                     'w-9 h-9 flex items-center justify-center text-sm rounded-md transition-colors tabular-nums',
                     !cell.current && 'text-muted-foreground/40',
@@ -339,7 +351,7 @@ export default function DateTimePicker({
             <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
               취소
             </Button>
-            <Button type="button" size="sm" onClick={handleConfirm} disabled={!selectedDate}>
+            <Button type="button" size="sm" onClick={handleConfirm} disabled={!selectedDate || candidateBeforeMin}>
               완료
             </Button>
           </div>

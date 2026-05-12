@@ -36,6 +36,14 @@
     @apply bg-background text-foreground;
   }
 
+  /* placeholder 전역 — 실제 데이터와 구분되도록 옅은 회색 + 가벼운 굵기 */
+  input::placeholder,
+  textarea::placeholder {
+    color: oklch(0.78 0.010 248); /* ≈ #B5BCC4 */
+    opacity: 1;
+    font-weight: 400;
+  }
+
   h1 {
     font-size: 1.5rem;
     font-weight: 700;
