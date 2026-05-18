@@ -5,7 +5,7 @@
  * VITE_DATA_SOURCE=api   → fetch('/api/quizzes/...')
  */
 import { api } from '@/lib/api'
-import { normalizeDate, currentLtiCourseCode, shouldUseApi } from './_common'
+import { normalizeDate, shouldUseApi } from './_common'
 import {
   mockQuizzes,
   addQuiz as mockAdd,
@@ -42,9 +42,7 @@ function extractCourseCode(raw) {
 
 // mock-shape quiz body → api createQuiz body 로 변환
 function toApiQuizBody(body) {
-  // LTI 모드: Canvas 과목으로 자동 격리. 기존 body.courseCode 는 덮어씀
-  const ltiCode = currentLtiCourseCode()
-  const effectiveCode = ltiCode || body.courseCode || extractCourseCode(body.course)
+  const effectiveCode = body.courseCode || extractCourseCode(body.course)
   return {
     title: body.title,
     courseCode: effectiveCode,
@@ -78,18 +76,13 @@ function toApiQuestionBody(q) {
 }
 
 export async function listQuizzes(params = {}) {
-  // bypassLtiCourseFilter: 타 과목 퀴즈 가져오기 등 LTI 현재 과목 override 를
-  // 건너뛰고 params.courseCode 를 그대로 사용해야 하는 경우 true 로 지정
-  const { bypassLtiCourseFilter, ...query } = params
   if (shouldUseApi()) {
-    const ltiCode = bypassLtiCourseFilter ? null : currentLtiCourseCode()
-    const effectiveParams = ltiCode ? { ...query, courseCode: ltiCode } : query
-    const qs = new URLSearchParams(effectiveParams).toString()
+    const qs = new URLSearchParams(params).toString()
     const rows = await api('/api/quizzes' + (qs ? '?' + qs : ''))
     return rows.map(normalizeQuiz)
   }
-  if (query.courseCode) {
-    const code = String(query.courseCode).toUpperCase()
+  if (params.courseCode) {
+    const code = String(params.courseCode).toUpperCase()
     return mockQuizzes.filter(q => (q.courseCode ?? q.course?.split(' ')[0] ?? '').toUpperCase() === code)
   }
   return [...mockQuizzes]

@@ -5,20 +5,8 @@
 
 export const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
-// LTI 모드에서 Canvas 과목으로 격리된 courseCode 반환 (없으면 null)
-// launch 가 localStorage 에 저장해둔 값을 읽음
-export function currentLtiCourseCode() {
-  try {
-    if (localStorage.getItem('xnq_lti_active') !== '1') return null
-    return localStorage.getItem('xnq_lti_course_code') || null
-  } catch { return null }
-}
-
-// api 코드패스를 타야 하는지 판단.
-// VITE_DATA_SOURCE=api 거나, mock 으로 배포됐어도 LTI 런칭 상태면 서버 DB 를 봐야 함
-// (mockQuizzes 는 CS301 등 비 LTI 전용 시드라 LTI 가 만든 cuid 가 없음).
 export function shouldUseApi() {
-  return MODE === 'api' || !!currentLtiCourseCode()
+  return MODE === 'api'
 }
 
 // ISO 문자열을 "YYYY-MM-DD HH:mm" (브라우저 로컬) 으로 정규화 — mockData 포맷과 호환
