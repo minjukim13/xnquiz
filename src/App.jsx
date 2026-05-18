@@ -5,40 +5,6 @@ import { QuestionBankProvider } from './context/QuestionBankContext'
 import Layout from './components/Layout'
 import { prefetchRoute } from './lib/prefetch'
 
-// LTI 진입 부트스트랩 — React 렌더 전에 해시에서 토큰 추출 후 localStorage 저장
-// launch 엔드포인트가 `/{path}?lti=1#token=...&role=...&section=...` 로 redirect 하면 여기서 흡수
-// section 에 따라 초기 경로가 이미 결정된 상태로 들어옴
-// (launch 가 /quiz/:id | /question-banks | / 중 하나로 redirect)
-if (typeof window !== 'undefined') {
-  const params = new URLSearchParams(window.location.search)
-  if (params.get('lti') === '1' && window.location.hash.length > 1) {
-    const hashParams = new URLSearchParams(window.location.hash.slice(1))
-    const token = hashParams.get('token')
-    const role = hashParams.get('role')
-    const section = hashParams.get('section')
-    const courseCode = hashParams.get('courseCode')
-    const week = hashParams.get('week')
-    const session = hashParams.get('session')
-    if (token) {
-      try {
-        localStorage.setItem('xnq_token', token)
-        localStorage.setItem('xnq_lti_active', '1')
-        if (role) localStorage.setItem('xnq_lti_role', role)
-        if (section) localStorage.setItem('xnq_lti_section', section)
-        if (courseCode) localStorage.setItem('xnq_lti_course_code', courseCode)
-        // LearningX 가 주입한 주차/차시 — 신규 퀴즈 생성 시 프리필 용도
-        // 매 launch 마다 값이 다를 수 있어 항상 덮어쓰기 (없으면 이전값 제거)
-        if (week) localStorage.setItem('xnq_lti_week', week)
-        else localStorage.removeItem('xnq_lti_week')
-        if (session) localStorage.setItem('xnq_lti_session', session)
-        else localStorage.removeItem('xnq_lti_session')
-      } catch { /* private mode / quota */ }
-    }
-    // URL 정리: ?lti=1 과 해시 제거, 경로는 그대로 유지
-    window.history.replaceState({}, '', window.location.pathname)
-  }
-}
-
 // nav 프리페치와 lazy 가 같은 import() 를 공유 → 중복 다운로드 없음
 const QuizList = lazy(prefetchRoute.quizList)
 const QuizDetail = lazy(() => import('./pages/QuizDetail'))

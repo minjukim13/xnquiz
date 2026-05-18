@@ -5,8 +5,7 @@ import { Toast } from '@/components/ui/toast'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts } from '../data/mockData'
-import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, updateQuiz, deleteQuiz, listAttempts, isApiMode, listCourses, listTeacherCourses } from '@/lib/data'
-import { currentLtiCourseCode } from '@/lib/data/_common'
+import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, updateQuiz, deleteQuiz, listAttempts, isApiMode, listCourses } from '@/lib/data'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -175,19 +174,16 @@ function InstructorQuizList() {
   // mock 모드는 초기값을 동기로 채워 첫 렌더 깜빡임 제거 — api 모드는 서버 왕복 필요
   const [quizzes, setQuizzes] = useState(() => {
     if (isApiMode()) return []
-    const ltiCode = currentLtiCourseCode()
-    return ltiCode ? [...mockQuizzes] : mockQuizzes.filter(q => q.course === CURRENT_COURSE)
+    return mockQuizzes.filter(q => q.course === CURRENT_COURSE)
   })
   // api 모드는 서버 왕복이 끝날 때까지 skeleton 표시. mock 모드는 즉시 데이터 있어 skeleton 불필요
   const [loading, setLoading] = useState(() => isApiMode())
 
   // 데이터 레이어 경유 — mock/api 모드 자동 분기
-  // LTI 모드: 서버가 이미 Canvas courseCode 로 필터링하므로 클라이언트 필터 skip
   const reload = async () => {
     try {
       const all = await listQuizzes()
-      const ltiCode = currentLtiCourseCode()
-      setQuizzes(ltiCode ? all : all.filter(q => q.course === CURRENT_COURSE))
+      setQuizzes(all.filter(q => q.course === CURRENT_COURSE))
     } catch (err) {
       console.error('[QuizList] listQuizzes 실패', err)
     }
@@ -198,8 +194,7 @@ function InstructorQuizList() {
     ;(async () => {
       const all = await listQuizzes().catch(() => [])
       if (!mounted) return
-      const ltiCode = currentLtiCourseCode()
-      setQuizzes(ltiCode ? all : all.filter(q => q.course === CURRENT_COURSE))
+      setQuizzes(all.filter(q => q.course === CURRENT_COURSE))
       setLoading(false)
     })()
     return () => { mounted = false }
@@ -758,24 +753,16 @@ function QuizImportModal({ onClose, onImport }) {
   const [courseQuizzes, setCourseQuizzes] = useState([])
   const [quizzesLoading, setQuizzesLoading] = useState(false)
 
-  // 현재 과목 식별: LTI 모드면 Canvas courseCode, 아니면 CURRENT_COURSE 라벨
-  const ltiCourseCode = currentLtiCourseCode()
-  const isLti = !!ltiCourseCode
-  const currentCourseCode = (ltiCourseCode || CURRENT_COURSE.split(' ')[0]).toUpperCase()
+  const currentCourseCode = CURRENT_COURSE.split(' ')[0].toUpperCase()
   const [loadError, setLoadError] = useState(null)
 
   useEffect(() => {
     let mounted = true
     ;(async () => {
       try {
-        // LTI 모드: Canvas REST 경유로 교수자가 가르치는 실제 과목 전체 조회.
-        // 비 LTI 모드: xnquiz DB 의 과목 목록.
-        const all = isLti
-          ? await listTeacherCourses({ excludeCourseCode: currentCourseCode })
-          : await listCourses()
+        const all = await listCourses()
         if (!mounted) return
-        // LTI 모드는 서버에서 이미 현재 과목 제외. 비 LTI 모드는 클라에서 제외.
-        const others = isLti ? all : all.filter(c => {
+        const others = all.filter(c => {
           const code = (c.code || c.name.split(' ')[0] || '').toUpperCase()
           return code !== currentCourseCode
         })
@@ -789,7 +776,7 @@ function QuizImportModal({ onClose, onImport }) {
       }
     })()
     return () => { mounted = false }
-  }, [isLti, currentCourseCode])
+  }, [currentCourseCode])
 
   const filteredCourses = courses.filter(c =>
     c.name.toLowerCase().includes(courseSearch.toLowerCase())
@@ -808,10 +795,8 @@ function QuizImportModal({ onClose, onImport }) {
     setCheckedIds(new Set())
     setQuizzesLoading(true)
     try {
-      // LTI 과목은 courseCode(예: "CANVAS_173"), 비 LTI 는 code(예: "CS301") 사용.
-      // xnquiz 에 한 번도 런치된 적 없는 Canvas 과목은 Course 레코드가 없어 빈 배열이 반환됨.
-      const code = (course.courseCode || course.code || course.name.split(' ')[0] || '').toUpperCase()
-      const list = await listQuizzes({ courseCode: code, bypassLtiCourseFilter: true })
+      const code = (course.code || course.name.split(' ')[0] || '').toUpperCase()
+      const list = await listQuizzes({ courseCode: code })
       // 임시저장(draft) 제외 — 다른 사람이 가져와서 재사용할 수 있는 것만 노출
       setCourseQuizzes(list.filter(q => q.status !== 'draft'))
     } catch (err) {
@@ -837,8 +822,7 @@ function QuizImportModal({ onClose, onImport }) {
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden min-h-0">
-          {/* 왼쪽: 과목 목록 — LTI 과목명이 길어서 폭 여유 확보 */}
-          <div className={cn('shrink-0 flex flex-col border-r border-border', isLti ? 'w-64' : 'w-44')}>
+          <div className="shrink-0 flex flex-col border-r border-border w-44">
             <div className="p-3 pb-2 border-b border-border">
               <div className="relative">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -862,16 +846,11 @@ function QuizImportModal({ onClose, onImport }) {
                 </p>
               ) : filteredCourses.map(course => {
                 const isSelected = selectedCourse === course.name
-                // LTI(Canvas) 과목은 courseCode 가 "CANVAS_173" 형태라 배지로 노출할 가치가 없음.
-                // 비 LTI 과목만 "CS301" 같은 코드 배지 표시.
-                const ltiCourse = !!course.canvasId
-                const badge = ltiCourse ? null : (course.code || course.name.split(' ')[0])
-                const label = ltiCourse
-                  ? course.name
-                  : (course.shortName || course.name.split(' ').slice(1).join(' ') || course.name)
+                const badge = course.code || course.name.split(' ')[0]
+                const label = course.shortName || course.name.split(' ').slice(1).join(' ') || course.name
                 return (
                   <button
-                    key={course.id ?? course.canvasId ?? course.code ?? course.name}
+                    key={course.id ?? course.code ?? course.name}
                     onClick={() => handleSelectCourse(course)}
                     title={course.name}
                     className={cn(
@@ -1105,7 +1084,7 @@ function StudentQuizList() {
 function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = null }) {
   const navigate = useNavigate()
   // api 모드면 부모가 내려준 실제 응시 기록, 아니면 mock localStorage 에서 조회
-  // api 모드는 서버가 이미 본인 것만 반환 → studentId 추가 필터 스킵 (LTI 유저 ID 매칭 오류 방지)
+  // api 모드는 서버가 이미 본인 것만 반환 → studentId 추가 필터 스킵
   const attempts = apiAttempts ?? getStudentAttempts(quiz.id)
   const myAttempts = apiAttempts ? apiAttempts : attempts.filter(a => a.studentId === studentId)
   const myAttempt = myAttempts[myAttempts.length - 1] ?? null

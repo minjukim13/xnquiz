@@ -11,12 +11,10 @@ import AddBankModal from '../components/AddBankModal'
 import ExportBankModal from '../components/ExportBankModal'
 import ImportBankModal from '../components/ImportBankModal'
 import { DIFFICULTY_META, DIFF_LABEL } from '../components/bankDifficulty'
-import { currentLtiCourseCode } from '@/lib/data/_common'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
-// LTI 모드면 Canvas courseCode (예: "CANVAS_32225"), 아니면 mock 기본 과목 코드
 function resolveCurrentCourseCode() {
-  return currentLtiCourseCode() || CURRENT_COURSE.split(/\s+/)[0].toUpperCase()
+  return CURRENT_COURSE.split(/\s+/)[0].toUpperCase()
 }
 
 export default function QuestionBankList() {

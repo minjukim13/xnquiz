@@ -78,10 +78,6 @@ function RoleToggle({ role, setRole }) {
   )
 }
 
-function isLtiActive() {
-  try { return typeof window !== 'undefined' && localStorage.getItem('xnq_lti_active') === '1' } catch { return false }
-}
-
 // 본문 전환 중 사이드바는 유지하고 메인 영역만 스피너 표시
 function ContentFallback() {
   return (
@@ -107,21 +103,6 @@ export default function Layout() {
     return () => cancel(handle)
   }, [])
 
-  // LTI 모드 (Canvas iframe 진입): Canvas 가 이미 좌측 네비게이션 제공
-  // → xnquiz 내부 사이드바/헤더/역할토글 숨김. 콘텐츠만 렌더.
-  // → lti-mode 클래스로 페이지별 max-w-5xl 중앙정렬 해제 (index.css)
-  // → iframe 여백은 Canvas 본문(약 24px)과 맞추고, 상단 간격도 타이트하게
-  if (isLtiActive()) {
-    return (
-      <div className="lti-mode min-h-screen bg-background text-foreground">
-        <main className="px-4 sm:px-5 pt-1 pb-4">
-          <Suspense fallback={<ContentFallback />}>
-            <Outlet />
-          </Suspense>
-        </main>
-      </div>
-    )
-  }
 
   const navItems = role === 'student'
     ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
