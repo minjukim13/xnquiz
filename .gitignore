@@ -3,9 +3,6 @@
 .env.local
 .env.*.local
 
-# LTI RSA 키 (민감 정보 — private.pem 절대 커밋 금지)
-keys/*.pem
-
 # Logs
 logs
 *.log
@@ -20,12 +17,6 @@ dist
 dist-ssr
 *.local
 
-# Playwright
-test-results/
-playwright-report/
-blob-report/
-.playwright/
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -36,13 +27,6 @@ blob-report/
 *.njsproj
 *.sln
 *.sw?
-
-.vercel
-
-# Prisma — 생성된 클라이언트(node_modules 내부 재생성용) 및 로컬 DB 스냅샷
-/prisma/migrations/**/migration_lock.toml.local
-/prisma/*.db
-/prisma/*.db-journal
 
 # Claude Code 개인/도구 파일
 .claude/settings.local.json

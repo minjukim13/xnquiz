@@ -1,8 +1,0 @@
-{
-  "regions": ["icn1"],
-  "buildCommand": "npm run build:vercel",
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/all" },
-    { "source": "/((?!api/|@|src/|node_modules/|.+\\..+).*)", "destination": "/" }
-  ]
-}
