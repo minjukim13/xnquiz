@@ -133,7 +133,12 @@ function QuestionCard({ question, student, studentIdx, quizId, pendingScore, onS
           </div>
         </div>
 
-        {/* 문제 텍스트 — 보조적으로, 답안에 시선 집중 */}
+        {/* 문제 제목 + 텍스트 — 보조적으로, 답안에 시선 집중 */}
+        {(question.title || '').trim() && (
+          <p className="text-[13px] font-semibold text-foreground mb-1 break-words">
+            {question.title}
+          </p>
+        )}
         <p className="text-[13px] text-secondary-foreground leading-relaxed mb-2.5 whitespace-pre-line break-words">
           {question.text}
         </p>

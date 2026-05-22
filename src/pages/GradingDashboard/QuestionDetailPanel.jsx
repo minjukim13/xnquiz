@@ -5,7 +5,7 @@ import TypeBadge from '../../components/TypeBadge'
 import { Download, FolderDown, ChevronDown } from 'lucide-react'
 import ResponsesTab from './ResponsesTab'
 import StatsTab from './StatsTab'
-import { RichTextRenderer, htmlToPlainText } from '../../components/RichText'
+import { RichTextRenderer } from '../../components/RichText'
 import { getLocalGrades, setLocalGrades } from './utils'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
@@ -18,7 +18,6 @@ const REGRADE_OPTION_LABELS = {
 // ─── 문항 중심: 우측 상세 패널 ─────────────────────────────────────────────
 export default function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, showToast }) {
   const [changedStudentIds, setChangedStudentIds] = useState(new Set())
-  const [showChoices, setShowChoices] = useState(false)
   const [clearPendingSignal, setClearPendingSignal] = useState(0)
 
   // 재채점 로그 읽기
@@ -34,7 +33,6 @@ export default function QuestionDetailPanel({ question, students, search, onSear
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on question switch
     setChangedStudentIds(new Set())
-    setShowChoices(false)
   }, [question?.id])
 
   // mode: 'all_full' = 전체 만점 / 'all_zero' = 전체 0점 / 'unsubmitted_zero' = 미제출자만 0점
@@ -82,76 +80,66 @@ export default function QuestionDetailPanel({ question, students, search, onSear
 
   return (
     <div className="flex flex-col h-full">
-      {/* 문항 정보 카드 — 접기/펼치기 */}
+      {/* 문항 정보 카드 — 항상 풀 노출 */}
       {(() => {
-        const hasDetail = question.choices?.length > 0 || question.correctAnswer
-        const isExpandable = hasDetail && !['essay', 'file_upload'].includes(question.type)
+        const title = (question.title || '').trim()
+        const hasChoices = question.choices && question.choices.length > 0
+        const hasAnswer = !!question.correctAnswer
 
         return (
-          <div className="bg-white mb-3 border border-border rounded-2xl">
-            {/* 카드 헤더 (항상 노출) */}
-            <div
-              className={cn('flex items-center gap-3 p-4', isExpandable && 'cursor-pointer hover:bg-slate-50 transition-colors rounded-2xl')}
-              onClick={() => isExpandable && setShowChoices(v => !v)}
-            >
-              {isExpandable && (
-                <ChevronDown size={16} className={cn('shrink-0 text-muted-foreground transition-transform', showChoices && 'rotate-180')} />
-              )}
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <span className="text-[13px] font-bold text-muted-foreground shrink-0">Q{question.order}</span>
-                <TypeBadge type={question.type} small />
-                {/* 헤더 한 줄: HTML 안의 태그 제거 후 plain text 로만 표시 (line-clamp 동작) */}
-                <p className={cn('text-[14px] font-semibold text-foreground truncate', !showChoices && 'flex-1')}>
-                  {htmlToPlainText(question.text)}
-                </p>
-              </div>
-              <span className="text-[13px] text-muted-foreground shrink-0">{question.points}점</span>
+          <div className="bg-white mb-3 border border-border rounded-2xl p-4">
+            {/* 메타 행 */}
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="text-[13px] font-bold text-muted-foreground shrink-0">Q{question.order}</span>
+              <TypeBadge type={question.type} small />
+              <span className="ml-auto text-[13px] text-muted-foreground shrink-0">{question.points}점</span>
             </div>
 
-            {/* 펼침 영역: 본문 + 선지 + 정답 */}
-            {showChoices && isExpandable && (
-              <div className="px-4 pb-4 pt-0">
-                {/* 본문 풀 렌더 (HTML) */}
-                <RichTextRenderer html={question.text} className="text-[13px] text-foreground leading-relaxed mb-2 block" />
-                {/* 선택지 리스트 */}
-                {question.choices && question.choices.length > 0 && (
-                  <div className="flex flex-col gap-1">
-                    {question.choices.map((choice, i) => {
-                      const isCorrect = choice === question.correctAnswer
+            {/* 제목 */}
+            {title && (
+              <p className="text-[15px] font-semibold text-foreground mb-1.5 break-words">{title}</p>
+            )}
+
+            {/* 본문 */}
+            <RichTextRenderer html={question.text} className="text-[13px] text-foreground leading-relaxed block" />
+
+            {/* 선택지 리스트 */}
+            {hasChoices && (
+              <div className="flex flex-col gap-1 mt-3">
+                {question.choices.map((choice, i) => {
+                  const isCorrect = choice === question.correctAnswer
+                  return (
+                    <div key={i} className={cn(
+                      'flex items-start gap-2 text-[13px] leading-[1.5] px-2.5 py-1.5 rounded-md transition-colors',
+                      isCorrect ? 'bg-accent text-primary font-semibold' : 'text-secondary-foreground'
+                    )}>
+                      <span className="flex-shrink-0 w-4 text-right">{i + 1}.</span>
+                      <div className="flex-1 min-w-0">
+                        <RichTextRenderer html={choice} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* 정답 안내 박스 */}
+            {hasAnswer && (
+              <div className="mt-3 flex items-center gap-2 bg-background rounded-md px-3 py-2">
+                <span className="text-[12px] font-medium px-1.5 py-0.5 rounded bg-correct-bg text-correct shrink-0">정답</span>
+                {question.type === 'true_false' ? (
+                  <div className="flex items-center gap-1.5">
+                    {['참', '거짓'].map(opt => {
+                      const isCorrect = opt === question.correctAnswer
                       return (
-                        <div key={i} className={cn(
-                          'flex items-start gap-2 text-[13px] leading-[1.5] px-2.5 py-1.5 rounded-md transition-colors',
-                          isCorrect ? 'bg-accent text-primary font-semibold' : 'text-secondary-foreground'
-                        )}>
-                          <span className="flex-shrink-0 w-4 text-right">{i + 1}.</span>
-                          <div className="flex-1 min-w-0">
-                            <RichTextRenderer html={choice} />
-                          </div>
-                        </div>
+                        <span key={opt} className={cn('px-2 py-0.5 rounded-full text-[12px] font-medium', isCorrect ? 'bg-primary text-white' : 'bg-slate-100 text-muted-foreground')}>
+                          {opt}
+                        </span>
                       )
                     })}
                   </div>
-                )}
-
-                {/* 정답 안내 박스 */}
-                {question.correctAnswer && (
-                  <div className="mt-2 flex items-center gap-2 bg-background rounded-md px-3 py-2">
-                    <span className="text-[12px] font-medium px-1.5 py-0.5 rounded bg-correct-bg text-correct shrink-0">정답</span>
-                    {question.type === 'true_false' ? (
-                      <div className="flex items-center gap-1.5">
-                        {['참', '거짓'].map(opt => {
-                          const isCorrect = opt === question.correctAnswer
-                          return (
-                            <span key={opt} className={cn('px-2 py-0.5 rounded-full text-[12px] font-medium', isCorrect ? 'bg-primary text-white' : 'bg-slate-100 text-muted-foreground')}>
-                              {opt}
-                            </span>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <span className="text-[13px] font-medium text-foreground">{question.correctAnswer}</span>
-                    )}
-                  </div>
+                ) : (
+                  <span className="text-[13px] font-medium text-foreground">{question.correctAnswer}</span>
                 )}
               </div>
             )}

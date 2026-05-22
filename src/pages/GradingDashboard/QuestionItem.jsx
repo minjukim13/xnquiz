@@ -1,10 +1,13 @@
 import { cn } from '@/lib/utils'
 import TypeBadge from '../../components/TypeBadge'
+import { htmlToPlainText } from '../../components/RichText'
 
 // ─── 문항 중심: 문항 아이템 ─────────────────────────────────────────────────
 export default function QuestionItem({ question, selected, onClick, dimmed }) {
   const isComplete = question.gradedCount >= question.totalCount
   const progress = Math.round((question.gradedCount / question.totalCount) * 100)
+  const title = (question.title || '').trim()
+  const bodyText = htmlToPlainText(question.text || '')
 
   return (
     <button
@@ -29,8 +32,16 @@ export default function QuestionItem({ question, selected, onClick, dimmed }) {
               <span className="text-xs px-1.5 py-0.5 rounded text-green-700 bg-green-50">완료</span>
             )}
           </div>
-          <p className={cn('text-[13px] leading-relaxed line-clamp-2', dimmed ? 'text-muted-foreground' : 'text-foreground')}>
-            {question.text}
+          {title && (
+            <p className={cn('text-[13px] font-semibold leading-relaxed line-clamp-1', dimmed ? 'text-muted-foreground' : 'text-foreground')}>
+              {title}
+            </p>
+          )}
+          <p className={cn(
+            'text-[13px] leading-relaxed line-clamp-2',
+            title ? 'text-muted-foreground' : (dimmed ? 'text-muted-foreground' : 'text-foreground')
+          )}>
+            {bodyText}
           </p>
         </div>
         <span className="text-[13px] shrink-0 text-muted-foreground">{question.points}점</span>
