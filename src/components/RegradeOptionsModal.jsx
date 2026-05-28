@@ -11,6 +11,7 @@ const REGRADE_OPTIONS = [
     color: 'text-emerald-600',
     bg: 'bg-emerald-50',
     activeBorder: 'border-emerald-500',
+    dotColor: 'bg-emerald-600',
   },
   {
     id: 'new_answer_only',
@@ -19,6 +20,7 @@ const REGRADE_OPTIONS = [
     color: 'text-amber-600',
     bg: 'bg-amber-50',
     activeBorder: 'border-amber-500',
+    dotColor: 'bg-amber-600',
   },
   {
     id: 'full_points',
@@ -27,6 +29,7 @@ const REGRADE_OPTIONS = [
     color: 'text-primary',
     bg: 'bg-accent',
     activeBorder: 'border-primary',
+    dotColor: 'bg-primary',
   },
   {
     id: 'no_regrade',
@@ -35,6 +38,7 @@ const REGRADE_OPTIONS = [
     color: 'text-secondary-foreground',
     bg: 'bg-secondary',
     activeBorder: 'border-slate-400',
+    dotColor: 'bg-slate-500',
   },
 ]
 
@@ -81,7 +85,7 @@ export default function RegradeOptionsModal({ submittedCount, onConfirm, onCance
                     isActive ? cn(opt.activeBorder, 'bg-white') : 'border-slate-300 bg-white'
                   )}>
                     {isActive && (
-                      <div className={cn('w-2 h-2 rounded-full', opt.color.replace('text-', 'bg-'))} />
+                      <div className={cn('w-2 h-2 rounded-full', opt.dotColor)} />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
