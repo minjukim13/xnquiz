@@ -113,7 +113,16 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
           <input
             type="number"
             value={score}
-            onChange={e => { setScore(e.target.value); setSaved(false) }}
+            onChange={e => {
+              const v = e.target.value
+              // 배점 초과 입력 차단 (XQ-URD-025 정책)
+              if (v !== '') {
+                const num = Number(v)
+                if (!Number.isNaN(num) && (num < 0 || num > question.points)) return
+              }
+              setScore(v)
+              setSaved(false)
+            }}
             min={0}
             max={question.points}
             step={0.5}

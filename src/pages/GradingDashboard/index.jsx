@@ -272,7 +272,7 @@ export default function GradingDashboard() {
   if (!QUIZ_INFO) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-        <AlertCircle size={32} className="mx-auto mb-3 text-red-700" />
+        <AlertCircle size={32} className="mx-auto mb-3 text-destructive" />
         <p className="text-sm font-medium mb-1 text-slate-900">퀴즈를 찾을 수 없습니다</p>
         <Link to="/" className="text-xs text-primary hover:underline">퀴즈 목록으로 돌아가기</Link>
       </div>

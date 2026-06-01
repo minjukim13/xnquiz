@@ -8,19 +8,19 @@ const REGRADE_OPTIONS = [
     id: 'award_both',
     title: '이전 정답과 수정된 정답 모두 인정',
     desc: '기존 점수가 낮아지지 않습니다. 새 정답에 맞는 학생에게 추가 점수를 부여합니다.',
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50',
-    activeBorder: 'border-emerald-500',
-    dotColor: 'bg-emerald-600',
+    color: 'text-success',
+    bg: 'bg-success-bg',
+    activeBorder: 'border-success',
+    dotColor: 'bg-success',
   },
   {
     id: 'new_answer_only',
     title: '수정된 정답 기준으로만 재채점',
     desc: '새 정답 기준으로 자동 재채점됩니다. 일부 학생의 점수가 낮아질 수 있습니다.',
-    color: 'text-amber-600',
-    bg: 'bg-amber-50',
-    activeBorder: 'border-amber-500',
-    dotColor: 'bg-amber-600',
+    color: 'text-warning',
+    bg: 'bg-warning-bg',
+    activeBorder: 'border-warning',
+    dotColor: 'bg-warning',
   },
   {
     id: 'full_points',
@@ -57,7 +57,7 @@ export default function RegradeOptionsModal({ submittedCount, onConfirm, onCance
 
         <div className="space-y-4">
           {/* 문항 정보 */}
-          <div className="rounded-lg bg-amber-50/40 border border-amber-200 px-4 py-3">
+          <div className="rounded-lg bg-warning-bg/40 border border-warning-border px-4 py-3">
             <p className="text-[13px] leading-relaxed text-slate-600">
               이미 답안을 제출한 <span className="font-bold">{submittedCount}명</span>의 학생에 대한 재채점 옵션을 선택하십시오.
               퀴즈 저장 시 일괄 재채점됩니다.

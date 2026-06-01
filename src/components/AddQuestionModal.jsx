@@ -58,7 +58,7 @@ function initForm(type) {
   switch (type) {
     case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
     case 'true_false':              return { ...base, correctBool: true }
-    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], correctIdxs: [], scoringMode: 'all_correct' }
+    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], correctIdxs: [] }
     case 'short_answer':            return { ...base, acceptedAnswers: [''] }
     case 'essay':                   return { ...base, rubric: '' }
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
@@ -93,7 +93,7 @@ function buildQuestion(type, form) {
     case 'true_false':              return { ...base, correctAnswer: form.correctBool ? '참' : '거짓', choices: ['참', '거짓'] }
     case 'multiple_answers': {
       const filtered = form.options.filter(o => richTextHasContent(o))
-      return { ...base, options: filtered, choices: filtered, correctAnswer: form.correctIdxs.map(i => filtered[i]).filter(Boolean), scoringMode: form.scoringMode ?? 'all_correct' }
+      return { ...base, options: filtered, choices: filtered, correctAnswer: form.correctIdxs.map(i => filtered[i]).filter(Boolean) }
     }
     case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
     case 'essay':                   return { ...base, rubric: form.rubric }
@@ -173,7 +173,7 @@ function AnswerTextarea({ value, onChange, placeholder, className }) {
 // ── 폼 내부에서 반복 사용되는 정적 컴포넌트 ───────────────────────────────
 function TrashBtn({ onClick }) {
   return (
-    <button type="button" onClick={onClick} className="text-muted-foreground shrink-0 hover:text-red-500 transition-colors">
+    <button type="button" onClick={onClick} className="text-muted-foreground shrink-0 hover:text-destructive transition-colors">
       <Trash2 size={13} />
     </button>
   )
@@ -566,9 +566,9 @@ function TypeForm({ type, form, setForm, textareaRef }) {
             </div>
           )}
           {mismatch && form.blanks.length > 0 && (
-            <div className="flex items-start gap-2 rounded-md px-3 py-2 bg-orange-50 border border-orange-200">
-              <AlertCircle size={13} className="mt-0.5 shrink-0 text-orange-600" />
-              <p className="text-xs text-orange-700 leading-relaxed">
+            <div className="flex items-start gap-2 rounded-md px-3 py-2 bg-warning-bg border border-warning-border">
+              <AlertCircle size={13} className="mt-0.5 shrink-0 text-warning" />
+              <p className="text-xs text-warning-foreground leading-relaxed">
                 본문에 <span className="font-semibold">[빈칸1]</span> ~ <span className="font-semibold">[빈칸{form.blanks.length}]</span>이 모두 포함되어야 합니다.
               </p>
             </div>
@@ -635,9 +635,9 @@ function TypeForm({ type, form, setForm, textareaRef }) {
             </div>
           )}
           {ddMismatch && form.dropdowns.length > 0 && (
-            <div className="flex items-start gap-2 rounded-md px-3 py-2 bg-orange-50 border border-orange-200">
-              <AlertCircle size={13} className="mt-0.5 shrink-0 text-orange-600" />
-              <p className="text-xs text-orange-700 leading-relaxed">
+            <div className="flex items-start gap-2 rounded-md px-3 py-2 bg-warning-bg border border-warning-border">
+              <AlertCircle size={13} className="mt-0.5 shrink-0 text-warning" />
+              <p className="text-xs text-warning-foreground leading-relaxed">
                 본문에 <span className="font-semibold">[드롭다운1]</span> ~ <span className="font-semibold">[드롭다운{form.dropdowns.length}]</span>이 모두 포함되어야 합니다.
               </p>
             </div>
@@ -765,10 +765,13 @@ function questionToForm(q) {
       if (idxs.length > 0 && typeof idxs[0] === 'string') {
         idxs = idxs.map(a => opts.findIndex(o => o === a)).filter(i => i >= 0)
       }
-      return { ...base, options: opts, correctIdxs: idxs, scoringMode: q.scoringMode ?? 'all_correct' }
+      return { ...base, options: opts, correctIdxs: idxs }
     }
     case 'short_answer':
-      return { ...base, acceptedAnswers: Array.isArray(q.correctAnswer) && q.correctAnswer.length ? [...q.correctAnswer] : typeof q.correctAnswer === 'string' ? [q.correctAnswer] : [''] }
+      return {
+        ...base,
+        acceptedAnswers: Array.isArray(q.correctAnswer) && q.correctAnswer.length ? [...q.correctAnswer] : typeof q.correctAnswer === 'string' ? [q.correctAnswer] : [''],
+      }
     case 'essay':
       return { ...base, rubric: q.rubric || '' }
     case 'numerical':
@@ -791,7 +794,11 @@ function questionToForm(q) {
         }
         text = (text + (text ? ' ' : '') + missing.join(' ')).trim()
       }
-      return { ...base, text, blanks }
+      return {
+        ...base,
+        text,
+        blanks,
+      }
     }
     case 'multiple_dropdowns': {
       const dropdowns = q.dropdowns?.length
@@ -857,26 +864,21 @@ function isAutoGradeable(type) {
 }
 
 // ── 메인 모달 ──────────────────────────────────────────────────────────────
-export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', initialQuestion = null, submittedCount = 0 }) {
+export default function AddQuestionModal({ onClose, onAdd, initialQuestion = null, submittedCount = 0 }) {
   const isEditMode = !!initialQuestion
+
   const [step, setStep] = useState(isEditMode ? 'form' : 'type')
   const [selectedType, setSelectedType] = useState(isEditMode ? initialQuestion.type : null)
   const [hoveredType, setHoveredType] = useState(null)
   const bodyTextareaRef = useRef(null)
   const [form, setForm] = useState(() => {
-    if (isEditMode) {
-      const f = questionToForm(initialQuestion)
-      if (bankDifficulty) f.difficulty = bankDifficulty
-      return f
-    }
+    if (isEditMode) return questionToForm(initialQuestion)
     return { title: '', text: '', points: 5 }
   })
 
   const handleSelectType = (type) => {
     setSelectedType(type)
-    const f = initForm(type)
-    if (bankDifficulty) f.difficulty = bankDifficulty
-    setForm(f)
+    setForm(initForm(type))
     setStep('form')
   }
 
@@ -917,9 +919,9 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
 
   const typeInfo = selectedType ? QUIZ_TYPES[selectedType] : null
 
-  return (<>
+  return (
     <Dialog open={true} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-4xl w-[calc(100vw-24px)] sm:w-auto min-h-[480px] sm:min-h-[600px] max-h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-6xl w-[calc(100vw-24px)] sm:w-[calc(100vw-64px)] min-h-[480px] sm:min-h-[600px] max-h-[90vh] flex flex-col p-0 gap-0">
         {/* 헤더 */}
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-border">
           <DialogTitle>{isEditMode ? '문항 편집' : '문항 직접 추가'}</DialogTitle>
@@ -927,7 +929,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
             <DialogDescription className="flex items-center gap-1">
               <span className={cn(
                 'w-2 h-2 rounded-full inline-block',
-                typeInfo.autoGrade === null ? 'bg-neutral-400' : typeInfo.autoGrade === false ? 'bg-orange-700' : typeInfo.autoGrade === 'partial' ? 'bg-amber-500' : 'bg-green-600'
+                typeInfo.autoGrade === null ? 'bg-neutral-400' : typeInfo.autoGrade === false ? 'bg-warning-foreground' : typeInfo.autoGrade === 'partial' ? 'bg-warning' : 'bg-success'
               )} />
               {typeInfo.label} · {typeInfo.autoGrade === null ? '채점 없음' : typeInfo.autoGrade === false ? '수동채점' : typeInfo.autoGrade === 'partial' ? '부분자동' : '자동채점'}
             </DialogDescription>
@@ -983,7 +985,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
           /* 문항 폼 */
           <div className="flex-1 px-4 sm:px-6 pt-4 sm:pt-5 pb-5 sm:pb-6 space-y-5 overflow-y-auto max-h-[70vh]">
             {isEditMode && submittedCount > 0 && (
-              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-orange-50/40 border border-orange-200">
+              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-warning-bg/40 border border-warning-border">
                 <p className="text-xs leading-relaxed text-slate-600">
                   이 문항은 이미 <span className="font-bold">{submittedCount}명</span>이 응시했습니다. 수정 시 기존 제출 답안과 채점 결과에 영향을 줄 수 있습니다.
                 </p>
@@ -1012,23 +1014,16 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                   </div>
                   <div>
                     <label className="text-[15px] font-medium block mb-1.5 text-foreground">난이도</label>
-                    {bankDifficulty ? (
-                      <div className="text-[13px] h-9 px-3 flex items-center gap-2 bg-muted border border-border rounded-lg text-foreground">
-                        <span className="font-medium">{bankDifficulty === 'high' ? '상' : bankDifficulty === 'medium' ? '중' : '하'}</span>
-                        <span className="text-xs text-muted-foreground">고정</span>
-                      </div>
-                    ) : (
-                      <DropdownSelect
-                        value={form.difficulty || ''}
-                        onChange={v => setForm(prev => ({ ...prev, difficulty: v }))}
-                        options={[
-                          { value: '', label: '미지정' },
-                          { value: 'high', label: '상' },
-                          { value: 'medium', label: '중' },
-                          { value: 'low', label: '하' },
-                        ]}
-                      />
-                    )}
+                    <DropdownSelect
+                      value={form.difficulty || ''}
+                      onChange={v => setForm(prev => ({ ...prev, difficulty: v }))}
+                      options={[
+                        { value: '', label: '미설정' },
+                        { value: 'high', label: '상' },
+                        { value: 'medium', label: '중' },
+                        { value: 'low', label: '하' },
+                      ]}
+                    />
                   </div>
                 </>
               )}
@@ -1119,7 +1114,7 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
                 </button>
                 {feedbackOpen && <div className="space-y-3 mt-3">
                   <div>
-                    <label className="text-[13px] font-medium block mb-1 text-emerald-700">정답 시</label>
+                    <label className="text-[13px] font-medium block mb-1 text-correct">정답 시</label>
                     <textarea
                       value={form.correct_comments || ''}
                       onChange={e => setForm(prev => ({ ...prev, correct_comments: e.target.value }))}
@@ -1153,14 +1148,13 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
             )}
 
             {/* 하단 버튼 */}
-            <div className="flex items-center justify-between pt-3 border-t border-border">
-              {!isEditMode && (
+            <div className="flex items-center justify-between pt-3 border-t border-border gap-2 flex-wrap">
+              {!isEditMode ? (
                 <Button variant="ghost" onClick={handleBack} className="text-muted-foreground">
                   ← 유형 변경
                 </Button>
-              )}
-              {isEditMode && <div />}
-              <div className="flex gap-2">
+              ) : <div />}
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button variant="outline" onClick={onClose}>취소</Button>
                 <Button
                   disabled={!isValid(selectedType, form)}
@@ -1182,5 +1176,5 @@ export default function AddQuestionModal({ onClose, onAdd, bankDifficulty = '', 
         />
       )}
     </Dialog>
-  </>)
+  )
 }

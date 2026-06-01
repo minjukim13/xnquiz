@@ -18,7 +18,6 @@ import {
   WizardDifficultySelector,
   WizardStep1,
 } from './BankWizardShared'
-import { isBankCompatible } from './bankDifficulty'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
@@ -120,31 +119,13 @@ export default function ExportBankModal({ onClose, onExport }) {
     .map(id => sourceQuestions.find(q => q.id === id))
     .filter(Boolean)
 
-  const autoDifficulty = (() => {
-    if (selectedQuestions.length === 0) return ''
-    const diffs = [...new Set(selectedQuestions.map(q => q.difficulty || ''))]
-    return diffs.length === 1 ? diffs[0] : ''
-  })()
+  // XQ-FRD-001 v0.3: 그룹 난이도는 관리자가 직접 입력하는 독립값이므로
+  // 선택된 문항의 난이도와 무관하게 전체 단계 선택 가능
+  const allowedDifficulties = ['', 'high', 'medium', 'low']
 
-  const allowedDifficulties = (() => {
-    if (selectedQuestions.length === 0) return ['']
-    const diffs = [...new Set(selectedQuestions.map(q => q.difficulty || ''))]
-    if (diffs.length === 1 && diffs[0] !== '') return [diffs[0], '']
-    if (diffs.length === 1 && diffs[0] === '') return ['', 'high', 'medium', 'low']
-    return ['']
-  })()
+  const effectiveNewDifficulty = newBankDifficulty !== null ? newBankDifficulty : ''
 
-  const effectiveNewDifficulty = newBankDifficulty !== null ? newBankDifficulty : autoDifficulty
-
-  const compatibleCourseBanks = courseBanks.filter(b => isBankCompatible(b, selectedQuestions))
-
-  // 선택 문항이 바뀌어 현재 선택된 대상 문제모음이 더 이상 호환되지 않으면 선택 해제
-  useEffect(() => {
-    if (!targetBankId) return
-    const tb = allBanks.find(b => b.id === targetBankId)
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset stale selection when source changes
-    if (tb && !isBankCompatible(tb, selectedQuestions)) setTargetBankId(null)
-  }, [selectedQuestionIds, targetBankId, allBanks, selectedQuestions])
+  const compatibleCourseBanks = courseBanks
 
   const handleSourceToggle = (bankId) => {
     const isChecked = selectedSourceIds.includes(bankId)
@@ -185,7 +166,7 @@ export default function ExportBankModal({ onClose, onExport }) {
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-5xl w-[calc(100vw-24px)] sm:w-auto min-h-[480px] sm:min-h-[640px] max-h-[90vh] sm:max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-6xl w-[calc(100vw-24px)] sm:w-[calc(100vw-160px)] min-h-[480px] sm:min-h-[640px] max-h-[90vh] sm:max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
         <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-border shrink-0">
           <div className="flex items-center justify-between mb-3">
             <DialogHeader className="p-0 space-y-0">
@@ -295,9 +276,7 @@ export default function ExportBankModal({ onClose, onExport }) {
                     <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-primary/15" onClick={e => e.stopPropagation()}>
                       {compatibleCourseBanks.length === 0 ? (
                         <p className="text-sm text-muted-foreground py-3">
-                          {courseBanks.length === 0
-                            ? '선택한 과목에 사용 가능한 문제모음이 없습니다'
-                            : '선택한 문항의 난이도와 일치하는 문제모음이 없습니다'}
+                          선택한 과목에 사용 가능한 문제모음이 없습니다
                         </p>
                       ) : (
                         compatibleCourseBanks.map(b => (

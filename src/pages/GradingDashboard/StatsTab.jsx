@@ -36,6 +36,9 @@ function StatsTab({ question, students }) {
         <StatCard label="최저" value={minScore} unit="점" />
         <StatCard label="채점 완료" value={scoredStudents.length} unit={`/ ${students.length}명`} />
       </div>
+      <p className="px-4 pb-2 text-[11px] text-muted-foreground">
+        채점 완료 학생만 모집단으로 집계 (통계 화면과 동일 산출식·모집단 정의).
+      </p>
 
       <div className="mx-4 h-px bg-slate-100" />
 
@@ -76,13 +79,13 @@ function StatsTab({ question, students }) {
           <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-gray-700">정답률</span>
-              <span className={cn('text-sm font-bold', correctPct >= 70 ? 'text-green-700' : correctPct >= 40 ? 'text-orange-700' : 'text-red-600')}>
+              <span className={cn('text-sm font-bold', correctPct >= 70 ? 'text-success-foreground' : correctPct >= 40 ? 'text-warning-foreground' : 'text-destructive')}>
                 {correctPct}%
               </span>
             </div>
             <div className="w-full h-2 rounded-full overflow-hidden mb-2 bg-slate-200">
               <div
-                className={cn('h-full rounded-full transition-all', correctPct >= 70 ? 'bg-correct' : correctPct >= 40 ? 'bg-amber-500' : 'bg-destructive')}
+                className={cn('h-full rounded-full transition-all', correctPct >= 70 ? 'bg-correct' : correctPct >= 40 ? 'bg-warning' : 'bg-destructive')}
                 style={{ width: `${correctPct}%` }}
               />
             </div>

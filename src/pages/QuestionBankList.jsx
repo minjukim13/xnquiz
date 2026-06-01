@@ -166,7 +166,7 @@ export default function QuestionBankList() {
                         ? DIFFICULTY_META[bank.difficulty].cls
                         : 'bg-secondary text-muted-foreground'
                     )}>
-                      {diffLabel || '미지정'}
+                      {diffLabel || '미설정'}
                     </span>
                     <span className="text-muted-foreground text-xs">·</span>
                     <span className="text-xs text-secondary-foreground">{qCount}개 문항</span>

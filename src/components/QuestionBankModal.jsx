@@ -157,7 +157,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl w-[calc(100vw-24px)] sm:w-auto min-h-[480px] sm:min-h-[640px] max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-6xl w-[calc(100vw-24px)] sm:w-[calc(100vw-160px)] min-h-[480px] sm:min-h-[640px] max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
 
         {/* 헤더 */}
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 shrink-0 border-b border-border">
@@ -282,7 +282,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                         filterMode
                         options={[
                           { value: 'all', label: '모든 난이도' },
-                          { value: '', label: '미지정' },
+                          { value: '', label: '미설정' },
                           { value: 'high', label: '상' },
                           { value: 'medium', label: '중' },
                           { value: 'low', label: '하' },

@@ -29,7 +29,7 @@ export default function QuestionItem({ question, selected, onClick, dimmed }) {
             </span>
             <TypeBadge type={question.type} small />
             {isComplete && (
-              <span className="text-xs px-1.5 py-0.5 rounded text-green-700 bg-green-50">완료</span>
+              <span className="text-xs px-1.5 py-0.5 rounded text-success-foreground bg-success-bg">완료</span>
             )}
           </div>
           {title && (

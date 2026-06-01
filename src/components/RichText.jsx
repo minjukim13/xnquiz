@@ -238,7 +238,7 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = 'min-
             type="button"
             onClick={onDelete}
             title="보기 삭제"
-            className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-white transition-colors"
+            className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-white transition-colors"
           >
             <Trash2 size={13} />
           </button>
@@ -278,7 +278,7 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = 'min-
         </div>
       )}
       {error && (
-        <div className="px-2 py-1 text-xs text-destructive border border-b-0 border-border bg-red-50">{error}</div>
+        <div className="px-2 py-1 text-xs text-destructive border border-b-0 border-border bg-destructive-soft">{error}</div>
       )}
 
       {/* 편집 영역 */}

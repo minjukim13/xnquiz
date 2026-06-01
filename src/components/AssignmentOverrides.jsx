@@ -36,7 +36,7 @@ function TargetTable({ assignTo, onRemove }) {
               <button
                 type="button"
                 onClick={() => onRemove(`group:${t.id}`)}
-                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors cursor-pointer"
+                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-colors cursor-pointer"
                 aria-label="제거"
               >
                 <X size={14} />
@@ -63,7 +63,7 @@ function TargetTable({ assignTo, onRemove }) {
                 <button
                   type="button"
                   onClick={() => onRemove(`student:${t.id}`)}
-                  className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors cursor-pointer justify-self-end"
+                  className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-colors cursor-pointer justify-self-end"
                   aria-label="제거"
                 >
                   <X size={14} />
@@ -116,7 +116,7 @@ export default function AssignmentOverrides({ assignments, onChange }) {
                 variant="ghost"
                 size="sm"
                 onClick={() => remove(a.id)}
-                className="h-7 px-2 text-muted-foreground hover:text-destructive hover:bg-red-50"
+                className="h-7 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive-soft"
               >
                 삭제
               </Button>

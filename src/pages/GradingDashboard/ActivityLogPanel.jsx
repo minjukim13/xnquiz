@@ -9,10 +9,10 @@ import {
 } from '@/utils/activityLog'
 
 const TYPE_META = {
-  [ACTIVITY_TYPES.START]: { label: '응시 시작', icon: Play, className: 'text-emerald-700 bg-emerald-50' },
+  [ACTIVITY_TYPES.START]: { label: '응시 시작', icon: Play, className: 'text-success-foreground bg-success-bg' },
   [ACTIVITY_TYPES.NAVIGATE]: { label: '문항 이동', icon: ArrowRightLeft, className: 'text-blue-700 bg-blue-50' },
   [ACTIVITY_TYPES.ANSWER_CHANGE]: { label: '답변 변경', icon: Pencil, className: 'text-violet-700 bg-violet-50' },
-  [ACTIVITY_TYPES.FOCUS_LOSS]: { label: '포커스 이탈', icon: EyeOff, className: 'text-amber-700 bg-amber-50' },
+  [ACTIVITY_TYPES.FOCUS_LOSS]: { label: '포커스 이탈', icon: EyeOff, className: 'text-warning-foreground bg-warning-bg' },
   [ACTIVITY_TYPES.FOCUS_GAIN]: { label: '포커스 복귀', icon: Eye, className: 'text-slate-600 bg-slate-100' },
   [ACTIVITY_TYPES.AUTOSAVE]: { label: '자동 저장', icon: Save, className: 'text-slate-500 bg-slate-50' },
   [ACTIVITY_TYPES.SUBMIT]: { label: '제출', icon: Send, className: 'text-primary bg-accent' },
@@ -77,7 +77,7 @@ function SubmitSummaryCell({ student }) {
       <p className="text-sm font-semibold text-foreground flex items-center gap-1.5 tabular-nums">
         <span>{student.endTime ? formatDateTime(student.endTime) : '-'}</span>
         {student.isLate && (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700">지각</span>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-warning-bg text-warning-foreground">지각</span>
         )}
         {student.autoSubmitted && !student.isLate && (
           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600">자동</span>
@@ -150,7 +150,7 @@ function SummaryCell({ label, value, accent }) {
       <p className="text-[11px] text-muted-foreground mb-0.5">{label}</p>
       <p className={cn(
         'text-sm font-semibold',
-        accent === 'amber' ? 'text-amber-700' : 'text-foreground'
+        accent === 'amber' ? 'text-warning-foreground' : 'text-foreground'
       )}>
         {value}
       </p>

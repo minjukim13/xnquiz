@@ -336,7 +336,9 @@ export function downloadQuestionTemplate() {
 }
 
 // ── 엑셀/CSV 파싱 (QuestionBank 업로드) ───────────────────────────────────
-export function parseExcelOrCsv(file) {
+// XQ-URD-029: 난이도 불일치 = 경고 후 허용 정책 (오류 차단과 분리)
+const DIFF_LABEL = { high: '상', medium: '중', low: '하' }
+export function parseExcelOrCsv(file, bankDifficulty = '') {
   return new Promise((resolve) => {
     if (file.size > 5 * 1024 * 1024) {
       resolve({ error: '파일 크기가 5MB를 초과합니다.' })
@@ -363,83 +365,89 @@ export function parseExcelOrCsv(file) {
           return
         }
 
-        const validTypes = Object.keys(QUIZ_TYPES) // 전체 유형 (오류 메시지 힌트용)
-        const rows = []
-        const errors = []
+        // 결과 구조:
+        //   파일 자체 오류: { error: string }
+        //   정상 파싱:      { validRows, invalidRows, warningRows }
+        //     - validRows  : 등록 가능한 문항 (rowNum 포함)
+        //     - invalidRows: { rowNum, reasons[], preview } — 차단 오류 (XQ-URD-029: 전체 보류 대상)
+        //     - warningRows: { rowNum, warnings[], preview } — 경고 (XQ-URD-029: 난이도 불일치 등 — 허용)
+        const validTypes = Object.keys(QUIZ_TYPES)
+        const validRows = []
+        const invalidRows = []
+        const warningRows = []
 
         for (let i = 1; i < raw.length; i++) {
           const [typeRaw, textRaw, pointsRaw, difficultyRaw = '', answer = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = ''] = raw[i].map(v => String(v ?? '').trim())
           const rowNum = i + 1
 
-          if (!typeRaw && !textRaw && !pointsRaw) continue // 빈 행 건너뜀
+          if (!typeRaw && !textRaw && !pointsRaw) continue
 
-          let rowHasError = false
+          const reasons = []
 
           if (!EXCEL_SUPPORTED_TYPES.includes(typeRaw)) {
             const isKnownType = validTypes.includes(typeRaw)
             const hint = isKnownType ? ' (UI 에디터에서만 생성 가능)' : ''
-            errors.push(`${rowNum}행: 지원하지 않는 유형 "${typeRaw}"${hint}`)
-            rowHasError = true
+            reasons.push(`지원하지 않는 유형 "${typeRaw || '미입력'}"${hint}`)
           }
           if (!textRaw) {
-            errors.push(`${rowNum}행: 문항 내용이 비어있습니다`)
-            rowHasError = true
+            reasons.push('문항 내용이 비어있습니다')
           }
           const points = parseInt(pointsRaw, 10)
           if (isNaN(points) || points <= 0) {
-            errors.push(`${rowNum}행: 배점이 유효하지 않습니다 (양의 정수여야 합니다)`)
-            rowHasError = true
+            reasons.push('배점이 유효하지 않습니다 (양의 정수 필요)')
           }
 
-          if (!rowHasError && (typeRaw === 'multiple_choice' || typeRaw === 'multiple_answers')) {
-            const choices = [c1, c2, c3, c4, c5].filter(Boolean)
-            if (choices.length < 2) {
-              errors.push(`${rowNum}행: ${typeRaw === 'multiple_choice' ? '객관식' : '복수 선택'} 문항은 보기를 2개 이상 입력해야 합니다`)
-              rowHasError = true
-            }
+          const choiceList = [c1, c2, c3, c4, c5].filter(Boolean)
+          if ((typeRaw === 'multiple_choice' || typeRaw === 'multiple_answers') && choiceList.length < 2) {
+            reasons.push(`${typeRaw === 'multiple_choice' ? '객관식' : '복수 선택'} 문항은 보기를 2개 이상 입력해야 합니다`)
           }
 
-          if (!rowHasError && typeRaw === 'multiple_answers') {
+          if (typeRaw === 'multiple_answers' && choiceList.length >= 2) {
             if (!answer) {
-              errors.push(`${rowNum}행: 복수 선택 문항은 정답을 입력해야 합니다 (쉼표로 구분)`)
-              rowHasError = true
+              reasons.push('복수 선택 문항은 정답을 입력해야 합니다 (쉼표로 구분)')
             } else {
-              const choiceList = [c1, c2, c3, c4, c5].filter(Boolean)
               const choiceListLower = choiceList.map(c => c.toLowerCase())
               const answerList = answer.split(',').map(s => s.trim()).filter(Boolean)
               const invalid = answerList.filter(a => !choiceListLower.includes(a.toLowerCase()))
               if (invalid.length > 0) {
-                errors.push(`${rowNum}행: 정답 "${invalid.join(', ')}"이(가) 보기에 없습니다`)
-                rowHasError = true
+                reasons.push(`정답 "${invalid.join(', ')}"이(가) 보기에 없습니다`)
               }
             }
           }
 
-          if (!rowHasError && typeRaw === 'short_answer' && !answer) {
-            errors.push(`${rowNum}행: 단답형 문항은 정답을 입력해야 합니다`)
-            rowHasError = true
+          if (typeRaw === 'short_answer' && !answer) {
+            reasons.push('단답형 문항은 정답을 입력해야 합니다')
           }
 
-          if (rowHasError) continue
+          const preview = textRaw ? (textRaw.length > 30 ? `${textRaw.slice(0, 30)}…` : textRaw) : '(본문 없음)'
+
+          if (reasons.length > 0) {
+            invalidRows.push({ rowNum, reasons, preview })
+            continue
+          }
 
           const validDifficulties = ['high', 'medium', 'low']
           const difficulty = validDifficulties.includes(difficultyRaw) ? difficultyRaw : 'medium'
 
-          const choices = [c1, c2, c3, c4, c5].filter(Boolean)
-          rows.push({ type: typeRaw, text: textRaw, points, difficulty, answer, choices })
+          // XQ-URD-029: 문제모음 난이도가 설정된 경우 문항 난이도 불일치 = 경고 (등록은 허용)
+          const warnings = []
+          if (bankDifficulty && validDifficulties.includes(bankDifficulty) && difficulty !== bankDifficulty) {
+            warnings.push(`문제모음 난이도(${DIFF_LABEL[bankDifficulty]})와 문항 난이도(${DIFF_LABEL[difficulty]})가 다릅니다`)
+          }
+
+          if (warnings.length > 0) {
+            warningRows.push({ rowNum, warnings, preview })
+          }
+
+          validRows.push({ rowNum, type: typeRaw, text: textRaw, points, difficulty, answer, choices: choiceList })
         }
 
-        if (errors.length > 0) {
-          resolve({ errors })
+        if (validRows.length === 0 && invalidRows.length === 0) {
+          resolve({ error: '데이터 행이 없습니다.' })
           return
         }
 
-        if (rows.length === 0) {
-          resolve({ errors: ['데이터 행이 없습니다.'] })
-          return
-        }
-
-        resolve({ rows })
+        resolve({ validRows, invalidRows, warningRows })
       } catch {
         resolve({ error: '파일을 읽을 수 없습니다. 파일이 손상되었거나 지원하지 않는 형식입니다.' })
       }

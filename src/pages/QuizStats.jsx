@@ -68,6 +68,81 @@ function variance(arr) {
   return arr.reduce((a, b) => a + (b - mean) ** 2, 0) / arr.length
 }
 
+// 측정학적 지표 계산 (XQ-URD-026 정책 — 변별도 / 선택지별 응답 패턴 / 상중하위 집단 정답률)
+// 산출식·모집단 정의는 XQ-URD-025 채점 인라인 통계와 단일화 (채점 완료 학생 기준).
+function computeItemMetrics(questions, students) {
+  const graded = students.filter(s => s.submitted && s.score !== null)
+  if (graded.length < 2) {
+    return questions.map(q => ({ ...q, discrimination: null, upperRate: null, lowerRate: null, choiceDistribution: null }))
+  }
+
+  const getScore = (s, qId) => {
+    if (s.autoScores?.[qId] !== undefined) return s.autoScores[qId]
+    if (s.manualScores?.[qId] !== undefined) return s.manualScores[qId]
+    return null
+  }
+
+  const totalScores = graded.map(s => s.score)
+  const meanTotal = totalScores.reduce((a, b) => a + b, 0) / totalScores.length
+  const stdTotal = Math.sqrt(totalScores.reduce((a, b) => a + (b - meanTotal) ** 2, 0) / totalScores.length)
+
+  const sorted = [...graded].sort((a, b) => a.score - b.score)
+  const n27 = Math.max(1, Math.floor(graded.length * 0.27))
+  const lower = sorted.slice(0, n27)
+  const upper = sorted.slice(sorted.length - n27)
+
+  return questions.map(q => {
+    let discrimination = null
+    if (q.autoGrade && stdTotal > 0) {
+      const binary = graded.map(s => getScore(s, q.id) === q.points ? 1 : 0)
+      const p = binary.reduce((a, b) => a + b, 0) / binary.length
+      const qp = 1 - p
+      if (p > 0 && qp > 0) {
+        const passTotal = totalScores.filter((_, i) => binary[i] === 1)
+        const meanPass = passTotal.reduce((a, b) => a + b, 0) / passTotal.length
+        discrimination = parseFloat(((meanPass - meanTotal) / stdTotal * Math.sqrt(p * qp)).toFixed(2))
+      }
+    }
+
+    let upperRate = null
+    let lowerRate = null
+    if (q.autoGrade) {
+      const upperCorrect = upper.filter(s => getScore(s, q.id) === q.points).length
+      const lowerCorrect = lower.filter(s => getScore(s, q.id) === q.points).length
+      upperRate = Math.round((upperCorrect / upper.length) * 100)
+      lowerRate = Math.round((lowerCorrect / lower.length) * 100)
+    }
+
+    let choiceDistribution = null
+    if ((q.type === 'multiple_choice' || q.type === 'multiple_answers' || q.type === 'multiple_dropdowns') && Array.isArray(q.choices)) {
+      const counts = q.choices.map(() => 0)
+      for (const s of graded) {
+        const ans = s.selections?.[q.id]
+        if (Array.isArray(ans)) {
+          ans.forEach(idx => { if (typeof idx === 'number' && counts[idx] !== undefined) counts[idx]++ })
+        } else if (typeof ans === 'number' && counts[ans] !== undefined) {
+          counts[ans]++
+        }
+      }
+      choiceDistribution = q.choices.map((c, i) => ({
+        label: typeof c === 'string' ? c : (c.text || `보기 ${i + 1}`),
+        count: counts[i],
+        pct: graded.length > 0 ? Math.round((counts[i] / graded.length) * 100) : 0,
+        isAnswer: Array.isArray(q.correctAnswer) ? q.correctAnswer.includes(i) : q.correctAnswer === i,
+      }))
+    }
+
+    return { ...q, discrimination, upperRate, lowerRate, choiceDistribution }
+  })
+}
+
+function discriminationGrade(value) {
+  if (value == null) return { label: '-', cls: 'text-muted-foreground' }
+  if (value >= 0.4) return { label: '양호', cls: 'text-success-foreground' }
+  if (value >= 0.2) return { label: '주의', cls: 'text-warning-foreground' }
+  return { label: '재검토', cls: 'text-destructive' }
+}
+
 // 문항 배열에 mock 의 avgScore / gradedCount / totalCount 필드가 없는 경우 (api 모드)
 // attempts 에서 실시간 집계해 덧붙인다. mock 모드는 이미 포함된 값을 유지.
 function enrichQuestions(questions, students) {
@@ -142,7 +217,7 @@ export default function QuizStats() {
   if (!quiz) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-        <AlertCircle size={32} className="mx-auto mb-3 text-red-700" />
+        <AlertCircle size={32} className="mx-auto mb-3 text-destructive" />
         <p className="text-sm font-medium mb-1 text-foreground">퀴즈를 찾을 수 없습니다</p>
         <Link to="/" className="text-xs text-primary hover:underline">퀴즈 목록으로 돌아가기</Link>
       </div>
@@ -395,7 +470,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
         <div className="inline-flex items-center gap-1 p-0.5 rounded-lg bg-secondary">
           {[
             { key: 'all', label: '전체', value: allStudents.length, dotCls: null },
-            { key: 'submitted', label: '제출완료', value: submittedStarted.length, dotCls: 'bg-emerald-500' },
+            { key: 'submitted', label: '제출완료', value: submittedStarted.length, dotCls: 'bg-success' },
             { key: 'unsubmitted', label: '미제출', value: unsubmitted.length, dotCls: 'bg-gray-300' },
           ].map(({ key, label, value, dotCls }) => {
             const isActive = filterStatus === key
@@ -493,9 +568,9 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {submitStatus === 'ontime' ? (
-                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-emerald-50 text-emerald-700">정상제출</span>
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-success-bg text-success-foreground">정상제출</span>
                       ) : submitStatus === 'late' ? (
-                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-amber-50 text-amber-700">지각제출</span>
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-warning-bg text-warning-foreground">지각제출</span>
                       ) : (
                         <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-secondary text-muted-foreground">미제출</span>
                       )}
@@ -505,7 +580,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {s.score !== null
-                        ? <span className={cn('font-semibold', scorePct >= 80 ? 'text-primary' : scorePct >= 60 ? 'text-secondary-foreground' : 'text-red-500')}>{s.score}점</span>
+                        ? <span className={cn('font-semibold', scorePct >= 80 ? 'text-primary' : scorePct >= 60 ? 'text-secondary-foreground' : 'text-destructive')}>{s.score}점</span>
                         : <span className="text-muted-foreground">-</span>
                       }
                     </td>
@@ -513,7 +588,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                       {s.score !== null ? (
                         <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-secondary text-muted-foreground">채점 완료</span>
                       ) : (
-                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-amber-50 text-amber-600">미채점</span>
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-warning-bg text-warning">미채점</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-center">
@@ -603,6 +678,15 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
     return { ...q, rate, difficulty }
   })
 
+  // 측정학적 지표 (XQ-URD-026 정책 확정 — 즉시 구현)
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  const itemMetrics = useMemo(
+    () => computeItemMetrics(quizQuestions, allStudents),
+    [quizQuestions, allStudents]
+  )
+  const choiceQuestions = itemMetrics.filter(q => q.choiceDistribution && q.choiceDistribution.length > 0)
+  const fileUploadQuestions = quizQuestions.filter(q => q.type === 'file_upload')
+
   return (
     <div className="space-y-4">
       {/* 요약 지표 — 평균 점수 메인 + 보조 메트릭 인라인 */}
@@ -691,9 +775,9 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           <div className="mt-4 pt-3 space-y-2 border-t border-border">
             <p className="text-xs font-medium mb-2 text-secondary-foreground">점수 분포 구간 (채점 완료 기준)</p>
             {[
-              { label: '상위 27%', value: `${p73}점 이상`, cls: 'text-green-700' },
+              { label: '상위 27%', value: `${p73}점 이상`, cls: 'text-success-foreground' },
               { label: '중위 46%', value: `${p27}~${p73}점`, cls: 'text-secondary-foreground' },
-              { label: '하위 27%', value: `${p27}점 미만`, cls: 'text-red-600' },
+              { label: '하위 27%', value: `${p27}점 미만`, cls: 'text-destructive' },
             ].map(row => (
               <div key={row.label} className="flex justify-between text-xs">
                 <span className="text-muted-foreground">{row.label}</span>
@@ -738,6 +822,145 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           ))}
         </div>
       </Card>
+
+      {/* 측정학적 지표 (XQ-URD-026) */}
+      <Card className="p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <h3 className="text-base font-semibold">측정학적 지표</h3>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              변별도는 점수가 높은 학생과 낮은 학생을 얼마나 잘 구분하는지의 지표입니다 (점이연 상관계수, -1~1).
+              <span className="ml-1">
+                <span className="text-success-foreground font-medium">≥0.4 양호</span>
+                <span className="mx-1 text-border">·</span>
+                <span className="text-warning-foreground font-medium">0.2~0.4 주의</span>
+                <span className="mx-1 text-border">·</span>
+                <span className="text-destructive font-medium">&lt;0.2 재검토</span>
+              </span>
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              상중하위 집단은 점수 분포 상위 27%·하위 27% 기준. 채점 완료 학생만 모집단으로 사용 (채점 인라인 통계와 동일).
+            </p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-secondary border-b-2 border-border">
+                {['문항', '유형', '변별도', '상위 27% 정답률', '하위 27% 정답률', '차이'].map(label => (
+                  <th key={label} className="px-4 py-2.5 text-center font-semibold whitespace-nowrap text-[11px] text-secondary-foreground">
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {itemMetrics.map((q, i) => {
+                const grade = discriminationGrade(q.discrimination)
+                const diff = q.upperRate != null && q.lowerRate != null ? q.upperRate - q.lowerRate : null
+                return (
+                  <tr key={q.id} className={cn('border-b border-border', i % 2 !== 0 && 'bg-secondary/50')}>
+                    <td className="px-4 py-2.5 text-center">
+                      <Badge className="bg-accent text-primary border-0">Q{q.order}</Badge>
+                    </td>
+                    <td className="px-4 py-2.5 text-center"><TypeBadge type={q.type} /></td>
+                    <td className="px-4 py-2.5 text-center">
+                      {q.discrimination != null ? (
+                        <span className={cn('font-medium', grade.cls)}>
+                          {q.discrimination.toFixed(2)} <span className="text-[10px] ml-0.5">{grade.label}</span>
+                        </span>
+                      ) : <span className="text-muted-foreground/40">-</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-center text-secondary-foreground">
+                      {q.upperRate != null ? `${q.upperRate}%` : <span className="text-muted-foreground/40">-</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-center text-secondary-foreground">
+                      {q.lowerRate != null ? `${q.lowerRate}%` : <span className="text-muted-foreground/40">-</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
+                      {diff != null ? (
+                        <span className={cn('font-medium', diff >= 30 ? 'text-success-foreground' : diff >= 10 ? 'text-warning-foreground' : 'text-destructive')}>
+                          {diff > 0 ? '+' : ''}{diff}%p
+                        </span>
+                      ) : <span className="text-muted-foreground/40">-</span>}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* 선택지별 응답 패턴 */}
+      {choiceQuestions.length > 0 && (
+        <Card className="p-5">
+          <h3 className="text-base font-semibold mb-1">선택지별 응답 패턴</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            객관식/복수 선택/드롭다운 문항에 한해, 채점 완료 학생의 선택지별 응답 분포를 표시합니다.
+          </p>
+          <div className="space-y-4">
+            {choiceQuestions.map(q => (
+              <div key={q.id} className="border border-border rounded-md p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-accent text-primary border-0">Q{q.order}</Badge>
+                  <TypeBadge type={q.type} />
+                  <span className="text-xs text-muted-foreground truncate flex-1">
+                    {(q.text || '').replace(/<[^>]+>/g, '').slice(0, 60)}
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {q.choiceDistribution.map((c, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs">
+                      <span className={cn('w-5 text-center font-medium', c.isAnswer ? 'text-success-foreground' : 'text-muted-foreground')}>
+                        {c.isAnswer ? '✓' : `${idx + 1}`}
+                      </span>
+                      <span className="flex-1 truncate text-secondary-foreground">{c.label}</span>
+                      <div className="w-32 h-1.5 rounded overflow-hidden bg-secondary shrink-0">
+                        <div className={cn('h-full', c.isAnswer ? 'bg-correct' : 'bg-border')} style={{ width: `${c.pct}%` }} />
+                      </div>
+                      <span className="w-16 text-right tabular-nums text-secondary-foreground">{c.count}명 ({c.pct}%)</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* 파일 제출물 다운로드 (XQ-URD-026) */}
+      {fileUploadQuestions.length > 0 && (
+        <Card className="p-5">
+          <h3 className="text-base font-semibold mb-1">파일 제출물 다운로드</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            파일 업로드 문항의 학생별 제출물을 문항 단위로 받을 수 있습니다.
+          </p>
+          <div className="space-y-2">
+            {fileUploadQuestions.map(q => {
+              const submittedFiles = allStudents.filter(s => s.submitted && s.fileSubmissions?.[q.id]).length
+              return (
+                <div key={q.id} className="flex items-center justify-between gap-3 p-3 border border-border rounded-md">
+                  <div className="min-w-0 flex items-center gap-2">
+                    <Badge className="bg-accent text-primary border-0 shrink-0">Q{q.order}</Badge>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{q.title || `문항 ${q.order}`}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">제출 {submittedFiles}건</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" disabled={submittedFiles === 0}>
+                    <Download size={12} />
+                    일괄 다운로드
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-3">
+            제출물 압축 다운로드는 백엔드 연동 후 활성화됩니다.
+          </p>
+        </Card>
+      )}
 
       {/* 문항별 상세 통계 테이블 */}
       <Card className="overflow-hidden py-0 gap-0">
@@ -804,9 +1027,9 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     {q.gradedCount >= q.totalCount ? (
-                      <span className="font-medium text-green-700">완료</span>
+                      <span className="font-medium text-success-foreground">완료</span>
                     ) : (
-                      <span className="text-orange-700">{q.gradedCount}/{q.totalCount}명</span>
+                      <span className="text-warning-foreground">{q.gradedCount}/{q.totalCount}명</span>
                     )}
                   </td>
                 </tr>

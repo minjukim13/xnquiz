@@ -14,7 +14,7 @@ import {
 } from '@/lib/data'
 
 const LS_BANKS_KEY = 'xnq_banks_v3'
-const LS_QUESTIONS_KEY = 'xnq_bank_questions_v4'
+const LS_QUESTIONS_KEY = 'xnq_bank_questions_v5'
 const MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
 export function QuestionBankProvider({ children }) {

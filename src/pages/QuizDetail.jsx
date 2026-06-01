@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, AlertCircle, EyeOff } from 'lucide-react'
+import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, AlertCircle, EyeOff, Activity } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/PageHeader'
 import { mockQuizzes, getStudentAttempts, getQuizQuestions as mockGetQuestions } from '../data/mockData'
@@ -54,7 +54,7 @@ function isDefaultValue(value) {
 const BADGE_VARIANT_CLASS = {
   default: 'bg-secondary text-muted-foreground',
   accent: 'bg-accent text-primary',
-  amber: 'bg-amber-50 text-amber-700',
+  amber: 'bg-warning-bg text-warning-foreground',
 }
 
 function InfoRow({ label, value, muted = false, badgeVariant }) {
@@ -290,7 +290,7 @@ export default function QuizDetail() {
             isStudent ? (
               <>
                 {scheduled && (
-                  <span className="text-xs text-amber-600 font-medium">
+                  <span className="text-xs text-warning font-medium">
                     {quiz.startDate} 시작
                   </span>
                 )}
@@ -312,8 +312,16 @@ export default function QuizDetail() {
               </>
             ) : (
               <>
-                {canGrade && (
+                {quiz.status === 'open' && (
                   <Button asChild>
+                    <Link to={`/quiz/${quiz.id}/moderate`}>
+                      <Activity size={15} />
+                      응시 모니터링
+                    </Link>
+                  </Button>
+                )}
+                {canGrade && (
+                  <Button asChild variant={quiz.status === 'open' ? 'outline' : 'default'}>
                     <Link to={`/quiz/${quiz.id}/grade`}>
                       <ClipboardCheck size={15} />
                       채점
@@ -363,7 +371,7 @@ export default function QuizDetail() {
                 <span className="text-muted-foreground">지각 제출</span>
                 <span className={cn(
                   'font-medium',
-                  quiz.allowLateSubmit ? 'text-amber-700' : 'text-foreground'
+                  quiz.allowLateSubmit ? 'text-warning-foreground' : 'text-foreground'
                 )}>
                   {!quiz.allowLateSubmit
                     ? '비허용'
@@ -604,7 +612,7 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
               <p className="text-sm font-medium text-foreground">
                 {submittedAt ?? '제출 정보 없음'}
                 {latestAttempt.isLate && (
-                  <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                  <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-warning-bg text-warning-foreground border border-warning-border">
                     <AlertCircle size={10} />
                     지각 제출
                   </span>
@@ -667,9 +675,9 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
                       <span className={cn(
                         'shrink-0 text-xs font-medium px-2 py-0.5 rounded-full',
                         !isAutoGraded && 'bg-secondary text-muted-foreground',
-                        isAutoGraded && isCorrect && 'bg-emerald-50 text-emerald-600',
-                        isAutoGraded && isPartial && 'bg-amber-50 text-amber-600',
-                        isAutoGraded && !isCorrect && !isPartial && 'bg-red-50 text-red-500',
+                        isAutoGraded && isCorrect && 'bg-correct-bg text-correct',
+                        isAutoGraded && isPartial && 'bg-warning-bg text-warning',
+                        isAutoGraded && !isCorrect && !isPartial && 'bg-incorrect-bg text-incorrect',
                       )}>
                         {!isAutoGraded ? '채점 대기' : isCorrect ? '정답' : isPartial ? `부분점수 ${scored}/${q.points}` : '오답'}
                       </span>
@@ -687,15 +695,15 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
                       return (
                         <div className="mt-2 pt-2 border-t border-border space-y-1.5">
                           {showCorrect && (
-                            <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-emerald-50 border border-emerald-200">
-                              <span className="shrink-0 text-[11px] font-semibold text-emerald-700 mt-0.5">정답</span>
-                              <p className="text-[13px] text-emerald-900 leading-relaxed whitespace-pre-wrap">{q.correct_comments}</p>
+                            <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-correct-bg border border-emerald-200">
+                              <span className="shrink-0 text-[11px] font-semibold text-correct mt-0.5">정답</span>
+                              <p className="text-[13px] text-correct leading-relaxed whitespace-pre-wrap">{q.correct_comments}</p>
                             </div>
                           )}
                           {showIncorrect && (
-                            <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-red-50 border border-red-200">
-                              <span className="shrink-0 text-[11px] font-semibold text-red-600 mt-0.5">오답</span>
-                              <p className="text-[13px] text-red-900 leading-relaxed whitespace-pre-wrap">{q.incorrect_comments}</p>
+                            <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-incorrect-bg border border-red-200">
+                              <span className="shrink-0 text-[11px] font-semibold text-incorrect mt-0.5">오답</span>
+                              <p className="text-[13px] text-incorrect leading-relaxed whitespace-pre-wrap">{q.incorrect_comments}</p>
                             </div>
                           )}
                           {showNeutral && (
@@ -741,3 +749,4 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
     </div>
   )
 }
+

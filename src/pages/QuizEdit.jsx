@@ -7,7 +7,7 @@ import AddQuestionModal from '../components/AddQuestionModal'
 import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { printQuizQuestions } from '../utils/pdfUtils'
-import { QUIZ_TYPES, mockQuizzes } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes, ASSIGNMENT_GROUPS } from '../data/mockData'
 import { getQuiz, getQuizQuestions, setQuizQuestions, updateQuiz, recalculateScorePolicy, regradeQuestion } from '@/lib/data'
 import { useRole } from '../context/role'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
@@ -19,7 +19,8 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import StepIndicator from '../components/StepIndicator'
+import PublishReviewModal from '../components/PublishReviewModal'
 import { Switch } from '@/components/ui/switch'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
@@ -33,6 +34,26 @@ const ATTEMPT_OPTIONS = [
   { value: -1, label: '무제한' },
 ]
 const SCORE_POLICIES = ['최고 점수 유지', '최신 점수 유지', '평균 점수'].map(v => ({ value: v, label: v }))
+
+const EDIT_STEPS = [
+  {
+    value: 'info',
+    label: '시험 설정',
+    desc: '학생 응시 환경과 운영 규칙을 조정합니다. 응시 가능 기간, 시간 제한, 재응시 정책, 성적 공개 기준, 보안/감독 옵션 등을 변경해 시험 운영 방식을 갱신합니다.',
+  },
+  {
+    value: 'questions',
+    label: '문항 추가',
+    desc: '시험에 출제할 문항을 추가하거나 수정합니다. 새 문항을 직접 작성하거나, 기존 문제모음에서 선별해 가져오거나, 조건에 맞춰 무작위 출제하는 세 가지 방식을 조합할 수 있습니다.',
+  },
+]
+
+function getCompletedSteps(form, questions) {
+  const done = []
+  if (form.title) done.push('info')
+  if (questions.length > 0) done.push('questions')
+  return done
+}
 
 const DEFAULT_NOTICE = `- 제출 후에는 답안을 수정할 수 없습니다.
 - 타인과의 협력 및 자료 공유는 금지됩니다.
@@ -52,6 +73,7 @@ export default function QuizEdit() {
   const [initialQuestionsSnapshot, setInitialQuestionsSnapshot] = useState('[]')
   const [editingQuestion, setEditingQuestion] = useState(null)
   const [regradeMap, setRegradeMap] = useState({})
+  const [showPublishReview, setShowPublishReview] = useState(false)
 
   const [form, setForm] = useState(() => ({
     title: quiz?.title ?? '',
@@ -75,6 +97,7 @@ export default function QuizEdit() {
     scoreRevealEnd: quiz?.scoreRevealEnd ?? '',
     oneTimeResults: quiz?.oneTimeResults ?? false,
     quizMode: quiz?.quizMode ?? 'graded',
+    assignmentGroupId: quiz?.assignmentGroupId ?? 'quiz',
     accessControlEnabled: !!(quiz?.accessCode || quiz?.ipRestriction),
     accessCode: quiz?.accessCode ?? '',
     ipRestriction: quiz?.ipRestriction ?? '',
@@ -84,6 +107,10 @@ export default function QuizEdit() {
     disableAutoSubmit: quiz?.disableAutoSubmit ?? false,
     oneQuestionAtATime: quiz?.oneQuestionAtATime ?? false,
     lockAfterAnswer: quiz?.lockAfterAnswer ?? false,
+    securityTrustLock: quiz?.securityTrustLock ?? false,
+    securityAiProctoring: quiz?.securityAiProctoring ?? false,
+    securityRequireConsent: quiz?.securityRequireConsent ?? false,
+    securityConsentText: quiz?.securityConsentText ?? '',
     assignments: Array.isArray(quiz?.assignments)
       ? quiz.assignments.map(a => ({
           id: a.id || `a${Math.random().toString(36).slice(2, 8)}`,
@@ -146,6 +173,7 @@ export default function QuizEdit() {
       scoreRevealEnd: quiz.scoreRevealEnd ?? '',
       oneTimeResults: quiz.oneTimeResults ?? false,
       quizMode: quiz.quizMode ?? 'graded',
+      assignmentGroupId: quiz.assignmentGroupId ?? 'quiz',
       accessControlEnabled: !!(quiz.accessCode || quiz.ipRestriction),
       accessCode: quiz.accessCode ?? '',
       ipRestriction: quiz.ipRestriction ?? '',
@@ -155,6 +183,10 @@ export default function QuizEdit() {
       disableAutoSubmit: quiz.disableAutoSubmit ?? false,
       oneQuestionAtATime: quiz.oneQuestionAtATime ?? false,
       lockAfterAnswer: quiz.lockAfterAnswer ?? false,
+      securityTrustLock: quiz.securityTrustLock ?? false,
+      securityAiProctoring: quiz.securityAiProctoring ?? false,
+      securityRequireConsent: quiz.securityRequireConsent ?? false,
+      securityConsentText: quiz.securityConsentText ?? '',
       assignments: Array.isArray(quiz.assignments)
         ? quiz.assignments.map(a => ({
             id: a.id || `a${Math.random().toString(36).slice(2, 8)}`,
@@ -254,6 +286,7 @@ export default function QuizEdit() {
     courseCode: quiz.courseCode ?? undefined,
     course: quiz.course,
     quizMode: form.quizMode,
+    assignmentGroupId: form.quizMode === 'graded' ? form.assignmentGroupId : null,
     status: statusOverride ?? quiz.status,
     visible: form.visible,
     startDate: form.startDate || null,
@@ -280,6 +313,10 @@ export default function QuizEdit() {
     disableAutoSubmit: !form.unlimitedTimeLimit && !!form.disableAutoSubmit,
     oneQuestionAtATime: form.oneQuestionAtATime,
     lockAfterAnswer: form.oneQuestionAtATime && form.lockAfterAnswer,
+    securityTrustLock: form.securityTrustLock,
+    securityAiProctoring: form.securityAiProctoring,
+    securityRequireConsent: form.securityRequireConsent,
+    securityConsentText: form.securityRequireConsent ? (form.securityConsentText || null) : null,
     assignments: sanitizeAssignments(form.assignments),
     notice: form.noticeEnabled ? form.notice : null,
     questions: questions.length,
@@ -319,14 +356,23 @@ export default function QuizEdit() {
     return errors
   }
 
-  const handleSave = async () => {
+  const handleSave = () => {
     const errors = getValidationErrors()
     if (errors.length > 0) {
       setAlertDialog({ title: '필수 항목 미입력', message: errors[0] })
       return
     }
+    const isNewlyPublishing = quiz?.status === 'draft'
+    if (isNewlyPublishing) {
+      setShowPublishReview(true)
+    } else {
+      doSave()
+    }
+  }
+
+  const doSave = async (statusOverride) => {
     let savedQuestions = questions
-    const nextStatus = computeNextStatus()
+    const nextStatus = statusOverride ?? computeNextStatus()
     const reopened = nextStatus === 'open' && quiz.status === 'closed'
     try {
       if (form.scorePolicy !== quiz.scorePolicy) await recalculateScorePolicy(quiz.id, form.scorePolicy)
@@ -380,16 +426,18 @@ export default function QuizEdit() {
       <div className="max-w-5xl mx-auto pb-4">
         <h1 className="text-[20px] sm:text-[22px] font-bold text-foreground pt-6 sm:pt-8 pb-4 sm:pb-5">퀴즈 편집</h1>
 
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="line" className="gap-4 border-b border-border pb-0">
-            <TabsTrigger value="info" className="text-[14px] px-1 pb-2.5">기본 정보</TabsTrigger>
-            <TabsTrigger value="questions" className="text-[14px] px-1 pb-2.5">문항 구성</TabsTrigger>
-          </TabsList>
+        <StepIndicator
+          steps={EDIT_STEPS}
+          current={tab}
+          onChange={setTab}
+          completedSteps={getCompletedSteps(form, questions)}
+        />
 
-          <TabsContent value="info" className="pt-5">
+        <div className="pt-5">
+          {tab === 'info' && (
             <InfoTab form={form} set={set} quizStatus={quiz?.status} courseKey={quiz?.course} />
-          </TabsContent>
-          <TabsContent value="questions" className="pt-5">
+          )}
+          {tab === 'questions' && (
             <QuestionsTab
               quiz={quiz}
               questions={questions}
@@ -402,8 +450,8 @@ export default function QuizEdit() {
               onRemove={removeQuestion}
               onMove={moveQuestion}
             />
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
 
         <div className="flex items-center justify-between gap-2 mt-8 pt-5 border-t border-border flex-wrap">
           <Button size="lg" variant="ghost" onClick={handleCancel} className="text-muted-foreground hover:text-foreground px-4">취소</Button>
@@ -432,6 +480,14 @@ export default function QuizEdit() {
       {showAddModal && <AddQuestionModal onClose={() => setShowAddModal(false)} onAdd={addNewQuestion} />}
       {editingQuestion && <AddQuestionModal onClose={() => setEditingQuestion(null)} onAdd={updateQuestion} initialQuestion={editingQuestion} submittedCount={submittedCount} />}
       {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
+      <PublishReviewModal
+        open={showPublishReview}
+        onOpenChange={setShowPublishReview}
+        form={form}
+        questions={questions}
+        totalPoints={totalPoints}
+        onConfirm={async () => { setShowPublishReview(false); await doSave('open') }}
+      />
       {alertDialog && <AlertDialog title={alertDialog.title} message={alertDialog.message} variant={alertDialog.variant} onClose={() => { const cb = alertDialog.onClose; setAlertDialog(null); cb?.() }} />}
     </>
   )
@@ -456,11 +512,6 @@ function InfoTab({ form, set, quizStatus, courseKey }) {
             </button>
           ))}
         </div>
-        {form.quizMode === 'practice' && (
-          <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-amber-50/40 border border-amber-300 text-secondary-foreground">
-            <span>연습용 퀴즈는 성적에 반영되지 않습니다.</span>
-          </div>
-        )}
       </Section>
 
       <Section title="기본 정보">
@@ -470,6 +521,17 @@ function InfoTab({ form, set, quizStatus, courseKey }) {
         <Field label="설명">
           <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder="학생에게 표시될 퀴즈 설명 (선택)" rows={8} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-y min-h-[176px] leading-relaxed" />
         </Field>
+        {form.quizMode === 'graded' && (
+          <Field label="평가 그룹">
+            <div className="w-48">
+              <CustomSelect
+                value={form.assignmentGroupId}
+                onChange={v => set('assignmentGroupId', v)}
+                options={ASSIGNMENT_GROUPS.map(g => ({ value: g.id, label: g.label }))}
+              />
+            </div>
+          </Field>
+        )}
         <div>
           <label className="block text-sm font-medium mb-1.5 text-secondary-foreground">주차/차시</label>
           <WeekSessionPicker
@@ -491,7 +553,7 @@ function InfoTab({ form, set, quizStatus, courseKey }) {
           <DateTimePicker value={form.lockDate} onChange={v => set('lockDate', v)} />
           <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
           {form.lockDate && form.dueDate && new Date(form.lockDate) < new Date(form.dueDate) && (
-            <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-amber-50/40 border border-amber-300 text-secondary-foreground mt-2">
+            <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-warning-bg/40 border border-warning-border text-secondary-foreground mt-2">
               <span>이용 종료 일시가 마감 일시보다 앞서 있습니다. 마감 전에 퀴즈 접근이 차단될 수 있습니다.</span>
             </div>
           )}
@@ -583,6 +645,8 @@ function InfoTab({ form, set, quizStatus, courseKey }) {
           </div>
         </div>
       </Section>
+
+      <SecuritySection form={form} set={set} />
 
       <Section title="문항 표시 설정">
         <div className="space-y-3">
@@ -790,14 +854,14 @@ function QuestionsTab({ questions, totalPoints, regradeMap, onShowBank, onShowRa
                   <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                     <Badge variant="secondary" className="bg-secondary text-secondary-foreground">{QUIZ_TYPES[q.type]?.label}</Badge>
                     <span className="text-xs text-muted-foreground">{q.points}점</span>
-                    {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-orange-50 text-orange-700">수동채점</Badge>}
-                    {regradeMap?.[q.id]?.option && <Badge variant="secondary" className="bg-amber-50 text-amber-700 gap-1"><RefreshCw size={10} />재채점 예정</Badge>}
+                    {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-warning-bg text-warning-foreground">수동채점</Badge>}
+                    {regradeMap?.[q.id]?.option && <Badge variant="secondary" className="bg-warning-bg text-warning-foreground gap-1"><RefreshCw size={10} />재채점 예정</Badge>}
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => onEdit(q)} title="문항 편집" className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                       <Pencil size={13} />
                     </button>
-                    <button onClick={() => onRemove(q.id)} className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors">
+                    <button onClick={() => onRemove(q.id)} className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-colors">
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -819,6 +883,63 @@ function QuestionsTab({ questions, totalPoints, regradeMap, onShowBank, onShowRa
   )
 }
 
+const DEFAULT_CONSENT_TEXT = `- 응시 중 화면, 웹캠 이미지, 시스템 활동 로그가 본 시험의 부정행위 검증 목적으로 기록됩니다.
+- 수집된 정보는 시험 종료 후 6개월간 보관 후 안전하게 삭제됩니다.
+- 응시 중 다른 응용프로그램 사용/외부 통신은 부정행위로 판단될 수 있습니다.`
+
+function SecuritySection({ form, set }) {
+  const hasAnySecurity = form.securityTrustLock || form.securityAiProctoring || form.securityRequireConsent
+  return (
+    <Section title="응시 보안 및 감독">
+      <div className="space-y-3">
+        <div className="rounded-md bg-accent border border-accent p-3 text-xs text-secondary-foreground space-y-1">
+          <p className="font-medium text-foreground">옵션 사용 시 외부 SaaS 연동 또는 학생 개인정보 처리가 발생할 수 있습니다.</p>
+          <p>TrustLock 시험 전용 브라우저와 AI 시험 감독은 외부 SaaS 책임 영역이며, 사용 가능 여부는 기관/과목 설정에 따릅니다.</p>
+        </div>
+
+        <Toggle
+          checked={form.securityTrustLock}
+          onChange={v => set('securityTrustLock', v)}
+          label="TrustLock 시험 전용 브라우저"
+          description="학생은 지정된 안전 브라우저에서만 응시할 수 있으며 다른 응용프로그램이 제한됩니다."
+        />
+        <Toggle
+          checked={form.securityAiProctoring}
+          onChange={v => set('securityAiProctoring', v)}
+          label="AI 시험 감독"
+          description="응시 중 학생 화면과 웹캠 영상을 AI 가 모니터링하여 이상 행동을 단서로 표시합니다."
+        />
+        <Toggle
+          checked={form.securityRequireConsent}
+          onChange={v => set('securityRequireConsent', v)}
+          label="응시 전 필수 동의"
+          description="학생이 동의하지 않으면 응시 화면에 진입할 수 없습니다."
+        />
+
+        {form.securityRequireConsent && (
+          <div className="border-l-2 border-border pl-4 ml-0.5 space-y-2">
+            <label className="block text-sm font-medium text-secondary-foreground">동의 안내문</label>
+            <textarea
+              value={form.securityConsentText}
+              onChange={e => set('securityConsentText', e.target.value)}
+              placeholder={DEFAULT_CONSENT_TEXT}
+              rows={5}
+              className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-y leading-relaxed"
+            />
+            <p className="text-xs text-muted-foreground">미입력 시 placeholder 의 기본 안내문이 학생 화면에 노출됩니다.</p>
+          </div>
+        )}
+
+        {hasAnySecurity && (
+          <div className="bg-warning-bg border border-warning-border rounded-md p-3 text-xs text-warning-foreground">
+            보안 옵션 활성 시 학생은 응시 진입 직전 안내 게이트를 거쳐야 합니다. 응시 중 화면에는 활성 보안 옵션이 배지로 노출됩니다.
+          </div>
+        )}
+      </div>
+    </Section>
+  )
+}
+
 function Section({ title, right, children }) {
   return (
     <Card className="border-slate-300">
@@ -837,7 +958,7 @@ function Field({ label, required, children }) {
   return (
     <div>
       <label className="block text-sm font-medium mb-1.5 text-secondary-foreground">
-        {label}{required && <span className="ml-0.5 text-red-500">*</span>}
+        {label}{required && <span className="ml-0.5 text-destructive">*</span>}
       </label>
       {children}
     </div>

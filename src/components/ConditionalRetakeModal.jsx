@@ -162,7 +162,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
               </div>
 
               {noConditionSelected && (
-                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50/40">
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-warning-bg/40">
                   <span className="text-[13px] text-slate-600">조건을 하나 이상 선택해주세요.</span>
                 </div>
               )}

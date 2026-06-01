@@ -2,14 +2,13 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { DIFF_LABEL } from './bankDifficulty'
 
 export default function AddBankModal({ onClose, onAdd }) {
   const [name, setName] = useState('')
   const [difficulty, setDifficulty] = useState('')
 
   const diffOptions = [
-    { value: '', label: '미지정' },
+    { value: '', label: '미설정' },
     { value: 'high', label: '상' },
     { value: 'medium', label: '중' },
     { value: 'low', label: '하' },
@@ -58,11 +57,9 @@ export default function AddBankModal({ onClose, onAdd }) {
               </button>
             ))}
           </div>
-          {difficulty && (
-            <p className="text-xs mt-3 text-muted-foreground">
-              난이도 '{DIFF_LABEL[difficulty]}'인 문항만 추가할 수 있습니다
-            </p>
-          )}
+          <p className="text-xs mt-3 text-muted-foreground">
+            그룹 난이도는 문항 난이도와 독립적인 관리값입니다. 그룹에 어떤 난이도의 문항이든 추가할 수 있습니다.
+          </p>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>

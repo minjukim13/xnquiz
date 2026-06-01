@@ -25,12 +25,12 @@ function formatAnswerForDisplay(question, answer) {
 
 function SubmitBadge({ status }) {
   if (status === 'late') {
-    return <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-amber-50 text-amber-700">지각제출</span>
+    return <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-warning-bg text-warning-foreground">지각제출</span>
   }
   if (status === 'unsubmitted') {
     return <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-slate-100 text-slate-500">미제출</span>
   }
-  return <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-emerald-50 text-emerald-700">정상제출</span>
+  return <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-success-bg text-success-foreground">정상제출</span>
 }
 
 export function CorrectBadge({ correct }) {
@@ -43,7 +43,7 @@ export function CorrectBadge({ correct }) {
 
 export function GradeStatusBadge({ ungraded }) {
   return ungraded ? (
-    <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-amber-50 text-amber-600">미채점</span>
+    <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-warning-bg text-warning">미채점</span>
   ) : (
     <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-slate-100 text-slate-600">채점완료</span>
   )
@@ -53,7 +53,7 @@ function FudgeBadge({ value }) {
   if (!value) return null
   return (
     <span
-      className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-px rounded bg-amber-50 text-amber-700"
+      className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-px rounded bg-warning-bg text-warning-foreground"
       title={`가산점 ${value > 0 ? '+' : ''}${value}점`}
     >
       <Sparkles size={9} />
@@ -169,7 +169,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
 
   // 좌측 강조 바: 변경됨(파란) > 미채점(주황)
   const showAccent = isChanged || isUngraded
-  const accentBar = isChanged ? 'bg-primary' : 'bg-amber-300'
+  const accentBar = isChanged ? 'bg-primary' : 'bg-warning-border'
 
   return (
     <div className={cn('relative border-b border-slate-200 bg-white transition-colors', isChanged && 'bg-blue-50/30')}>

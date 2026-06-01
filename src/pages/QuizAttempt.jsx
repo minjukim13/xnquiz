@@ -7,6 +7,7 @@ import { useRole } from '../context/role'
 
 const DATA_MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 import { AlertDialog, ConfirmDialog } from '../components/ConfirmDialog'
+import PreflightGate, { SecurityActiveBadges } from '../components/PreflightGate'
 import { isLateSubmission } from '../utils/deadlineUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -88,6 +89,7 @@ export default function QuizAttempt() {
   const [answers, setAnswers] = useState(restored?.answers ?? {})
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
+  const [consentGiven, setConsentGiven] = useState(false)
   const [startedAt] = useState(() => restored?.startedAt ?? Date.now())
   const computeRemaining = () => {
     if (noTimeLimit) return null
@@ -383,7 +385,7 @@ export default function QuizAttempt() {
     return (
       <>
         <div className="max-w-2xl mx-auto py-16 text-center">
-          <Clock size={36} className="mx-auto mb-3 text-amber-400" />
+          <Clock size={36} className="mx-auto mb-3 text-warning" />
           <p className="text-base font-semibold mb-1 text-secondary-foreground">응시 시작 전입니다</p>
           <p className="text-sm mb-5 text-muted-foreground">{quiz.startDate}부터 응시할 수 있습니다</p>
           <Button variant="outline" onClick={() => navigate('/')}>
@@ -421,7 +423,7 @@ export default function QuizAttempt() {
       return (
         <>
           <div className="max-w-2xl mx-auto py-16 text-center">
-            <Clock size={36} className="mx-auto mb-3 text-red-400" />
+            <Clock size={36} className="mx-auto mb-3 text-destructive" />
             <p className="text-base font-semibold mb-1 text-secondary-foreground">
               {lateDeadlinePassed ? '지각 제출 기한이 종료되었습니다' : '제출 기한이 종료되었습니다'}
             </p>
@@ -459,18 +461,30 @@ export default function QuizAttempt() {
     )
   }
 
+  // 보안/감독 게이트 — 보안 옵션 활성 시 응시 진입 직전 안내 + 동의
+  const hasSecurity = !isPreview && (quiz.securityTrustLock || quiz.securityAiProctoring || quiz.securityRequireConsent)
+  if (hasSecurity && !consentGiven && !submitted && !restored) {
+    return (
+      <PreflightGate
+        quiz={quiz}
+        onConsent={() => setConsentGiven(true)}
+        onCancel={() => navigate('/')}
+      />
+    )
+  }
+
   return (
     <>
       <div className="max-w-3xl mx-auto pb-6">
 
         {/* 자동 저장 실패 배너 */}
         {saveError && !submitted && (
-          <div className="px-4 py-3 rounded-lg mb-5 bg-red-50 border border-red-200">
+          <div className="px-4 py-3 rounded-lg mb-5 bg-destructive-soft border border-red-200">
             <div className="flex items-start gap-2">
-              <AlertCircle size={15} className="text-red-600 shrink-0 mt-0.5" />
+              <AlertCircle size={15} className="text-destructive shrink-0 mt-0.5" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-red-800">자동 저장 실패</p>
-                <p className="text-xs mt-0.5 text-red-700">
+                <p className="text-sm font-semibold text-destructive">자동 저장 실패</p>
+                <p className="text-xs mt-0.5 text-destructive">
                   {saveError === 'quota'
                     ? '브라우저 저장 공간이 부족합니다. 답변 유실을 막으려면 지금 제출하거나 중요한 답변을 별도로 복사해두세요.'
                     : '답변이 자동 저장되지 않고 있습니다. 답변 유실을 막으려면 지금 제출하거나 중요한 답변을 별도로 복사해두세요.'}
@@ -482,30 +496,30 @@ export default function QuizAttempt() {
 
         {/* 지각 제출 배너 */}
         {isLate && !submitted && (
-          <div className="px-4 py-3 rounded-lg mb-5 bg-amber-50 border border-amber-200">
+          <div className="px-4 py-3 rounded-lg mb-5 bg-warning-bg border border-warning-border">
             <div className="flex items-center gap-2">
-              <AlertCircle size={15} className="text-amber-600 shrink-0" />
-              <span className="text-sm font-semibold text-amber-800">지각 제출</span>
-              <span className="text-xs text-amber-700">마감일({quiz.dueDate})이 지났습니다. 제출 시 지각으로 기록됩니다.</span>
+              <AlertCircle size={15} className="text-warning shrink-0" />
+              <span className="text-sm font-semibold text-warning-foreground">지각 제출</span>
+              <span className="text-xs text-warning-foreground">마감일({quiz.dueDate})이 지났습니다. 제출 시 지각으로 기록됩니다.</span>
             </div>
             {quiz.lateSubmitDeadline && (
-              <p className="text-xs text-amber-600 mt-1.5 ml-[23px]">지각 제출 마감: {quiz.lateSubmitDeadline.replace('T', ' ')}</p>
+              <p className="text-xs text-warning mt-1.5 ml-[23px]">지각 제출 마감: {quiz.lateSubmitDeadline.replace('T', ' ')}</p>
             )}
           </div>
         )}
 
         {/* 미리보기 배너 */}
         {isPreview && (
-          <div className="px-4 py-3 rounded-lg mb-5 bg-amber-50 border border-amber-200">
+          <div className="px-4 py-3 rounded-lg mb-5 bg-warning-bg border border-warning-border">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-amber-800">미리보기 모드</p>
-                <p className="text-xs text-amber-700 mt-1">학생에게 보이는 실제 화면입니다. 답변 선택 및 제출을 테스트할 수 있습니다.</p>
+                <p className="text-sm font-semibold text-warning-foreground">미리보기 모드</p>
+                <p className="text-xs text-warning-foreground mt-1">학생에게 보이는 실제 화면입니다. 답변 선택 및 제출을 테스트할 수 있습니다.</p>
               </div>
               <Button
                 variant="outline"
                 onClick={() => navigate(-1)}
-                className="shrink-0 border-amber-300 text-amber-800 hover:bg-amber-100"
+                className="shrink-0 border-warning-border text-warning-foreground hover:bg-warning-bg"
               >
                 <X size={14} />
                 미리보기 종료
@@ -524,9 +538,12 @@ export default function QuizAttempt() {
                 {quiz.description && (
                   <p className="text-sm mt-1.5 text-muted-foreground">{quiz.description}</p>
                 )}
+                {hasSecurity && (
+                  <SecurityActiveBadges quiz={quiz} />
+                )}
                 {!isPreview && !submitted && lastSavedAt && !saveError && (
                   <p className="text-[11px] mt-2 text-muted-foreground inline-flex items-center gap-1">
-                    <CheckCircle2 size={10} className="text-emerald-500" />
+                    <CheckCircle2 size={10} className="text-success" />
                     자동 저장됨 · {new Date(lastSavedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 )}
@@ -538,14 +555,14 @@ export default function QuizAttempt() {
                     제한 없음
                   </div>
                 ) : timeRemaining === 0 && quiz?.disableAutoSubmit ? (
-                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-red-50 text-red-700 border border-red-200">
+                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-destructive-soft text-destructive border border-red-200">
                     <Clock size={13} />
                     시간 종료 — {formatTime(graceRemaining ?? 0)} 내 제출
                   </div>
                 ) : (
                   <div className={cn(
                     'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold border',
-                    timeRemaining < 300 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-muted text-secondary-foreground border-border'
+                    timeRemaining < 300 ? 'bg-destructive-soft text-destructive border-red-200' : 'bg-muted text-secondary-foreground border-border'
                   )}>
                     <Clock size={13} />
                     {formatTime(timeRemaining)}
@@ -553,7 +570,7 @@ export default function QuizAttempt() {
                 )}
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-xs text-muted-foreground">답변 완료</span>
-                  <span className={cn('text-sm font-bold', answeredCount === questions.length ? 'text-green-700' : '')}>
+                  <span className={cn('text-sm font-bold', answeredCount === questions.length ? 'text-success-foreground' : '')}>
                     {answeredCount}<span className="text-xs font-normal text-muted-foreground">/{questions.length}</span>
                   </span>
                 </div>
@@ -571,7 +588,7 @@ export default function QuizAttempt() {
                 문항 {currentIndex + 1} / {questions.length}
               </p>
               {lockAfter && (
-                <span className="inline-flex items-center gap-1 text-xs text-amber-700">
+                <span className="inline-flex items-center gap-1 text-xs text-warning-foreground">
                   <Lock size={11} />
                   응답 후에는 이전 문항으로 돌아갈 수 없습니다
                 </span>
@@ -1112,7 +1129,7 @@ function ResultModal({ result, quiz, questions, quizId, onClose, onViewDetail })
           </DialogHeader>
           <p className="text-[13px] text-muted-foreground mt-1.5">{result.submittedAt}</p>
           {result.isLate && (
-            <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded text-xs font-semibold bg-warning-bg text-warning-foreground border border-warning-border">
               <AlertCircle size={11} />
               지각 제출
             </span>

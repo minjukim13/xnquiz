@@ -8,7 +8,7 @@ export function DiffBadge({ difficulty, className }) {
   const meta = difficulty && DIFFICULTY_META[difficulty]
   return (
     <span className={cn('text-xs px-1.5 py-0.5 font-medium rounded-md', meta ? meta.cls : 'text-muted-foreground bg-secondary', className)}>
-      {meta ? meta.label : '미지정'}
+      {meta ? meta.label : '미설정'}
     </span>
   )
 }
@@ -96,26 +96,31 @@ export function ReviewRow({ q, index, onRemove }) {
 
 export function WizardDifficultySelector({ value, allowedDifficulties, onChange }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-xs shrink-0 text-muted-foreground">난이도</span>
-      {['', 'high', 'medium', 'low'].map(d => {
-        const isAllowed = allowedDifficulties.includes(d)
-        const isActive = value === d
-        return (
-          <button
-            key={d}
-            type="button"
-            disabled={!isAllowed}
-            onClick={() => onChange(d)}
-            className={cn(
-              'text-xs px-2.5 py-1 rounded-md border transition-all font-medium disabled:opacity-30 disabled:cursor-not-allowed',
-              isActive ? 'border-primary bg-primary text-white' : 'border-border text-secondary-foreground hover:border-primary/40'
-            )}
-          >
-            {DIFF_LABEL[d]}
-          </button>
-        )
-      })}
+    <div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs shrink-0 text-muted-foreground">난이도</span>
+        {['', 'high', 'medium', 'low'].map(d => {
+          const isAllowed = allowedDifficulties.includes(d)
+          const isActive = value === d
+          return (
+            <button
+              key={d}
+              type="button"
+              disabled={!isAllowed}
+              onClick={() => onChange(d)}
+              className={cn(
+                'text-xs px-2.5 py-1 rounded-md border transition-all font-medium disabled:opacity-30 disabled:cursor-not-allowed',
+                isActive ? 'border-primary bg-primary text-white' : 'border-border text-secondary-foreground hover:border-primary/40'
+              )}
+            >
+              {DIFF_LABEL[d]}
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-[11px] mt-1.5 text-muted-foreground">
+        문항 난이도와 독립적인 관리값입니다.
+      </p>
     </div>
   )
 }
@@ -200,7 +205,7 @@ export function WizardStep1({ courseSearch, setCourseSearch, availableCourses, c
               filterMode
               options={[
                 { value: 'all', label: '모든 난이도' },
-                { value: '', label: '미지정' },
+                { value: '', label: '미설정' },
                 { value: 'high', label: '상' },
                 { value: 'medium', label: '중' },
                 { value: 'low', label: '하' },

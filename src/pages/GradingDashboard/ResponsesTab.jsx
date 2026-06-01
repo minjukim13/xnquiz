@@ -155,8 +155,13 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const visible = pageSize === 'all' ? filtered : filtered.slice((page - 1) * pageSize, page * pageSize)
 
   const handleScoreChange = useCallback((studentId, score) => {
+    // 배점 초과 입력 차단 (XQ-URD-025 정책: 입력 단계에서 차단)
+    if (score !== '' && score !== null && score !== undefined) {
+      const num = Number(score)
+      if (!Number.isNaN(num) && (num < 0 || num > question.points)) return
+    }
     setPendingScores(prev => ({ ...prev, [studentId]: score }))
-  }, [])
+  }, [question.points])
 
   const computeAutoCorrect = useCallback((student) => {
     if (!student.submitted || !question.autoGrade) return null
@@ -205,8 +210,8 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
         <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 inline-flex flex-wrap">
           {[
             { key: 'all',          label: '전체',     count: students.length,  dotCls: null },
-            { key: 'ontime',       label: '정상제출', count: ontimeCount,      dotCls: 'bg-emerald-500' },
-            { key: 'late',         label: '지각제출', count: lateCount,        dotCls: 'bg-amber-500' },
+            { key: 'ontime',       label: '정상제출', count: ontimeCount,      dotCls: 'bg-success' },
+            { key: 'late',         label: '지각제출', count: lateCount,        dotCls: 'bg-warning' },
             { key: 'unsubmitted',  label: '미제출',   count: unsubmittedCount, dotCls: 'bg-gray-300' },
           ].map(({ key, label, count, dotCls }) => {
             const isActive = filterStatus === key

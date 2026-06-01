@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
-import { ChevronRight, ChevronLeft, Check, Eye } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Check } from 'lucide-react'
 import { useQuestionBank } from '../context/questionBank'
 import { QUIZ_TYPES } from '../data/mockData'
 
@@ -175,7 +175,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl w-[calc(100vw-24px)] sm:w-auto min-h-[480px] sm:min-h-[600px] max-h-[90vh] sm:max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
+      <DialogContent className="max-w-6xl w-[calc(100vw-24px)] sm:w-[calc(100vw-160px)] min-h-[480px] sm:min-h-[600px] max-h-[90vh] sm:max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
 
         {/* ── 상단 고정 헤더 ── */}
         <div className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-gray-200">
@@ -193,7 +193,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                 <div className="flex items-center gap-1.5 flex-1">
                   <span className={cn(
                     'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
-                    step > n ? 'bg-green-500 text-white'
+                    step > n ? 'bg-success text-white'
                       : step === n ? 'bg-primary text-primary-foreground'
                       : 'bg-slate-100 text-muted-foreground'
                   )}>
@@ -269,19 +269,17 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-muted-foreground mt-0.5">{available.length}개 출제 가능 (전체 {questions.length}개)</p>
                             </div>
                             <button
                               onClick={(e) => { e.stopPropagation(); setPreviewBankId(isPreview ? null : b.id) }}
                               className={cn(
-                                'flex items-center gap-1 text-[13px] font-semibold px-[10px] py-[6px] rounded-[6px] transition-colors shrink-0 bg-transparent border-0',
+                                'text-[13px] font-semibold px-[10px] py-[6px] rounded-[6px] transition-colors shrink-0 bg-transparent border-0',
                                 isPreview
                                   ? 'text-primary'
                                   : 'text-muted-foreground hover:text-foreground group-hover:text-foreground'
                               )}
                             >
-                              <Eye size={13} />
-                              미리보기
+                              {available.length}개 미리보기
                             </button>
                           </div>
 
@@ -289,14 +287,14 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                           {isPreview && (
                             <div className="mx-4 mb-3 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
                               <div className="max-h-[220px] overflow-auto">
-                                <table className="w-full min-w-[480px] text-xs table-fixed">
+                                <table className="w-full min-w-[480px] text-[12px] table-fixed">
                                   <thead className="sticky top-0 bg-gray-50">
                                     <tr className="border-y border-gray-200 text-gray-500">
-                                      <th className="text-left font-medium px-4 py-2.5 w-[52px] whitespace-nowrap">번호</th>
-                                      <th className="text-left font-medium py-2.5">문항</th>
-                                      <th className="text-left font-medium py-2.5 w-[60px] whitespace-nowrap">유형</th>
-                                      <th className="text-center font-medium py-2.5 w-[56px] whitespace-nowrap">난이도</th>
-                                      <th className="text-right font-medium px-4 py-2.5 w-[52px] whitespace-nowrap">배점</th>
+                                      <th className="text-center font-medium px-3 py-2.5 w-[52px] whitespace-nowrap">번호</th>
+                                      <th className="text-left font-medium px-3 py-2.5">문항</th>
+                                      <th className="text-center font-medium px-3 py-2.5 w-[72px] whitespace-nowrap">유형</th>
+                                      <th className="text-center font-medium px-3 py-2.5 w-[64px] whitespace-nowrap">난이도</th>
+                                      <th className="text-right font-medium px-4 py-2.5 w-[64px] whitespace-nowrap">배점</th>
                                     </tr>
                                   </thead>
                                   <tbody className="bg-white">
@@ -304,16 +302,16 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                                       const diff = DIFFICULTY_COLORS[q.difficulty]
                                       return (
                                         <tr key={q.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/60 transition-colors">
-                                          <td className="px-4 py-3 text-muted-foreground font-medium whitespace-nowrap">{i + 1}</td>
-                                          <td className="py-3 pr-3 text-slate-600 truncate">{q.text}</td>
-                                          <td className="py-3 whitespace-nowrap">
-                                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px]">
+                                          <td className="px-3 py-3 text-center text-muted-foreground font-medium whitespace-nowrap">{i + 1}</td>
+                                          <td className="px-3 py-3 text-slate-600 truncate">{q.text}</td>
+                                          <td className="px-3 py-3 text-center whitespace-nowrap">
+                                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[11px]">
                                               {QUIZ_TYPES[q.type]?.label}
                                             </span>
                                           </td>
-                                          <td className="py-3 text-center whitespace-nowrap">
+                                          <td className="px-3 py-3 text-center whitespace-nowrap">
                                             {q.difficulty ? (
-                                              <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium', diff)}>
+                                              <span className={cn('px-1.5 py-0.5 rounded text-[11px] font-medium', diff)}>
                                                 {DIFFICULTY_LABELS[q.difficulty]}
                                               </span>
                                             ) : (
@@ -510,9 +508,9 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                                 </div>
                               ))}
                             </div>
-                            {/* 난이도 미지정 문항용 기본 배점 */}
+                            {/* 난이도 미설정 문항용 기본 배점 */}
                             <div className="flex items-center gap-2 bg-secondary px-3 py-2 rounded-lg w-fit">
-                              <span className="text-xs text-muted-foreground shrink-0">미지정</span>
+                              <span className="text-xs text-muted-foreground shrink-0">미설정</span>
                               <input
                                 type="number"
                                 min={1}

@@ -185,7 +185,7 @@ function WeekDropdown({ value, onChange, courseKey }) {
                   onClick={e => handleDelete(n, e)}
                   disabled={!canDelete}
                   title={!canDelete ? (isLast ? '최소 1개는 남겨야 합니다' : '마지막 주차만 삭제할 수 있습니다') : ''}
-                  className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-red-50 transition-all cursor-pointer disabled:cursor-not-allowed disabled:hover:text-muted-foreground disabled:hover:bg-transparent disabled:opacity-30"
+                  className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-all cursor-pointer disabled:cursor-not-allowed disabled:hover:text-muted-foreground disabled:hover:bg-transparent disabled:opacity-30"
                   aria-label={`${n}주차 삭제`}
                 >
                   <Trash2 size={12} />
@@ -268,7 +268,7 @@ function SessionList({ value, onChange, courseKey }) {
                   onClick={(e) => { e.preventDefault(); handleDelete(n) }}
                   disabled={!canDelete}
                   title={!canDelete ? (isLast ? '최소 1개는 남겨야 합니다' : '마지막 차시만 삭제할 수 있습니다') : ''}
-                  className="text-xs px-2 py-1 rounded text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-muted-foreground disabled:hover:bg-transparent"
+                  className="text-xs px-2 py-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-muted-foreground disabled:hover:bg-transparent"
                   aria-label={`${n}차시 삭제`}
                 >
                   삭제

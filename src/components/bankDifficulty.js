@@ -5,13 +5,11 @@ export const DIFFICULTY_META = {
   low:    { label: '하', cls: 'text-correct bg-correct-bg', textCls: 'text-correct' },
 }
 
-export const DIFF_LABEL = { '': '미지정', high: '상', medium: '중', low: '하' }
+export const DIFF_LABEL = { '': '미설정', high: '상', medium: '중', low: '하' }
 
-// 문제모음(bank)이 선택된 문항 묶음을 받을 수 있는지 판단.
-// 난이도가 미지정인 문제모음은 모든 문항을 허용하고, 고정 난이도가 있는 문제모음은
-// 모든 문항의 난이도가 일치할 때만 호환된다.
-export function isBankCompatible(bank, questions) {
-  if (!bank?.difficulty) return true
-  if (!questions || questions.length === 0) return true
-  return questions.every(q => q.difficulty === bank.difficulty)
+// XQ-FRD-001 v0.3: 그룹 난이도와 문항 난이도는 독립 입력값이며
+// 그룹 난이도에 따라 문항 추가/이동이 제약되지 않는다 (혼재/불일치 허용).
+// 기존 호출부 호환성을 위해 함수는 남기되 항상 true 를 반환한다.
+export function isBankCompatible() {
+  return true
 }

@@ -1,27 +1,20 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
-import { Plus, Search, Edit2, Trash2, Upload, Download, AlertCircle, GripVertical } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Upload, GripVertical } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { QUIZ_TYPES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { useQuestionBank } from '../context/questionBank'
 import AddQuestionModal from '../components/AddQuestionModal'
+import BankUploadModal from '../components/BankUploadModal'
 import TypeBadge from '../components/TypeBadge'
 import PageHeader from '../components/PageHeader'
 import { htmlToPlainText } from '../components/RichText'
-import { downloadQuestionTemplate, parseExcelOrCsv } from '../utils/excelUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
 const DIFFICULTY_META = {
@@ -80,8 +73,7 @@ export default function QuestionBank() {
 
   const handleSaveEdit = (updated) => {
     if (!editingQuestion) return
-    const enforced = bank.difficulty ? { ...updated, difficulty: bank.difficulty } : updated
-    updateQuestion(editingQuestion.id, enforced)
+    updateQuestion(editingQuestion.id, updated)
     setEditingQuestion(null)
   }
   const handleDelete = (id) => setDeleteTargetId(id)
@@ -91,8 +83,7 @@ export default function QuestionBank() {
   }
 
   const handleAddQuestion = (newQ) => {
-    const difficulty = bank.difficulty || newQ.difficulty
-    addQuestions([{ ...newQ, id: `q_${Date.now()}`, bankId: bank.id, usageCount: 0, difficulty }])
+    addQuestions([{ ...newQ, id: `q_${Date.now()}`, bankId: bank.id, usageCount: 0 }])
     setShowAddModal(false)
   }
 
@@ -101,15 +92,13 @@ export default function QuestionBank() {
       id: `q_csv_${Date.now()}_${i}`,
       text: row.text, type: row.type, points: row.points,
       bankId: bank.id, usageCount: 0,
-      // 다른 난이도 행은 모달에서 사전 차단됨. 빈값은 은행 난이도(없으면 'medium')로 보정
-      difficulty: row.difficulty || bank.difficulty || 'medium',
+      difficulty: row.difficulty || '',
       correctAnswer: row.type === 'multiple_answers' && row.answer
         ? row.answer.split(',').map(s => s.trim()).filter(Boolean)
         : row.answer || '',
       choices: row.choices || [],
     }))
     addQuestions(newQuestions)
-    setShowUploadModal(false)
   }
 
   return (
@@ -182,7 +171,7 @@ export default function QuestionBank() {
             style={{ width: 130 }}
             options={[
               { value: 'all', label: '모든 난이도' },
-              { value: '', label: '미지정' },
+              { value: '', label: '미설정' },
               { value: 'high', label: '상' },
               { value: 'medium', label: '중' },
               { value: 'low', label: '하' },
@@ -246,7 +235,6 @@ export default function QuestionBank() {
         <AddQuestionModal
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddQuestion}
-          bankDifficulty={bank.difficulty || ''}
         />
       )}
 
@@ -254,15 +242,16 @@ export default function QuestionBank() {
         <AddQuestionModal
           onClose={() => setEditingQuestion(null)}
           onAdd={handleSaveEdit}
-          bankDifficulty={bank.difficulty || ''}
           initialQuestion={editingQuestion}
         />
       )}
 
       {showUploadModal && (
-        <ExcelUploadModal
+        <BankUploadModal
+          open={showUploadModal}
           onClose={() => setShowUploadModal(false)}
           onImport={handleCsvImport}
+          bankName={bank.name}
           bankDifficulty={bank.difficulty || ''}
         />
       )}
@@ -315,19 +304,22 @@ function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDr
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <TypeBadge type={question.type} small />
-              <span className="text-xs font-medium text-secondary-foreground">{question.points}점</span>
               {diff && (
-                <Badge variant="secondary" className={cn('text-xs', diff.className)}>
+                <Badge
+                  variant="secondary"
+                  className={cn('h-auto rounded-md px-1.5 py-0.5 text-[11px] font-semibold', diff.className)}
+                >
                   {diff.label}
                 </Badge>
               )}
             </div>
             <p className="text-sm leading-relaxed line-clamp-3">{htmlToPlainText(question.text)}</p>
+            <p className="text-[11px] text-muted-foreground mt-1.5">배점 {question.points}점</p>
           </div>
           <Button
             variant="ghost" size="icon-xs"
             onClick={e => { e.stopPropagation(); onDelete() }}
-            className="text-muted-foreground hover:text-red-600 hover:bg-red-50 shrink-0"
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive-soft shrink-0"
           >
             <Trash2 size={14} />
           </Button>
@@ -336,113 +328,3 @@ function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDr
     </div>
   )
 }
-
-const DIFFICULTY_LABEL_MAP = { high: '상', medium: '중', low: '하' }
-
-function ExcelUploadModal({ onClose, onImport, bankDifficulty = '' }) {
-  const [file, setFile] = useState(null)
-  const [errors, setErrors] = useState([])
-  const [loading, setLoading] = useState(false)
-  const fileInputRef = useRef(null)
-
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0] || null)
-    setErrors([])
-  }
-
-  const handleUpload = async () => {
-    if (!file) return
-    setLoading(true)
-    const result = await parseExcelOrCsv(file)
-    setLoading(false)
-    if (result.error) {
-      setErrors([result.error])
-      return
-    }
-    if (result.errors) {
-      setErrors(result.errors)
-      return
-    }
-    // 은행 난이도와 다른 난이도가 명시된 행 차단 (자동 통일 금지)
-    if (bankDifficulty) {
-      const bankLabel = DIFFICULTY_LABEL_MAP[bankDifficulty] ?? bankDifficulty
-      const mismatchErrors = result.rows.reduce((acc, row, i) => {
-        if (row.difficulty && row.difficulty !== bankDifficulty) {
-          const rowLabel = DIFFICULTY_LABEL_MAP[row.difficulty] ?? row.difficulty
-          acc.push(`${i + 2}행: 문제은행 난이도("${bankLabel}")와 다른 난이도("${rowLabel}")가 지정되어 있습니다`)
-        }
-        return acc
-      }, [])
-      if (mismatchErrors.length > 0) {
-        setErrors(mismatchErrors)
-        return
-      }
-    }
-    onImport(result.rows)
-  }
-
-  return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>문항 일괄 업로드</DialogTitle>
-          <DialogDescription>
-            엑셀(.xlsx, .xls) 또는 CSV 파일을 업로드하세요.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div
-          className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors shrink-0"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Upload size={24} className="mx-auto mb-2 text-muted-foreground" />
-          {file ? (
-            <p className="text-sm font-medium text-foreground">{file.name}</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">클릭하여 파일 선택</p>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-        </div>
-
-        {errors.length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3 space-y-1 min-h-0 overflow-y-auto">
-            <p className="text-xs font-semibold text-destructive mb-1">{errors.length}개 오류 — 수정 후 다시 업로드해 주세요</p>
-            {errors.map((e, i) => (
-              <p key={i} className="text-xs text-destructive flex items-start gap-1.5">
-                <AlertCircle size={13} className="shrink-0 mt-0.5" />
-                {e}
-              </p>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between pt-1 shrink-0">
-          <button
-            onClick={downloadQuestionTemplate}
-            className="text-xs text-primary hover:underline flex items-center gap-1"
-          >
-            <Download size={13} />
-            템플릿 다운로드
-          </button>
-          <div className="flex gap-2">
-            <Button size="sm" variant="ghost" onClick={onClose}>취소</Button>
-            <Button
-              size="sm"
-              onClick={handleUpload}
-              disabled={!file || loading}
-            >
-              {loading ? '처리 중' : '업로드'}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-

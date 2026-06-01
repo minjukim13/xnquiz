@@ -495,17 +495,17 @@ function QuizCard({ quiz, onCopy, onDelete, onToggleVisibility }) {
             {ddayBadge && (
               <span className={cn(
                 'text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap',
-                ddayBadge.urgent ? 'text-red-700 bg-red-50' : 'text-amber-600 bg-amber-50'
+                ddayBadge.urgent ? 'text-destructive bg-destructive-soft' : 'text-warning bg-warning-bg'
               )}>
                 {ddayBadge.label}
               </span>
             )}
           </div>
           {quiz.allowLateSubmit && quiz.lateSubmitDeadline && (
-            <p className="text-xs text-amber-600 mt-0.5">지각 제출: {quiz.lateSubmitDeadline.replace('T', ' ')}까지</p>
+            <p className="text-xs text-warning mt-0.5">지각 제출: {quiz.lateSubmitDeadline.replace('T', ' ')}까지</p>
           )}
           {quiz.allowLateSubmit && !quiz.lateSubmitDeadline && quiz.dueDate && (
-            <p className="text-xs text-amber-600 mt-0.5">지각 제출: 무제한 허용</p>
+            <p className="text-xs text-warning mt-0.5">지각 제출: 무제한 허용</p>
           )}
         </div>
 
@@ -610,7 +610,7 @@ function getInlineStats(quiz, scheduled) {
   return [
     { label: '응시율',   value: `${submitRate}%`, primary: true },
     { label: '응시인원', value: `${submitted}명` },
-    { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-red-500' : 'text-muted-foreground' },
+    { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-warning' : 'text-muted-foreground' },
     { label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-primary', primary: true },
   ]
 }
@@ -1142,7 +1142,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
             {ddayBadge && (
               <span className={cn(
                 'text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap',
-                ddayBadge.urgent ? 'text-red-700 bg-red-50' : 'text-amber-600 bg-amber-50'
+                ddayBadge.urgent ? 'text-destructive bg-destructive-soft' : 'text-warning bg-warning-bg'
               )}>
                 {ddayBadge.label}
               </span>
@@ -1225,7 +1225,7 @@ function StudentScoreFooter({ quiz, myAttempt, myAttempts, showHistory, setShowH
     <div className="px-6 py-2.5 bg-secondary border-t border-border">
       <div className="flex items-center gap-3 text-xs flex-wrap">
         {myAttempt.manualPending > 0 && released && (
-          <span className="flex items-center gap-1 text-amber-600">
+          <span className="flex items-center gap-1 text-warning">
             <AlertCircle size={11} />
             수동채점 {myAttempt.manualPending}문항 대기 중 (0점 반영)
           </span>

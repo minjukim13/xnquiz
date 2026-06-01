@@ -149,10 +149,10 @@ export default function QuestionDetailPanel({ question, students, search, onSear
 
       {/* 재채점 적용 안내 */}
       {regradeInfo && (
-        <div className="flex items-start gap-2.5 mb-3 px-3.5 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
-          <div className="text-[12px] leading-relaxed text-amber-800">
+        <div className="flex items-start gap-2.5 mb-3 px-3.5 py-2.5 rounded-lg bg-warning-bg border border-warning-border">
+          <div className="text-[12px] leading-relaxed text-warning-foreground">
             <span className="font-semibold">재채점 적용됨</span>
-            <span className="mx-1 text-amber-400">|</span>
+            <span className="mx-1 text-warning">|</span>
             {REGRADE_OPTION_LABELS[regradeInfo.option] ?? regradeInfo.option}
             {regradeInfo.count > 0 && <span> ({regradeInfo.count}명 점수 변경)</span>}
           </div>

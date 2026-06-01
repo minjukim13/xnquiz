@@ -93,7 +93,7 @@ function QuestionCard({ question, student, studentIdx, quizId, pendingScore, onS
   const isFileUpload = question.type === 'file_upload'
   const correctAnswerText = Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : (question.correctAnswer ?? '')
   const showAccent = isPending || isUngraded
-  const accentBar = isPending ? 'bg-primary' : 'bg-amber-300'
+  const accentBar = isPending ? 'bg-primary' : 'bg-warning-border'
 
   return (
     <div className={cn('relative border-b border-slate-200 transition-colors', isPending && 'bg-blue-50/30')}>
@@ -112,7 +112,7 @@ function QuestionCard({ question, student, studentIdx, quizId, pendingScore, onS
             {question.autoGrade && autoCorrect !== null && <CorrectBadge correct={autoCorrect} />}
             {!question.autoGrade && <GradeStatusBadge ungraded={isUngraded} />}
             {isManuallyOverridden && (
-              <span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-1.5 py-px rounded">수정됨</span>
+              <span className="text-[11px] font-medium text-warning-foreground bg-warning-bg px-1.5 py-px rounded">수정됨</span>
             )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -195,8 +195,14 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
   }, [activeTab])
 
   const handleScoreChange = useCallback((questionId, score) => {
+    // 배점 초과 입력 차단 (XQ-URD-025 정책: 입력 단계에서 차단)
+    if (score !== '' && score !== null && score !== undefined) {
+      const num = Number(score)
+      const question = questions.find(q => q.id === questionId)
+      if (question && !Number.isNaN(num) && (num < 0 || num > question.points)) return
+    }
     setPendingScores(prev => ({ ...prev, [questionId]: score }))
-  }, [])
+  }, [questions])
 
   const scorePendingCount = Object.values(pendingScores).filter(v => v !== '' && !isNaN(Number(v)) && Number(v) >= 0).length
 
@@ -309,7 +315,7 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
           </p>
           <p className={cn(
             'text-[13px] font-medium leading-tight mt-1.5',
-            hasScore ? 'text-muted-foreground' : 'text-amber-600'
+            hasScore ? 'text-muted-foreground' : 'text-warning'
           )}>
             {hasScore ? '채점완료' : '미채점'}
           </p>

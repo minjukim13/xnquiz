@@ -124,6 +124,14 @@
   --color-correct-bg: var(--correct-bg);
   --color-incorrect: var(--incorrect);
   --color-incorrect-bg: var(--incorrect-bg);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-bg: var(--success-bg);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-border: var(--warning-border);
   --color-caption: var(--caption);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -187,6 +195,18 @@
   --correct-bg: oklch(0.955 0.035 160);        /* #EAF8F1 */
   --incorrect: oklch(0.600 0.215 22);          /* #F04452 */
   --incorrect-bg: oklch(0.970 0.025 20);       /* #FEECEE */
+
+  /* ── Success / Warning (xinics 디자인시스템 v1.2-a 정합) ── */
+  /* success: 등록/완료 상태. main=#16A34A, bg=#E6F7EE, fg=#0F7A37 (AA), border=#BAE6CB */
+  --success: oklch(0.585 0.183 144);           /* #16A34A */
+  --success-foreground: oklch(0.455 0.130 145); /* #0F7A37 — AA 명암비 본문 톤 */
+  --success-bg: oklch(0.964 0.034 152);        /* #E6F7EE */
+  --success-border: oklch(0.886 0.077 152);    /* #BAE6CB */
+  /* warning: 주의/오류 후보 상태. main=#FF9500, bg=#FFF4E0, fg=#A85800 (AA), border=#FED8A6 */
+  --warning: oklch(0.715 0.180 60);            /* #FF9500 */
+  --warning-foreground: oklch(0.485 0.130 60); /* #A85800 — AA 명암비 본문 톤 */
+  --warning-bg: oklch(0.962 0.030 80);         /* #FFF4E0 */
+  --warning-border: oklch(0.880 0.082 80);     /* #FED8A6 */
 
   /* ── Subdued foreground ── */
   --caption: oklch(0.635 0.015 248);           /* #8B95A1 — was #B0B8C1, darkened for legibility */

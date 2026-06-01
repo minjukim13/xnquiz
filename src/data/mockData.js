@@ -421,15 +421,18 @@ export const mockQuizzes = [
   },
   {
     // 진행 중 (지금 응시 가능): startDate 과거 / dueDate 미래 / 일부 제출 + 자동채점 완료
+    // 보안/감독 옵션 시연용: securityAiProctoring + securityRequireConsent 활성
     id: '10',
     title: '주차별 퀴즈 6 - 회복 기법과 백업 전략',
     description: 'Undo/Redo 로깅, 체크포인트, 백업 전략(전체/증분/차등)을 다룹니다. 응시 기간 내 자유롭게 제출하세요.',
     course: 'CS301 데이터베이스',
     status: 'open',
     visible: true,
-    startDate: '2026-04-25 09:00',
-    dueDate: '2026-05-02 23:59',
-    lockDate: '2026-05-31 23:59',
+    startDate: '2026-05-25 09:00',
+    dueDate: '2026-06-15 23:59',
+    lockDate: '2026-07-15 23:59',
+    securityAiProctoring: true,
+    securityRequireConsent: true,
     week: 10,
     session: 1,
     totalStudents: 65,
@@ -1906,7 +1909,7 @@ function gradeByQuestion(question, answer) {
 
       const studentSelected = String(answer).split(',').map(s => s.trim()).filter(Boolean)
       const correctSet = new Set(correctTexts.map(norm))
-      const scoringMode = gs.multipleAnswersScoringMode || question.scoringMode || 'all_correct'
+      const scoringMode = gs.multipleAnswersScoringMode || 'all_correct'
 
       if (scoringMode === 'partial') {
         const correctCount = studentSelected.filter(s => correctSet.has(norm(s))).length
@@ -2122,7 +2125,7 @@ export function autoGradeAnswer(question, answer) {
     const gs = _getGlobalSettings()
     const norm = (s) => _normalizeAnswer(s, gs)
     const correctSet = new Set(correctTexts.map(norm))
-    const scoringMode = gs.multipleAnswersScoringMode || question.scoringMode || 'all_correct'
+    const scoringMode = gs.multipleAnswersScoringMode || 'all_correct'
 
     if (scoringMode === 'partial') {
       const correctCount = studentSelected.filter(s => correctSet.has(norm(s))).length
@@ -2235,6 +2238,16 @@ export function isAnswerCorrect(answer, questionId) {
 // ── 문제모음 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──
 
 
+// 평가 그룹 (Assignment Groups) — LX 연계 항목. 평가용 퀴즈만 그룹에 귀속.
+// 가중치 표시는 안내용. 실제 가중치 적용은 LX 가 관리.
+export const ASSIGNMENT_GROUPS = [
+  { id: 'midterm', label: '중간고사', weight: 30 },
+  { id: 'final',   label: '기말고사', weight: 30 },
+  { id: 'quiz',    label: '퀴즈',     weight: 20 },
+  { id: 'homework', label: '과제',    weight: 15 },
+  { id: 'attendance', label: '출석',  weight: 5 },
+]
+
 export const MOCK_COURSES = [
   { id: 'cs301', name: 'CS301 데이터베이스' },
   { id: 'cs201', name: 'CS201 운영체제' },
@@ -2254,7 +2267,7 @@ export const MOCK_BANKS = [
 ]
 
 export const MOCK_BANK_QUESTIONS = [
-  // bank1: DB 종합 문제집 (난이도 미지정 — 혼합)
+  // bank1: DB 종합 문제집 (그룹 난이도 미설정, 문항 혼재)
   { id: 'bq1',  bankId: 'bank1', type: 'multiple_choice', difficulty: 'low',    points: 5,  usageCount: 3,
     text: '관계형 데이터베이스에서 기본키(Primary Key)의 역할은?',
     options: ['각 행을 유일하게 식별한다', '테이블 간 관계를 정의한다', '데이터 타입을 지정한다', '인덱스를 자동 생성한다'],
@@ -2277,18 +2290,18 @@ export const MOCK_BANK_QUESTIONS = [
     options: ['모든 속성이 원자값이어야 한다', '부분 함수 종속이 제거되어야 한다', '이행적 함수 종속이 제거되어야 한다', '모든 결정자가 후보키여야 한다'],
     correctAnswer: 1 },
 
-  // bank2: SQL 심화 (난이도: 상 — 모든 문항이 상이어야 함)
+  // bank2: SQL 심화 (그룹 난이도: 상 — XQ-FRD-001 v0.3: 그룹/문항 난이도는 독립이므로 중·하·미설정 혼재 허용)
   { id: 'bq7',  bankId: 'bank2', type: 'multiple_choice', difficulty: 'high',   points: 10, usageCount: 1,
     text: '서브쿼리와 JOIN 중 일반적으로 성능 측면에서 유리한 경우를 비교한 것으로 올바른 것은?',
     options: ['서브쿼리가 항상 더 빠르다', 'JOIN이 대부분의 경우 옵티마이저에 의해 더 효율적으로 처리된다', '둘의 성능 차이는 없다', '서브쿼리는 인덱스를 사용할 수 없다'],
     correctAnswer: 1 },
-  { id: 'bq8',  bankId: 'bank2', type: 'essay',           difficulty: 'high',   points: 20, usageCount: 0,
+  { id: 'bq8',  bankId: 'bank2', type: 'essay',           difficulty: 'medium', points: 20, usageCount: 0,
     text: '인덱스가 쿼리 성능에 미치는 영향을 설명하고, 인덱스 생성 기준을 논하시오.',
     rubric: '인덱스의 B-Tree 구조 이해, 읽기 성능 향상 vs 쓰기 성능 저하 트레이드오프, 선택도(Selectivity) 높은 컬럼 우선, 복합 인덱스 순서의 중요성 등을 포함하여 서술.' },
   { id: 'bq9',  bankId: 'bank2', type: 'short_answer',    difficulty: 'high',   points: 10, usageCount: 2,
     text: 'EXPLAIN 명령어를 통해 쿼리 실행 계획에서 확인할 수 있는 주요 정보는?',
     correctAnswer: ['실행 계획', '인덱스 사용 여부', 'type, key, rows, Extra'] },
-  { id: 'bq10', bankId: 'bank2', type: 'multiple_choice', difficulty: 'high',   points: 10, usageCount: 3,
+  { id: 'bq10', bankId: 'bank2', type: 'multiple_choice', difficulty: 'low',    points: 10, usageCount: 3,
     text: '다음 중 인덱스가 무시될 수 있는 상황으로 올바른 것은?',
     options: ['WHERE 절에 인덱스 컬럼을 직접 비교할 때', 'WHERE 절에서 인덱스 컬럼에 함수를 적용할 때', 'ORDER BY에 인덱스 컬럼을 사용할 때', 'JOIN 조건에 인덱스 컬럼을 사용할 때'],
     correctAnswer: 1 },
@@ -2299,28 +2312,28 @@ export const MOCK_BANK_QUESTIONS = [
     text: 'WITH 절(CTE)이 서브쿼리 대비 갖는 장점을 두 가지 이상 설명하시오.',
     correctAnswer: ['가독성 향상', '재사용 가능', '재귀 쿼리 지원'] },
 
-  // bank3: SQL 기초 (난이도: 중 — 모든 문항이 중이어야 함)
+  // bank3: SQL 기초 (그룹 난이도: 중 — 독립 정책에 따라 상·하·미설정 혼재 허용)
   { id: 'bq13', bankId: 'bank3', type: 'multiple_choice',  difficulty: 'medium', points: 5, usageCount: 4,
     text: 'INNER JOIN과 LEFT JOIN의 결과 차이는 무엇인가?',
     options: ['INNER JOIN은 양쪽 모두 일치하는 행만 반환한다', 'LEFT JOIN은 오른쪽 테이블의 모든 행을 반환한다', 'INNER JOIN은 중복을 자동 제거한다', '차이가 없다'],
     correctAnswer: 0 },
-  { id: 'bq14', bankId: 'bank3', type: 'multiple_choice',  difficulty: 'medium', points: 5, usageCount: 2,
+  { id: 'bq14', bankId: 'bank3', type: 'multiple_choice',  difficulty: 'high',   points: 5, usageCount: 2,
     text: 'GROUP BY와 HAVING 절을 함께 사용하는 상황으로 올바른 것은?',
     options: ['개별 행을 필터링할 때', '그룹화된 결과에 조건을 적용할 때', '정렬 순서를 지정할 때', '테이블을 조인할 때'],
     correctAnswer: 1 },
   { id: 'bq15', bankId: 'bank3', type: 'short_answer',     difficulty: 'medium', points: 8, usageCount: 1,
     text: 'DISTINCT 키워드의 역할과 사용 예시를 작성하시오.',
     correctAnswer: ['중복 제거', '중복된 행을 제거하고 고유한 값만 반환'] },
-  { id: 'bq16', bankId: 'bank3', type: 'multiple_choice',  difficulty: 'medium', points: 5, usageCount: 3,
+  { id: 'bq16', bankId: 'bank3', type: 'multiple_choice',  difficulty: '',       points: 5, usageCount: 3,
     text: 'SELECT 쿼리의 논리적 실행 순서를 올바르게 나열한 것은?',
     options: ['SELECT → FROM → WHERE → GROUP BY', 'FROM → WHERE → GROUP BY → SELECT', 'FROM → SELECT → WHERE → ORDER BY', 'SELECT → WHERE → FROM → GROUP BY'],
     correctAnswer: 1 },
   { id: 'bq17', bankId: 'bank3', type: 'multiple_answers', difficulty: 'medium', points: 5, usageCount: 0,
     text: '다음 중 집계 함수(Aggregate Function)에 해당하는 것을 모두 고르시오.',
     options: ['COUNT', 'CONCAT', 'SUM', 'AVG', 'SUBSTRING', 'MAX'],
-    correctAnswer: [0, 2, 3, 5], scoringMode: 'partial' },
+    correctAnswer: [0, 2, 3, 5] },
 
-  // bank4: DB 입문 (난이도: 하 — 모든 문항이 하이어야 함)
+  // bank4: DB 입문 (그룹 난이도: 하 — 독립 정책에 따라 중·상 혼재 허용)
   { id: 'bq18', bankId: 'bank4', type: 'true_false',      difficulty: 'low',    points: 3, usageCount: 5,
     text: 'SQL에서 SELECT * 은 테이블의 모든 열을 조회한다.',
     correctAnswer: true },
@@ -2328,18 +2341,18 @@ export const MOCK_BANK_QUESTIONS = [
     text: 'WHERE 절에서 사용할 수 없는 연산자는?',
     options: ['=', '>', 'LIKE', 'GROUP'],
     correctAnswer: 3 },
-  { id: 'bq20', bankId: 'bank4', type: 'multiple_choice', difficulty: 'low',    points: 3, usageCount: 2,
+  { id: 'bq20', bankId: 'bank4', type: 'multiple_choice', difficulty: 'medium', points: 3, usageCount: 2,
     text: 'CREATE TABLE 문에서 열의 데이터 타입을 지정하는 이유는?',
     options: ['저장 공간을 효율적으로 사용하고 데이터 무결성을 보장하기 위해', '테이블 이름을 지정하기 위해', '인덱스를 자동 생성하기 위해', '쿼리 속도를 높이기 위해'],
     correctAnswer: 0 },
   { id: 'bq21', bankId: 'bank4', type: 'true_false',      difficulty: 'low',    points: 3, usageCount: 1,
     text: 'DELETE 문은 테이블 구조(스키마)를 삭제한다.',
     correctAnswer: false },
-  { id: 'bq22', bankId: 'bank4', type: 'short_answer',    difficulty: 'low',    points: 5, usageCount: 2,
+  { id: 'bq22', bankId: 'bank4', type: 'short_answer',    difficulty: 'high',   points: 5, usageCount: 2,
     text: 'INSERT INTO 문의 기본 문법을 예시와 함께 작성하시오.',
     correctAnswer: ['INSERT INTO 테이블명 VALUES', 'INSERT INTO table_name (col1, col2) VALUES (val1, val2)'] },
 
-  // bank5: 운영체제 종합 (난이도 미지정 — 혼합)
+  // bank5: 운영체제 종합 (그룹 난이도 미설정, 문항 혼재)
   { id: 'bq23', bankId: 'bank5', type: 'multiple_choice', difficulty: 'low',    points: 5,  usageCount: 3,
     text: '프로세스와 스레드의 가장 큰 차이점은?',
     options: ['스레드는 프로세스 내에서 메모리를 공유한다', '프로세스는 스레드보다 가볍다', '스레드는 독립적인 메모리 공간을 가진다', '프로세스는 동시에 실행될 수 없다'],
@@ -2411,14 +2424,14 @@ export const MOCK_BANK_QUESTIONS = [
   { id: 'bq41', bankId: 'bank8', type: 'short_answer',    difficulty: 'high',   points: 10, usageCount: 0,
     text: '해시 충돌 해결 방법(Open Addressing, Separate Chaining)의 차이를 설명하시오.',
     correctAnswer: ['Open Addressing은 빈 슬롯을 탐색', 'Separate Chaining은 연결 리스트로 충돌 처리'] },
-  { id: 'bq42', bankId: 'bank8', type: 'multiple_choice', difficulty: 'high',   points: 8, usageCount: 1,
+  { id: 'bq42', bankId: 'bank8', type: 'multiple_choice', difficulty: 'low',    points: 8, usageCount: 1,
     text: '힙(Heap) 자료구조에서 삽입 후 균형을 맞추는 연산의 시간복잡도는?',
     options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
     correctAnswer: 1 },
   { id: 'bq43', bankId: 'bank8', type: 'multiple_answers', difficulty: 'high',  points: 8, usageCount: 0,
     text: '다음 중 자기 균형 이진 탐색 트리(Self-Balancing BST)에 해당하는 것을 모두 고르시오.',
     options: ['AVL Tree', 'B-Tree', 'Red-Black Tree', 'Binary Heap', 'Splay Tree'],
-    correctAnswer: [0, 2, 4], scoringMode: 'partial' },
+    correctAnswer: [0, 2, 4] },
   { id: 'bq44', bankId: 'bank8', type: 'essay',           difficulty: 'high',   points: 16, usageCount: 0,
     text: '트라이(Trie) 자료구조의 구조와 활용 사례 두 가지를 서술하시오.',
     rubric: '문자 단위 노드로 구성된 트리, 공통 접두사 공유 구조 명시. 활용: 자동완성, 사전 검색, IP 라우팅 등 두 가지 이상.' },

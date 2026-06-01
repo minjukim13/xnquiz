@@ -64,7 +64,7 @@ export default function QuizInfoCard({ quiz, students }) {
                   <span className="text-xs px-2 py-0.5 rounded font-medium bg-accent text-primary">
                     {isWithAnswer ? '정답 포함' : '점수만'}
                   </span>
-                  <span className="text-xs px-2 py-0.5 rounded font-medium bg-green-50 text-green-600">
+                  <span className="text-xs px-2 py-0.5 rounded font-medium bg-success-bg text-success">
                     {timingLabel}
                   </span>
                   {timing === 'period' && periodStart && (

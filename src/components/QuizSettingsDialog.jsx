@@ -88,7 +88,7 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* 복수선택 채점 방식 */}
+          {/* 복수 정답 문항 부분 점수 */}
           <SettingsSection title="복수선택 채점 방식">
             <div className="space-y-2">
               {SCORING_MODES.map(opt => (
@@ -142,7 +142,7 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
               </p>
             )}
             {local.caseSensitive && (
-              <div className="ml-11 flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600">
+              <div className="ml-11 flex items-center gap-2 p-2.5 rounded text-xs bg-warning-bg/40 border border-warning-border text-slate-600">
                 <span>"Answer"와 "answer"를 다른 답으로 처리합니다. 학생 혼란 방지를 위해 퀴즈 안내사항에 명시를 권장합니다.</span>
               </div>
             )}
@@ -160,7 +160,7 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
                 </p>
               )}
               {local.whitespaceSensitive && (
-                <div className="ml-11 flex items-center gap-2 p-2.5 rounded text-xs bg-amber-50/40 border border-amber-300 text-slate-600 mt-2">
+                <div className="ml-11 flex items-center gap-2 p-2.5 rounded text-xs bg-warning-bg/40 border border-warning-border text-slate-600 mt-2">
                   <span>"key word"와 "keyword"를 다른 답으로 처리합니다. 학생 혼란 방지를 위해 퀴즈 안내사항에 명시를 권장합니다.</span>
                 </div>
               )}
@@ -344,22 +344,22 @@ function ScoringSimulation({ penaltyMethod }) {
                 'relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all',
                 isSelected
                   ? isCorrect
-                    ? 'border-green-400 bg-green-50 text-green-700'
-                    : 'border-red-300 bg-red-50 text-red-600'
+                    ? 'border-correct bg-correct-bg text-correct'
+                    : 'border-incorrect bg-incorrect-bg text-incorrect'
                   : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
               )}
             >
               <span className={cn(
                 'w-3.5 h-3.5 rounded-sm border flex items-center justify-center text-[9px] shrink-0',
                 isSelected
-                  ? isCorrect ? 'bg-green-500 border-green-500 text-white' : 'bg-red-400 border-red-400 text-white'
+                  ? isCorrect ? 'bg-correct border-correct text-white' : 'bg-incorrect border-incorrect text-white'
                   : 'border-slate-300'
               )}>
                 {isSelected && '✓'}
               </span>
               {CHOICE_LABELS[i]}
               {isCorrect && (
-                <span className="text-[9px] text-green-500 font-normal">정답</span>
+                <span className="text-[9px] text-correct font-normal">정답</span>
               )}
             </button>
           )
@@ -392,7 +392,7 @@ function ScoringSimulation({ penaltyMethod }) {
                 <p className={cn(
                   'text-[15px] tabular-nums font-bold',
                   isActive
-                    ? score === points ? 'text-primary' : score === 0 && selected.size > 0 ? 'text-red-500' : 'text-slate-800'
+                    ? score === points ? 'text-primary' : score === 0 && selected.size > 0 ? 'text-destructive' : 'text-slate-800'
                     : 'text-muted-foreground'
                 )}>
                   {score}점
