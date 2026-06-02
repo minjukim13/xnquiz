@@ -125,7 +125,7 @@ function AnswerCard({ question, student, studentIdx, quizId, onSaved }) {
             }}
             min={0}
             max={question.points}
-            step={0.5}
+            step="any"
             placeholder="0"
             className="w-[60px] text-sm py-1.5 px-2 rounded-lg border border-border text-foreground text-center outline-none"
           />

@@ -1,23 +1,28 @@
-import { AlertCircle, AlertTriangle, ArrowLeft, Send } from 'lucide-react'
+import { useState } from 'react'
+import { AlertCircle, AlertTriangle, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { ASSIGNMENT_GROUPS } from '../data/mockData'
 import { cn } from '@/lib/utils'
 
-// 게시 직전 종합 확인 모달
+// 공개 직전 종합 확인 모달
 // URD-021 R-009: 9항목 결과 종합 안내 + 직전 단계 복귀
-export default function PublishReviewModal({ open, onOpenChange, form, questions, totalPoints, onConfirm, confirmLabel = '이대로 게시' }) {
+// 표시 규칙: 경고 + 사용자가 변경한 항목만 기본 노출, 기본값 항목은 접기
+export default function PublishReviewModal({ open, onOpenChange, form, questions, totalPoints, onConfirm, confirmLabel = '이대로 공개' }) {
+  const [showDefaults, setShowDefaults] = useState(false)
   if (!open) return null
   const items = buildReviewItems(form, questions, totalPoints)
   const warningItems = items.filter(i => i.severity === 'warning')
+  const visibleItems = items.filter(i => !i.isDefault || i.severity === 'warning')
+  const hiddenItems = items.filter(i => i.isDefault && i.severity !== 'warning')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>게시 전 종합 확인</DialogTitle>
+          <DialogTitle>공개 설정 확인</DialogTitle>
           <DialogDescription>
-            게시 후 학생에게 노출됩니다. 아래 항목을 확인한 뒤 진행해 주세요.
+            공개하면 학생이 즉시 응시할 수 있습니다. 아래 항목을 확인해 주세요.
           </DialogDescription>
         </DialogHeader>
 
@@ -25,20 +30,35 @@ export default function PublishReviewModal({ open, onOpenChange, form, questions
           {warningItems.length > 0 && (
             <div className="bg-warning-bg border border-warning-border rounded-md p-3 flex items-start gap-2 text-sm text-warning-foreground">
               <AlertTriangle size={15} className="shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium">{warningItems.length}개 항목 확인 필요</p>
-                <p className="text-xs mt-0.5">
-                  {warningItems.map(i => i.title).join(' · ')}
-                </p>
-              </div>
+              <ul className="space-y-1 leading-relaxed">
+                {warningItems.map(i => (
+                  <li key={i.key}>{i.warningImpact || `${i.title} 항목을 확인해 주세요.`}</li>
+                ))}
+              </ul>
             </div>
           )}
 
           <div className="space-y-2">
-            {items.map(item => (
+            {visibleItems.map(item => (
               <ReviewItemCard key={item.key} item={item} />
             ))}
           </div>
+
+          {hiddenItems.length > 0 && (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowDefaults(v => !v)}
+                className="w-full inline-flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground py-2 transition-colors"
+              >
+                {showDefaults ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                기본 설정 {hiddenItems.length}개 {showDefaults ? '접기' : '보기'}
+              </button>
+              {showDefaults && hiddenItems.map(item => (
+                <ReviewItemCard key={item.key} item={item} />
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-3 shrink-0 border-t border-secondary">
@@ -47,7 +67,6 @@ export default function PublishReviewModal({ open, onOpenChange, form, questions
             돌아가서 수정
           </Button>
           <Button size="sm" onClick={onConfirm}>
-            <Send size={13} />
             {confirmLabel}
           </Button>
         </div>
@@ -100,6 +119,7 @@ function buildReviewItems(form, questions, totalPoints) {
   let typeNote = null
   let typeSeverity = 'ok'
   let typeWarning = null
+  let typeImpact = null
   if (form.quizMode === 'graded') {
     const group = ASSIGNMENT_GROUPS.find(g => g.id === form.assignmentGroupId)
     if (group) {
@@ -108,6 +128,7 @@ function buildReviewItems(form, questions, totalPoints) {
       typeValue += `\n평가 그룹: 미선택`
       typeSeverity = 'warning'
       typeWarning = '평가 그룹 미선택'
+      typeImpact = '평가 그룹을 선택하지 않으면 성적에 반영되지 않습니다.'
     }
   } else {
     typeNote = '연습용 퀴즈는 성적에 반영되지 않습니다.'
@@ -115,17 +136,20 @@ function buildReviewItems(form, questions, totalPoints) {
   items.push({
     key: 'type', no: 1, title: '시험 유형 및 평가 그룹',
     value: typeValue, note: typeNote,
-    severity: typeSeverity, warningLabel: typeWarning,
+    severity: typeSeverity, warningLabel: typeWarning, warningImpact: typeImpact,
+    isDefault: false,
   })
 
   // 2. 응시 기간
   let periodValue = ''
   let periodSeverity = 'ok'
   let periodWarning = null
+  let periodImpact = null
   if (!form.startDate && !form.dueDate) {
     periodValue = '응시 기간 제한 없음'
     periodSeverity = 'warning'
     periodWarning = '기간 미설정'
+    periodImpact = '응시 기간을 비워두면 학생이 언제든 응시할 수 있는 상태로 공개됩니다.'
   } else {
     periodValue = `${form.startDate || '시작 일시 미설정'} ~ ${form.dueDate || '마감 일시 미설정'}`
   }
@@ -137,7 +161,8 @@ function buildReviewItems(form, questions, totalPoints) {
   items.push({
     key: 'period', no: 2, title: '응시 기간',
     value: periodValue,
-    severity: periodSeverity, warningLabel: periodWarning,
+    severity: periodSeverity, warningLabel: periodWarning, warningImpact: periodImpact,
+    isDefault: false,
   })
 
   // 3. 지각 제출 정책
@@ -151,6 +176,7 @@ function buildReviewItems(form, questions, totalPoints) {
     key: 'late', no: 3, title: '지각 제출 정책',
     value: lateValue,
     severity: 'ok',
+    isDefault: !form.allowLateSubmit,
   })
 
   // 4. 추가 기간 설정 (assignments)
@@ -161,6 +187,7 @@ function buildReviewItems(form, questions, totalPoints) {
       ? `${assignmentCount}건 (대상자별 별도 마감 적용)`
       : '없음',
     severity: 'ok',
+    isDefault: assignmentCount === 0,
   })
 
   // 5. 응시 정책 (시간 제한 + 재응시)
@@ -177,6 +204,7 @@ function buildReviewItems(form, questions, totalPoints) {
     key: 'policy', no: 5, title: '응시 정책',
     value: `${timeLimitText}\n${attemptsText}`,
     severity: 'ok',
+    isDefault: false,
   })
 
   // 6. 문항 구성
@@ -185,6 +213,8 @@ function buildReviewItems(form, questions, totalPoints) {
     value: `${questions.length}문항 · 총 ${totalPoints}점`,
     severity: questions.length === 0 ? 'warning' : 'ok',
     warningLabel: questions.length === 0 ? '문항 없음' : null,
+    warningImpact: questions.length === 0 ? '문항이 비어 있어 학생이 응시할 수 없습니다.' : null,
+    isDefault: false,
   })
 
   // 7. 문항 표시 옵션
@@ -199,6 +229,7 @@ function buildReviewItems(form, questions, totalPoints) {
     key: 'display', no: 7, title: '문항 표시 설정',
     value: displayOpts.length > 0 ? displayOpts.join(' · ') : '기본 표시 (옵션 없음)',
     severity: 'ok',
+    isDefault: displayOpts.length === 0,
   })
 
   // 8. 응시 보안 및 감독
@@ -209,14 +240,15 @@ function buildReviewItems(form, questions, totalPoints) {
   items.push({
     key: 'security', no: 8, title: '응시 보안 및 감독',
     value: secOpts.length > 0 ? secOpts.join(' · ') : '사용 안 함',
-    note: secOpts.length > 0 ? '학생은 응시 진입 직전 안내 게이트를 거칩니다.' : null,
     severity: 'ok',
+    isDefault: secOpts.length === 0,
   })
 
   // 9. 성적 공개 정책
   let revealValue = '비공개'
   let revealSeverity = 'ok'
   let revealWarning = null
+  let revealImpact = null
   if (form.scoreRevealEnabled) {
     const scopeLabel = form.scoreRevealScope === 'with_answer' ? '정답까지 공개' : '오답 여부만'
     let timingLabel = ''
@@ -232,13 +264,15 @@ function buildReviewItems(form, questions, totalPoints) {
     if (isMultiAttempt && form.scoreRevealTiming === 'immediately') {
       revealSeverity = 'warning'
       revealWarning = '재응시 정책과 충돌 가능'
+      revealImpact = '재응시 허용 + 제출 즉시 공개 조합은 다음 응시 전 정답이 알려질 수 있습니다.'
       revealValue += '\n재응시 허용 시 점수가 즉시 공개되면 후속 응시 전 정답이 알려질 수 있습니다.'
     }
   }
   items.push({
     key: 'reveal', no: 9, title: '성적 공개 정책',
     value: revealValue,
-    severity: revealSeverity, warningLabel: revealWarning,
+    severity: revealSeverity, warningLabel: revealWarning, warningImpact: revealImpact,
+    isDefault: !form.scoreRevealEnabled,
   })
 
   return items

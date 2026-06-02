@@ -17,15 +17,15 @@ import { htmlToPlainText } from '../components/RichText'
 import { isDeadlinePassed } from '@/utils/deadlineUtils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import StepIndicator from '../components/StepIndicator'
 import PublishReviewModal from '../components/PublishReviewModal'
-import { Switch } from '@/components/ui/switch'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import DateTimePicker from '../components/DateTimePicker'
 import WeekSessionPicker from '../components/WeekSessionPicker'
+import { Section, Field, Toggle, SecuritySection } from '@/components/quiz-form'
+import { getCompletedSteps } from '@/utils/quizFormSteps'
 
 const DATA_MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
@@ -47,13 +47,6 @@ const EDIT_STEPS = [
     desc: '시험에 출제할 문항을 추가하거나 수정합니다. 새 문항을 직접 작성하거나, 기존 문제모음에서 선별해 가져오거나, 조건에 맞춰 무작위 출제하는 세 가지 방식을 조합할 수 있습니다.',
   },
 ]
-
-function getCompletedSteps(form, questions) {
-  const done = []
-  if (form.title) done.push('info')
-  if (questions.length > 0) done.push('questions')
-  return done
-}
 
 const DEFAULT_NOTICE = `- 제출 후에는 답안을 수정할 수 없습니다.
 - 타인과의 협력 및 자료 공유는 금지됩니다.
@@ -413,7 +406,7 @@ export default function QuizEdit() {
         localStorage.setItem('xnq_regrade_log', JSON.stringify(existing))
       } catch { /* ignore */ }
     }
-    const reopenMsg = reopened ? ' 마감 처리된 퀴즈가 다시 게시되었습니다.' : ''
+    const reopenMsg = reopened ? ' 마감 처리된 퀴즈가 다시 공개되었습니다.' : ''
     const toastMsg = totalRegraded > 0
       ? `저장되었습니다. ${totalRegraded}명의 점수가 재채점되었습니다.${reopenMsg}`
       : `저장되었습니다.${reopenMsg}`
@@ -742,11 +735,14 @@ function InfoTab({ form, set, quizStatus, courseKey }) {
         </div>
       </Section>
 
-      <Section
-        title="퀴즈 접근 제한"
-        right={<Switch checked={form.accessControlEnabled} onCheckedChange={v => set('accessControlEnabled', v)} className="data-[state=checked]:bg-primary" />}
-      >
-        {form.accessControlEnabled ? (
+      <Section title="퀴즈 접근 제한">
+        <Toggle
+          checked={form.accessControlEnabled}
+          onChange={v => set('accessControlEnabled', v)}
+          label="접근 제한 사용"
+          description="액세스 코드 또는 허용 IP 를 지정해 응시 가능 범위를 제한합니다."
+        />
+        {form.accessControlEnabled && (
           <>
             <Field label="액세스 코드">
               <input type="text" value={form.accessCode} onChange={e => set('accessCode', e.target.value)} placeholder="코드를 입력하면 응시 시 코드 입력이 필요합니다" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
@@ -757,22 +753,18 @@ function InfoTab({ form, set, quizStatus, courseKey }) {
               <p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP에서 접근 가능합니다. (CIDR 표기법 지원)</p>
             </Field>
           </>
-        ) : (
-          <p className="text-xs text-muted-foreground">접근 제한이 필요한 경우 우측 토글로 활성화하세요.</p>
         )}
       </Section>
 
-      <Section
-        title="퀴즈 안내사항"
-        right={<Switch checked={form.noticeEnabled} onCheckedChange={v => set('noticeEnabled', v)} className="data-[state=checked]:bg-primary" />}
-      >
-        {form.noticeEnabled ? (
-          <>
-            <p className="text-xs mb-2 text-muted-foreground">응시 전 학생에게 표시될 안내 문구입니다.</p>
-            <textarea value={form.notice} onChange={e => set('notice', e.target.value)} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-y leading-relaxed" placeholder="학생에게 안내할 퀴즈 정책을 입력하세요." />
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground">안내사항을 표시하려면 우측 토글로 활성화하세요.</p>
+      <Section title="퀴즈 안내사항">
+        <Toggle
+          checked={form.noticeEnabled}
+          onChange={v => set('noticeEnabled', v)}
+          label="안내사항 표시"
+          description="응시 전 학생에게 표시될 안내 문구를 작성합니다."
+        />
+        {form.noticeEnabled && (
+          <textarea value={form.notice} onChange={e => set('notice', e.target.value)} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-y leading-relaxed" placeholder="학생에게 안내할 퀴즈 정책을 입력하세요." />
         )}
       </Section>
 
@@ -783,7 +775,7 @@ function InfoTab({ form, set, quizStatus, courseKey }) {
           disabled={isDraft}
           label="학생에게 퀴즈 공개"
           description={isDraft
-            ? '임시저장 상태에선 자동 비공개입니다. 게시 후 설정할 수 있습니다.'
+            ? '임시저장 상태에선 자동 비공개입니다. 공개 후 설정할 수 있습니다.'
             : '비공개 시 학생 화면에 퀴즈가 표시되지 않습니다'}
         />
       </Section>
@@ -883,96 +875,4 @@ function QuestionsTab({ questions, totalPoints, regradeMap, onShowBank, onShowRa
   )
 }
 
-const DEFAULT_CONSENT_TEXT = `- 응시 중 화면, 웹캠 이미지, 시스템 활동 로그가 본 시험의 부정행위 검증 목적으로 기록됩니다.
-- 수집된 정보는 시험 종료 후 6개월간 보관 후 안전하게 삭제됩니다.
-- 응시 중 다른 응용프로그램 사용/외부 통신은 부정행위로 판단될 수 있습니다.`
 
-function SecuritySection({ form, set }) {
-  const hasAnySecurity = form.securityTrustLock || form.securityAiProctoring || form.securityRequireConsent
-  return (
-    <Section title="응시 보안 및 감독">
-      <div className="space-y-3">
-        <div className="rounded-md bg-accent border border-accent p-3 text-xs text-secondary-foreground space-y-1">
-          <p className="font-medium text-foreground">옵션 사용 시 외부 SaaS 연동 또는 학생 개인정보 처리가 발생할 수 있습니다.</p>
-          <p>TrustLock 시험 전용 브라우저와 AI 시험 감독은 외부 SaaS 책임 영역이며, 사용 가능 여부는 기관/과목 설정에 따릅니다.</p>
-        </div>
-
-        <Toggle
-          checked={form.securityTrustLock}
-          onChange={v => set('securityTrustLock', v)}
-          label="TrustLock 시험 전용 브라우저"
-          description="학생은 지정된 안전 브라우저에서만 응시할 수 있으며 다른 응용프로그램이 제한됩니다."
-        />
-        <Toggle
-          checked={form.securityAiProctoring}
-          onChange={v => set('securityAiProctoring', v)}
-          label="AI 시험 감독"
-          description="응시 중 학생 화면과 웹캠 영상을 AI 가 모니터링하여 이상 행동을 단서로 표시합니다."
-        />
-        <Toggle
-          checked={form.securityRequireConsent}
-          onChange={v => set('securityRequireConsent', v)}
-          label="응시 전 필수 동의"
-          description="학생이 동의하지 않으면 응시 화면에 진입할 수 없습니다."
-        />
-
-        {form.securityRequireConsent && (
-          <div className="border-l-2 border-border pl-4 ml-0.5 space-y-2">
-            <label className="block text-sm font-medium text-secondary-foreground">동의 안내문</label>
-            <textarea
-              value={form.securityConsentText}
-              onChange={e => set('securityConsentText', e.target.value)}
-              placeholder={DEFAULT_CONSENT_TEXT}
-              rows={5}
-              className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-y leading-relaxed"
-            />
-            <p className="text-xs text-muted-foreground">미입력 시 placeholder 의 기본 안내문이 학생 화면에 노출됩니다.</p>
-          </div>
-        )}
-
-        {hasAnySecurity && (
-          <div className="bg-warning-bg border border-warning-border rounded-md p-3 text-xs text-warning-foreground">
-            보안 옵션 활성 시 학생은 응시 진입 직전 안내 게이트를 거쳐야 합니다. 응시 중 화면에는 활성 보안 옵션이 배지로 노출됩니다.
-          </div>
-        )}
-      </div>
-    </Section>
-  )
-}
-
-function Section({ title, right, children }) {
-  return (
-    <Card className="border-slate-300">
-      <CardContent className="px-5 py-3 space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-          <h2 className="text-sm font-semibold">{title}</h2>
-          {right}
-        </div>
-        {children}
-      </CardContent>
-    </Card>
-  )
-}
-
-function Field({ label, required, children }) {
-  return (
-    <div>
-      <label className="block text-sm font-medium mb-1.5 text-secondary-foreground">
-        {label}{required && <span className="ml-0.5 text-destructive">*</span>}
-      </label>
-      {children}
-    </div>
-  )
-}
-
-function Toggle({ checked, onChange, label, description, disabled = false }) {
-  return (
-    <label className={cn('flex items-start gap-3', disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer')}>
-      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} className="mt-0.5 data-[state=checked]:bg-primary" />
-      <div>
-        <p className="text-sm font-medium text-secondary-foreground">{label}</p>
-        {description && <p className="text-xs mt-0.5 text-muted-foreground">{description}</p>}
-      </div>
-    </label>
-  )
-}

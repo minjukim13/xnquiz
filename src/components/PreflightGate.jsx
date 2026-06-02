@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, Camera, Lock, FileCheck2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-
-const DEFAULT_CONSENT_TEXT = `- 응시 중 화면, 웹캠 이미지, 시스템 활동 로그가 본 시험의 부정행위 검증 목적으로 기록됩니다.
-- 수집된 정보는 시험 종료 후 6개월간 보관 후 안전하게 삭제됩니다.
-- 응시 중 다른 응용프로그램 사용/외부 통신은 부정행위로 판단될 수 있습니다.`
+import { DEFAULT_CONSENT_TEXT } from '@/components/quiz-form'
 
 const SECURITY_ITEMS = [
   {

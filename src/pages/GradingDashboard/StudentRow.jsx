@@ -88,7 +88,7 @@ function ScoreControls({ student, question, displayScore, isChanged, isUngraded,
           placeholder="-"
           min={0}
           max={question.points}
-          step={0.5}
+          step="any"
           className={cn(
             'w-16 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-blue-100 text-center border tabular-nums text-slate-900',
             isChanged ? 'border-primary' : 'border-slate-200'

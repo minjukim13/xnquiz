@@ -123,7 +123,7 @@ function QuestionCard({ question, student, studentIdx, quizId, pendingScore, onS
               placeholder="—"
               min={0}
               max={question.points}
-              step={0.5}
+              step="any"
               className={cn(
                 'w-16 bg-white text-sm px-2 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-blue-100 text-center border tabular-nums text-slate-900',
                 isPending ? 'border-primary' : 'border-slate-200'
