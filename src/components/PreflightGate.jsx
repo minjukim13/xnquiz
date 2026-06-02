@@ -9,7 +9,7 @@ const SECURITY_ITEMS = [
   {
     key: 'securityTrustLock',
     icon: Lock,
-    title: 'TrustLock 시험 전용 브라우저',
+    title: '시험 전용 브라우저',
     detail: '시험 전용 브라우저에서만 응시 가능합니다. 다른 응용프로그램을 종료한 뒤 시험 브라우저를 실행해 주세요.',
     checklist: [
       '시험 전용 브라우저가 설치되어 있어야 합니다.',

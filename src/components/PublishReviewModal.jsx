@@ -234,7 +234,7 @@ function buildReviewItems(form, questions, totalPoints) {
 
   // 8. 응시 보안 및 감독
   const secOpts = []
-  if (form.securityTrustLock) secOpts.push('TrustLock 전용 브라우저')
+  if (form.securityTrustLock) secOpts.push('시험 전용 브라우저')
   if (form.securityAiProctoring) secOpts.push('AI 시험 감독')
   if (form.securityRequireConsent) secOpts.push('응시 전 필수 동의')
   items.push({

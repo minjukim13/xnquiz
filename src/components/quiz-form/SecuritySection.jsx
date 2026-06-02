@@ -11,7 +11,7 @@ export function SecuritySection({ form, set }) {
       <Toggle
         checked={form.securityTrustLock}
         onChange={v => set('securityTrustLock', v)}
-        label="TrustLock 시험 전용 브라우저"
+        label="시험 전용 브라우저"
         description="학생은 지정된 안전 브라우저에서만 응시할 수 있으며 다른 응용프로그램이 제한됩니다."
       />
       <Toggle
