@@ -2,8 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { getLocalGrades, setLocalGrades, getInitScore, hasActualScoreChange, PAGE_SIZE_OPTIONS } from './utils'
 import { isAnswerCorrect, getStudentAnswer } from '../../data/mockData'
-import QuestionStudentListItem from './QuestionStudentListItem'
-import AnswerDetailView from './AnswerDetailView'
+import StudentRow from './StudentRow'
 import { Button } from '@/components/ui/button'
 import { Search, Check, ListFilter } from 'lucide-react'
 import { DropdownSelect } from '../../components/DropdownSelect'
@@ -80,7 +79,6 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'ontime' | 'late' | 'unsubmitted'
   const [gradeStatusFilter, setGradeStatusFilter] = useState([])
   const [openFilter, setOpenFilter] = useState(null)
-  const [selectedStudentId, setSelectedStudentId] = useState(null)
   const gradeStatusFilterRef = useRef(null)
 
   useEffect(() => {
@@ -104,7 +102,6 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     setFilterStatus('all')
     setGradeStatusFilter([])
     setOpenFilter(null)
-    setSelectedStudentId(null)
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [question?.id])
 
@@ -157,20 +154,6 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(filtered.length / pageSize)
   const visible = pageSize === 'all' ? filtered : filtered.slice((page - 1) * pageSize, page * pageSize)
 
-  // 선택된 학생이 필터링 결과에 없으면 첫 항목으로 자동 선택
-  useEffect(() => {
-    const exists = visible.some(s => s.id === selectedStudentId)
-    if (!exists) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- auto-pick first student on filter change
-      setSelectedStudentId(visible[0]?.id ?? null)
-    }
-  }, [visible, selectedStudentId])
-
-  const selectedStudent = useMemo(
-    () => students.find(s => s.id === selectedStudentId) ?? null,
-    [students, selectedStudentId]
-  )
-
   const handleScoreChange = useCallback((studentId, score) => {
     // 배점 초과 입력 차단 (XQ-URD-025 정책: 입력 단계에서 차단)
     if (score !== '' && score !== null && score !== undefined) {
@@ -221,128 +204,107 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
   const unsubmittedCount = students.filter(s => !s.submittedAt).length
 
   return (
-    <div className="flex-1 bg-white overflow-hidden flex flex-col sm:flex-row border border-slate-200 rounded-lg min-h-[480px]">
-      {/* ───── 좌측: 학생 리스트 패널 ───── */}
-      <div className="flex flex-col w-full sm:w-64 lg:w-72 shrink-0 border-b sm:border-b-0 sm:border-r border-slate-200 bg-white">
-        {/* 필터: 제출 상태 세그먼트 */}
-        <div className="px-2.5 py-2 border-b border-slate-100">
-          <div className="flex flex-wrap items-center gap-1 p-0.5 rounded-lg bg-slate-100">
-            {[
-              { key: 'all',          label: '전체',     count: students.length,  dotCls: null },
-              { key: 'ontime',       label: '정상',     count: ontimeCount,      dotCls: 'bg-success' },
-              { key: 'late',         label: '지각',     count: lateCount,        dotCls: 'bg-warning' },
-              { key: 'unsubmitted',  label: '미제출',   count: unsubmittedCount, dotCls: 'bg-gray-300' },
-            ].map(({ key, label, count, dotCls }) => {
-              const isActive = filterStatus === key
-              return (
-                <button
-                  key={key}
-                  onClick={() => setFilterStatus(key)}
-                  className={cn(
-                    'flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all',
-                    isActive ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-500'
-                  )}
-                >
-                  {dotCls && (
-                    <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0 inline-block', dotCls)} />
-                  )}
-                  {label}
-                  <span className={cn('text-[10px] font-bold', isActive ? 'text-primary' : 'text-muted-foreground')}>
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+    <div className="flex-1 bg-white overflow-hidden flex flex-col border border-slate-200 rounded-lg">
+      {/* 필터: 제출 상태 세그먼트 + 채점 상태 필터 */}
+      <div className="px-3 py-2 border-b border-slate-100 bg-white flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 inline-flex flex-wrap">
+          {[
+            { key: 'all',          label: '전체',     count: students.length,  dotCls: null },
+            { key: 'ontime',       label: '정상제출', count: ontimeCount,      dotCls: 'bg-success' },
+            { key: 'late',         label: '지각제출', count: lateCount,        dotCls: 'bg-warning' },
+            { key: 'unsubmitted',  label: '미제출',   count: unsubmittedCount, dotCls: 'bg-gray-300' },
+          ].map(({ key, label, count, dotCls }) => {
+            const isActive = filterStatus === key
+            return (
+              <button
+                key={key}
+                onClick={() => setFilterStatus(key)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all',
+                  isActive ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-500'
+                )}
+              >
+                {dotCls && (
+                  <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0 inline-block', dotCls)} />
+                )}
+                {label}
+                <span className={cn('text-xs font-bold', isActive ? 'text-primary' : 'text-muted-foreground')}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
         </div>
+        <ToolbarFilter
+          containerRef={gradeStatusFilterRef}
+          label="채점 상태"
+          options={GRADE_STATUS_OPTIONS}
+          selected={gradeStatusFilter}
+          onChange={setGradeStatusFilter}
+          isOpen={openFilter === 'gradeStatus'}
+          onToggle={() => setOpenFilter(prev => prev === 'gradeStatus' ? null : 'gradeStatus')}
+        />
+      </div>
 
-        {/* 검색 + 채점 상태 필터 */}
-        <div className="px-2.5 py-2 border-b border-slate-100 flex items-center gap-1.5">
-          <div className="flex-1 relative">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => onSearch(e.target.value)}
-              placeholder="이름/학번"
-              className="w-full bg-white text-xs pl-7 pr-2 py-1.5 rounded border border-slate-200 text-slate-900 focus:outline-none"
-            />
-          </div>
-          <ToolbarFilter
-            containerRef={gradeStatusFilterRef}
-            label="채점"
-            options={GRADE_STATUS_OPTIONS}
-            selected={gradeStatusFilter}
-            onChange={setGradeStatusFilter}
-            isOpen={openFilter === 'gradeStatus'}
-            onToggle={() => setOpenFilter(prev => prev === 'gradeStatus' ? null : 'gradeStatus')}
+      {/* 툴바: 검색 + 정렬 + 페이지 크기 */}
+      <div className="px-3 py-2 flex items-center gap-2 border-b border-slate-100 bg-slate-50">
+        <div className="flex-1 relative">
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => onSearch(e.target.value)}
+            placeholder="이름 또는 학번"
+            className="w-full bg-white text-xs pl-7 pr-3 py-1.5 rounded border border-slate-200 text-slate-900 focus:outline-none"
           />
         </div>
+        <DropdownSelect
+          size="sm"
+          value={sortBy}
+          onChange={setSortBy}
+          options={SORT_OPTIONS}
+          ghost
+          className="w-28"
+        />
+        <DropdownSelect
+          size="sm"
+          value={pageSize}
+          onChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}
+          options={PAGE_SIZE_OPTIONS}
+          ghost
+          className="w-20"
+        />
+      </div>
 
-        {/* 정렬 + 페이지 크기 */}
-        <div className="px-2.5 py-1.5 border-b border-slate-100 flex items-center gap-1.5 bg-slate-50">
-          <DropdownSelect
-            size="sm"
-            value={sortBy}
-            onChange={setSortBy}
-            options={SORT_OPTIONS}
-            ghost
-            className="flex-1"
-          />
-          <DropdownSelect
-            size="sm"
-            value={pageSize}
-            onChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}
-            options={PAGE_SIZE_OPTIONS}
-            ghost
-            className="w-20"
-          />
-        </div>
-
-        {/* 학생 리스트 */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
-          {visible.length === 0 ? (
-            <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">검색 결과가 없습니다</div>
-          ) : (
-            visible.map(s => (
-              <QuestionStudentListItem
-                key={s.id}
-                student={s}
-                question={question}
-                quizId={quizId}
-                selected={selectedStudentId === s.id}
-                isChanged={changedStudentIds?.has(s.id)}
-                pendingScore={pendingScores[s.id]}
-                onClick={() => setSelectedStudentId(s.id)}
-              />
-            ))
-          )}
-        </div>
-
-        {/* 페이지네이션 */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-2.5 py-2 border-t border-slate-100 bg-white">
-            <span className="text-[11px] text-muted-foreground tabular-nums">{page} / {totalPages}</span>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="xs" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>이전</Button>
-              <Button variant="outline" size="xs" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>다음</Button>
-            </div>
-          </div>
+      {/* 학생 카드 리스트 */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin bg-slate-50/30">
+        {visible.length === 0 ? (
+          <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">검색 결과가 없습니다</div>
+        ) : (
+          visible.map(s => (
+            <StudentRow key={s.id} student={s} question={question} quizId={quizId} onScoreChange={handleScoreChange} pendingScore={pendingScores[s.id]} isChanged={changedStudentIds?.has(s.id)} onRowSave={handleRowSave} />
+          ))
         )}
       </div>
 
-      {/* ───── 우측: 답변 + 채점 패널 ───── */}
-      <div className="flex-1 min-w-0 flex flex-col bg-white">
-        <AnswerDetailView
-          student={selectedStudent}
-          question={question}
-          quizId={quizId}
-          pendingScore={pendingScores[selectedStudent?.id]}
-          isChanged={selectedStudent ? changedStudentIds?.has(selectedStudent.id) : false}
-          onScoreChange={handleScoreChange}
-          onRowSave={handleRowSave}
-        />
-      </div>
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100">
+          <span className="text-xs text-muted-foreground">{page} / {totalPages} 페이지</span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="xs" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>이전</Button>
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              const p = totalPages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= totalPages - 3 ? totalPages - 6 + i : page - 3 + i
+              return (
+                <Button key={p} variant={p === page ? 'default' : 'outline'} size="icon-xs" onClick={() => setPage(p)}>
+                  {p}
+                </Button>
+              )
+            })}
+            <Button variant="outline" size="xs" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>다음</Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
