@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
-import { useParams, useNavigate, Navigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate, useSearchParams } from 'react-router-dom'
 import { GripVertical, Pencil, Trash2, Printer, RefreshCw, HelpCircle } from 'lucide-react'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
@@ -26,6 +26,7 @@ import DateTimePicker from '../components/DateTimePicker'
 import WeekSessionPicker from '../components/WeekSessionPicker'
 import { Section, Field, Toggle, SecuritySection } from '@/components/quiz-form'
 import { getCompletedSteps } from '@/utils/quizFormSteps'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const DATA_MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
@@ -40,11 +41,13 @@ const EDIT_STEPS = [
     value: 'info',
     label: '시험 설정',
     desc: '학생 응시 환경과 운영 규칙을 조정합니다. 응시 가능 기간, 시간 제한, 재응시 정책, 성적 공개 기준, 보안/감독 옵션 등을 변경해 시험 운영 방식을 갱신합니다.',
+    requirement: '퀴즈 제목을 입력해주세요',
   },
   {
     value: 'questions',
     label: '문항 추가',
     desc: '시험에 출제할 문항을 추가하거나 수정합니다. 새 문항을 직접 작성하거나, 기존 문제모음에서 선별해 가져오거나, 조건에 맞춰 무작위 출제하는 세 가지 방식을 조합할 수 있습니다.',
+    requirement: '최소 1개 문항을 추가해주세요',
   },
 ]
 
@@ -62,6 +65,12 @@ export default function QuizEdit() {
   const [showBankModal, setShowBankModal] = useState(false)
   const [showRandomBankModal, setShowRandomBankModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [searchParams] = useSearchParams()
+  useEffect(() => {
+    const m = searchParams.get('modal')
+    if (m === 'add-question') setShowAddModal(true)
+    else if (m === 'settings') setTab('info')
+  }, [searchParams])
   const [questions, setQuestions] = useState([])
   const [initialQuestionsSnapshot, setInitialQuestionsSnapshot] = useState('[]')
   const [editingQuestion, setEditingQuestion] = useState(null)
@@ -245,7 +254,32 @@ export default function QuizEdit() {
   const [alertDialog, setAlertDialog] = useState(null)
 
   if (role !== 'instructor') return <Navigate to="/" replace />
-  if (!loaded) return <div className="p-8 text-muted-foreground text-sm">불러오는 중</div>
+  if (!loaded) {
+    return (
+      <div className="max-w-5xl mx-auto pb-4" aria-busy="true" aria-label="퀴즈 정보를 불러오는 중">
+        <Skeleton className="h-7 w-40 mt-6 sm:mt-8 mb-4 sm:mb-5" />
+        <div className="space-y-4">
+          <div className="flex items-stretch gap-2 sm:gap-3">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 flex-1" />
+          </div>
+          <Skeleton className="h-12 w-full" />
+        </div>
+        <div className="pt-5 space-y-3">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+        <div className="flex items-center justify-between gap-2 mt-8 pt-5 border-t border-border">
+          <Skeleton className="h-10 w-16" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </div>
+      </div>
+    )
+  }
   if (!quiz) return <Navigate to="/" replace />
 
   const handleCancel = () => {
@@ -826,8 +860,9 @@ function QuestionsTab({ questions, totalPoints, regradeMap, onShowBank, onShowRa
       </div>
 
       {questions.length === 0 ? (
-        <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-secondary">
-          <p className="text-sm text-muted-foreground/60">아직 추가된 문항이 없습니다</p>
+        <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-secondary space-y-1.5">
+          <p className="text-sm text-secondary-foreground">아직 추가된 문항이 없습니다</p>
+          <p className="text-xs text-muted-foreground">상단의 "문항 만들기" 또는 "문제모음에서 추가" 버튼으로 시작합니다</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -849,11 +884,11 @@ function QuestionsTab({ questions, totalPoints, regradeMap, onShowBank, onShowRa
                     {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-warning-bg text-warning-foreground">수동채점</Badge>}
                     {regradeMap?.[q.id]?.option && <Badge variant="secondary" className="bg-warning-bg text-warning-foreground gap-1"><RefreshCw size={10} />재채점 예정</Badge>}
                   </div>
-                  <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-0.5 shrink-0">
                     <button onClick={() => onEdit(q)} title="문항 편집" className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                       <Pencil size={13} />
                     </button>
-                    <button onClick={() => onRemove(q.id)} className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-colors">
+                    <button onClick={() => onRemove(q.id)} title="문항 삭제" className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-colors">
                       <Trash2 size={13} />
                     </button>
                   </div>

@@ -6,7 +6,7 @@ import {
   FileEdit, UserCheck, Printer
 } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
-import { getStudentAnswer } from '../../data/mockData'
+import { getStudentAnswer, QUIZ_TYPES } from '../../data/mockData'
 import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
 import { useRole } from '../../context/role'
 import { downloadAnswerSheetsXlsx } from '../../utils/excelUtils'
@@ -17,7 +17,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import ConditionalRetakeModal from '../../components/ConditionalRetakeModal'
 import { printQuizQuestions, printBulkAnswerSheets } from '../../utils/pdfUtils'
 import { DropdownSelect } from '../../components/DropdownSelect'
-import { getLocalGrades, SORT_OPTIONS } from './utils'
+import { getLocalGrades } from './utils'
 import QuestionItem from './QuestionItem'
 import QuestionDetailPanel from './QuestionDetailPanel'
 import StudentDetailPanel from './StudentDetailPanel'
@@ -109,7 +109,7 @@ export default function GradingDashboard() {
 
   // 문항 중심 상태
   const [selectedQ, setSelectedQ] = useState(null)
-  const [sortBy, setSortBy] = useState('ungraded_first')
+  const [typeFilter, setTypeFilter] = useState('all')
   const [collapsedGraded, setCollapsedGraded] = useState(false)
   const [activeTab, setActiveTab] = useState('responses')
 
@@ -193,18 +193,36 @@ export default function GradingDashboard() {
     })
   }, [quizQuestions, id, gradeVersion]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const typeFilterOptions = useMemo(() => {
+    const presentTypes = []
+    const seen = new Set()
+    questionsWithLiveCounts.forEach(q => {
+      if (q.type === 'text') return
+      if (seen.has(q.type)) return
+      seen.add(q.type)
+      presentTypes.push({ value: q.type, label: QUIZ_TYPES[q.type]?.label || q.type })
+    })
+    return [{ value: 'all', label: '전체 유형' }, ...presentTypes]
+  }, [questionsWithLiveCounts])
+
+  useEffect(() => {
+    if (typeFilter !== 'all' && !typeFilterOptions.some(o => o.value === typeFilter)) {
+      setTypeFilter('all')
+    }
+  }, [typeFilter, typeFilterOptions])
+
   const sortedQuestions = useMemo(() => {
     if (!QUIZ_INFO) return []
-    if (sortBy === 'ungraded_first') {
-      return [...questionsWithLiveCounts].sort((a, b) => {
-        const aComplete = a.gradedCount >= a.totalCount
-        const bComplete = b.gradedCount >= b.totalCount
-        if (aComplete === bComplete) return a.order - b.order
-        return aComplete ? 1 : -1
-      })
-    }
-    return [...questionsWithLiveCounts].sort((a, b) => a.order - b.order)
-  }, [sortBy, QUIZ_INFO, questionsWithLiveCounts])
+    const filtered = typeFilter === 'all'
+      ? questionsWithLiveCounts
+      : questionsWithLiveCounts.filter(q => q.type === typeFilter)
+    return [...filtered].sort((a, b) => {
+      const aComplete = a.gradedCount >= a.totalCount
+      const bComplete = b.gradedCount >= b.totalCount
+      if (aComplete === bComplete) return a.order - b.order
+      return aComplete ? 1 : -1
+    })
+  }, [typeFilter, QUIZ_INFO, questionsWithLiveCounts])
 
   const gradedQuestions = sortedQuestions.filter(q => q.gradedCount >= q.totalCount)
   const ungradedQuestions = sortedQuestions.filter(q => q.gradedCount < q.totalCount)
@@ -423,9 +441,9 @@ export default function GradingDashboard() {
                     총 문항 {questionsWithLiveCounts.length}개
                   </span>
                   <DropdownSelect
-                    value={sortBy}
-                    onChange={setSortBy}
-                    options={SORT_OPTIONS}
+                    value={typeFilter}
+                    onChange={setTypeFilter}
+                    options={typeFilterOptions}
                     size="sm"
                     ghost
                   />

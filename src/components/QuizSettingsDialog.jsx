@@ -83,13 +83,13 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>퀴즈 전역 설정</DialogTitle>
-          <p className="text-[15px] text-muted-foreground">이 설정은 모든 퀴즈에 공통으로 적용됩니다.</p>
+          <DialogTitle>퀴즈 기본 설정</DialogTitle>
+          <p className="text-[15px] text-muted-foreground">이 설정은 모든 퀴즈에 기본값으로 적용됩니다. 복수 선택 문항은 문항 단위로 정책을 변경할 수 있습니다.</p>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* 복수 정답 문항 부분 점수 */}
-          <SettingsSection title="복수선택 채점 방식">
+          <SettingsSection title="복수선택 채점 방식 (기본값)">
             <div className="space-y-2">
               {SCORING_MODES.map(opt => (
                 <RadioOption

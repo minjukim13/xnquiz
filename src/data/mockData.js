@@ -1909,12 +1909,13 @@ function gradeByQuestion(question, answer) {
 
       const studentSelected = String(answer).split(',').map(s => s.trim()).filter(Boolean)
       const correctSet = new Set(correctTexts.map(norm))
-      const scoringMode = gs.multipleAnswersScoringMode || 'all_correct'
+      // 문항 단위 override 가 있으면 그 값을, 없으면 전역 기본값을 사용
+      const scoringMode = question.scoringMode ?? gs.multipleAnswersScoringMode ?? 'all_correct'
 
       if (scoringMode === 'partial') {
         const correctCount = studentSelected.filter(s => correctSet.has(norm(s))).length
         const wrongCount = studentSelected.filter(s => !correctSet.has(norm(s))).length
-        const penaltyMethod = gs.penaltyMethod || 'none'
+        const penaltyMethod = question.penaltyMethod ?? gs.penaltyMethod ?? 'none'
         if (penaltyMethod === 'right_minus_wrong') {
           return Math.max(0, Math.round(((correctCount - wrongCount) / correctTexts.length) * pts * 2) / 2)
         }
@@ -2125,13 +2126,14 @@ export function autoGradeAnswer(question, answer) {
     const gs = _getGlobalSettings()
     const norm = (s) => _normalizeAnswer(s, gs)
     const correctSet = new Set(correctTexts.map(norm))
-    const scoringMode = gs.multipleAnswersScoringMode || 'all_correct'
+    // 문항 단위 override 가 있으면 그 값을, 없으면 전역 기본값을 사용
+    const scoringMode = question.scoringMode ?? gs.multipleAnswersScoringMode ?? 'all_correct'
 
     if (scoringMode === 'partial') {
       const correctCount = studentSelected.filter(s => correctSet.has(norm(s))).length
       const wrongCount = studentSelected.filter(s => !correctSet.has(norm(s))).length
       const totalChoices = opts.length || 4 // 선택지 총 수 (formula_scoring용)
-      const penaltyMethod = gs.penaltyMethod || 'none'
+      const penaltyMethod = question.penaltyMethod ?? gs.penaltyMethod ?? 'none'
 
       if (penaltyMethod === 'right_minus_wrong') {
         // 오답 차감 (Canvas 방식): (정답 수 - 오답 수) / 전체 정답 수 × 배점 (최소 0점)

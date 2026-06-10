@@ -5,7 +5,7 @@ import { Paperclip, Download, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 // 복합 답안(객체/배열)을 표시용 문자열로 변환
-function formatAnswerForDisplay(question, answer) {
+export function formatAnswerForDisplay(question, answer) {
   if (answer === null || answer === undefined || answer === '') return answer
   if (typeof answer === 'string' || typeof answer === 'number' || typeof answer === 'boolean') return answer
   if (question.type === 'formula' && typeof answer === 'object') return answer.value ?? ''
@@ -23,7 +23,7 @@ function formatAnswerForDisplay(question, answer) {
   return JSON.stringify(answer)
 }
 
-function SubmitBadge({ status }) {
+export function SubmitBadge({ status }) {
   if (status === 'late') {
     return <span className="inline-block text-[11px] px-1.5 py-0.5 rounded font-medium bg-warning-bg text-warning-foreground">지각제출</span>
   }
@@ -49,7 +49,7 @@ export function GradeStatusBadge({ ungraded }) {
   )
 }
 
-function FudgeBadge({ value }) {
+export function FudgeBadge({ value }) {
   if (!value) return null
   return (
     <span
@@ -230,7 +230,7 @@ function StudentRow({ student, question, quizId, onScoreChange, pendingScore, is
   )
 }
 
-function FileSubmissionView({ studentIdx, question }) {
+export function FileSubmissionView({ studentIdx, question }) {
   const file = getStudentFileSubmission(studentIdx, question.id)
   const extColor = { pdf: 'text-red-500', png: 'text-blue-500', jpg: 'text-green-500', hwp: 'text-sky-600' }
   return (

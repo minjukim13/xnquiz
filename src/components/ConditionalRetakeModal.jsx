@@ -44,8 +44,6 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
         reason = '미응시'
       } else if (s.submitted && includeScoreBelow && s.score !== null && s.score < thresholdScore) {
         reason = `${s.score}점`
-      } else if (s.submitted && includeScoreBelow && s.score === null) {
-        reason = '채점 미완료'
       }
       if (reason) matched.push({ ...s, retakeReason: reason })
     })
@@ -56,8 +54,11 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
   const noConditionSelected = !includeNotSubmitted && !includeScoreBelow
 
   const notSubmittedCount = matchedStudents.filter(s => s.retakeReason === '미응시').length
-  const scoreBelowCount = matchedStudents.filter(s => s.retakeReason !== '미응시' && s.retakeReason !== '채점 미완료').length
-  const ungradedCount = matchedStudents.filter(s => s.retakeReason === '채점 미완료').length
+  const scoreBelowCount = matchedStudents.filter(s => s.retakeReason !== '미응시').length
+  const ungradedExcludedCount = useMemo(() => {
+    if (!students || !includeScoreBelow) return 0
+    return students.filter(s => s.submitted && s.score === null).length
+  }, [students, includeScoreBelow])
 
   const toggleExclude = (id) => {
     setExcludedIds(prev => {
@@ -168,15 +169,21 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
               )}
 
               {!noConditionSelected && (
-                <div className="flex items-center justify-between px-5 py-4 rounded-xl bg-secondary">
-                  <span className="text-[15px] font-bold text-foreground">총 {matchedStudents.length}명 대상</span>
-                  <span className="text-[13px] text-muted-foreground">
-                    {[
-                      includeNotSubmitted && notSubmittedCount > 0 && `미응시 ${notSubmittedCount}명`,
-                      includeScoreBelow && scoreBelowCount > 0 && `점수 미달 ${scoreBelowCount}명`,
-                      ungradedCount > 0 && `채점 미완료 ${ungradedCount}명`,
-                    ].filter(Boolean).join(' / ')}
-                  </span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between px-5 py-4 rounded-xl bg-secondary">
+                    <span className="text-[15px] font-bold text-foreground">총 {matchedStudents.length}명 대상</span>
+                    <span className="text-[13px] text-muted-foreground">
+                      {[
+                        includeNotSubmitted && notSubmittedCount > 0 && `미응시 ${notSubmittedCount}명`,
+                        includeScoreBelow && scoreBelowCount > 0 && `점수 미달 ${scoreBelowCount}명`,
+                      ].filter(Boolean).join(' / ')}
+                    </span>
+                  </div>
+                  {includeScoreBelow && ungradedExcludedCount > 0 && (
+                    <p className="text-[12px] text-muted-foreground px-1">
+                      채점 미완료 응시 {ungradedExcludedCount}명은 점수 비교 대상이 아니므로 선별에서 제외되며, 점수 미달 선별 신뢰도에 영향을 줄 수 있습니다.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -357,7 +364,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
                   {includeScoreBelow && (
                     <div className="flex justify-between">
                       <span className="text-[15px] text-secondary-foreground">점수 미달 ({scoreThreshold}% 미만)</span>
-                      <span className="text-[15px] font-semibold text-muted-foreground">{finalTargets.filter(s => s.retakeReason !== '미응시' && s.retakeReason !== '채점 미완료').length}명</span>
+                      <span className="text-[15px] font-semibold text-muted-foreground">{finalTargets.filter(s => s.retakeReason !== '미응시').length}명</span>
                     </div>
                   )}
                 </div>

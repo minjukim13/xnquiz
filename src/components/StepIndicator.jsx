@@ -5,16 +5,19 @@ import { cn } from '@/lib/utils'
 // 사용:
 //   <StepIndicator
 //     steps={[
-//       { value: 'info', label: '시험 설정', desc: '제목, 응시 기간, 응시 정책 등 시험 운영 설정' },
-//       { value: 'questions', label: '문항 추가', desc: '직접 작성, 문제모음에서 가져오기, 랜덤 출제' }
+//       { value: 'info', label: '시험 설정', desc: '...', requirement: '퀴즈 제목을 입력해주세요' },
+//       { value: 'questions', label: '문항 추가', desc: '...', requirement: '최소 1개 문항을 추가해주세요' }
 //     ]}
 //     current='info'
 //     onChange={setTab}
-//     completedSteps={['info']}    // optional, 완료 표식 표시
+//     completedSteps={['info']}    // optional, 완료 표식 표시 + requirement 비노출 판단
 //   />
+//
+// requirement 는 활성 단계가 미완료(completedSteps 에 없음)일 때만 desc 박스에 함께 노출.
 export default function StepIndicator({ steps, current, onChange, completedSteps = [] }) {
   const currentIdx = steps.findIndex(s => s.value === current)
   const activeStep = steps[currentIdx]
+  const isActiveIncomplete = activeStep && !completedSteps.includes(activeStep.value)
 
   return (
     <div className="space-y-4">
@@ -70,10 +73,15 @@ export default function StepIndicator({ steps, current, onChange, completedSteps
       </ol>
 
       {activeStep?.desc && (
-        <div className="px-3 py-2 rounded-md bg-secondary/60 text-xs text-secondary-foreground">
-          <span className="font-medium text-foreground">{activeStep.label}</span>
-          <span className="mx-1.5 text-muted-foreground">·</span>
-          {activeStep.desc}
+        <div className="px-3 py-2 rounded-md bg-secondary/60 text-xs text-secondary-foreground space-y-1.5">
+          <p>
+            <span className="font-medium text-foreground">{activeStep.label}</span>
+            <span className="mx-1.5 text-muted-foreground">·</span>
+            {activeStep.desc}
+          </p>
+          {activeStep.requirement && isActiveIncomplete && (
+            <p className="text-warning-foreground">{activeStep.requirement}</p>
+          )}
         </div>
       )}
     </div>

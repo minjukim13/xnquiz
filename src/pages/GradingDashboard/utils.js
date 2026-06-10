@@ -148,11 +148,6 @@ export function hasActualScoreChange(pendingScore, initScore) {
   return Number(pendingScore) !== Number(initScore)
 }
 
-export const SORT_OPTIONS = [
-  { value: 'ungraded_first', label: '미채점 우선' },
-  { value: 'question_order', label: '문항 번호순' },
-]
-
 export const PAGE_SIZE_OPTIONS = [
   { value: 10, label: '10명씩' },
   { value: 20, label: '20명씩' },

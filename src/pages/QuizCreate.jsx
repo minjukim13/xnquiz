@@ -36,11 +36,13 @@ const CREATE_STEPS = [
     value: 'info',
     label: '시험 설정',
     desc: '학생 응시 환경과 운영 규칙을 결정합니다. 응시 가능 기간, 시간 제한, 재응시 정책, 성적 공개 기준, 보안/감독 옵션 등을 설정해 시험 운영 방식을 정의합니다.',
+    requirement: '퀴즈 제목을 입력해주세요',
   },
   {
     value: 'questions',
     label: '문항 추가',
     desc: '시험에 출제할 문항을 구성합니다. 새 문항을 직접 작성하거나, 기존 문제모음에서 선별해 가져오거나, 조건에 맞춰 무작위 출제하는 세 가지 방식을 조합할 수 있습니다.',
+    requirement: '최소 1개 문항을 추가해주세요',
   },
 ]
 
@@ -74,6 +76,7 @@ export default function QuizCreate() {
   const [showBankModal, setShowBankModal] = useState(false)
   const [showRandomBankModal, setShowRandomBankModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [editingQuestion, setEditingQuestion] = useState(null)
   const [confirmDialog, setConfirmDialog] = useState(null)
   const [alertDialog, setAlertDialog] = useState(null)
   const [showPublishReview, setShowPublishReview] = useState(false)
@@ -174,6 +177,9 @@ export default function QuizCreate() {
   const addNewQuestion = useCallback((q) => {
     setQuestions(prev => [...prev, { ...q, id: `new_q${Date.now()}` }])
   }, [])
+  const updateQuestion = (updated) => {
+    setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? { ...q, ...updated, id: editingQuestion.id } : q))
+  }
   const removeQuestion = (qId) => setQuestions(prev => prev.filter(q => q.id !== qId))
   const moveQuestion = useCallback((fromIdx, toIdx) => {
     setQuestions(prev => {
@@ -224,7 +230,7 @@ export default function QuizCreate() {
         <div className="pt-5">
           {tab === 'info' && <InfoTab form={form} set={set} />}
           {tab === 'questions' && (
-            <QuestionsTab questions={questions} totalPoints={totalPoints} onShowBank={() => setShowBankModal(true)} onShowRandomBank={() => setShowRandomBankModal(true)} onShowAdd={() => setShowAddModal(true)} onRemove={removeQuestion} onMove={moveQuestion} />
+            <QuestionsTab questions={questions} totalPoints={totalPoints} onShowBank={() => setShowBankModal(true)} onShowRandomBank={() => setShowRandomBankModal(true)} onShowAdd={() => setShowAddModal(true)} onEdit={setEditingQuestion} onRemove={removeQuestion} onMove={moveQuestion} />
           )}
         </div>
 
@@ -241,6 +247,7 @@ export default function QuizCreate() {
       <QuestionBankModal open={showBankModal} onOpenChange={setShowBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse="CS301 데이터베이스" />
       <RandomQuestionBankModal open={showRandomBankModal} onOpenChange={setShowRandomBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse="CS301 데이터베이스" />
       {showAddModal && <AddQuestionModal onClose={() => setShowAddModal(false)} onAdd={addNewQuestion} />}
+      {editingQuestion && <AddQuestionModal onClose={() => setEditingQuestion(null)} onAdd={updateQuestion} initialQuestion={editingQuestion} />}
       {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
       {alertDialog && <AlertDialog title={alertDialog.title} message={alertDialog.message} variant={alertDialog.variant} onClose={() => setAlertDialog(null)} />}
       <PublishReviewModal
@@ -548,7 +555,7 @@ function InfoTab({ form, set }) {
   )
 }
 
-function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onRemove, onMove }) {
+function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove }) {
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
 
@@ -593,8 +600,9 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
 
       {/* 문항 리스트 */}
       {questions.length === 0 ? (
-        <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-secondary">
-          <p className="text-sm text-muted-foreground/60">아직 추가된 문항이 없습니다</p>
+        <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-secondary space-y-1.5">
+          <p className="text-sm text-secondary-foreground">아직 추가된 문항이 없습니다</p>
+          <p className="text-xs text-muted-foreground">상단의 "문항 만들기" 또는 "문제모음에서 추가" 버튼으로 시작합니다</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -616,11 +624,11 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
                     <span className="text-xs text-muted-foreground">{q.points}점</span>
                     {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-warning-bg text-warning-foreground">수동채점</Badge>}
                   </div>
-                  <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button onClick={() => onEdit(q)} title="문항 편집" className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                       <Pencil size={13} />
                     </button>
-                    <button onClick={() => onRemove(q.id)} className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-colors">
+                    <button onClick={() => onRemove(q.id)} title="문항 삭제" className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-colors">
                       <Trash2 size={13} />
                     </button>
                   </div>

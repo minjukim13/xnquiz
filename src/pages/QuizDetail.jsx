@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, AlertCircle, EyeOff, Activity } from 'lucide-react'
+import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, AlertCircle, EyeOff } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/PageHeader'
 import { mockQuizzes, getStudentAttempts, getQuizQuestions as mockGetQuestions } from '../data/mockData'
@@ -312,16 +312,8 @@ export default function QuizDetail() {
               </>
             ) : (
               <>
-                {quiz.status === 'open' && (
-                  <Button asChild>
-                    <Link to={`/quiz/${quiz.id}/moderate`}>
-                      <Activity size={15} />
-                      응시 모니터링
-                    </Link>
-                  </Button>
-                )}
                 {canGrade && (
-                  <Button asChild variant={quiz.status === 'open' ? 'outline' : 'default'}>
+                  <Button asChild>
                     <Link to={`/quiz/${quiz.id}/grade`}>
                       <ClipboardCheck size={15} />
                       채점

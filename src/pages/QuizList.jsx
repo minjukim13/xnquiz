@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3 } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
@@ -206,6 +206,10 @@ function InstructorQuizList() {
   const [copySourceQuiz, setCopySourceQuiz] = useState(null)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showGlobalSettings, setShowGlobalSettings] = useState(false)
+  const [searchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('modal') === 'global-settings') setShowGlobalSettings(true)
+  }, [searchParams])
   const [toast, setToast] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
 
@@ -345,7 +349,7 @@ function InstructorQuizList() {
               variant="ghost"
               size="icon-sm"
               onClick={() => setShowGlobalSettings(true)}
-              title="퀴즈 전역 설정"
+              title="퀴즈 기본 설정"
             >
               <Settings2 size={18} />
             </Button>

@@ -52,13 +52,42 @@ const TYPE_TW = {
 const getTypeTw = (key) => TYPE_TW[key] ?? { text: 'text-muted-foreground', bg: 'bg-neutral-100', border: 'border-neutral-300', iconBorder: 'border-neutral-400/15' }
 
 
+// ── 부분 점수 정책 옵션 (URD-010) ──────────────────────────────────────────
+const SCORING_MODE_LABEL = {
+  all_correct: '미적용 (모든 정답을 맞혀야 만점)',
+  partial: '적용 (정답 비율에 따라 부분 점수)',
+}
+const PENALTY_METHOD_LABEL = {
+  none: '정답 비율만 반영',
+  right_minus_wrong: '정답 비율 반영 + 오답 차감',
+  formula_scoring: '정답 비율 반영 + 추측 보정 감점',
+}
+
+function getGlobalScoringDefaults() {
+  try {
+    const raw = localStorage.getItem('xnq_global_settings')
+    const gs = raw ? JSON.parse(raw) : {}
+    return {
+      scoringMode: gs.multipleAnswersScoringMode || 'all_correct',
+      penaltyMethod: gs.penaltyMethod || 'none',
+    }
+  } catch {
+    return { scoringMode: 'all_correct', penaltyMethod: 'none' }
+  }
+}
+
+function describeScoringPolicy(scoringMode, penaltyMethod) {
+  if (scoringMode === 'all_correct') return SCORING_MODE_LABEL.all_correct
+  return `적용 · ${PENALTY_METHOD_LABEL[penaltyMethod] || PENALTY_METHOD_LABEL.none}`
+}
+
 // ── 폼 초기값 ───────────────────────────────────────────────────────────────
 function initForm(type) {
   const base = { title: '', text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '' }
   switch (type) {
     case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
     case 'true_false':              return { ...base, correctBool: true }
-    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], correctIdxs: [] }
+    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], correctIdxs: [], overrideScoring: false, scoringMode: 'all_correct', penaltyMethod: 'none' }
     case 'short_answer':            return { ...base, acceptedAnswers: [''] }
     case 'essay':                   return { ...base, rubric: '' }
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
@@ -93,7 +122,13 @@ function buildQuestion(type, form) {
     case 'true_false':              return { ...base, correctAnswer: form.correctBool ? '참' : '거짓', choices: ['참', '거짓'] }
     case 'multiple_answers': {
       const filtered = form.options.filter(o => richTextHasContent(o))
-      return { ...base, options: filtered, choices: filtered, correctAnswer: form.correctIdxs.map(i => filtered[i]).filter(Boolean) }
+      const scoringOverride = form.overrideScoring
+        ? {
+            scoringMode: form.scoringMode || 'all_correct',
+            penaltyMethod: form.scoringMode === 'partial' ? (form.penaltyMethod || 'none') : 'none',
+          }
+        : {}
+      return { ...base, options: filtered, choices: filtered, correctAnswer: form.correctIdxs.map(i => filtered[i]).filter(Boolean), ...scoringOverride }
     }
     case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
     case 'essay':                   return { ...base, rubric: form.rubric }
@@ -192,6 +227,125 @@ function Label({ children, required }) {
     <label className="text-[15px] font-medium block mb-1.5 text-foreground">
       {children}{required && <span className="ml-0.5 text-destructive">*</span>}
     </label>
+  )
+}
+
+// ── 복수 선택 문항 단위 부분 점수 정책 (URD-010) ──────────────────────────
+function MultipleAnswersScoringPolicy({ form, setForm }) {
+  const upd = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
+  const globalDefault = getGlobalScoringDefaults()
+  const globalDesc = describeScoringPolicy(globalDefault.scoringMode, globalDefault.penaltyMethod)
+
+  return (
+    <div className="mt-2 pt-3 border-t border-border">
+      <div className="flex items-center justify-between mb-2">
+        <Label>부분 점수 정책</Label>
+        <span className="text-xs text-muted-foreground">퀴즈 기본값: <span className="text-foreground font-medium">{globalDesc}</span></span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <PolicySourceOption
+          active={!form.overrideScoring}
+          onClick={() => upd('overrideScoring', false)}
+          title="퀴즈 기본값 사용"
+          desc="퀴즈 기본 설정에서 정의한 정책을 따릅니다"
+        />
+        <PolicySourceOption
+          active={!!form.overrideScoring}
+          onClick={() => upd('overrideScoring', true)}
+          title="이 문항만 다르게 설정"
+          desc="이 문항에 한해 별도의 정책을 적용합니다"
+        />
+      </div>
+
+      {form.overrideScoring && (
+        <div className="mt-3 rounded-lg border border-border bg-slate-50/60 p-3 space-y-3">
+          <div>
+            <p className="text-xs font-semibold text-slate-600 mb-1.5">적용 여부</p>
+            <div className="space-y-1.5">
+              {Object.entries(SCORING_MODE_LABEL).map(([value, label]) => (
+                <RadioRow
+                  key={value}
+                  active={form.scoringMode === value}
+                  onClick={() => {
+                    setForm(prev => ({
+                      ...prev,
+                      scoringMode: value,
+                      penaltyMethod: value === 'all_correct' ? 'none' : prev.penaltyMethod,
+                    }))
+                  }}
+                  label={label}
+                />
+              ))}
+            </div>
+          </div>
+
+          {form.scoringMode === 'partial' && (
+            <div>
+              <p className="text-xs font-semibold text-slate-600 mb-1.5">적용 시 산정 방식</p>
+              <div className="space-y-1.5">
+                {Object.entries(PENALTY_METHOD_LABEL).map(([value, label]) => (
+                  <RadioRow
+                    key={value}
+                    active={form.penaltyMethod === value}
+                    onClick={() => upd('penaltyMethod', value)}
+                    label={label}
+                  />
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">오답 차감이 적용되어도 문항 점수는 0점 미만으로 내려가지 않습니다.</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PolicySourceOption({ active, onClick, title, desc }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'text-left p-2.5 rounded-lg border transition-all',
+        active ? 'border-primary bg-accent' : 'border-border bg-white hover:border-slate-300'
+      )}
+    >
+      <div className="flex items-start gap-2">
+        <span className={cn(
+          'mt-0.5 w-4 h-4 rounded-full border-[1.5px] shrink-0 flex items-center justify-center',
+          active ? 'border-primary' : 'border-slate-300'
+        )}>
+          {active && <span className="w-2 h-2 rounded-full bg-primary" />}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className={cn('text-[14px] font-medium', active ? 'text-primary' : 'text-slate-700')}>{title}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{desc}</p>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function RadioRow({ active, onClick, label }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-left text-[13px] transition-all',
+        active ? 'border-primary bg-white text-primary' : 'border-transparent bg-white/60 text-slate-600 hover:border-slate-200'
+      )}
+    >
+      <span className={cn(
+        'w-3.5 h-3.5 rounded-full border-[1.5px] shrink-0 flex items-center justify-center',
+        active ? 'border-primary' : 'border-slate-300'
+      )}>
+        {active && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+      </span>
+      <span>{label}</span>
+    </button>
   )
 }
 
@@ -329,6 +483,8 @@ function TypeForm({ type, form, setForm, textareaRef }) {
             })}
           </div>
           {form.options.length < 8 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
+
+          <MultipleAnswersScoringPolicy form={form} setForm={setForm} />
         </div>
       )
 
@@ -765,7 +921,15 @@ function questionToForm(q) {
       if (idxs.length > 0 && typeof idxs[0] === 'string') {
         idxs = idxs.map(a => opts.findIndex(o => o === a)).filter(i => i >= 0)
       }
-      return { ...base, options: opts, correctIdxs: idxs }
+      const hasOverride = q.scoringMode != null
+      return {
+        ...base,
+        options: opts,
+        correctIdxs: idxs,
+        overrideScoring: hasOverride,
+        scoringMode: hasOverride ? q.scoringMode : 'all_correct',
+        penaltyMethod: hasOverride ? (q.penaltyMethod || 'none') : 'none',
+      }
     }
     case 'short_answer':
       return {
@@ -829,7 +993,14 @@ function hasAnswerChanged(type, oldQuestion, newQuestion) {
     case 'multiple_choice':
     case 'true_false':
       return String(oldQuestion.correctAnswer).trim().toLowerCase() !== String(newQuestion.correctAnswer).trim().toLowerCase()
-    case 'multiple_answers':
+    case 'multiple_answers': {
+      const toArr = v => (Array.isArray(v) ? v : []).map(s => String(s).trim().toLowerCase()).sort()
+      if (JSON.stringify(toArr(oldQuestion.correctAnswer)) !== JSON.stringify(toArr(newQuestion.correctAnswer))) return true
+      // 부분 점수 정책(문항 단위 override) 변경도 채점 결과에 영향
+      if ((oldQuestion.scoringMode ?? null) !== (newQuestion.scoringMode ?? null)) return true
+      if ((oldQuestion.penaltyMethod ?? null) !== (newQuestion.penaltyMethod ?? null)) return true
+      return false
+    }
     case 'short_answer': {
       const toArr = v => (Array.isArray(v) ? v : []).map(s => String(s).trim().toLowerCase()).sort()
       return JSON.stringify(toArr(oldQuestion.correctAnswer)) !== JSON.stringify(toArr(newQuestion.correctAnswer))
