@@ -611,7 +611,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
               <tr className="border-b border-border">
                 {[
                   { key: 'name', label: '이름', align: 'left', kind: 'sort' },
-                  { key: 'studentId', label: '학번', align: 'center', kind: 'sort' },
+                  { key: 'studentId', label: '학번', align: 'left', kind: 'sort' },
                   { key: 'department', label: '학과', align: 'left', kind: 'sort' },
                   { key: 'elapsed', label: '소요 시간', align: 'center', kind: 'sort' },
                   { key: 'submit', label: '제출 상태', align: 'center', kind: 'filter' },
@@ -656,7 +656,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
                 return (
                   <tr key={s.id} className="border-b border-border hover:bg-accent/30 transition-colors">
                     <td className="px-4 py-2.5">{s.name}</td>
-                    <td className="px-4 py-2.5 text-center text-muted-foreground">{s.studentId}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{s.studentId}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{s.department}</td>
                     <td className="px-3 py-2.5 text-center whitespace-nowrap text-secondary-foreground">
                       {elapsed ?? <span className="text-muted-foreground">-</span>}
