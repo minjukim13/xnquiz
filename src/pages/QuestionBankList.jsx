@@ -20,7 +20,7 @@ function resolveCurrentCourseCode() {
 export default function QuestionBankList() {
   const navigate = useNavigate()
   const { role } = useRole()
-  const { banks, addBank, deleteBank, getBankQuestions, addQuestions, updateBank } = useQuestionBank()
+  const { banks, addBank, deleteBank, getBankQuestions, addQuestions, updateBank, moveQuestions } = useQuestionBank()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -292,7 +292,7 @@ export default function QuestionBankList() {
       {showExportModal && (
         <ExportBankModal
           onClose={() => setShowExportModal(false)}
-          onExport={async (questions, targetCourse, targetBankId, newBankName, difficulty) => {
+          onExport={async (questions, targetCourse, targetBankId, newBankName, difficulty, mode = 'copy') => {
             try {
               let bankId = targetBankId
               let bankName = newBankName
@@ -311,17 +311,23 @@ export default function QuestionBankList() {
               } else {
                 bankName = banks.find(b => b.id === bankId)?.name || bankName
               }
-              await addQuestions(questions.map(q => ({
-                ...q,
-                _sourceBankName: undefined,
-                id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-                bankId,
-              })))
+              if (mode === 'move') {
+                // 원본 유지 안 함: 기존 문항을 그대로 대상 은행으로 이동 (id 유지, bankId 만 변경)
+                await moveQuestions(questions.map(q => q.id), bankId)
+              } else {
+                await addQuestions(questions.map(q => ({
+                  ...q,
+                  _sourceBankName: undefined,
+                  id: `${q.id}_copy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                  bankId,
+                })))
+              }
               setShowExportModal(false)
-              showToast(`'${bankName}' 문제모음에 ${questions.length}개 문항을 내보냈습니다`, bankId)
+              const verb = mode === 'move' ? '이동했습니다' : '복사했습니다'
+              showToast(`'${bankName}' 문제모음에 ${questions.length}개 문항을 ${verb}`, bankId)
             } catch (err) {
               console.error('[QuestionBankList] 내보내기 실패', err)
-              showToast('내보내기 중 오류가 발생했습니다')
+              showToast('처리 중 오류가 발생했습니다')
             }
           }}
         />

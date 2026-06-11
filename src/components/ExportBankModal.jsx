@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import {
-  DiffBadge,
   WizardSteps,
   ReviewRow,
   WizardDifficultySelector,
@@ -64,6 +63,7 @@ export default function ExportBankModal({ onClose, onExport }) {
   }
 
   const [selectedSourceIds, setSelectedSourceIds] = useState([])
+  const [mode, setMode] = useState('copy')
   const [courseSearch, setCourseSearch] = useState('')
   // API 모드: context 뱅크의 첫 과목 (= 현재 과목). mock 모드: CURRENT_COURSE.
   const [targetCourse, setTargetCourse] = useState(() =>
@@ -212,6 +212,39 @@ export default function ExportBankModal({ onClose, onExport }) {
               </div>
             </div>
 
+            <div className="px-6 py-5 border-b border-border">
+              <h3 className="text-[15px] font-semibold text-foreground mb-1">동작 방식</h3>
+              <p className="text-xs text-muted-foreground mb-3">원본을 그대로 둘지, 옮길지 선택하세요</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMode('copy')}
+                  className={cn(
+                    'text-left px-4 py-3 rounded-xl border-2 transition-all',
+                    mode === 'copy' ? 'border-primary bg-accent/40' : 'border-border bg-white hover:border-primary/30'
+                  )}
+                >
+                  <p className={cn('text-sm', mode === 'copy' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>
+                    복사
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">원본 문제모음에도 그대로 남습니다</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('move')}
+                  className={cn(
+                    'text-left px-4 py-3 rounded-xl border-2 transition-all',
+                    mode === 'move' ? 'border-primary bg-accent/40' : 'border-border bg-white hover:border-primary/30'
+                  )}
+                >
+                  <p className={cn('text-sm', mode === 'move' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>
+                    이동
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">원본 문제모음에서 제거됩니다</p>
+                </button>
+              </div>
+            </div>
+
             <div className="px-6 py-5">
               <h3 className="text-[15px] font-semibold text-foreground mb-1">내보낼 위치</h3>
               <p className="text-xs text-muted-foreground mb-4">내보낼 과목과 문제모음을 선택하세요</p>
@@ -225,78 +258,75 @@ export default function ExportBankModal({ onClose, onExport }) {
                 />
               </div>
 
-              <div className="space-y-3">
-                <div
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  type="button"
                   onClick={() => { setTargetMode('new'); setTargetBankId(null) }}
                   className={cn(
-                    'w-full rounded-xl border-2 transition-all cursor-pointer overflow-hidden',
-                    targetMode === 'new' ? 'border-primary bg-accent/40' : 'border-border hover:border-primary/30'
+                    'text-left px-4 py-3 rounded-xl border-2 transition-all',
+                    targetMode === 'new' ? 'border-primary bg-accent/40' : 'border-border bg-white hover:border-primary/30'
                   )}
                 >
-                  <div className="px-4 py-3">
-                    <p className={cn('text-[15px]', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>새 문제모음 만들기</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">선택한 과목에 새 문제모음을 생성합니다</p>
-                  </div>
-                  {targetMode === 'new' && (
-                    <div className="px-4 pb-3 pt-1 space-y-2 border-t border-primary/15">
-                      <input
-                        type="text"
-                        value={newBankName}
-                        onClick={e => e.stopPropagation()}
-                        onChange={e => setNewBankName(e.target.value)}
-                        placeholder="문제모음 이름"
-                        autoFocus
-                        className="w-full max-w-xs text-[15px] px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground bg-white"
-                      />
-                      {selectedQuestions.length > 0 && (
-                        <div onClick={e => e.stopPropagation()}>
-                          <WizardDifficultySelector
-                            value={effectiveNewDifficulty}
-                            allowedDifficulties={allowedDifficulties}
-                            onChange={setNewBankDifficulty}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div
+                  <p className={cn('text-sm', targetMode === 'new' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>
+                    새 문제모음 만들기
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">선택한 과목에 새 문제모음을 생성합니다</p>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setTargetMode('existing')}
                   className={cn(
-                    'w-full rounded-xl border-2 transition-all cursor-pointer overflow-hidden',
-                    targetMode === 'existing' ? 'border-primary bg-accent/40' : 'border-border hover:border-primary/30'
+                    'text-left px-4 py-3 rounded-xl border-2 transition-all',
+                    targetMode === 'existing' ? 'border-primary bg-accent/40' : 'border-border bg-white hover:border-primary/30'
                   )}
                 >
-                  <div className="px-4 py-3">
-                    <p className={cn('text-[15px]', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>기존 문제모음에 추가</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">이미 있는 문제모음에 문항을 추가합니다</p>
+                  <p className={cn('text-sm', targetMode === 'existing' ? 'font-semibold text-primary' : 'text-secondary-foreground')}>
+                    기존 문제모음에 추가
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">이미 있는 문제모음에 문항을 추가합니다</p>
+                </button>
+              </div>
+
+              {targetMode === 'new' ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-secondary-foreground block mb-1.5">문제모음 이름</label>
+                    <input
+                      type="text"
+                      value={newBankName}
+                      onChange={e => setNewBankName(e.target.value)}
+                      placeholder="문제모음 이름"
+                      className="w-full h-9 text-[13px] px-3 border border-border rounded-lg focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground bg-white"
+                    />
                   </div>
-                  {targetMode === 'existing' && (
-                    <div className="px-4 pb-3 pt-1 space-y-1.5 border-t border-primary/15" onClick={e => e.stopPropagation()}>
-                      {compatibleCourseBanks.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-3">
-                          선택한 과목에 사용 가능한 문제모음이 없습니다
-                        </p>
-                      ) : (
-                        compatibleCourseBanks.map(b => (
-                          <button
-                            key={b.id}
-                            onClick={() => setTargetBankId(b.id)}
-                            className={cn(
-                              'w-full max-w-xs text-left px-3 py-2 rounded-lg border transition-colors text-xs flex items-center gap-2',
-                              b.id === targetBankId ? 'border-primary bg-accent font-semibold text-primary' : 'border-border text-secondary-foreground hover:border-primary/40 bg-white'
-                            )}
-                          >
-                            <DiffBadge difficulty={b.difficulty} />
-                            {b.name}
-                          </button>
-                        ))
-                      )}
-                    </div>
+                  {selectedQuestions.length > 0 && (
+                    <WizardDifficultySelector
+                      value={effectiveNewDifficulty}
+                      allowedDifficulties={allowedDifficulties}
+                      onChange={setNewBankDifficulty}
+                    />
                   )}
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-medium text-secondary-foreground block mb-1.5">대상 문제모음</label>
+                  {compatibleCourseBanks.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-3">
+                      선택한 과목에 사용 가능한 문제모음이 없습니다
+                    </p>
+                  ) : (
+                    <DropdownSelect
+                      value={targetBankId ?? ''}
+                      onChange={setTargetBankId}
+                      placeholder="문제모음 선택"
+                      options={compatibleCourseBanks.map(b => ({
+                        value: b.id,
+                        label: b.difficulty ? `[${{ high: '상', medium: '중', low: '하' }[b.difficulty]}] ${b.name}` : b.name,
+                      }))}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -322,9 +352,9 @@ export default function ExportBankModal({ onClose, onExport }) {
               <Button variant="outline" onClick={() => setStep(1)}>이전</Button>
               <Button
                 disabled={!canSubmit}
-                onClick={() => onExport(selectedQuestions, targetCourse, targetMode === 'existing' ? targetBankId : null, targetMode === 'new' ? newBankName.trim() : null, effectiveNewDifficulty)}
+                onClick={() => onExport(selectedQuestions, targetCourse, targetMode === 'existing' ? targetBankId : null, targetMode === 'new' ? newBankName.trim() : null, effectiveNewDifficulty, mode)}
               >
-                {selectedQuestions.length}개 내보내기
+                {selectedQuestions.length}개 {mode === 'move' ? '이동' : '복사'}
               </Button>
             </>
           )}
