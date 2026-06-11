@@ -17,6 +17,7 @@ const QuizStats = lazy(() => import('./pages/QuizStats'))
 const QuestionBankList = lazy(prefetchRoute.questionBankList)
 const QuestionBank = lazy(() => import('./pages/QuestionBank'))
 const QuizAttempt = lazy(() => import('./pages/QuizAttempt'))
+const QuizMonitor = lazy(() => import('./pages/QuizMonitor'))
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/quiz/:id/grade" element={<GradingDashboard />} />
             <Route path="/quiz/:id/stats" element={<QuizStats />} />
             <Route path="/quiz/:id/attempt" element={<QuizAttempt />} />
+            <Route path="/quiz/:id/moderate" element={<QuizMonitor />} />
             <Route path="/question-banks" element={<QuestionBankList />} />
             <Route path="/question-banks/:bankId" element={<QuestionBank />} />
             <Route path="*" element={<Navigate to="/" replace />} />
