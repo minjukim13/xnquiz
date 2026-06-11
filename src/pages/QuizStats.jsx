@@ -318,11 +318,6 @@ export default function QuizStats() {
               {quiz.title}
             </Link>
           }
-          actions={
-            <Button asChild>
-              <Link to={`/quiz/${quiz.id}/grade`}>채점</Link>
-            </Button>
-          }
           meta={
             <>
               <Badge className="bg-accent text-primary border-0">{quiz.week}주차 {quiz.session}차시</Badge>
