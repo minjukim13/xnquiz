@@ -247,7 +247,7 @@ export default function QuizMonitor() {
           ) : (
             <div className="divide-y divide-secondary">
               <div className="hidden sm:grid grid-cols-[1fr_120px_120px_120px_160px_100px] gap-3 px-4 py-2 text-xs font-medium text-muted-foreground bg-background text-center">
-                <span>학생</span>
+                <span className="text-left">학생</span>
                 <span>상태</span>
                 <span>시작 시각</span>
                 <span>경과 시간</span>
@@ -323,7 +323,7 @@ function StudentRow({ student, nowMs, onOpenLog }) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_120px_160px_100px] gap-3 px-4 py-3 items-center hover:bg-background transition-colors">
-      <div className="min-w-0 sm:text-center">
+      <div className="min-w-0">
         <p className="text-sm font-medium text-foreground truncate">{student.name}</p>
         <p className="text-xs text-muted-foreground truncate">{student.studentId} · {student.department}</p>
       </div>
