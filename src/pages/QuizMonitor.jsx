@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate, Navigate, Link } from 'react-router-dom'
 import {
-  Users, Clock, Hourglass, AlertTriangle, RefreshCw, Search,
+  Users, Hourglass, AlertTriangle, RefreshCw, Search,
   CheckCircle2, Activity, Info, ShieldCheck,
 } from 'lucide-react'
 import { mockQuizzes } from '../data/mockData'
@@ -17,7 +17,6 @@ import PageHeader from '../components/PageHeader'
 import ActivityLogPanel from './GradingDashboard/ActivityLogPanel'
 import { isDeadlinePassed, getEffectiveDeadline } from '@/utils/deadlineUtils'
 
-const REFRESH_INTERVAL_MS = 30_000
 const FOCUS_LOSS_ANOMALY_THRESHOLD = 3
 const IDLE_ANOMALY_THRESHOLD_SEC = 10 * 60
 
@@ -40,19 +39,6 @@ function formatElapsed(startTimeIso, nowMs) {
   const sec = Math.max(0, Math.floor((nowMs - start) / 1000))
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
-  if (h > 0) return `${h}시간 ${m}분`
-  return `${m}분`
-}
-
-function formatRemaining(deadline, nowMs) {
-  if (!deadline) return '마감 없음'
-  const diff = deadline.getTime() - nowMs
-  if (diff <= 0) return '마감 경과'
-  const sec = Math.floor(diff / 1000)
-  const d = Math.floor(sec / 86400)
-  const h = Math.floor((sec % 86400) / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  if (d > 0) return `${d}일 ${h}시간`
   if (h > 0) return `${h}시간 ${m}분`
   return `${m}분`
 }
@@ -86,24 +72,13 @@ export default function QuizMonitor() {
   const questions = useMemo(() => quiz ? getQuizQuestions(id) : [], [quiz, id])
 
   const [nowMs, setNowMs] = useState(() => Date.now())
-  const [autoRefresh, setAutoRefresh] = useState(true)
   const [refreshTick, setRefreshTick] = useState(0)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [selectedStudent, setSelectedStudent] = useState(null)
 
-  useEffect(() => {
-    if (!autoRefresh) return
-    const i = setInterval(() => {
-      setNowMs(Date.now())
-      setRefreshTick(t => t + 1)
-    }, REFRESH_INTERVAL_MS)
-    return () => clearInterval(i)
-  }, [autoRefresh])
-
   const students = useMemo(() => quiz ? getQuizStudents(id) : [], [quiz, id, refreshTick])
 
-  const deadline = quiz ? getEffectiveDeadline(quiz) : null
   const deadlinePassed = quiz ? isDeadlinePassed(quiz, new Date(nowMs)) : false
 
   const enrichedStudents = useMemo(() => students.map(s => {
@@ -231,34 +206,7 @@ export default function QuizMonitor() {
           />
         </div>
 
-        {/* 마감/자동 갱신 정보 + 학생 측 로그 수집 고지 */}
-        <Card className="mb-4 py-3 px-4 gap-2">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <InfoRow icon={Clock} label="마감 시각" value={deadline ? formatDateTime(deadline) : '마감 없음'} />
-            <InfoRow
-              icon={Hourglass}
-              label="마감까지"
-              value={formatRemaining(deadline, nowMs)}
-              valueTone={deadlinePassed ? 'danger' : undefined}
-            />
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <RefreshCw size={14} />
-                <span className="text-xs">자동 갱신 (30초)</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs"
-                onClick={() => setAutoRefresh(v => !v)}
-              >
-                {autoRefresh ? '끄기' : '켜기'}
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        <div className="bg-accent border border-accent rounded-md p-3 mb-4 flex items-start gap-2">
+<div className="bg-accent border border-accent rounded-md p-3 mb-4 flex items-start gap-2">
           <ShieldCheck size={15} className="text-primary shrink-0 mt-0.5" />
           <div className="text-xs text-secondary-foreground">
             <p className="font-medium text-foreground">학생 응시 로그 수집 안내</p>
@@ -372,21 +320,6 @@ function SummaryCard({ label, value, total, icon: Icon, tone, hint }) {
       </p>
       {hint && <p className="text-[11px] mt-1 opacity-80">{hint}</p>}
     </Card>
-  )
-}
-
-function InfoRow({ icon: Icon, label, value, valueTone }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Icon size={14} className="text-muted-foreground" />
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={cn(
-        'text-sm font-medium ml-auto tabular-nums',
-        valueTone === 'danger' ? 'text-destructive' : 'text-foreground',
-      )}>
-        {value}
-      </span>
-    </div>
   )
 }
 
