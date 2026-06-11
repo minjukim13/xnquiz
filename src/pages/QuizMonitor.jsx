@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useParams, useNavigate, Navigate, Link } from 'react-router-dom'
+import { useParams, Navigate, Link } from 'react-router-dom'
 import {
   Users, Hourglass, AlertTriangle, RefreshCw, Search,
   CheckCircle2, Activity, Info, ShieldCheck,
@@ -65,7 +65,6 @@ const FILTER_OPTIONS = [
 
 export default function QuizMonitor() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const { role } = useRole()
 
   const quiz = mockQuizzes.find(q => q.id === id)
@@ -139,9 +138,6 @@ export default function QuizMonitor() {
           title={
             <div className="flex items-center gap-2 min-w-0">
               <h1 className="text-[22px] font-bold text-foreground leading-tight truncate">{quiz.title}</h1>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-700 shrink-0">
-                응시 모니터링
-              </span>
             </div>
           }
           description={`${quiz.course} · 응시 기간 ${formatDateTime(quiz.startDate)} ~ ${formatDateTime(quiz.dueDate)}`}
@@ -150,9 +146,6 @@ export default function QuizMonitor() {
               <Button variant="outline" size="sm" onClick={handleManualRefresh}>
                 <RefreshCw size={14} />
                 새로고침
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate(`/quiz/${id}/grade`)}>
-                채점 화면으로
               </Button>
             </>
           }
