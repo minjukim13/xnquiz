@@ -405,7 +405,13 @@ function InstructorQuizList() {
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <FileText size={32} className="mb-3 opacity-40" />
-            <p className="text-sm">해당 조건에 맞는 퀴즈가 없습니다.</p>
+            <p className="text-sm mb-4">해당 조건에 맞는 퀴즈가 없습니다.</p>
+            <Button asChild>
+              <Link to="/quiz/new">
+                <Plus size={15} />
+                새 퀴즈 만들기
+              </Link>
+            </Button>
           </div>
         )}
       </div>
