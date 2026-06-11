@@ -246,13 +246,13 @@ export default function QuizMonitor() {
             </div>
           ) : (
             <div className="divide-y divide-secondary">
-              <div className="hidden sm:grid grid-cols-[1fr_120px_120px_120px_160px_100px] gap-3 px-4 py-2 text-xs font-medium text-muted-foreground bg-background">
+              <div className="hidden sm:grid grid-cols-[1fr_120px_120px_120px_160px_100px] gap-3 px-4 py-2 text-xs font-medium text-muted-foreground bg-background text-center">
                 <span>학생</span>
                 <span>상태</span>
                 <span>시작 시각</span>
                 <span>경과 시간</span>
                 <span>이상 단서</span>
-                <span className="text-right">활동 로그</span>
+                <span>활동 로그</span>
               </div>
               {filtered.map(s => (
                 <StudentRow
@@ -323,11 +323,11 @@ function StudentRow({ student, nowMs, onOpenLog }) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_120px_160px_100px] gap-3 px-4 py-3 items-center hover:bg-background transition-colors">
-      <div className="min-w-0">
+      <div className="min-w-0 sm:text-center">
         <p className="text-sm font-medium text-foreground truncate">{student.name}</p>
         <p className="text-xs text-muted-foreground truncate">{student.studentId} · {student.department}</p>
       </div>
-      <div>
+      <div className="sm:text-center">
         <span className={cn(
           'inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border',
           meta.className,
@@ -335,13 +335,13 @@ function StudentRow({ student, nowMs, onOpenLog }) {
           {meta.label}
         </span>
       </div>
-      <div className="text-xs text-secondary-foreground tabular-nums">
+      <div className="text-xs text-secondary-foreground tabular-nums sm:text-center">
         {student.startTime ? formatDateTime(student.startTime).slice(5) : '-'}
       </div>
-      <div className="text-xs text-secondary-foreground tabular-nums">
+      <div className="text-xs text-secondary-foreground tabular-nums sm:text-center">
         {status === 'in_progress' ? formatElapsed(student.startTime, nowMs) : '-'}
       </div>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 sm:justify-center">
         {anomalies.length === 0 ? (
           <span className="text-xs text-muted-foreground">-</span>
         ) : (
@@ -357,7 +357,7 @@ function StudentRow({ student, nowMs, onOpenLog }) {
           ))
         )}
       </div>
-      <div className="sm:text-right">
+      <div className="sm:text-center">
         <Button variant="ghost" size="sm" onClick={onOpenLog} className="text-xs">
           <Activity size={13} />
           로그 보기
