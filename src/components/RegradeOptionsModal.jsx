@@ -16,7 +16,9 @@ const REGRADE_OPTIONS = [
   {
     id: 'new_answer_only',
     title: '수정된 정답 기준으로만 재채점',
+    manualTitle: '현재 정답 기준으로 재채점',
     desc: '새 정답 기준으로 자동 재채점됩니다. 일부 학생의 점수가 낮아질 수 있습니다.',
+    manualDesc: '현재 설정된 정답 기준으로 자동 재채점됩니다. 일부 학생의 점수가 변경될 수 있습니다.',
     color: 'text-warning',
     bg: 'bg-warning-bg',
     activeBorder: 'border-warning',
@@ -42,16 +44,22 @@ const REGRADE_OPTIONS = [
   },
 ]
 
-export default function RegradeOptionsModal({ submittedCount, onConfirm, onCancel }) {
-  const [selected, setSelected] = useState('award_both')
+export default function RegradeOptionsModal({ submittedCount, mode = 'edit', questionLabel, onConfirm, onCancel }) {
+  const isManual = mode === 'manual'
+  const availableOptions = isManual
+    ? REGRADE_OPTIONS.filter(o => o.id === 'new_answer_only' || o.id === 'full_points')
+    : REGRADE_OPTIONS
+  const [selected, setSelected] = useState(isManual ? 'new_answer_only' : 'award_both')
 
   return (
     <Dialog open onOpenChange={open => { if (!open) onCancel() }}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>재채점 옵션 선택</DialogTitle>
+          <DialogTitle>{isManual ? '문항 재채점' : '재채점 옵션 선택'}</DialogTitle>
           <DialogDescription>
-            정답이 변경된 문항에 대해 재채점 방식을 선택하세요
+            {isManual
+              ? `${questionLabel ? `${questionLabel} ` : ''}문항을 어떻게 재채점할지 선택하세요`
+              : '정답이 변경된 문항에 대해 재채점 방식을 선택하세요'}
           </DialogDescription>
         </DialogHeader>
 
@@ -59,14 +67,17 @@ export default function RegradeOptionsModal({ submittedCount, onConfirm, onCance
           {/* 문항 정보 */}
           <div className="rounded-lg bg-warning-bg/40 border border-warning-border px-4 py-3">
             <p className="text-[13px] leading-relaxed text-slate-600">
-              이미 답안을 제출한 <span className="font-bold">{submittedCount}명</span>의 학생에 대한 재채점 옵션을 선택하십시오.
-              퀴즈 저장 시 일괄 재채점됩니다.
+              {isManual ? (
+                <>이 문항에 응시한 <span className="font-bold">{submittedCount}명</span>의 학생에 대해 재채점을 실행합니다. 확인 시 즉시 반영됩니다.</>
+              ) : (
+                <>이미 답안을 제출한 <span className="font-bold">{submittedCount}명</span>의 학생에 대한 재채점 옵션을 선택하십시오. 퀴즈 저장 시 일괄 재채점됩니다.</>
+              )}
             </p>
           </div>
 
           {/* 옵션 목록 */}
           <div className="space-y-2">
-            {REGRADE_OPTIONS.map(opt => {
+            {availableOptions.map(opt => {
               const isActive = selected === opt.id
               return (
                 <button
@@ -93,10 +104,10 @@ export default function RegradeOptionsModal({ submittedCount, onConfirm, onCance
                       'text-[15px] font-semibold',
                       isActive ? opt.color : 'text-foreground'
                     )}>
-                      {opt.title}
+                      {isManual && opt.manualTitle ? opt.manualTitle : opt.title}
                     </p>
                     <p className="text-xs mt-0.5 text-muted-foreground leading-relaxed">
-                      {opt.desc}
+                      {isManual && opt.manualDesc ? opt.manualDesc : opt.desc}
                     </p>
                   </div>
                 </button>
@@ -110,7 +121,7 @@ export default function RegradeOptionsModal({ submittedCount, onConfirm, onCance
               취소
             </Button>
             <Button onClick={() => onConfirm(selected)}>
-              업데이트
+              {isManual ? '재채점' : '업데이트'}
             </Button>
           </div>
         </div>

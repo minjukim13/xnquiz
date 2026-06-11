@@ -1,6 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import StatusBadge from '../../components/StatusBadge'
 import { getEffectiveSubmittedCount, isDeadlinePassed } from '@/utils/deadlineUtils'
+import { cn } from '@/lib/utils'
 
 function resolveDisplayStatus(quiz) {
   if (!quiz) return null
@@ -11,6 +13,7 @@ function resolveDisplayStatus(quiz) {
 
 // ─── 퀴즈 정보 카드 ─────────────────────────────────────────────────────────
 export default function QuizInfoCard({ quiz, students }) {
+  const [collapsed, setCollapsed] = useState(false)
   const effectiveSubmitted = useMemo(
     () => getEffectiveSubmittedCount(quiz, students),
     [quiz, students]
@@ -27,16 +30,50 @@ export default function QuizInfoCard({ quiz, students }) {
     [effectiveSubmitted, quiz.totalStudents]
   )
 
+  const status = resolveDisplayStatus(quiz)
+
+  if (collapsed) {
+    return (
+      <div className="mb-3 overflow-hidden bg-card rounded-2xl shadow-md">
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-secondary/30 transition-colors"
+        >
+          <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-accent text-primary shrink-0">
+            {quiz.week}주차 {quiz.session}차시
+          </span>
+          <StatusBadge status={status} className="px-2 py-0.5 rounded-full font-semibold shrink-0" />
+          <h2 className="text-sm font-bold text-foreground truncate flex-1 min-w-0">{quiz.title}</h2>
+          <div className="hidden sm:flex items-center gap-4 shrink-0 text-xs">
+            <span className="text-muted-foreground">
+              응시율 <span className="font-bold text-primary">{submitRate}%</span>
+            </span>
+            <span className="text-muted-foreground">
+              응시 <span className="font-bold text-foreground">{effectiveSubmitted}</span>
+              <span className="text-muted-foreground"> / {quiz.totalStudents}명</span>
+            </span>
+            <span className="text-muted-foreground">
+              채점 <span className="font-bold text-foreground">{effectiveGraded}</span>
+              <span className="text-muted-foreground"> / {quiz.totalStudents}명</span>
+            </span>
+          </div>
+          <ChevronDown size={16} className="text-muted-foreground shrink-0" />
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="mb-5 overflow-hidden bg-card rounded-2xl shadow-md">
-      <div className="p-5 sm:p-6">
+      <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-accent text-primary">
                 {quiz.week}주차 {quiz.session}차시
               </span>
-              <StatusBadge status={resolveDisplayStatus(quiz)} className="px-2.5 py-1 rounded-full font-semibold" />
+              <StatusBadge status={status} className="px-2.5 py-1 rounded-full font-semibold" />
             </div>
             <h2 className="text-xl font-extrabold text-foreground mb-1.5">{quiz.title}</h2>
             <p className="text-sm text-muted-foreground mb-2">{quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}</p>
@@ -99,6 +136,17 @@ export default function QuizInfoCard({ quiz, students }) {
           </div>
         </div>
       </div>
+      <button
+        type="button"
+        onClick={() => setCollapsed(true)}
+        className={cn(
+          'w-full flex items-center justify-center gap-1 py-1.5 border-t border-border',
+          'text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors'
+        )}
+      >
+        접기
+        <ChevronUp size={12} />
+      </button>
     </div>
   )
 }

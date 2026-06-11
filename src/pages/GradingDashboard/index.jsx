@@ -111,7 +111,6 @@ export default function GradingDashboard() {
   const [selectedQ, setSelectedQ] = useState(null)
   const [typeFilter, setTypeFilter] = useState('all')
   const [collapsedGraded, setCollapsedGraded] = useState(false)
-  const [activeTab, setActiveTab] = useState('responses')
 
   // 학생 중심 상태
   const [selectedStudent, setSelectedStudent] = useState(null)
@@ -487,8 +486,6 @@ export default function GradingDashboard() {
                     students={questionStudents}
                     search={searchStudent}
                     onSearch={setSearchStudent}
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
                     onExcel={() => setShowExcelModal(true)}
                     quizId={id}
                     onGradeSaved={onGradeSaved}

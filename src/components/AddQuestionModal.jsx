@@ -5,7 +5,6 @@ import { DropdownSelect } from './DropdownSelect'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import RegradeOptionsModal from './RegradeOptionsModal'
 import QuestionTypePreview from './QuestionTypePreview'
 import { evalFormulaPreview } from '@/utils/formulaEngine'
 import {
@@ -987,53 +986,6 @@ function questionToForm(q) {
   }
 }
 
-// ── 정답 변경 감지 ────────────────────────────────────────────────────────
-function hasAnswerChanged(type, oldQuestion, newQuestion) {
-  switch (type) {
-    case 'multiple_choice':
-    case 'true_false':
-      return String(oldQuestion.correctAnswer).trim().toLowerCase() !== String(newQuestion.correctAnswer).trim().toLowerCase()
-    case 'multiple_answers': {
-      const toArr = v => (Array.isArray(v) ? v : []).map(s => String(s).trim().toLowerCase()).sort()
-      if (JSON.stringify(toArr(oldQuestion.correctAnswer)) !== JSON.stringify(toArr(newQuestion.correctAnswer))) return true
-      // 부분 점수 정책(문항 단위 override) 변경도 채점 결과에 영향
-      if ((oldQuestion.scoringMode ?? null) !== (newQuestion.scoringMode ?? null)) return true
-      if ((oldQuestion.penaltyMethod ?? null) !== (newQuestion.penaltyMethod ?? null)) return true
-      return false
-    }
-    case 'short_answer': {
-      const toArr = v => (Array.isArray(v) ? v : []).map(s => String(s).trim().toLowerCase()).sort()
-      return JSON.stringify(toArr(oldQuestion.correctAnswer)) !== JSON.stringify(toArr(newQuestion.correctAnswer))
-    }
-    case 'fill_in_multiple_blanks': {
-      const toArr = v => (Array.isArray(v) ? v : []).map(s =>
-        Array.isArray(s) ? s.map(a => String(a).trim().toLowerCase()) : [String(s).trim().toLowerCase()]
-      )
-      return JSON.stringify(toArr(oldQuestion.correctAnswer)) !== JSON.stringify(toArr(newQuestion.correctAnswer))
-    }
-    case 'numerical':
-      return Number(oldQuestion.correctAnswer) !== Number(newQuestion.correctAnswer) ||
-        (oldQuestion.tolerance ?? 0) !== (newQuestion.tolerance ?? 0)
-    case 'matching':
-      return JSON.stringify(oldQuestion.pairs) !== JSON.stringify(newQuestion.pairs) ||
-        JSON.stringify(oldQuestion.distractors || []) !== JSON.stringify(newQuestion.distractors || [])
-    case 'multiple_dropdowns':
-      return JSON.stringify(oldQuestion.dropdowns) !== JSON.stringify(newQuestion.dropdowns)
-    case 'formula':
-      return oldQuestion.formula !== newQuestion.formula ||
-        JSON.stringify(oldQuestion.variables) !== JSON.stringify(newQuestion.variables) ||
-        (oldQuestion.tolerance ?? 0) !== (newQuestion.tolerance ?? 0) ||
-        (oldQuestion.toleranceType ?? 'absolute') !== (newQuestion.toleranceType ?? 'absolute')
-    default:
-      return false
-  }
-}
-
-function isAutoGradeable(type) {
-  const ag = QUIZ_TYPES[type]?.autoGrade
-  return ag === true || ag === 'partial'
-}
-
 // ── 메인 모달 ──────────────────────────────────────────────────────────────
 export default function AddQuestionModal({ onClose, onAdd, initialQuestion = null, submittedCount = 0 }) {
   const isEditMode = !!initialQuestion
@@ -1060,8 +1012,6 @@ export default function AddQuestionModal({ onClose, onAdd, initialQuestion = nul
     setHoveredType(null)
   }
 
-  const [showRegradeOptions, setShowRegradeOptions] = useState(false)
-  const [pendingQuestion, setPendingQuestion] = useState(null)
   const [feedbackOpen, setFeedbackOpen] = useState(() => {
     if (!isEditMode) return false
     return !!(initialQuestion?.correct_comments || initialQuestion?.incorrect_comments || initialQuestion?.neutral_comments)
@@ -1070,21 +1020,7 @@ export default function AddQuestionModal({ onClose, onAdd, initialQuestion = nul
   const handleAdd = () => {
     if (!isValid(selectedType, form)) return
     const built = buildQuestion(selectedType, form)
-
-    // 편집 모드 + 제출 학생 있음 + 자동채점 유형 + 정답 변경됨 → 재채점 옵션
-    if (isEditMode && submittedCount > 0 && isAutoGradeable(selectedType) && hasAnswerChanged(selectedType, initialQuestion, built)) {
-      setPendingQuestion(built)
-      setShowRegradeOptions(true)
-      return
-    }
-
     onAdd(built)
-    onClose()
-  }
-
-  const handleRegradeConfirm = (option) => {
-    onAdd(pendingQuestion, option)
-    setShowRegradeOptions(false)
     onClose()
   }
 
@@ -1158,7 +1094,7 @@ export default function AddQuestionModal({ onClose, onAdd, initialQuestion = nul
             {isEditMode && submittedCount > 0 && (
               <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-warning-bg/40 border border-warning-border">
                 <p className="text-xs leading-relaxed text-slate-600">
-                  이 문항은 이미 <span className="font-bold">{submittedCount}명</span>이 응시했습니다. 수정 시 기존 제출 답안과 채점 결과에 영향을 줄 수 있습니다.
+                  이 문항은 이미 <span className="font-bold">{submittedCount}명</span>이 응시했습니다. 정답을 수정한 경우, 저장 후 [퀴즈 통계 → 선택지별 응답 패턴]에서 재채점을 실행하세요.
                 </p>
               </div>
             )}
@@ -1338,14 +1274,6 @@ export default function AddQuestionModal({ onClose, onAdd, initialQuestion = nul
           </div>
         )}
       </DialogContent>
-      {showRegradeOptions && (
-        <RegradeOptionsModal
-          question={pendingQuestion}
-          submittedCount={submittedCount}
-          onConfirm={handleRegradeConfirm}
-          onCancel={() => setShowRegradeOptions(false)}
-        />
-      )}
     </Dialog>
   )
 }

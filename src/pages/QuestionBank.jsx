@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
-import { Plus, Search, Edit2, Trash2, Upload, GripVertical } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Upload, GripVertical, FolderInput } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { QUIZ_TYPES } from '../data/mockData'
 import { useRole } from '../context/role'
@@ -8,6 +8,7 @@ import { DropdownSelect } from '../components/DropdownSelect'
 import { useQuestionBank } from '../context/questionBank'
 import AddQuestionModal from '../components/AddQuestionModal'
 import BankUploadModal from '../components/BankUploadModal'
+import MoveQuestionsModal from '../components/MoveQuestionsModal'
 import TypeBadge from '../components/TypeBadge'
 import PageHeader from '../components/PageHeader'
 import { htmlToPlainText } from '../components/RichText'
@@ -27,7 +28,7 @@ export default function QuestionBank() {
   const { bankId } = useParams()
   const navigate = useNavigate()
   const { role } = useRole()
-  const { banks, getBankQuestions, updateBank, addQuestions, updateQuestion, deleteQuestion, reorderQuestions } = useQuestionBank()
+  const { banks, getBankQuestions, updateBank, addQuestions, updateQuestion, deleteQuestion, reorderQuestions, moveQuestions } = useQuestionBank()
 
   const bank = banks.find(b => b.id === bankId)
   const questions = useMemo(
@@ -41,9 +42,11 @@ export default function QuestionBank() {
   const [editingQuestion, setEditingQuestion] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
+  const [showMoveModal, setShowMoveModal] = useState(false)
   const [editingBankName, setEditingBankName] = useState(false)
   const [bankNameDraft, setBankNameDraft] = useState('')
   const [toast, setToast] = useState(null)
+  const [selectedIds, setSelectedIds] = useState([])
   const dragIndexRef = useRef(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
 
@@ -85,6 +88,44 @@ export default function QuestionBank() {
   const handleAddQuestion = (newQ) => {
     addQuestions([{ ...newQ, id: `q_${Date.now()}`, bankId: bank.id, usageCount: 0 }])
     setShowAddModal(false)
+  }
+
+  const showToast = (msg, bankId) => {
+    setToast({ msg, bankId })
+    setTimeout(() => setToast(null), 4000)
+  }
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(q => selectedIds.includes(q.id))
+
+  const toggleSelectAllFiltered = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(prev => prev.filter(id => !filtered.find(q => q.id === id)))
+    } else {
+      setSelectedIds(prev => [...new Set([...prev, ...filtered.map(q => q.id)])])
+    }
+  }
+
+  const clearSelection = () => setSelectedIds([])
+
+  const handleMoveConfirm = async (targetBankId) => {
+    const ids = [...selectedIds]
+    if (ids.length === 0) return
+    try {
+      await moveQuestions(ids, targetBankId)
+      const targetName = banks.find(b => b.id === targetBankId)?.name || '문제모음'
+      setShowMoveModal(false)
+      clearSelection()
+      showToast(`'${targetName}'(으)로 ${ids.length}개 문항을 이동했습니다`, targetBankId)
+    } catch (err) {
+      console.error('[QuestionBank] 이동 실패', err)
+      showToast('이동 중 오류가 발생했습니다')
+    }
   }
 
   const handleCsvImport = (rows) => {
@@ -187,7 +228,33 @@ export default function QuestionBank() {
           </div>
         </div>
 
-        <p className="text-xs mb-2 px-1 text-muted-foreground">총 {filtered.length}개 문항</p>
+        {selectedIds.length > 0 ? (
+          <div className="flex items-center justify-between mb-2 px-3 py-2 bg-accent rounded-lg">
+            <div className="flex items-center gap-3 text-xs">
+              <span className="font-semibold text-primary">{selectedIds.length}개 선택됨</span>
+              {filtered.length > 0 && (
+                <button
+                  type="button"
+                  onClick={toggleSelectAllFiltered}
+                  className="text-primary hover:underline"
+                >
+                  {allFilteredSelected ? '현재 목록 선택 해제' : '현재 목록 전체 선택'}
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => setShowMoveModal(true)}>
+                <FolderInput size={13} />
+                이동
+              </Button>
+              <Button variant="ghost" size="sm" onClick={clearSelection}>
+                선택 해제
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs mb-2 px-1 text-muted-foreground">총 {filtered.length}개 문항</p>
+        )}
 
         {/* 문항 목록 */}
         <Card className="overflow-hidden py-0 gap-0">
@@ -218,6 +285,8 @@ export default function QuestionBank() {
                 >
                   <QuestionItem
                     question={q}
+                    selected={selectedIds.includes(q.id)}
+                    onToggleSelect={() => toggleSelect(q.id)}
                     onEdit={() => setEditingQuestion(q)}
                     onDelete={() => handleDelete(q.id)}
                     isLast={idx === filtered.length - 1}
@@ -256,6 +325,16 @@ export default function QuestionBank() {
         />
       )}
 
+      {showMoveModal && (
+        <MoveQuestionsModal
+          open={showMoveModal}
+          onClose={() => setShowMoveModal(false)}
+          onConfirm={handleMoveConfirm}
+          count={selectedIds.length}
+          currentBankId={bank.id}
+        />
+      )}
+
       {deleteTargetId && (
         <ConfirmDialog
           title="문항을 삭제할까요?"
@@ -277,10 +356,27 @@ export default function QuestionBank() {
   )
 }
 
-function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDragStart }) {
+function QuestionItem({ question, selected, onToggleSelect, onEdit, onDelete, isLast, showDragHandle, onDragStart }) {
   const diff = question.difficulty && DIFFICULTY_META[question.difficulty]
   return (
-    <div className={cn('flex transition-colors hover:bg-background', !isLast && 'border-b border-secondary')}>
+    <div className={cn(
+      'flex transition-colors',
+      selected ? 'bg-accent/50' : 'hover:bg-background',
+      !isLast && 'border-b border-secondary'
+    )}>
+      {/* 선택 체크박스 */}
+      <label
+        className="flex items-center pl-4 pr-1 cursor-pointer shrink-0 self-stretch"
+        onClick={e => e.stopPropagation()}
+      >
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          className="accent-primary w-4 h-4"
+          aria-label="문항 선택"
+        />
+      </label>
       {/* 드래그 핸들 */}
       {showDragHandle && (
         <div

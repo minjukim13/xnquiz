@@ -1,19 +1,22 @@
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
-import { AlertCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Check, ListFilter } from 'lucide-react'
+import { AlertCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Check, ListFilter, RefreshCw, BarChart3 } from 'lucide-react'
 import { downloadGradesXlsx, downloadItemAnalysisXlsx } from '../utils/excelUtils'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
 import { QUIZ_TYPES } from '../data/mockData'
-import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
+import { getQuiz, getQuizQuestions, listAttempts, regradeQuestion } from '@/lib/data'
 import { getLateThreshold } from '../utils/deadlineUtils'
 import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import PageHeader from '../components/PageHeader'
+import RegradeOptionsModal from '../components/RegradeOptionsModal'
+import QuestionStatsPanel from './GradingDashboard/StatsTab'
 
 function CollapsibleDescription({ text }) {
   const ref = useRef(null)
@@ -68,12 +71,63 @@ function variance(arr) {
   return arr.reduce((a, b) => a + (b - mean) ** 2, 0) / arr.length
 }
 
+// 객관식/복수선택 정답이 index/text/comma-string/array 중 어떤 포맷이든 일관되게 매칭
+function isChoiceCorrect(question, choiceIdx, choiceLabel) {
+  const ans = question.correctAnswer
+  if (ans == null) return false
+  const norm = v => String(v).trim().toLowerCase()
+  const matches = (target) => {
+    if (target == null) return false
+    if (typeof target === 'number') return target === choiceIdx
+    const s = String(target).trim()
+    if (/^\d+$/.test(s) && Number(s) === choiceIdx) return true
+    return norm(s) === norm(choiceLabel)
+  }
+  if (Array.isArray(ans)) return ans.some(matches)
+  if (typeof ans === 'string' && ans.includes(',')) {
+    return ans.split(',').map(s => s.trim()).filter(Boolean).some(matches)
+  }
+  return matches(ans)
+}
+
 // 측정학적 지표 계산 (XQ-URD-026 정책 — 변별도 / 선택지별 응답 패턴 / 상중하위 집단 정답률)
 // 산출식·모집단 정의는 XQ-URD-025 채점 인라인 통계와 단일화 (채점 완료 학생 기준).
 function computeItemMetrics(questions, students) {
   const graded = students.filter(s => s.submitted && s.score !== null)
+
+  // 응시자 0~1명이어도 선지/정답 표시를 위해 분포는 계산 (count=0). 변별도 등은 null.
+  const buildChoiceDistribution = (q) => {
+    if (!((q.type === 'multiple_choice' || q.type === 'multiple_answers' || q.type === 'multiple_dropdowns') && Array.isArray(q.choices))) {
+      return null
+    }
+    const counts = q.choices.map(() => 0)
+    for (const s of graded) {
+      const ans = s.selections?.[q.id]
+      if (Array.isArray(ans)) {
+        ans.forEach(idx => { if (typeof idx === 'number' && counts[idx] !== undefined) counts[idx]++ })
+      } else if (typeof ans === 'number' && counts[ans] !== undefined) {
+        counts[ans]++
+      }
+    }
+    return q.choices.map((c, i) => {
+      const label = typeof c === 'string' ? c : (c.text || `보기 ${i + 1}`)
+      return {
+        label,
+        count: counts[i],
+        pct: graded.length > 0 ? Math.round((counts[i] / graded.length) * 100) : 0,
+        isAnswer: isChoiceCorrect(q, i, label),
+      }
+    })
+  }
+
   if (graded.length < 2) {
-    return questions.map(q => ({ ...q, discrimination: null, upperRate: null, lowerRate: null, choiceDistribution: null }))
+    return questions.map(q => ({
+      ...q,
+      discrimination: null,
+      upperRate: null,
+      lowerRate: null,
+      choiceDistribution: buildChoiceDistribution(q),
+    }))
   }
 
   const getScore = (s, qId) => {
@@ -113,26 +167,7 @@ function computeItemMetrics(questions, students) {
       lowerRate = Math.round((lowerCorrect / lower.length) * 100)
     }
 
-    let choiceDistribution = null
-    if ((q.type === 'multiple_choice' || q.type === 'multiple_answers' || q.type === 'multiple_dropdowns') && Array.isArray(q.choices)) {
-      const counts = q.choices.map(() => 0)
-      for (const s of graded) {
-        const ans = s.selections?.[q.id]
-        if (Array.isArray(ans)) {
-          ans.forEach(idx => { if (typeof idx === 'number' && counts[idx] !== undefined) counts[idx]++ })
-        } else if (typeof ans === 'number' && counts[ans] !== undefined) {
-          counts[ans]++
-        }
-      }
-      choiceDistribution = q.choices.map((c, i) => ({
-        label: typeof c === 'string' ? c : (c.text || `보기 ${i + 1}`),
-        count: counts[i],
-        pct: graded.length > 0 ? Math.round((counts[i] / graded.length) * 100) : 0,
-        isAnswer: Array.isArray(q.correctAnswer) ? q.correctAnswer.includes(i) : q.correctAnswer === i,
-      }))
-    }
-
-    return { ...q, discrimination, upperRate, lowerRate, choiceDistribution }
+    return { ...q, discrimination, upperRate, lowerRate, choiceDistribution: buildChoiceDistribution(q) }
   })
 }
 
@@ -175,6 +210,9 @@ export default function QuizStats() {
   const [quizQuestions, setQuizQuestions] = useState([])
   const [quizStudents, setQuizStudents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [regradeTarget, setRegradeTarget] = useState(null)
+  const [regradeBusy, setRegradeBusy] = useState(false)
+  const [regradeToast, setRegradeToast] = useState(null)
 
   useEffect(() => {
     let mounted = true
@@ -203,6 +241,49 @@ export default function QuizStats() {
     () => enrichQuestions(quizQuestions, quizStudents),
     [quizQuestions, quizStudents]
   )
+
+  const reloadAttempts = useCallback(async () => {
+    try {
+      const qs = await listAttempts({ quizId: id })
+      setQuizStudents(qs ?? [])
+    } catch (err) {
+      console.error('[QuizStats] 재로드 실패', err)
+    }
+  }, [id])
+
+  const handleRegradeConfirm = useCallback(async (option) => {
+    if (!regradeTarget) return
+    const { question } = regradeTarget
+    setRegradeBusy(true)
+    try {
+      const result = await regradeQuestion(id, question, option, question)
+      const count = result?.regradedStudents ?? 0
+      try {
+        const existing = JSON.parse(localStorage.getItem('xnq_regrade_log') || '{}')
+        existing[id] = {
+          ...(existing[id] || {}),
+          [question.id]: { option, count, timestamp: new Date().toISOString() },
+        }
+        localStorage.setItem('xnq_regrade_log', JSON.stringify(existing))
+      } catch { /* ignore */ }
+      await reloadAttempts()
+      setRegradeTarget(null)
+      setRegradeToast(count > 0
+        ? `재채점 완료 (${count}명 점수 변경)`
+        : '재채점 완료 (점수 변경 없음)')
+    } catch (err) {
+      console.error('[QuizStats] 재채점 실패', err)
+      setRegradeToast('재채점 실패')
+    } finally {
+      setRegradeBusy(false)
+    }
+  }, [id, regradeTarget, reloadAttempts])
+
+  useEffect(() => {
+    if (!regradeToast) return
+    const t = setTimeout(() => setRegradeToast(null), 3000)
+    return () => clearTimeout(t)
+  }, [regradeToast])
 
   if (role !== 'instructor') return <Navigate to="/" replace />
 
@@ -255,8 +336,27 @@ export default function QuizStats() {
           description={quiz.description ? <CollapsibleDescription text={quiz.description} /> : null}
         />
 
-        <StatsPageTabs quiz={quiz} quizQuestions={enrichedQuestions} quizStudents={quizStudents} />
+        <StatsPageTabs
+          quiz={quiz}
+          quizQuestions={enrichedQuestions}
+          quizStudents={quizStudents}
+          onRequestRegrade={(question, submittedCount) => setRegradeTarget({ question, submittedCount })}
+        />
       </div>
+      {regradeTarget && (
+        <RegradeOptionsModal
+          mode="manual"
+          submittedCount={regradeTarget.submittedCount}
+          questionLabel={`Q${regradeTarget.question.order}`}
+          onConfirm={handleRegradeConfirm}
+          onCancel={() => { if (!regradeBusy) setRegradeTarget(null) }}
+        />
+      )}
+      {regradeToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-md bg-foreground text-white text-sm shadow-lg">
+          {regradeToast}
+        </div>
+      )}
     </>
   )
 }
@@ -275,7 +375,7 @@ function calcElapsed(startTime, submittedAt) {
   return `${s}초`
 }
 
-function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
+function StatsPageTabs({ quiz, quizQuestions, quizStudents, onRequestRegrade }) {
   const [activeTab, setActiveTab] = useState('grades')
   return (
     <>
@@ -303,7 +403,7 @@ function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
       <div className="px-2">
         {activeTab === 'grades'
           ? <GradesTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
-          : <StatsTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
+          : <StatsTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} onRequestRegrade={onRequestRegrade} />
         }
       </div>
     </>
@@ -610,7 +710,8 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
   )
 }
 
-function StatsTab({ quiz, quizQuestions, students: allStudents }) {
+function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade }) {
+  const [statsDetailQ, setStatsDetailQ] = useState(null)
   const totalPoints = quizQuestions.reduce((s, q) => s + (q.points || 0), 0)
   // 응시 시작 여부 기준 분류 (자동 0점 처리된 미시작자도 '미제출' 로 유지)
   const submittedStarted = allStudents.filter(s => !!s.startTime)
@@ -898,33 +999,56 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           <h3 className="text-base font-semibold mb-1">선택지별 응답 패턴</h3>
           <p className="text-xs text-muted-foreground mb-4">
             객관식/복수 선택/드롭다운 문항에 한해, 채점 완료 학생의 선택지별 응답 분포를 표시합니다.
+            정답을 수정한 뒤 우측의 재채점 버튼으로 학생 점수를 일괄 갱신할 수 있습니다.
           </p>
           <div className="space-y-4">
-            {choiceQuestions.map(q => (
-              <div key={q.id} className="border border-border rounded-md p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge className="bg-accent text-primary border-0">Q{q.order}</Badge>
-                  <TypeBadge type={q.type} />
-                  <span className="text-xs text-muted-foreground truncate flex-1">
-                    {(q.text || '').replace(/<[^>]+>/g, '').slice(0, 60)}
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  {q.choiceDistribution.map((c, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs">
-                      <span className={cn('w-5 text-center font-medium', c.isAnswer ? 'text-success-foreground' : 'text-muted-foreground')}>
-                        {c.isAnswer ? '✓' : `${idx + 1}`}
-                      </span>
-                      <span className="flex-1 truncate text-secondary-foreground">{c.label}</span>
-                      <div className="w-32 h-1.5 rounded overflow-hidden bg-secondary shrink-0">
-                        <div className={cn('h-full', c.isAnswer ? 'bg-correct' : 'bg-border')} style={{ width: `${c.pct}%` }} />
+            {choiceQuestions.map(q => {
+              const submittedForQ = allStudents.filter(s => s.submitted && s.selections?.[q.id] !== undefined).length
+              return (
+                <div key={q.id} className="border border-border rounded-md p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-accent text-primary border-0">Q{q.order}</Badge>
+                    <TypeBadge type={q.type} />
+                    <span className="text-xs text-muted-foreground truncate flex-1">
+                      {(q.text || '').replace(/<[^>]+>/g, '').slice(0, 60)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => setStatsDetailQ(q)}
+                      title="이 문항의 상세 통계 보기"
+                    >
+                      <BarChart3 size={11} />
+                      통계 상세
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      disabled={submittedForQ === 0 || !onRequestRegrade}
+                      onClick={() => onRequestRegrade?.(q, submittedForQ)}
+                      title={submittedForQ === 0 ? '응시 학생이 없어 재채점할 수 없습니다' : '이 문항을 재채점합니다'}
+                    >
+                      <RefreshCw size={11} />
+                      재채점
+                    </Button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {q.choiceDistribution.map((c, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs">
+                        <span className={cn('w-5 text-center font-medium', c.isAnswer ? 'text-success-foreground' : 'text-muted-foreground')}>
+                          {c.isAnswer ? '✓' : `${idx + 1}`}
+                        </span>
+                        <span className="flex-1 min-w-0 truncate text-secondary-foreground">{c.label}</span>
+                        <div className="w-32 h-1.5 rounded overflow-hidden bg-secondary shrink-0">
+                          <div className={cn('h-full', c.isAnswer ? 'bg-correct' : 'bg-border')} style={{ width: `${c.pct}%` }} />
+                        </div>
+                        <span className="w-16 text-right tabular-nums text-secondary-foreground">{c.count}명 ({c.pct}%)</span>
                       </div>
-                      <span className="w-16 text-right tabular-nums text-secondary-foreground">{c.count}명 ({c.pct}%)</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </Card>
       )}
@@ -1043,6 +1167,32 @@ function StatsTab({ quiz, quizQuestions, students: allStudents }) {
           </span>
         </div>
       </Card>
+
+      {/* 문항별 통계 상세 패널 */}
+      <Sheet open={!!statsDetailQ} onOpenChange={(open) => { if (!open) setStatsDetailQ(null) }}>
+        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col gap-0 p-0">
+          {statsDetailQ && (
+            <>
+              <SheetHeader className="px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-accent text-primary border-0">Q{statsDetailQ.order}</Badge>
+                  <TypeBadge type={statsDetailQ.type} />
+                  <span className="text-xs text-muted-foreground ml-auto pr-8">{statsDetailQ.points}점</span>
+                </div>
+                <SheetTitle className="text-base font-semibold truncate">
+                  {statsDetailQ.title || `문항 ${statsDetailQ.order}`}
+                </SheetTitle>
+                <SheetDescription className="text-xs text-muted-foreground line-clamp-2">
+                  {(statsDetailQ.text || '').replace(/<[^>]+>/g, '').trim() || '문항 본문 없음'}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4">
+                <QuestionStatsPanel question={statsDetailQ} students={allStudents} />
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

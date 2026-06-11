@@ -2,9 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import TypeBadge from '../../components/TypeBadge'
-import { Download, FolderDown, ChevronDown } from 'lucide-react'
+import { Download, FolderDown, ChevronDown, ChevronUp } from 'lucide-react'
 import ResponsesTab from './ResponsesTab'
-import StatsTab from './StatsTab'
 import { RichTextRenderer } from '../../components/RichText'
 import { getLocalGrades, setLocalGrades } from './utils'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
@@ -16,9 +15,10 @@ const REGRADE_OPTION_LABELS = {
 }
 
 // ─── 문항 중심: 우측 상세 패널 ─────────────────────────────────────────────
-export default function QuestionDetailPanel({ question, students, search, onSearch, activeTab, onTabChange, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, showToast }) {
+export default function QuestionDetailPanel({ question, students, search, onSearch, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, showToast }) {
   const [changedStudentIds, setChangedStudentIds] = useState(new Set())
   const [clearPendingSignal, setClearPendingSignal] = useState(0)
+  const [infoCollapsed, setInfoCollapsed] = useState(false)
 
   // 재채점 로그 읽기
   const regradeInfo = useMemo(() => {
@@ -78,16 +78,32 @@ export default function QuestionDetailPanel({ question, students, search, onSear
     showToast?.(`${scopeLabel} ${targets.length}명에게 ${label} 처리했습니다`)
   }
 
+  const title = (question.title || '').trim()
+  const hasChoices = question.choices && question.choices.length > 0
+  const hasAnswer = !!question.correctAnswer
+  const plainText = (question.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  const summaryText = title || plainText
+
   return (
     <div className="flex flex-col h-full">
-      {/* 문항 정보 카드 — 항상 풀 노출 */}
-      {(() => {
-        const title = (question.title || '').trim()
-        const hasChoices = question.choices && question.choices.length > 0
-        const hasAnswer = !!question.correctAnswer
-
-        return (
-          <div className="bg-white mb-3 border border-border rounded-2xl p-4">
+      {/* 문항 정보 카드 — 접기/펼치기 */}
+      {infoCollapsed ? (
+        <div className="bg-white mb-3 border border-border rounded-2xl">
+          <button
+            type="button"
+            onClick={() => setInfoCollapsed(false)}
+            className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-secondary/30 transition-colors rounded-2xl"
+          >
+            <span className="text-[13px] font-bold text-muted-foreground shrink-0">Q{question.order}</span>
+            <TypeBadge type={question.type} small />
+            <span className="text-[13px] text-foreground truncate flex-1 min-w-0">{summaryText}</span>
+            <span className="text-[12px] text-muted-foreground shrink-0">{question.points}점</span>
+            <ChevronDown size={14} className="text-muted-foreground shrink-0" />
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white mb-3 border border-border rounded-2xl">
+          <div className="p-4 pb-2">
             {/* 메타 행 */}
             <div className="flex items-center gap-2 mb-2.5">
               <span className="text-[13px] font-bold text-muted-foreground shrink-0">Q{question.order}</span>
@@ -144,8 +160,16 @@ export default function QuestionDetailPanel({ question, students, search, onSear
               </div>
             )}
           </div>
-        )
-      })()}
+          <button
+            type="button"
+            onClick={() => setInfoCollapsed(true)}
+            className="w-full flex items-center justify-center gap-1 py-1.5 border-t border-border text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors rounded-b-2xl"
+          >
+            접기
+            <ChevronUp size={12} />
+          </button>
+        </div>
+      )}
 
       {/* 재채점 적용 안내 */}
       {regradeInfo && (
@@ -159,67 +183,45 @@ export default function QuestionDetailPanel({ question, students, search, onSear
         </div>
       )}
 
-      {/* 탭 + 엑셀 */}
+      {/* 응시 현황 헤더 + 일괄 채점 액션 */}
       <div className="flex items-center justify-between mb-3 gap-2 border-b border-border">
-        <div className="flex items-center gap-1">
-          {[
-            { key: 'responses', label: '응시 현황' },
-            { key: 'stats', label: '통계' },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => onTabChange(key)}
-              className={cn(
-                'px-3 py-2 text-sm border-b-2 -mb-px transition-colors',
-                activeTab === key
-                  ? 'border-primary text-primary font-medium'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="px-3 py-2 text-sm border-b-2 border-primary text-primary font-medium -mb-px">
+          응시 현황
         </div>
-        {activeTab === 'responses' && (
-          <div className="flex items-center gap-2">
-            {question.type === 'file_upload' && (
-              <Button variant="outline" onClick={() => showToast('프로토타입: 실제 파일 다운로드는 API 연동 후 지원됩니다')}>
-                <FolderDown size={14} />
-                제출물 일괄 다운로드
+        <div className="flex items-center gap-2">
+          {question.type === 'file_upload' && (
+            <Button variant="outline" onClick={() => showToast('프로토타입: 실제 파일 다운로드는 API 연동 후 지원됩니다')}>
+              <FolderDown size={14} />
+              제출물 일괄 다운로드
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => handleBulkGrade('all_full')}>
+            전체 정답
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                전체 오답
+                <ChevronDown size={12} className="text-muted-foreground" />
               </Button>
-            )}
-            <Button variant="outline" onClick={() => handleBulkGrade('all_full')}>
-              전체 정답
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  전체 오답
-                  <ChevronDown size={12} className="text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-2 border-0 rounded-xl shadow-lg">
-                <DropdownMenuItem onClick={() => handleBulkGrade('all_zero')}>
-                  전체 학생 0점 처리
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkGrade('unsubmitted_zero')}>
-                  미제출자만 0점 처리
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button variant="outline" onClick={onExcel}>
-              <Download size={14} />
-              엑셀 일괄 채점
-            </Button>
-          </div>
-        )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 p-2 border-0 rounded-xl shadow-lg">
+              <DropdownMenuItem onClick={() => handleBulkGrade('all_zero')}>
+                전체 학생 0점 처리
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleBulkGrade('unsubmitted_zero')}>
+                미제출자만 0점 처리
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="outline" onClick={onExcel}>
+            <Download size={14} />
+            엑셀 일괄 채점
+          </Button>
+        </div>
       </div>
 
-      {activeTab === 'responses' ? (
-        <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} changedStudentIds={changedStudentIds} onStudentChanged={id => setChangedStudentIds(prev => new Set(prev).add(id))} clearPendingSignal={clearPendingSignal} />
-      ) : (
-        <StatsTab question={question} students={students} />
-      )}
+      <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} changedStudentIds={changedStudentIds} onStudentChanged={id => setChangedStudentIds(prev => new Set(prev).add(id))} clearPendingSignal={clearPendingSignal} />
 
     </div>
   )

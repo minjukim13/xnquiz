@@ -144,6 +144,28 @@ export function QuestionBankProvider({ children }) {
     setQuestions(prev => prev.filter(q => q.id !== id))
   }
 
+  const moveQuestions = async (questionIds, targetBankId) => {
+    if (questionIds.length === 0 || !targetBankId) return
+    if (MODE === 'api') {
+      const toMove = questions.filter(q => questionIds.includes(q.id))
+      const created = []
+      for (const q of toMove) {
+        const { id: _id, bankId: _b, usageCount: _u, ...rest } = q
+        const saved = await apiCreateBankQuestion(targetBankId, rest)
+        created.push({ ...saved, bankId: targetBankId })
+        await apiDeleteBankQuestion(q.id)
+      }
+      setQuestions(prev => [
+        ...prev.filter(q => !questionIds.includes(q.id)),
+        ...created,
+      ])
+      return
+    }
+    setQuestions(prev => prev.map(q =>
+      questionIds.includes(q.id) ? { ...q, bankId: targetBankId } : q
+    ))
+  }
+
   const reorderQuestions = (bankId, fromIndex, toIndex) => {
     setQuestions(prev => {
       const bankQs = prev.filter(q => q.bankId === bankId)
@@ -171,6 +193,7 @@ export function QuestionBankProvider({ children }) {
       addQuestions,
       updateQuestion,
       deleteQuestion,
+      moveQuestions,
       reorderQuestions,
       getBankQuestions,
       getBankById,

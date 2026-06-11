@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Navigate, useSearchParams } from 'react-router-dom'
-import { GripVertical, Pencil, Trash2, Printer, RefreshCw, HelpCircle } from 'lucide-react'
+import { GripVertical, Pencil, Trash2, Printer, HelpCircle } from 'lucide-react'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
 import AddQuestionModal from '../components/AddQuestionModal'
@@ -8,7 +8,7 @@ import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { printQuizQuestions } from '../utils/pdfUtils'
 import { QUIZ_TYPES, mockQuizzes, ASSIGNMENT_GROUPS } from '../data/mockData'
-import { getQuiz, getQuizQuestions, setQuizQuestions, updateQuiz, recalculateScorePolicy, regradeQuestion } from '@/lib/data'
+import { getQuiz, getQuizQuestions, setQuizQuestions, updateQuiz, recalculateScorePolicy } from '@/lib/data'
 import { useRole } from '../context/role'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import AssignmentOverrides from '../components/AssignmentOverrides'
@@ -45,7 +45,7 @@ const EDIT_STEPS = [
   },
   {
     value: 'questions',
-    label: '문항 추가',
+    label: '문항 구성',
     desc: '시험에 출제할 문항을 추가하거나 수정합니다. 새 문항을 직접 작성하거나, 기존 문제모음에서 선별해 가져오거나, 조건에 맞춰 무작위 출제하는 세 가지 방식을 조합할 수 있습니다.',
     requirement: '최소 1개 문항을 추가해주세요',
   },
@@ -74,7 +74,6 @@ export default function QuizEdit() {
   const [questions, setQuestions] = useState([])
   const [initialQuestionsSnapshot, setInitialQuestionsSnapshot] = useState('[]')
   const [editingQuestion, setEditingQuestion] = useState(null)
-  const [regradeMap, setRegradeMap] = useState({})
   const [showPublishReview, setShowPublishReview] = useState(false)
 
   const [form, setForm] = useState(() => ({
@@ -210,12 +209,8 @@ export default function QuizEdit() {
   const addNewQuestion = useCallback((q) => {
     setQuestions(prev => [...prev, { ...q, id: `new_q${Date.now()}` }])
   }, [])
-  const updateQuestion = (updated, regradeOption) => {
-    const oldQ = regradeOption ? { ...editingQuestion } : null
+  const updateQuestion = (updated) => {
     setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? { ...q, ...updated, id: editingQuestion.id } : q))
-    if (regradeOption && regradeOption !== 'no_regrade') {
-      setRegradeMap(prev => ({ ...prev, [editingQuestion.id]: { option: regradeOption, oldQuestion: oldQ } }))
-    }
   }
   const removeQuestion = (qId) => setQuestions(prev => prev.filter(q => q.id !== qId))
   const moveQuestion = useCallback((fromIdx, toIdx) => {
@@ -398,13 +393,12 @@ export default function QuizEdit() {
   }
 
   const doSave = async (statusOverride) => {
-    let savedQuestions = questions
     const nextStatus = statusOverride ?? computeNextStatus()
     const reopened = nextStatus === 'open' && quiz.status === 'closed'
     try {
       if (form.scorePolicy !== quiz.scorePolicy) await recalculateScorePolicy(quiz.id, form.scorePolicy)
       await updateQuiz(quiz.id, buildUpdateBody(nextStatus))
-      savedQuestions = await setQuizQuestions(quiz.id, questions) ?? questions
+      await setQuizQuestions(quiz.id, questions)
     } catch (err) {
       console.error('[QuizEdit] 저장 실패', err)
       setAlertDialog({ title: '저장 실패', message: err?.message ?? '저장 중 오류가 발생했습니다.', variant: 'error' })
@@ -418,33 +412,8 @@ export default function QuizEdit() {
         localStorage.setItem('xnq_questions_modified', JSON.stringify(map))
       } catch { /* ignore */ }
     }
-    let totalRegraded = 0
-    const regradeLog = {}
-    for (const [oldQId, { option, oldQuestion }] of Object.entries(regradeMap)) {
-      const idx = questions.findIndex(x => x.id === oldQId)
-      const target = idx >= 0 ? savedQuestions[idx] : null
-      if (!target) continue
-      try {
-        const result = await regradeQuestion(quiz.id, target, option, oldQuestion)
-        const count = result.regradedStudents ?? 0
-        totalRegraded += count
-        regradeLog[oldQId] = { option, count, timestamp: new Date().toISOString() }
-      } catch (err) {
-        console.error('[QuizEdit] 재채점 실패', oldQId, err)
-      }
-    }
-    if (Object.keys(regradeLog).length > 0) {
-      try {
-        const existing = JSON.parse(localStorage.getItem('xnq_regrade_log') || '{}')
-        existing[quiz.id] = { ...(existing[quiz.id] || {}), ...regradeLog }
-        localStorage.setItem('xnq_regrade_log', JSON.stringify(existing))
-      } catch { /* ignore */ }
-    }
     const reopenMsg = reopened ? ' 마감 처리된 퀴즈가 다시 공개되었습니다.' : ''
-    const toastMsg = totalRegraded > 0
-      ? `저장되었습니다. ${totalRegraded}명의 점수가 재채점되었습니다.${reopenMsg}`
-      : `저장되었습니다.${reopenMsg}`
-    sessionStorage.setItem('xnq_toast', toastMsg)
+    sessionStorage.setItem('xnq_toast', `저장되었습니다.${reopenMsg}`)
     navigate('/')
   }
 
@@ -469,7 +438,6 @@ export default function QuizEdit() {
               quiz={quiz}
               questions={questions}
               totalPoints={totalPoints}
-              regradeMap={regradeMap}
               onShowBank={() => setShowBankModal(true)}
               onShowRandomBank={() => setShowRandomBankModal(true)}
               onShowAdd={() => setShowAddModal(true)}
@@ -817,7 +785,7 @@ function InfoTab({ form, set, quizStatus, courseKey }) {
   )
 }
 
-function QuestionsTab({ questions, totalPoints, regradeMap, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove }) {
+function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove }) {
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
 
@@ -882,7 +850,6 @@ function QuestionsTab({ questions, totalPoints, regradeMap, onShowBank, onShowRa
                     <Badge variant="secondary" className="bg-secondary text-secondary-foreground">{QUIZ_TYPES[q.type]?.label}</Badge>
                     <span className="text-xs text-muted-foreground">{q.points}점</span>
                     {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-warning-bg text-warning-foreground">수동채점</Badge>}
-                    {regradeMap?.[q.id]?.option && <Badge variant="secondary" className="bg-warning-bg text-warning-foreground gap-1"><RefreshCw size={10} />재채점 예정</Badge>}
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0">
                     <button onClick={() => onEdit(q)} title="문항 편집" className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
