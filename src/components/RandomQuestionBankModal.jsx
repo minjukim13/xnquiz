@@ -138,20 +138,23 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
 
   // 랜덤 출제 그룹 생성: 학생별로 다른 문항이 뽑히도록 placeholder 만 시험 정의에 저장
   // 실제 문항은 응시 시점에 학생 단위 시드로 결정 (utils/randomGroups.js expandRandomGroups)
+  // 사용자 원칙: 그룹 추가 시점에 은행 문항을 bankSnapshot 으로 복사 → 그 시점부터 독립
   const handleConfirm = () => {
     Object.entries(bankConfigs).forEach(([bankId, cfg]) => {
       const bank = banks.find(b => b.id === bankId)
       const bankQs = getBankQuestions(bankId)
+      // 그룹 추가 시점의 스냅샷 (깊은 복사 — 은행 원본 변경에 영향 X)
+      const bankSnapshot = bankQs.map(q => JSON.parse(JSON.stringify(q)))
 
       // 난이도별 차등 배점 사용 시, 시험 정의 단위 합계 추정 (실제 학생별 합계는 응시 시 재계산)
       let estimatedTotalPoints = cfg.count * cfg.points
       if (useDifficultyScoring) {
         const diffCounts = { high: 0, medium: 0, low: 0, none: 0 }
-        bankQs.forEach(q => {
+        bankSnapshot.forEach(q => {
           if (q.difficulty && diffCounts[q.difficulty] !== undefined) diffCounts[q.difficulty]++
           else diffCounts.none++
         })
-        const total = bankQs.length || 1
+        const total = bankSnapshot.length || 1
         estimatedTotalPoints = Math.round(
           cfg.count * (
             (diffCounts.high / total) * cfg.difficultyPoints.high +
@@ -172,6 +175,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
         difficultyPoints: cfg.difficultyPoints,
         maxAvailable: cfg.totalAvailable,
         estimatedTotalPoints,
+        bankSnapshot,
       })
       onAdd(groupItem)
     })

@@ -41,7 +41,8 @@ function shuffleWithSeed(arr, seed) {
 }
 
 // 시험 정의에 들어가는 placeholder. 학생별 expand 전까지 문항 ID/본문은 결정되지 않는다.
-export function createRandomGroupItem({ bankId, bankName, bankCourse, count, pointsPerQuestion, useDifficultyScoring, difficultyPoints, maxAvailable, estimatedTotalPoints }) {
+// 사용자 원칙: 문제은행에서 가져온 문제는 독립 문항 → bankSnapshot 으로 그룹 추가 시점에 풀 복사
+export function createRandomGroupItem({ bankId, bankName, bankCourse, count, pointsPerQuestion, useDifficultyScoring, difficultyPoints, maxAvailable, estimatedTotalPoints, bankSnapshot }) {
   return {
     id: `rg_${Date.now()}_${bankId}_${Math.random().toString(36).slice(2, 7)}`,
     type: RANDOM_GROUP_TYPE,
@@ -53,15 +54,25 @@ export function createRandomGroupItem({ bankId, bankName, bankCourse, count, poi
     useDifficultyScoring: !!useDifficultyScoring,
     difficultyPoints: difficultyPoints || { high: pointsPerQuestion, medium: pointsPerQuestion, low: pointsPerQuestion },
     maxAvailable,
+    // 그룹 추가 시점의 은행 문항 스냅샷 (이후 은행 변경에 영향 X — 독립성 보장)
+    bankSnapshot: Array.isArray(bankSnapshot) ? bankSnapshot : [],
     // 시험 메타데이터 표시용 (실제 학생별 점수는 expand 시 재계산)
     points: estimatedTotalPoints ?? count * pointsPerQuestion,
   }
 }
 
-// 시험 문항 리스트에서 실제 응시/표시용 문항 리스트로 확장
+// 그룹 풀에서 한 문항의 배점 계산 (난이도별 차등 배점 정책 반영)
+export function resolveGroupQuestionPoints(group, q) {
+  if (group.useDifficultyScoring && q.difficulty && group.difficultyPoints?.[q.difficulty]) {
+    return group.difficultyPoints[q.difficulty]
+  }
+  return group.pointsPerQuestion
+}
+
+// 시험 문항 리스트에서 실제 응시/표시용 문항 리스트로 확장 (학생 단위 시드)
 // items: 일반 문항 + random_group 혼합
 // seedKey: 학생/미리보기 단위로 동일하게 유지되어야 하는 키 (예: `${studentId}_${quizId}`)
-// getBankQuestions: bankId 로 문항 배열을 반환하는 함수
+// getBankQuestions: bankSnapshot 누락 시 fallback (그룹 추가 시 스냅샷이 저장되므로 일반적으론 사용 안 됨)
 export function expandRandomGroups(items, seedKey, getBankQuestions) {
   if (!Array.isArray(items)) return []
   const result = []
@@ -70,25 +81,69 @@ export function expandRandomGroups(items, seedKey, getBankQuestions) {
       result.push(item)
       return
     }
-    const bankQs = (typeof getBankQuestions === 'function' ? getBankQuestions(item.bankId) : []) || []
-    if (bankQs.length === 0) return
+    const pool = (item.bankSnapshot && item.bankSnapshot.length > 0)
+      ? item.bankSnapshot
+      : (typeof getBankQuestions === 'function' ? getBankQuestions(item.bankId) : []) || []
+    if (pool.length === 0) return
     const seed = hashString(`${seedKey || 'anon'}__${item.id}`)
-    const shuffled = shuffleWithSeed(bankQs, seed)
+    const shuffled = shuffleWithSeed(pool, seed)
     const take = Math.min(item.count ?? shuffled.length, shuffled.length)
     for (let i = 0; i < take; i++) {
       const q = shuffled[i]
-      const pts = item.useDifficultyScoring && q.difficulty && item.difficultyPoints?.[q.difficulty]
-        ? item.difficultyPoints[q.difficulty]
-        : item.pointsPerQuestion
       result.push({
         ...q,
-        points: pts,
+        points: resolveGroupQuestionPoints(item, q),
         randomGroupId: item.id,
         randomGroupBankName: item.bankName,
       })
     }
   })
   return result
+}
+
+// 교수자(통계/채점) 뷰용: random_group 의 풀 안 모든 문항을 평면 리스트로 펼침
+// 학생 단위 추출이 아니라, 그룹의 전체 후보군을 노출 → 문항별 통계/재채점 가능
+// order 는 그룹 위치 + 그룹 내 인덱스 합성
+export function expandAllForInstructor(items) {
+  if (!Array.isArray(items)) return []
+  const result = []
+  let orderCounter = 0
+  items.forEach((item, itemIdx) => {
+    if (!isRandomGroup(item)) {
+      orderCounter += 1
+      result.push({ ...item, order: item.order ?? orderCounter })
+      return
+    }
+    const pool = item.bankSnapshot || []
+    pool.forEach((q, qIdx) => {
+      orderCounter += 1
+      result.push({
+        ...q,
+        points: resolveGroupQuestionPoints(item, q),
+        order: orderCounter,
+        randomGroupId: item.id,
+        randomGroupBankName: item.bankName,
+        // 정렬/표시 보조용
+        randomGroupItemIdx: itemIdx,
+        randomGroupQuestionIdx: qIdx,
+      })
+    })
+  })
+  return result
+}
+
+// 응시 데이터에서 특정 문항이 출제된 학생 명단 추출
+// 학생의 응답(answers / autoScores / manualScores / selections) 어디에든 q.id 가 있으면 출제됨으로 판정
+export function getRecipientStudents(question, students) {
+  if (!question || !Array.isArray(students)) return []
+  const qId = question.id
+  return students.filter(s => {
+    if (s.answers && qId in s.answers) return true
+    if (s.autoScores && qId in s.autoScores) return true
+    if (s.manualScores && qId in s.manualScores) return true
+    if (s.selections && qId in s.selections) return true
+    return false
+  })
 }
 
 // 시험 정의 단위 합계 (random_group 은 추정 totalPoints 사용)
@@ -105,4 +160,17 @@ export function summarizeQuizItems(items) {
     }
   }
   return { questionCount, totalPoints }
+}
+
+// 교수자 뷰 합계 (random_group 풀 안 전체 문항을 카운트)
+export function summarizeForInstructor(items) {
+  let questionCount = 0
+  for (const item of items || []) {
+    if (isRandomGroup(item)) {
+      questionCount += (item.bankSnapshot?.length ?? 0)
+    } else {
+      questionCount += 1
+    }
+  }
+  return { questionCount }
 }

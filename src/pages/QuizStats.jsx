@@ -7,6 +7,8 @@ import {
 } from 'recharts'
 import { QUIZ_TYPES } from '../data/mockData'
 import { getQuiz, getQuizQuestions, listAttempts, regradeQuestion } from '@/lib/data'
+import { expandAllForInstructor, getRecipientStudents, isRandomGroup } from '@/utils/randomGroups'
+import { Shuffle, Users } from 'lucide-react'
 import { getLateThreshold } from '../utils/deadlineUtils'
 import { useRole } from '../context/role'
 import { cn } from '@/lib/utils'
@@ -62,6 +64,59 @@ function TypeBadge({ type }) {
     <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
       {cfg.label}
     </Badge>
+  )
+}
+
+// 랜덤 출제 그룹 문항 상세에서 "이 문항 출제된 학생 명단" + 재채점 진입점
+function RecipientSection({ question, students, onRegrade }) {
+  const [showList, setShowList] = useState(false)
+  const recipientIds = question.recipientIds ?? []
+  const recipients = students.filter(s => recipientIds.includes(s.id))
+  return (
+    <div className="rounded-lg border border-primary/30 bg-accent/30 px-4 py-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
+          <Users size={14} className="text-primary shrink-0" />
+          <p className="text-sm text-foreground">
+            <span className="font-semibold">{recipients.length}명</span>에게 출제됨
+            <span className="text-xs text-muted-foreground ml-2">랜덤 출제 그룹 ({question.randomGroupBankName})</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Button variant="outline" size="xs" onClick={() => setShowList(v => !v)}>
+            {showList ? '명단 닫기' : '출제 학생 상세'}
+          </Button>
+          {onRegrade && (
+            <Button
+              variant="outline"
+              size="xs"
+              disabled={recipients.length === 0}
+              onClick={onRegrade}
+              title={recipients.length === 0 ? '출제된 학생이 없습니다' : '이 문항을 재채점합니다'}
+            >
+              <RefreshCw size={11} />
+              재채점
+            </Button>
+          )}
+        </div>
+      </div>
+      {showList && (
+        <div className="mt-3 pt-3 border-t border-primary/20">
+          {recipients.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2 text-center">아직 이 문항을 받은 학생이 없습니다</p>
+          ) : (
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5 max-h-48 overflow-y-auto">
+              {recipients.map(s => (
+                <li key={s.id} className="text-xs text-secondary-foreground flex items-center gap-1.5 min-w-0">
+                  <span className="font-medium truncate">{s.name}</span>
+                  <span className="text-muted-foreground shrink-0">{s.studentId}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -180,11 +235,36 @@ function discriminationGrade(value) {
 
 // 문항 배열에 mock 의 avgScore / gradedCount / totalCount 필드가 없는 경우 (api 모드)
 // attempts 에서 실시간 집계해 덧붙인다. mock 모드는 이미 포함된 값을 유지.
+// 랜덤 그룹 풀에서 펼친 문항은 출제된 학생만 모집단으로 한정 (recipientCount)
 function enrichQuestions(questions, students) {
   const submittedStudents = students.filter(s => s.submitted)
-  const totalCount = submittedStudents.length
   return questions.map(q => {
-    if (q.avgScore != null || q.gradedCount != null) return q // mock
+    // 랜덤 그룹 풀 문항: 출제된 학생만 모집단
+    if (q.randomGroupId) {
+      const recipients = getRecipientStudents(q, submittedStudents)
+      const recipientCount = recipients.length
+      let sum = 0
+      let cnt = 0
+      for (const s of recipients) {
+        const auto = s.autoScores?.[q.id]
+        const manual = s.manualScores?.[q.id]
+        if (auto == null && manual == null) continue
+        sum += (auto ?? 0) + (manual ?? 0)
+        cnt++
+      }
+      return {
+        ...q,
+        totalCount: recipientCount,
+        gradedCount: cnt,
+        recipientCount,
+        recipientIds: recipients.map(s => s.id),
+        avgScore: cnt > 0 ? Math.round((sum / cnt) * 10) / 10 : null,
+      }
+    }
+    if (q.avgScore != null || q.gradedCount != null) {
+      return { ...q, recipientCount: q.totalCount ?? submittedStudents.length }
+    }
+    const totalCount = submittedStudents.length
     let sum = 0
     let cnt = 0
     for (const s of submittedStudents) {
@@ -198,6 +278,7 @@ function enrichQuestions(questions, students) {
       ...q,
       totalCount,
       gradedCount: cnt,
+      recipientCount: totalCount,
       avgScore: cnt > 0 ? Math.round((sum / cnt) * 10) / 10 : null,
     }
   })
@@ -237,9 +318,15 @@ export default function QuizStats() {
     return () => { mounted = false }
   }, [id])
 
+  // 랜덤 그룹은 풀 안 전체 문항을 평면 리스트로 펼쳐서 통계/재채점 대상으로 노출
+  const flattenedQuestions = useMemo(
+    () => expandAllForInstructor(quizQuestions),
+    [quizQuestions]
+  )
+
   const enrichedQuestions = useMemo(
-    () => enrichQuestions(quizQuestions, quizStudents),
-    [quizQuestions, quizStudents]
+    () => enrichQuestions(flattenedQuestions, quizStudents),
+    [flattenedQuestions, quizStudents]
   )
 
   const reloadAttempts = useCallback(async () => {
@@ -1104,7 +1191,7 @@ function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade
                   { label: '평균 점수', center: true },
                   { label: '득점률', center: false },
                   { label: '난이도', center: true, tip: '득점률 기준: ≥70% 쉬움 / 40~69% 보통 / <40% 어려움' },
-                  { label: '채점 현황', center: true },
+                  { label: '출제/채점', center: true, tip: '랜덤 출제 그룹 문항은 출제된 학생만 모집단으로 집계' },
                 ].map(({ label, center, tip }) => (
                   <th key={label} title={tip ?? ''} className={cn('px-4 py-2.5 font-semibold whitespace-nowrap text-[11px] text-secondary-foreground', center ? 'text-center' : 'text-left', tip && 'cursor-help')}>
                     {label}{tip && <span className="text-muted-foreground/40 ml-0.5">ⓘ</span>}
@@ -1116,7 +1203,20 @@ function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade
               {qTableData.map((q, i) => (
                 <tr key={q.id} className={cn('border-b border-border hover:bg-accent/30 transition-colors', i % 2 !== 0 && 'bg-secondary/50')}>
                   <td className="px-4 py-2.5 text-center">
-                    <Badge className="bg-accent text-primary border-0">Q{q.order}</Badge>
+                    <button
+                      type="button"
+                      onClick={() => setStatsDetailQ(q)}
+                      className="inline-flex items-center gap-1 hover:opacity-80"
+                      title="이 문항의 상세 통계 보기"
+                    >
+                      <Badge className="bg-accent text-primary border-0">Q{q.order}</Badge>
+                      {q.randomGroupId && (
+                        <Badge className="bg-primary/10 text-primary border-0 gap-0.5">
+                          <Shuffle size={9} />
+                          랜덤
+                        </Badge>
+                      )}
+                    </button>
                   </td>
                   <td className="px-4 py-2.5"><TypeBadge type={q.type} /></td>
                   <td className="px-4 py-2.5 text-center font-medium text-secondary-foreground">{q.points}점</td>
@@ -1145,11 +1245,29 @@ function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade
                     ) : <span className="text-muted-foreground/40">-</span>}
                   </td>
                   <td className="px-4 py-2.5 text-center">
-                    {q.gradedCount >= q.totalCount ? (
-                      <span className="font-medium text-success-foreground">완료</span>
-                    ) : (
-                      <span className="text-warning-foreground">{q.gradedCount}/{q.totalCount}명</span>
-                    )}
+                    <div className="flex items-center justify-center gap-1.5">
+                      {q.randomGroupId && (
+                        <span className="text-[11px] text-muted-foreground inline-flex items-center gap-0.5">
+                          <Users size={10} />
+                          {q.recipientCount ?? 0}명 출제
+                        </span>
+                      )}
+                      {q.gradedCount >= q.totalCount && (q.totalCount ?? 0) > 0 ? (
+                        <span className="font-medium text-success-foreground">완료</span>
+                      ) : (q.totalCount ?? 0) === 0 ? (
+                        <span className="text-muted-foreground/40">미응시</span>
+                      ) : (
+                        <span className="text-warning-foreground">{q.gradedCount}/{q.totalCount}명</span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => setStatsDetailQ(q)}
+                        className="text-[11px] text-primary hover:text-primary"
+                      >
+                        상세
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1169,9 +1287,15 @@ function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade
           {statsDetailQ && (
             <>
               <SheetHeader className="px-5 py-4 border-b border-border">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <Badge className="bg-accent text-primary border-0">Q{statsDetailQ.order}</Badge>
                   <TypeBadge type={statsDetailQ.type} />
+                  {statsDetailQ.randomGroupId && (
+                    <Badge className="bg-primary/10 text-primary border-0 gap-0.5">
+                      <Shuffle size={10} />
+                      {statsDetailQ.randomGroupBankName ?? '랜덤 출제'}
+                    </Badge>
+                  )}
                   <span className="text-xs text-muted-foreground ml-auto pr-8">{statsDetailQ.points}점</span>
                 </div>
                 <SheetTitle className="text-base font-semibold truncate">
@@ -1181,8 +1305,20 @@ function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade
                   {(statsDetailQ.text || '').replace(/<[^>]+>/g, '').trim() || '문항 본문 없음'}
                 </SheetDescription>
               </SheetHeader>
-              <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4">
-                <QuestionStatsPanel question={statsDetailQ} students={allStudents} />
+              <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 space-y-4">
+                {statsDetailQ.randomGroupId && (
+                  <RecipientSection
+                    question={statsDetailQ}
+                    students={allStudents}
+                    onRegrade={() => onRequestRegrade?.(statsDetailQ, statsDetailQ.recipientCount ?? 0)}
+                  />
+                )}
+                <QuestionStatsPanel
+                  question={statsDetailQ}
+                  students={statsDetailQ.randomGroupId
+                    ? allStudents.filter(s => (statsDetailQ.recipientIds ?? []).includes(s.id))
+                    : allStudents}
+                />
               </div>
             </>
           )}
