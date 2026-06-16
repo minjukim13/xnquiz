@@ -1244,27 +1244,32 @@ function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade
                       </Badge>
                     ) : <span className="text-muted-foreground/40">-</span>}
                   </td>
-                  <td className="px-4 py-2.5 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      {q.randomGroupId && (
-                        <span className="text-[11px] text-muted-foreground inline-flex items-center gap-0.5">
-                          <Users size={10} />
-                          {q.recipientCount ?? 0}명 출제
-                        </span>
-                      )}
-                      {q.gradedCount >= q.totalCount && (q.totalCount ?? 0) > 0 ? (
-                        <span className="font-medium text-success-foreground">완료</span>
-                      ) : (q.totalCount ?? 0) === 0 ? (
-                        <span className="text-muted-foreground/40">미응시</span>
-                      ) : (
-                        <span className="text-warning-foreground">{q.gradedCount}/{q.totalCount}명</span>
-                      )}
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center justify-end gap-3">
+                      <div className="flex flex-col items-end leading-tight">
+                        {q.randomGroupId && (
+                          <span className="text-[11px] text-muted-foreground inline-flex items-center gap-0.5">
+                            <Users size={10} />
+                            {q.recipientCount ?? 0}명 출제
+                          </span>
+                        )}
+                        {q.gradedCount >= q.totalCount && (q.totalCount ?? 0) > 0 ? (
+                          <span className="text-[12px] font-semibold text-success-foreground">채점 완료</span>
+                        ) : (q.totalCount ?? 0) === 0 ? (
+                          <span className="text-[12px] text-muted-foreground/60">미응시</span>
+                        ) : (
+                          <span className="text-[12px] font-medium text-warning-foreground">
+                            {q.gradedCount}/{q.totalCount}명
+                          </span>
+                        )}
+                      </div>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="xs"
                         onClick={() => setStatsDetailQ(q)}
-                        className="text-[11px] text-primary hover:text-primary"
+                        title="이 문항의 상세 통계 보기"
                       >
+                        <BarChart3 size={11} />
                         상세
                       </Button>
                     </div>

@@ -579,6 +579,33 @@ export const mockQuizzes = [
     scoreRevealScope: null,
     scoreRevealTiming: null,
   },
+  {
+    // [데모] 랜덤 출제 그룹 — 학생별로 다른 문항이 출제되는 시연용 퀴즈
+    // bank1 (DB 종합 문제집, 6문항) 에서 학생별로 3문항씩 무작위 출제
+    id: '12',
+    title: '[데모] 랜덤 출제 - 학생별 다른 문항',
+    description: '랜덤 출제 그룹 기능 시연용 퀴즈. 학생마다 DB 종합 문제집에서 서로 다른 3문항이 출제됩니다.',
+    course: 'CS301 데이터베이스',
+    status: 'grading',
+    visible: true,
+    startDate: '2026-05-10 09:00',
+    dueDate: '2026-05-10 18:00',
+    lockDate: '2026-06-30 23:59',
+    week: 9,
+    session: 2,
+    totalStudents: 10,
+    submitted: 10,
+    graded: 8,
+    pendingGrade: 2,
+    questions: 3,
+    totalPoints: 18,
+    timeLimit: 30,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: 'after_due',
+  },
 ]
 
 // ── mockQuizzes localStorage 동기화 ──
@@ -1516,6 +1543,7 @@ export function getQuizQuestions(quizId) {
   if (quizId === 'cs102_2') return mockCs102Quiz2Questions
   if (quizId === 'cs102_3') return mockCs102Quiz3Questions
   if (quizId === 'cs401_3') return mockCs401Quiz3Questions
+  if (quizId === '12') return mockQuiz12Items
   return []
 }
 
@@ -2439,6 +2467,124 @@ export const MOCK_BANK_QUESTIONS = [
     rubric: '문자 단위 노드로 구성된 트리, 공통 접두사 공유 구조 명시. 활용: 자동완성, 사전 검색, IP 라우팅 등 두 가지 이상.' },
 ]
 
+// ── [데모] 퀴즈 12: 랜덤 출제 그룹 — 학생별 다른 문항 시연용 ────────────────
+// 시험 정의는 random_group placeholder 1개 (bank1 에서 학생별 3문항 무작위 출제)
+// 응시 시점에 학생 시드로 expand → 학생마다 다른 3문항을 보게 됨
+const _bank1Snapshot = MOCK_BANK_QUESTIONS
+  .filter(q => q.bankId === 'bank1')
+  .map(q => JSON.parse(JSON.stringify(q)))
+
+export const mockQuiz12Items = [
+  {
+    id: 'rg_demo_bank1',
+    type: 'random_group',
+    bankId: 'bank1',
+    bankName: 'DB 종합 문제집',
+    bankCourse: 'CS301 데이터베이스',
+    count: 3,
+    pointsPerQuestion: 5,
+    useDifficultyScoring: false,
+    difficultyPoints: { high: 5, medium: 5, low: 5 },
+    maxAvailable: _bank1Snapshot.length,
+    bankSnapshot: _bank1Snapshot,
+    points: 15,
+  },
+]
+
+// 학생별 출제 분포: 각 bq1~bq6 가 5명씩 받도록 의도적으로 배분
+//  bq1: A,C,F,H,J | bq2: B,D,F,G,J | bq3: A,D,E,H,I
+//  bq4: B,C,E,H,I | bq5: A,C,E,G,J (essay, 일부 채점 대기) | bq6: B,D,F,G,I
+const _Q12_DIST = [
+  // [학생코드, 응시 문항 3개, autoScores, manualScores(essay), score]
+  { code: 'A', sid: '2022101', name: '학생 A', dept: '컴퓨터공학과',
+    received: ['bq1', 'bq3', 'bq5'],
+    autoScores: { bq1: 5, bq3: 5 },
+    manualScores: null, // bq5 채점 대기
+    score: null,
+    selections: { bq1: '각 행을 유일하게 식별한다', bq3: '모두 실행되거나 모두 취소됨', bq5: 'ERD는 개념 모델, 관계형 스키마는 논리 모델로...' },
+  },
+  { code: 'B', sid: '2022102', name: '학생 B', dept: '소프트웨어학과',
+    received: ['bq2', 'bq4', 'bq6'],
+    autoScores: { bq2: 5, bq4: 5, bq6: 5 },
+    manualScores: {},
+    score: 15,
+    selections: { bq2: 'IS NULL', bq4: '참', bq6: '부분 함수 종속이 제거되어야 한다' },
+  },
+  { code: 'C', sid: '2022103', name: '학생 C', dept: '정보통신공학과',
+    received: ['bq1', 'bq4', 'bq5'],
+    autoScores: { bq1: 5, bq4: 0 },
+    manualScores: { bq5: 4 },
+    score: 9,
+    selections: { bq1: '각 행을 유일하게 식별한다', bq4: '거짓', bq5: 'ERD는 다이어그램이고 스키마는 표 형태입니다.' },
+  },
+  { code: 'D', sid: '2022104', name: '학생 D', dept: '컴퓨터공학과',
+    received: ['bq2', 'bq3', 'bq6'],
+    autoScores: { bq2: 5, bq3: 0, bq6: 5 },
+    manualScores: {},
+    score: 10,
+    selections: { bq2: 'IS NULL', bq3: '한 줄씩 처리하는 것', bq6: '부분 함수 종속이 제거되어야 한다' },
+  },
+  { code: 'E', sid: '2022105', name: '학생 E', dept: '소프트웨어학과',
+    received: ['bq3', 'bq4', 'bq5'],
+    autoScores: { bq3: 5, bq4: 5 },
+    manualScores: { bq5: 3 },
+    score: 13,
+    selections: { bq3: '원자성, 모두 실행되거나 취소', bq4: '참', bq5: 'ERD와 스키마는 비슷한 개념입니다.' },
+  },
+  { code: 'F', sid: '2022106', name: '학생 F', dept: '컴퓨터공학과',
+    received: ['bq1', 'bq2', 'bq6'],
+    autoScores: { bq1: 0, bq2: 5, bq6: 0 },
+    manualScores: {},
+    score: 5,
+    selections: { bq1: '테이블 간 관계를 정의한다', bq2: 'IS NULL', bq6: '이행적 함수 종속이 제거되어야 한다' },
+  },
+  { code: 'G', sid: '2022107', name: '학생 G', dept: '정보통신공학과',
+    received: ['bq2', 'bq5', 'bq6'],
+    autoScores: { bq2: 5, bq6: 5 },
+    manualScores: { bq5: 5 },
+    score: 15,
+    selections: { bq2: 'IS NULL', bq5: 'ERD는 개체와 관계를 시각화한 개념 모델이며, 관계형 스키마는 테이블/컬럼/제약을 정의한 논리 모델입니다. ERD를 정규화 절차를 거쳐 스키마로 변환합니다.', bq6: '부분 함수 종속이 제거되어야 한다' },
+  },
+  { code: 'H', sid: '2022108', name: '학생 H', dept: '소프트웨어학과',
+    received: ['bq1', 'bq3', 'bq4'],
+    autoScores: { bq1: 5, bq3: 5, bq4: 5 },
+    manualScores: {},
+    score: 15,
+    selections: { bq1: '각 행을 유일하게 식별한다', bq3: 'All or Nothing 보장', bq4: '참' },
+  },
+  { code: 'I', sid: '2022109', name: '학생 I', dept: '컴퓨터공학과',
+    received: ['bq3', 'bq4', 'bq6'],
+    autoScores: { bq3: 0, bq4: 5, bq6: 5 },
+    manualScores: {},
+    score: 10,
+    selections: { bq3: '일부만 실행됨', bq4: '참', bq6: '부분 함수 종속이 제거되어야 한다' },
+  },
+  { code: 'J', sid: '2022110', name: '학생 J', dept: '정보통신공학과',
+    received: ['bq1', 'bq2', 'bq5'],
+    autoScores: { bq1: 5, bq2: 0 },
+    manualScores: null, // bq5 채점 대기
+    score: null,
+    selections: { bq1: '각 행을 유일하게 식별한다', bq2: '= NULL', bq5: 'ERD 와 스키마는 비슷합니다.' },
+  },
+]
+
+export const mockStudents12 = _Q12_DIST.map((s, i) => ({
+  id: `s12_${i + 1}`,
+  studentId: s.sid,
+  name: s.name,
+  department: s.dept,
+  score: s.score,
+  startTime: `2026-05-10 09:${String(15 + i * 3).padStart(2, '0')}`,
+  endTime: `2026-05-10 09:${String(38 + i * 3).padStart(2, '0')}`,
+  submitted: true,
+  submittedAt: `2026-05-10 09:${String(38 + i * 3).padStart(2, '0')}`,
+  response: null,
+  autoScores: s.autoScores,
+  manualScores: s.manualScores,
+  selections: s.selections,
+  answers: s.selections,
+}))
+
 // ── 신규 퀴즈 문항 (구 9 이후 추가분) ────────────────────────────────────
 
 // 퀴즈 10: 회복 기법과 백업 전략 (6문항, 20점, 자동채점 위주)
@@ -3098,6 +3244,7 @@ export function getQuizStudents(quizId) {
 
   if (quizId === '1') return autoSubmitExpiredStudents(mockStudents, quiz, new Date(), getQuizQuestions('1'))
   if (quizId === '8') return autoSubmitExpiredStudents(mockStudents8, quiz, new Date(), getQuizQuestions('8'))
+  if (quizId === '12') return mockStudents12
   if (studentCache[quizId]) return studentCache[quizId]
 
   if (!quiz) return mockStudents
