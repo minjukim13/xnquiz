@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react'
 import { useQuestionBank } from '../context/questionBank'
 import { QUIZ_TYPES } from '../data/mockData'
+import { createRandomGroupItem } from '@/utils/randomGroups'
 
 const DIFFICULTY_LABELS = { high: '상', medium: '중', low: '하' }
 const DIFFICULTY_COLORS = {
@@ -135,32 +136,45 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
     return { totalCount, totalPoints }
   }, [bankConfigs, useDifficultyScoring, getBankQuestions, added])
 
-  // 랜덤 출제 실행
+  // 랜덤 출제 그룹 생성: 학생별로 다른 문항이 뽑히도록 placeholder 만 시험 정의에 저장
+  // 실제 문항은 응시 시점에 학생 단위 시드로 결정 (utils/randomGroups.js expandRandomGroups)
   const handleConfirm = () => {
-    const addedQuestions = []
-
     Object.entries(bankConfigs).forEach(([bankId, cfg]) => {
-      const questions = getBankQuestions(bankId).filter(q => !added.includes(q.id))
       const bank = banks.find(b => b.id === bankId)
+      const bankQs = getBankQuestions(bankId)
 
-      // 셔플 후 count만큼 선택
-      const shuffled = [...questions].sort(() => Math.random() - 0.5)
-      const selected = shuffled.slice(0, cfg.count)
-
-      selected.forEach(q => {
-        const points = useDifficultyScoring && q.difficulty && cfg.difficultyPoints[q.difficulty]
-          ? cfg.difficultyPoints[q.difficulty]
-          : cfg.points
-        addedQuestions.push({
-          ...q,
-          points,
-          bankName: bank?.name,
-          randomPicked: true,
+      // 난이도별 차등 배점 사용 시, 시험 정의 단위 합계 추정 (실제 학생별 합계는 응시 시 재계산)
+      let estimatedTotalPoints = cfg.count * cfg.points
+      if (useDifficultyScoring) {
+        const diffCounts = { high: 0, medium: 0, low: 0, none: 0 }
+        bankQs.forEach(q => {
+          if (q.difficulty && diffCounts[q.difficulty] !== undefined) diffCounts[q.difficulty]++
+          else diffCounts.none++
         })
-      })
-    })
+        const total = bankQs.length || 1
+        estimatedTotalPoints = Math.round(
+          cfg.count * (
+            (diffCounts.high / total) * cfg.difficultyPoints.high +
+            (diffCounts.medium / total) * cfg.difficultyPoints.medium +
+            (diffCounts.low / total) * cfg.difficultyPoints.low +
+            (diffCounts.none / total) * cfg.points
+          )
+        )
+      }
 
-    addedQuestions.forEach(q => onAdd(q))
+      const groupItem = createRandomGroupItem({
+        bankId,
+        bankName: bank?.name ?? '문제모음',
+        bankCourse: bank?.course,
+        count: cfg.count,
+        pointsPerQuestion: cfg.points,
+        useDifficultyScoring,
+        difficultyPoints: cfg.difficultyPoints,
+        maxAvailable: cfg.totalAvailable,
+        estimatedTotalPoints,
+      })
+      onAdd(groupItem)
+    })
     handleClose()
   }
 

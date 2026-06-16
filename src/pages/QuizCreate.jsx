@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { GripVertical, Pencil, Trash2, HelpCircle } from 'lucide-react'
+import { GripVertical, Pencil, Trash2, HelpCircle, Shuffle } from 'lucide-react'
+import { isRandomGroup, summarizeQuizItems } from '@/utils/randomGroups'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
 import AddQuestionModal from '../components/AddQuestionModal'
@@ -143,7 +144,7 @@ export default function QuizCreate() {
     assignments: sanitizeAssignments(form.assignments),
     notice: form.noticeEnabled ? form.notice : null,
     totalStudents: 0, submitted: 0, graded: 0, pendingGrade: 0,
-    questions: questions.length, totalPoints,
+    questions: summarizeQuizItems(questions).questionCount, totalPoints,
   })
 
   const persistQuiz = async (status) => {
@@ -555,6 +556,53 @@ function InfoTab({ form, set }) {
   )
 }
 
+// 랜덤 출제 그룹 카드: 학생별로 다른 문항이 뽑히는 placeholder. 본문/정답 영역 없음
+function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDragOver, onDrop, onDragEnd, onRemove }) {
+  return (
+    <div
+      draggable
+      onDragStart={() => onDragStart(index)}
+      onDragOver={e => onDragOver(e, index)}
+      onDrop={() => onDrop(index)}
+      onDragEnd={onDragEnd}
+      className={cn('rounded-lg border-2 border-dashed group transition-all bg-accent/30',
+        overIdx === index && dragIdx !== index ? 'border-primary shadow-sm' : 'border-primary/40 hover:border-primary/60',
+        dragIdx === index && 'opacity-40'
+      )}
+    >
+      <div className="px-3.5 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <GripVertical size={14} className="cursor-grab active:cursor-grabbing text-muted-foreground/40" />
+            <span className="text-xs font-bold w-5 text-center text-muted-foreground">{index + 1}</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+            <Badge className="bg-primary/10 text-primary hover:bg-primary/10 gap-1">
+              <Shuffle size={11} />
+              랜덤 출제 그룹
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {group.bankName} 문제모음에서 <span className="font-semibold text-foreground">{group.count}문항</span>
+            </span>
+            <span className="text-xs text-muted-foreground">· 총 {group.points}점</span>
+          </div>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button onClick={() => onRemove(group.id)} title="그룹 삭제" className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-colors">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        </div>
+        <p className="text-xs mt-2 ml-8 text-secondary-foreground leading-relaxed">
+          학생마다 서로 다른 <span className="font-semibold text-foreground">{group.count}개</span> 문항이 무작위로 출제됩니다
+          {group.useDifficultyScoring
+            ? ' (난이도별 차등 배점)'
+            : ` · 문항당 ${group.pointsPerQuestion}점`}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove }) {
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
@@ -567,12 +615,14 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
   }
   const handleDragEnd = () => { setDragIdx(null); setOverIdx(null) }
 
+  const { questionCount } = summarizeQuizItems(questions)
+
   return (
     <div>
       {/* 헤더: 문항 수/점수 + 액션 버튼 */}
       <div className="flex items-center justify-between gap-2 mb-4 px-1 py-0.5 flex-wrap">
         <p className="text-[13px] text-secondary-foreground leading-none">
-          <span className="font-semibold text-foreground">{questions.length}</span>문항
+          <span className="font-semibold text-foreground">{questionCount}</span>문항
           <span className="text-muted-foreground mx-1.5">|</span>
           총 <span className="font-semibold text-foreground">{totalPoints}</span>점
         </p>
@@ -606,7 +656,20 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
         </div>
       ) : (
         <div className="space-y-2">
-          {questions.map((q, i) => (
+          {questions.map((q, i) => isRandomGroup(q) ? (
+            <RandomGroupItemCard
+              key={q.id}
+              group={q}
+              index={i}
+              dragIdx={dragIdx}
+              overIdx={overIdx}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
+              onRemove={onRemove}
+            />
+          ) : (
             <div key={q.id} draggable onDragStart={() => handleDragStart(i)} onDragOver={e => handleDragOver(e, i)} onDrop={() => handleDrop(i)} onDragEnd={handleDragEnd}
               className={cn('bg-white rounded-lg border group transition-all',
                 overIdx === i && dragIdx !== i ? 'border-primary bg-accent/30 shadow-sm' : 'border-border hover:border-slate-300',

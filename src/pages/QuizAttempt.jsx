@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Check, AlertCircle, Send, X, Lock } from 'lucide-react'
 import { mockQuizzes, getQuizQuestions as mockGetQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
 import { getQuiz, getQuizQuestions, startAttempt, saveAnswers, submitAttempt } from '@/lib/data'
 import { useRole } from '../context/role'
+import { useQuestionBank } from '../context/questionBank'
+import { expandRandomGroups } from '@/utils/randomGroups'
 
 const DATA_MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 import { AlertDialog, ConfirmDialog } from '../components/ConfirmDialog'
@@ -54,10 +56,22 @@ export default function QuizAttempt() {
   const isPreview = searchParams.get('preview') === 'true'
   const { role, currentStudent } = useRole()
 
+  const { getBankQuestions } = useQuestionBank() ?? {}
   const [quiz, setQuiz] = useState(() => mockQuizzes.find(q => q.id === id) ?? null)
-  const [questions, setQuestions] = useState(() => DATA_MODE === 'mock' ? mockGetQuestions(id) : [])
+  const [rawItems, setRawItems] = useState(() => DATA_MODE === 'mock' ? mockGetQuestions(id) : [])
   const [loaded, setLoaded] = useState(DATA_MODE === 'mock')
   const [apiAttemptId, setApiAttemptId] = useState(null)
+
+  // 랜덤 출제 그룹은 학생별 시드로 매 응시 동일하게 결정 (새로고침/재접속 시 동일 문항 유지)
+  const seedKey = useMemo(() => {
+    if (isPreview) return `preview_${currentStudent?.id ?? 'anon'}_${id}`
+    return `${currentStudent?.id ?? 'anon'}_${id}`
+  }, [isPreview, currentStudent?.id, id])
+
+  const questions = useMemo(
+    () => expandRandomGroups(rawItems, seedKey, getBankQuestions),
+    [rawItems, seedKey, getBankQuestions]
+  )
 
   useEffect(() => {
     let mounted = true
@@ -66,7 +80,7 @@ export default function QuizAttempt() {
         const [q, qs] = await Promise.all([getQuiz(id), getQuizQuestions(id)])
         if (!mounted) return
         if (q) setQuiz(q)
-        setQuestions(qs)
+        setRawItems(qs)
       } catch (err) {
         console.error('[QuizAttempt] load 실패', err)
       } finally {

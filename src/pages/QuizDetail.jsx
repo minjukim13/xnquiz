@@ -24,6 +24,8 @@ import { htmlToPlainText } from '../components/RichText'
 import QuestionAnswer from '../components/QuestionAnswer'
 import CommentThread from './GradingDashboard/CommentThread'
 import { isResultViewed, markResultViewed } from '@/utils/resultsViewedStorage'
+import { useQuestionBank } from '../context/questionBank'
+import { expandRandomGroups } from '@/utils/randomGroups'
 
 function isScheduled(quiz) {
   if (!quiz || quiz.status !== 'open' || !quiz.startDate) return false
@@ -174,7 +176,14 @@ export default function QuizDetail() {
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [toast, setToast] = useState(null)
   const [myAttempts, setMyAttempts] = useState([])
-  const [questions, setQuestions] = useState([])
+  const [rawItems, setRawItems] = useState([])
+  const { getBankQuestions } = useQuestionBank() ?? {}
+  // 학생별 응시 결과 화면도 응시 당시와 동일한 랜덤 그룹 결정 (시드 = studentId + quizId + groupId)
+  const questions = expandRandomGroups(
+    rawItems,
+    `${currentStudent?.id ?? 'anon'}_${id}`,
+    getBankQuestions
+  )
 
   useEffect(() => {
     let mounted = true
@@ -204,13 +213,13 @@ export default function QuizDetail() {
           ])
           if (!mounted) return
           setMyAttempts(rows)
-          setQuestions(qs ?? [])
+          setRawItems(qs ?? [])
         } else {
           const all = getStudentAttempts(id)
           const mine = all.filter(a => a.studentId === currentStudent?.id)
           if (!mounted) return
           setMyAttempts(mine)
-          setQuestions(mockGetQuestions(id) ?? [])
+          setRawItems(mockGetQuestions(id) ?? [])
         }
       } catch (err) {
         console.error('[QuizDetail] listAttempts 실패', err)
