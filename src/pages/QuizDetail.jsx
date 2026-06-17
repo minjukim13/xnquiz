@@ -149,6 +149,43 @@ function QuestionPreviewList({ questions, quizId }) {
   )
 }
 
+// 객관식 3종에서 학생이 선택한 답에 매칭되는 보기별 코멘트 추출
+// 반환: [{ label, comment }] — 코멘트가 비어 있는 항목은 제외
+function getSelectedOptionComments(q, answer) {
+  if (answer == null) return []
+  if (q.type === 'true_false') {
+    if (answer === '참' || answer === true) {
+      return q.trueComment ? [{ label: '참', comment: q.trueComment }] : []
+    }
+    if (answer === '거짓' || answer === false) {
+      return q.falseComment ? [{ label: '거짓', comment: q.falseComment }] : []
+    }
+    return []
+  }
+  const opts = q.options || q.choices || []
+  const comments = q.optionComments || []
+  if (q.type === 'multiple_choice') {
+    const idx = opts.findIndex(o => o === answer)
+    if (idx < 0) return []
+    const c = comments[idx]
+    return c ? [{ label: htmlToPlainText(opts[idx]), comment: c }] : []
+  }
+  if (q.type === 'multiple_answers') {
+    const picks = typeof answer === 'string'
+      ? answer.split(',').map(s => s.trim()).filter(Boolean)
+      : []
+    return picks
+      .map(pick => {
+        const idx = opts.findIndex(o => o === pick)
+        if (idx < 0) return null
+        const c = comments[idx]
+        return c ? { label: htmlToPlainText(opts[idx]), comment: c } : null
+      })
+      .filter(Boolean)
+  }
+  return []
+}
+
 function formatDateRange(start, end) {
   if (!start && !end) return '응시 기간 제한 없음'
   return `${start || '제한 없음'} ~ ${end || '제한 없음'}`
@@ -697,7 +734,10 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
                       const showCorrect   = isAutoGraded && isCorrect && q.correct_comments
                       const showIncorrect = isAutoGraded && !isCorrect && q.incorrect_comments
                       const showNeutral   = !!q.neutral_comments
-                      if (!showCorrect && !showIncorrect && !showNeutral) return null
+                      const selectedComments = showAnswer
+                        ? getSelectedOptionComments(q, latestAttempt.answers?.[q.id])
+                        : []
+                      if (!showCorrect && !showIncorrect && !showNeutral && selectedComments.length === 0) return null
                       return (
                         <div className="mt-2 pt-2 border-t border-border space-y-1.5">
                           {showCorrect && (
@@ -718,6 +758,12 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
                               <p className="text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">{q.neutral_comments}</p>
                             </div>
                           )}
+                          {selectedComments.map((it, ci) => (
+                            <div key={ci} className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-accent border border-blue-100">
+                              <span className="shrink-0 text-[11px] font-semibold text-primary mt-0.5 max-w-[8rem] truncate" title={it.label}>{it.label}</span>
+                              <p className="text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">{it.comment}</p>
+                            </div>
+                          ))}
                         </div>
                       )
                     })()}

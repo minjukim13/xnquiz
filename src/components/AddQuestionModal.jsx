@@ -84,9 +84,9 @@ function describeScoringPolicy(scoringMode, penaltyMethod) {
 export function initForm(type) {
   const base = { title: '', text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '' }
   switch (type) {
-    case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
-    case 'true_false':              return { ...base, correctBool: true }
-    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], correctIdxs: [], overrideScoring: false, scoringMode: 'all_correct', penaltyMethod: 'none' }
+    case 'multiple_choice':         return { ...base, options: ['', '', '', ''], optionComments: ['', '', '', ''], correctIdx: 0 }
+    case 'true_false':              return { ...base, correctBool: true, trueComment: '', falseComment: '' }
+    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], optionComments: ['', '', '', ''], correctIdxs: [], overrideScoring: false, scoringMode: 'all_correct', penaltyMethod: 'none' }
     case 'short_answer':            return { ...base, acceptedAnswers: [''] }
     case 'essay':                   return { ...base, rubric: '' }
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
@@ -115,19 +115,34 @@ export function buildQuestion(type, form) {
   const base = { type, title: (form.title || '').trim(), text: form.text || '', points: Number.isFinite(Number(form.points)) ? Number(form.points) : 0, difficulty: form.difficulty || '', ...pickComments(form) }
   switch (type) {
     case 'multiple_choice': {
-      const filtered = form.options.filter(o => richTextHasContent(o))
-      return { ...base, options: filtered, choices: filtered, correctAnswer: filtered[form.correctIdx] ?? filtered[0] }
+      const pairs = form.options.map((o, i) => ({ text: o, comment: form.optionComments?.[i] || '' }))
+      const filtered = pairs.filter(p => richTextHasContent(p.text))
+      const opts = filtered.map(p => p.text)
+      const comments = filtered.map(p => p.comment)
+      const result = { ...base, options: opts, choices: opts, correctAnswer: opts[form.correctIdx] ?? opts[0] }
+      if (comments.some(c => (c || '').trim())) result.optionComments = comments
+      return result
     }
-    case 'true_false':              return { ...base, correctAnswer: form.correctBool ? '참' : '거짓', choices: ['참', '거짓'] }
+    case 'true_false': {
+      const result = { ...base, correctAnswer: form.correctBool ? '참' : '거짓', choices: ['참', '거짓'] }
+      if ((form.trueComment || '').trim()) result.trueComment = form.trueComment.trim()
+      if ((form.falseComment || '').trim()) result.falseComment = form.falseComment.trim()
+      return result
+    }
     case 'multiple_answers': {
-      const filtered = form.options.filter(o => richTextHasContent(o))
+      const pairs = form.options.map((o, i) => ({ text: o, comment: form.optionComments?.[i] || '' }))
+      const filtered = pairs.filter(p => richTextHasContent(p.text))
+      const opts = filtered.map(p => p.text)
+      const comments = filtered.map(p => p.comment)
       const scoringOverride = form.overrideScoring
         ? {
             scoringMode: form.scoringMode || 'all_correct',
             penaltyMethod: form.scoringMode === 'partial' ? (form.penaltyMethod || 'none') : 'none',
           }
         : {}
-      return { ...base, options: filtered, choices: filtered, correctAnswer: form.correctIdxs.map(i => filtered[i]).filter(Boolean), ...scoringOverride }
+      const result = { ...base, options: opts, choices: opts, correctAnswer: form.correctIdxs.map(i => opts[i]).filter(Boolean), ...scoringOverride }
+      if (comments.some(c => (c || '').trim())) result.optionComments = comments
+      return result
     }
     case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
     case 'essay':                   return { ...base, rubric: form.rubric }
@@ -201,6 +216,47 @@ function AnswerTextarea({ value, onChange, placeholder, className }) {
       placeholder={placeholder}
       className={cn(className, 'resize-none overflow-hidden leading-5')}
     />
+  )
+}
+
+// ── 보기별 코멘트 입력 (Canvas "이 답변을 선택한 경우의 의견") ─────────────
+// 코멘트가 있으면 자동 펼침, 없으면 토글 버튼만 노출
+function OptionCommentField({ value, onChange, indent = true }) {
+  const [open, setOpen] = useState(!!(value || '').trim())
+  const visible = open || !!(value || '').trim()
+  return (
+    <div className={cn(indent && 'ml-7', 'mt-1.5')}>
+      {!visible ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+        >
+          <Plus size={10} /> 이 답변 선택 시 피드백
+        </button>
+      ) : (
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] font-medium text-muted-foreground">이 답변을 선택한 경우의 의견</span>
+            {!(value || '').trim() && (
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                접기
+              </button>
+            )}
+          </div>
+          <AnswerTextarea
+            value={value || ''}
+            onChange={e => onChange(e.target.value)}
+            placeholder="예: 이 답을 고른 경우 한 번 더 확인해 보세요."
+            className="w-full bg-white text-[13px] px-2.5 py-1.5 focus:outline-none border border-border rounded-md text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+          />
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -395,7 +451,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
         <div className="space-y-3">
           <Label required>보기 옵션</Label>
           <p className="text-xs text-muted-foreground -mt-1">각 보기 입력란의 툴바에서 이미지/동영상을 인라인 삽입할 수 있습니다</p>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {form.options.map((opt, i) => (
               <div key={i} className="flex items-start gap-2">
                 <button type="button" onClick={() => upd('correctIdx', i)}
@@ -413,24 +469,43 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
                     onDelete={form.options.length > 2 ? () => {
                       setForm(prev => {
                         const newOptions = prev.options.filter((_, j) => j !== i)
+                        const newComments = (prev.optionComments || []).filter((_, j) => j !== i)
                         let newIdx = prev.correctIdx
                         if (newIdx === i) newIdx = 0
                         else if (newIdx > i) newIdx -= 1
                         if (newIdx >= newOptions.length) newIdx = 0
-                        return { ...prev, options: newOptions, correctIdx: newIdx }
+                        return { ...prev, options: newOptions, optionComments: newComments, correctIdx: newIdx }
                       })
                     } : undefined} />
+                  <OptionCommentField
+                    value={form.optionComments?.[i] || ''}
+                    onChange={val => setForm(prev => {
+                      const n = [...(prev.optionComments || prev.options.map(() => ''))]
+                      n[i] = val
+                      return { ...prev, optionComments: n }
+                    })}
+                    indent={false}
+                  />
                 </div>
               </div>
             ))}
           </div>
-          {form.options.length < 6 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
+          {form.options.length < 6 && (
+            <AddBtn
+              onClick={() => setForm(prev => ({
+                ...prev,
+                options: [...prev.options, ''],
+                optionComments: [...(prev.optionComments || prev.options.map(() => '')), ''],
+              }))}
+              label="보기 추가"
+            />
+          )}
         </div>
       )
 
     case 'true_false':
       return (
-        <div>
+        <div className="space-y-3">
           <Label required>정답</Label>
           <div className="flex gap-2">
             {[true, false].map(val => (
@@ -445,6 +520,24 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
               </button>
             ))}
           </div>
+          <div className="grid grid-cols-1 gap-2">
+            <div>
+              <span className="text-[12px] font-medium text-secondary-foreground">참 선택 시 의견</span>
+              <OptionCommentField
+                value={form.trueComment || ''}
+                onChange={val => upd('trueComment', val)}
+                indent={false}
+              />
+            </div>
+            <div>
+              <span className="text-[12px] font-medium text-secondary-foreground">거짓 선택 시 의견</span>
+              <OptionCommentField
+                value={form.falseComment || ''}
+                onChange={val => upd('falseComment', val)}
+                indent={false}
+              />
+            </div>
+          </div>
         </div>
       )
 
@@ -453,7 +546,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
         <div className="space-y-3">
           <Label required>보기 옵션</Label>
           <p className="text-xs text-muted-foreground -mt-1">각 보기 입력란의 툴바에서 이미지/동영상을 인라인 삽입할 수 있습니다</p>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {form.options.map((opt, i) => {
               const isCorrect = form.correctIdxs.includes(i)
               return (
@@ -472,16 +565,35 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
                       onDelete={form.options.length > 2 ? () => {
                         setForm(prev => {
                           const newOptions = prev.options.filter((_, j) => j !== i)
+                          const newComments = (prev.optionComments || []).filter((_, j) => j !== i)
                           const newCorrectIdxs = prev.correctIdxs.filter(x => x !== i).map(x => x > i ? x - 1 : x)
-                          return { ...prev, options: newOptions, correctIdxs: newCorrectIdxs }
+                          return { ...prev, options: newOptions, optionComments: newComments, correctIdxs: newCorrectIdxs }
                         })
                       } : undefined} />
+                    <OptionCommentField
+                      value={form.optionComments?.[i] || ''}
+                      onChange={val => setForm(prev => {
+                        const n = [...(prev.optionComments || prev.options.map(() => ''))]
+                        n[i] = val
+                        return { ...prev, optionComments: n }
+                      })}
+                      indent={false}
+                    />
                   </div>
                 </div>
               )
             })}
           </div>
-          {form.options.length < 8 && <AddBtn onClick={() => upd('options', [...form.options, ''])} label="보기 추가" />}
+          {form.options.length < 8 && (
+            <AddBtn
+              onClick={() => setForm(prev => ({
+                ...prev,
+                options: [...prev.options, ''],
+                optionComments: [...(prev.optionComments || prev.options.map(() => '')), ''],
+              }))}
+              label="보기 추가"
+            />
+          )}
 
           <MultipleAnswersScoringPolicy form={form} setForm={setForm} />
         </div>
@@ -906,13 +1018,16 @@ export function questionToForm(q) {
       // correctAnswer가 문자열이면 choices/options에서 인덱스 찾기
       if (typeof idx === 'string') idx = opts.findIndex(o => o === idx)
       if (idx < 0) idx = 0
-      return { ...base, options: opts, correctIdx: idx }
+      const optionComments = Array.isArray(q.optionComments)
+        ? opts.map((_, i) => q.optionComments[i] || '')
+        : opts.map(() => '')
+      return { ...base, options: opts, optionComments, correctIdx: idx }
     }
     case 'true_false': {
       let val = q.correctAnswer ?? true
       if (val === '참' || val === 'true' || val === 'True') val = true
       else if (val === '거짓' || val === 'false' || val === 'False') val = false
-      return { ...base, correctBool: val }
+      return { ...base, correctBool: val, trueComment: q.trueComment || '', falseComment: q.falseComment || '' }
     }
     case 'multiple_answers': {
       let idxs = Array.isArray(q.correctAnswer) ? [...q.correctAnswer] : []
@@ -921,9 +1036,13 @@ export function questionToForm(q) {
         idxs = idxs.map(a => opts.findIndex(o => o === a)).filter(i => i >= 0)
       }
       const hasOverride = q.scoringMode != null
+      const optionComments = Array.isArray(q.optionComments)
+        ? opts.map((_, i) => q.optionComments[i] || '')
+        : opts.map(() => '')
       return {
         ...base,
         options: opts,
+        optionComments,
         correctIdxs: idxs,
         overrideScoring: hasOverride,
         scoringMode: hasOverride ? q.scoringMode : 'all_correct',
