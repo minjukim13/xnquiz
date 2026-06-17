@@ -8,13 +8,13 @@
 | **항목** | **내용** |
 |---|---|
 | 프로젝트 ID | PRJ-XQ-BASE |
-| 문서 ID | XQ-SSD-SCR-07-v1.1 |
+| 문서 ID | XQ-SSD-SCR-07-v1.2 |
 | 작성자 | 김민주 (Creator/PD) |
 | 검토자 | 김범수 (PD) |
 | 작성일 | 2026-06-09 |
 | 상태 | Draft (PD 검토 전) |
 | 흡수한 URD | [XQ-URD-026](https://xinics.atlassian.net/wiki/spaces/XP2/pages/5081399300) v1.0 |
-| 참조 코드 | `src/pages/QuizStats.jsx`, `src/utils/excelUtils.js` (`downloadGradesXlsx`, `downloadItemAnalysisXlsx`) |
+| 참조 코드 | `src/pages/QuizStats.jsx`, `src/utils/excelUtils.js` (`downloadGradesXlsx`, `downloadItemAnalysisXlsx`), `src/utils/randomGroups.js` (`expandAllForInstructor`, `getRecipientStudents`, `isRandomGroup`) |
 | 권한 가이드 | [공통 권한 모델 가이드 (5097160727)](https://xinics.atlassian.net/wiki/spaces/XP2/pages/5097160727) |
 
 ---
@@ -103,6 +103,12 @@
        ├── 상위 27% 정답률 / 하위 27% 정답률 / 차이
        └── 선택지별 응답 패턴 (객관식 등)
 
+[랜덤 출제 문항 표시 — 풀 전체 노출]
+  ├── 문항 카드 / 테이블 행에 Shuffle 배지 + "랜덤" 라벨
+  ├── 출제 은행명 (randomGroupBankName) 표시
+  ├── 우측 컬럼에 "N명 출제" 카운트 (recipientCount, 풀에서 실제로 학생에게 출제된 수)
+  └── 상세 Sheet 진입 시 RecipientSection (출제된 학생 명단 + 응시 상태)
+
 [다운로드 영역]
   ├── 학생 성적 Excel (downloadGradesXlsx)
   ├── 문항 분석 Excel (downloadItemAnalysisXlsx)
@@ -143,6 +149,9 @@
 | I-8 | "문항 분석 Excel" 클릭 | `downloadItemAnalysisXlsx` 실행 |
 | I-9 | 측정학 지표 호버 | "변별도는 점수가 높은 학생과 낮은 학생을 얼마나 잘 구분하는지의 지표입니다 (점이연 상관계수, -1~1)" 카피 노출 |
 | I-10 | 시험 설명 펼치기 | line-clamp-2 → 전체 표시 토글 |
+| I-11 | 랜덤 출제 문항 행 클릭 | 상세 Sheet 진입 시 `RecipientSection` 노출 + `QuestionStatsPanel` 분모를 출제된 학생만으로 필터링 |
+| I-12 | RecipientSection 학생 행 클릭 | SCR-06 학생 중심 모드 진입 (해당 문항이 출제된 학생만 활성 표시) |
+| I-13 | 문항별 분석 테이블 정렬 (랜덤 + 일반 혼재) | `expandAllForInstructor` 가 부여한 합성 order 기준 정렬 (그룹 위치 + 그룹 내 인덱스) |
 
 **상태**
 
@@ -159,6 +168,9 @@
 | 변별도 보통 | 0.1 ~ 0.3 | 등급 배지 (warning) |
 | 변별도 부족 | discrimination < 0.1 | 등급 배지 (destructive) |
 | 일부 채점 문항 | gradedCount < totalCount | "N / M명 채점 완료" 표시 |
+| 랜덤 출제 풀 문항 | `isRandomGroup(item)` true (`expandAllForInstructor` 펼침) | Shuffle 배지 + "랜덤 (은행명)" 라벨 + recipientCount 표시 + 통계 분모를 출제된 학생만으로 제한 |
+| 랜덤 풀 문항 출제 0명 | 풀에 있지만 어떤 학생에게도 안 뽑힘 | "0명 출제" 표시 + 통계 카드 "데이터 없음" 분기 |
+| 랜덤 풀 문항 부분 출제 | recipientCount < submittedStudents.length | 분모를 recipientCount 로 표시 + "전체 응시자 N명 중 출제 M명" 보조 안내 |
 
 **데이터 흐름**
 
@@ -169,10 +181,25 @@
 | D-3 | 학생 행 클릭 | `navigate('/quiz/:id/grade?mode=student&studentId=...')` | 동일 | SCR-06 학생 중심 모드 진입 | (네비게이션) |
 | D-4 | "학생 성적 Excel" 다운로드 | 클라이언트 `downloadGradesXlsx(quiz, students)` (`xlsx` 라이브러리) | 동일 또는 `GET /api/quizzes/:id/grades.xlsx` 서버 생성 | 브라우저 다운로드 + 실패 시 Toast | Quiz, Attempt |
 | D-5 | "문항 분석 Excel" 다운로드 | 클라이언트 `downloadItemAnalysisXlsx(quiz, questions, students)` | 동일 또는 서버 생성 | 브라우저 다운로드 | Quiz, Question, Answer |
+| D-6 | random_group 풀 평면화 (통계 진입 시 자동) | `expandAllForInstructor(quiz.items)` — random_group 의 `bankSnapshot` 안 모든 문항을 합성 order 로 평면화 | (백엔드 권고) `GET /api/quizzes/:id/stats-questions` → 서버에서 random_group 풀 + 학생별 expand 매핑 일괄 반환 | 일반 문항 + 풀 전체 후보군 통합 리스트로 통계 표 렌더 | Question, BankQuestion, random_group placeholder |
+| D-7 | 풀 문항별 출제 학생 명단 추출 | `getRecipientStudents(q, submittedStudents)` — 학생 응답(`answers/autoScores/manualScores/selections`) 중 q.id 보유한 학생만 필터 | (백엔드 권고) D-6 응답에 `recipientIds[]` 포함 (서버에서 응답 데이터 기준 사전 계산 권장) | 카드 우측 "N명 출제" 카운트 + 상세 Sheet RecipientSection 렌더 | Attempt, Answer |
+| D-8 | 랜덤 문항 통계 계산 모집단 정의 | 풀 문항은 분모 = recipientCount (출제된 학생만), 일반 문항은 분모 = submittedStudents | 동일 | 평균/득점률/변별도가 풀 문항별로 다른 모집단 기준으로 표시 | Attempt, Answer |
 
-**예상 권한 검증**: `(instructor || admin)` + 담당 코스. ta 는 통계 조회만 권고 (Excel 다운로드 권한 별도 결정).
+**성능 권고**: 대량 응시(500+ 학생) 시 D-2 의 클라이언트 계산이 무거워질 수 있음. 서버 집계 + 캐싱 (재채점 시 무효화) 권고. random_group 의 풀 평면화(D-6) + 학생별 expand 매핑(D-7) 도 서버 사전 계산 권고 — 풀이 100+ 문항이면 client 메모리 부담 큼.
 
-**성능 권고**: 대량 응시(500+ 학생) 시 D-2 의 클라이언트 계산이 무거워질 수 있음. 서버 집계 + 캐싱 (재채점 시 무효화) 권고.
+**랜덤 출제 통계 분모 정의** (중요)
+
+| **문항 유형** | **분모 (population)** | **이유** |
+|---|---|---|
+| 일반 문항 (random_group 아님) | submittedStudents.length (제출 완료 학생) | 모든 학생이 동일 문항 응시 |
+| random_group 풀 문항 | `getRecipientStudents(q, submittedStudents).length` (해당 문항 출제된 학생만) | 학생별로 풀에서 뽑힌 문항이 다르므로 분모 통일 시 평균/득점률 왜곡 |
+| random_group 풀 문항 (출제 0명) | 0 (분모 정의 불가) | 풀에 존재하나 어떤 학생에게도 안 뽑힌 경우 "데이터 없음" 분기 |
+
+**랜덤 출제 풀 visibility 정책**
+
+- 통계 페이지는 학생 시점이 아닌 교수자/운영자 시점 → 풀 전체 노출 (학생 보안 영향 없음)
+- 풀 안 문항 = 학생별 expand 결과의 합집합 + 미출제 후보
+- "0명 출제" 문항도 통계 표에 노출 (어떤 문항이 안 뽑혔는지 인지 가능)
 
 ---
 
@@ -209,6 +236,8 @@
 | G-2 | Excel 생성 실패 사용자 안내 (UX-P07-073) | (A) 충족 | Toast 안내 구현됨 |
 | G-3 | 학생 식별 정보 / 교수자 메모 접근 권한 (UX-P05-003, OQ-URD-026-03) | (B) 법무 검토 의존 | URD OQ 의존. 법무 검토 후 권한 분기 추가 |
 | G-4 | 측정학 지표 적용 가능 문항 유형 안내 카피 | (B) C 분류 후속 카피 | 적용 불가 유형의 명시 카피는 후속 카피 작업 |
+| G-5 | random_group 풀 변경(은행 문항 수정/삭제) 시 통계 영향 안내 | (B) Phase 2 후속 | 시험 정의 시점 `bankSnapshot` 과 현재 은행 상태 불일치 가능. 풀 변경 이력 추적 + 통계 시점 명시 카피 후속 |
+| G-6 | 학생 단위 점수 합계 vs 풀 평균 차이 안내 | (B) C 분류 후속 카피 | 난이도별 차등 배점 ON 시 학생별 합계가 다를 수 있는데 통계 평균은 풀 평균이라 괴리 발생 → 카피로 해소 필요 |
 
 ---
 
@@ -216,4 +245,5 @@
 
 | **날짜** | **버전** | **변경 내용** | **변경자** |
 |---|---|---|---|
+| 2026-06-16 | v1.2 | 랜덤 출제 통계 처리 추가. (1) 레이아웃에 "랜덤 출제 문항 표시 — 풀 전체 노출" 섹션 신설. (2) 인터랙션 I-11~13 추가 (RecipientSection, 모집단 필터, 합성 order 정렬). (3) 상태 표에 랜덤 풀 문항 3종 분기. (4) 데이터 흐름 D-6~8 추가 (`expandAllForInstructor` 풀 평면화, `getRecipientStudents` 출제 학생 추출, 모집단 정의 분기). (5) "랜덤 출제 통계 분모 정의" + "풀 visibility 정책" 표 신설. (6) 간극 G-5/G-6 추가 (풀 변경 영향 / 학생별 합계 vs 풀 평균 괴리). 참조 코드에 `randomGroups.js` 추가. | 김민주 (Creator/PD) |
 | 2026-06-09 | v1.1 | 백엔드 전달 산출물 보강. 데이터 흐름 절 추가. mock/api 분기 + 데이터 사전 v0.1 엔티티 매핑 + 권한 검증 + 성능 권고 (서버 집계 + 캐싱) 포함 | 김민주 (Creator/PD) |

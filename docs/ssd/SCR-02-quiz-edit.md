@@ -8,13 +8,13 @@
 | **항목** | **내용** |
 |---|---|
 | 프로젝트 ID | PRJ-XQ-BASE |
-| 문서 ID | XQ-SSD-SCR-02-v1.1 |
+| 문서 ID | XQ-SSD-SCR-02-v1.4 |
 | 작성자 | 김민주 (Creator/PD) |
 | 검토자 | 김범수 (PD) |
 | 작성일 | 2026-06-09 |
 | 상태 | Draft (PD 검토 전) |
 | 흡수한 URD | [XQ-URD-008](https://xinics.atlassian.net/wiki/spaces/XP2/pages/5076418585) v1.0, [XQ-URD-021](https://xinics.atlassian.net/wiki/spaces/XP2/pages/5081628677) v1.0, [XQ-URD-021-B](https://xinics.atlassian.net/wiki/spaces/XP2/pages/5081759746) v1.0 (교수자 부분) |
-| 참조 코드 | `src/pages/QuizCreate.jsx`, `src/pages/QuizEdit.jsx`, `src/components/StepIndicator.jsx`, `src/components/PublishReviewModal.jsx`, `src/components/AssignmentOverrides.jsx`, `src/components/quiz-form/*` |
+| 참조 코드 | `src/pages/QuizCreate.jsx`, `src/pages/QuizEdit.jsx`, `src/components/StepIndicator.jsx`, `src/components/PublishReviewModal.jsx`, `src/components/AssignmentOverrides.jsx`, `src/components/quiz-form/*`, `src/utils/randomGroups.js` (`isRandomGroup`, `summarizeQuizItems`) |
 | 권한 가이드 | [공통 권한 모델 가이드 (5097160727)](https://xinics.atlassian.net/wiki/spaces/XP2/pages/5097160727) |
 
 ---
@@ -234,14 +234,21 @@ SecuritySection 은 상위 InfoTab form state 의 4개 필드(`securityTrustLock
 
 [본문: QuestionsTab]
   ├── 헤더 행
-  │    ├── 좌측: 문항 수 / 총점
+  │    ├── 좌측: 문항 수 / 총점 — `summarizeQuizItems(questions)` 로 일반 문항 + random_group placeholder 통합 합계 계산
   │    └── 우측: "문항 만들기" (outline) + "문제모음에서 추가" (Popover: 직접 선택 / 랜덤 출제)
   ├── 문항 리스트 (1개 이상 시)
   │    ├── 드래그 정렬 (GripVertical)
-  │    ├── 문항 카드 (번호 / 유형 배지 / 배점 / 수동채점 배지)
-  │    ├── 본문 요약 (htmlToPlainText, line-clamp-2)
-  │    ├── 정답 미리보기 (QuestionAnswer, 자동채점 유형만)
-  │    └── 액션 (수정 Pencil → SCR-03 / 삭제 Trash2)
+  │    ├── `isRandomGroup(q)` 분기로 카드 컴포넌트 선택
+  │    ├── 일반 문항 카드 (번호 / 유형 배지 / 배점 / 수동채점 배지)
+  │    │    ├── 본문 요약 (htmlToPlainText, line-clamp-2)
+  │    │    ├── 정답 미리보기 (QuestionAnswer, 자동채점 유형만)
+  │    │    └── 액션 (수정 Pencil → SCR-03 / 삭제 Trash2)
+  │    └── 랜덤 출제 그룹 카드 (RandomGroupItemCard, placeholder 전용)
+  │         ├── Shuffle 아이콘 + "랜덤 출제 그룹" 라벨 + 출제 은행명
+  │         ├── 출제 문항 수 / 문항당 배점 / 차등 배점 활성 여부
+  │         ├── 풀 전체 후보 수 (maxAvailable) 표시
+  │         ├── 학생별로 다른 문항이 뽑힌다는 안내 카피
+  │         └── 액션 (삭제 Trash2만 — 수정은 RandomQuestionBankModal 재실행으로 대체)
   └── 빈 상태 (0개)
        └── dashed border 박스 + 안내 2줄 — "아직 추가된 문항이 없습니다" / "상단의 '문항 만들기' 또는 '문제모음에서 추가' 버튼으로 시작합니다"
 
@@ -258,11 +265,13 @@ SecuritySection 은 상위 InfoTab form state 의 4개 필드(`securityTrustLock
 | I-2 | "문항 만들기" 클릭 | `AddQuestionModal` 오픈 (SCR-03) |
 | I-3 | "문제모음에서 추가" 클릭 | Popover (직접 선택 / 랜덤 출제) |
 | I-4 | Popover "직접 선택" 클릭 | `QuestionBankModal` 오픈 (SCR-04 위임) |
-| I-5 | Popover "랜덤 출제" 클릭 | `RandomQuestionBankModal` 오픈 (SCR-04 위임) |
-| I-6 | 모달에서 문항 추가 | `questions` 배열 갱신 |
-| I-7 | 카드 GripVertical 드래그 | `moveQuestion(fromIdx, toIdx)` |
-| I-8 | 카드 Pencil 클릭 | AddQuestionModal 재오픈 (수정 모드, SCR-03 분기 — 응시자 있으면 RegradeOptionsModal) |
-| I-9 | 카드 Trash2 클릭 | `removeQuestion(qId)` — 즉시 삭제 |
+| I-5 | Popover "랜덤 출제" 클릭 | `RandomQuestionBankModal` 오픈 (SCR-03 위임 — 2-step 흐름) |
+| I-6 | 모달에서 문항 추가 (일반) | `questions` 배열 갱신 |
+| I-6b | 랜덤 출제 모달에서 "N문항 랜덤 출제" 클릭 | 선택 은행 개수만큼 `random_group` placeholder 객체 N개를 `questions` 배열에 누적 (`createRandomGroupItem`) |
+| I-7 | 카드 GripVertical 드래그 | `moveQuestion(fromIdx, toIdx)` — 일반 문항과 random_group 카드 동일하게 정렬 가능 |
+| I-8 | 일반 카드 Pencil 클릭 | AddQuestionModal 재오픈 (수정 모드, SCR-03 분기 — 응시자 있으면 RegradeOptionsModal) |
+| I-9 | 카드 Trash2 클릭 | `removeQuestion(qId)` — 즉시 삭제 (일반 문항 / random_group placeholder 동일) |
+| I-10 | 헤더 행 문항 수 / 총점 표시 | `summarizeQuizItems(questions)` 호출 — random_group placeholder 의 `count` 와 추정 `points` 가 총합에 포함됨 (학생별 실제 합계는 응시 시점에 결정) |
 
 **데이터 흐름**
 
@@ -273,6 +282,8 @@ SecuritySection 은 상위 InfoTab form state 의 4개 필드(`securityTrustLock
 | D-1 | 모달에서 문항 추가/수정 (SCR-03) | 상위 `questions[]` state 배열 갱신만 | 동일. 서버 호출 없음 (저장 시점에 일괄) | 카드 리스트 즉시 갱신 | Question (in-memory) |
 | D-2 | 카드 드래그 정렬 | `moveQuestion(fromIdx, toIdx)` 로 배열 순서 변경 | 동일 | 카드 순서 갱신 | Question (`order`) |
 | D-3 | 카드 삭제 | `removeQuestion(qId)` 즉시 배열에서 제거 | 동일 | 카드 즉시 사라짐 | Question (in-memory) |
+| D-4 | 랜덤 출제 모달 확정 | `RandomQuestionBankModal` 의 `onAdd` 콜백 → `random_group` placeholder N개를 `questions[]` 에 누적 (`createRandomGroupItem({ bankId, count, pointsPerQuestion, useDifficultyScoring, difficultyPoints, ... })`) | 동일. 서버 저장 시 placeholder 스키마 그대로 직렬화 (Phase 2: 백엔드 스키마 권고 `{ type:'random_group', ... }`) | 카드 리스트에 RandomGroupItemCard 추가 | random_group placeholder, BankQuestion (참조) |
+| D-5 | 헤더 합계 갱신 | `summarizeQuizItems(questions)` — 일반 문항 + placeholder 의 `count` 합산, 점수도 합산 (placeholder 는 추정 `points`) | 동일 | 문항 수 / 총점 표기 갱신 | (계산만) |
 
 ---
 
@@ -381,4 +392,5 @@ PublishReviewModal 은 상위 form state 만 입력받아 `buildReviewItems` 로
 
 | **날짜** | **버전** | **변경 내용** | **변경자** |
 |---|---|---|---|
+| 2026-06-16 | v1.4 | 랜덤 출제 처리 추가. (1) QuestionsTab 레이아웃에 RandomGroupItemCard 분기 명시 (`isRandomGroup(q)` 기준). (2) 헤더 행 문항 수 / 총점 산정에 `summarizeQuizItems(questions)` 사용 — random_group placeholder 의 `count` + 추정 `points` 합산. (3) 인터랙션 I-5 (모달 SCR-03 위임 정정), I-6b (placeholder 누적), I-10 (요약 표시) 추가. (4) 데이터 흐름 D-4 (`createRandomGroupItem` 호출), D-5 (요약 갱신) 추가. 참조 코드에 `randomGroups.js` 추가. | 김민주 (Creator/PD) |
 | 2026-06-09 | v1.1 | 백엔드 전달 산출물 보강. 4 화면(EDIT-INFO/SECURITY/QUESTIONS/PUBLISH-REVIEW) 각각에 데이터 흐름 절 추가. mock/api 분기 + 데이터 사전 v0.1 엔티티 매핑 + 권한 검증 + 에러 응답 권고 포함 | 김민주 (Creator/PD) |

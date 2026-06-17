@@ -8,7 +8,7 @@
 | **항목** | **내용** |
 |---|---|
 | 프로젝트 ID | PRJ-XQ-BASE |
-| 문서 ID | XQ-SSD-SCR-06-v1.1 |
+| 문서 ID | XQ-SSD-SCR-06-v1.4 |
 | 작성자 | 김민주 (Creator/PD) |
 | 검토자 | 김범수 (PD) |
 | 작성일 | 2026-06-09 |
@@ -493,6 +493,9 @@ RegradeOptionsModal 은 별도 fetch 없이 `selected` 옵션 결과만 부모(Q
 | G-8 | 코멘트 수정/삭제 이력 (URD-025 UX-P07-072) | (B) URD 완화 | URD-025 v0.3 — "향후 작업" 명시 |
 | G-9 | 채점자(P-09) / TA(P-03) / 운영자(P-05) 권한 분기 | (A) 충족 | Canvas 권한 비트 위임 (공통 권한 가이드 참조) |
 | G-10 | 정답 포함 여부 옵션 (URD-009 UX-P07-005) | (B) 정책 미확정 | 운영 정책 확정 후 반영 |
+| G-11 | random_group placeholder 채점 시 풀 평면화 미구현 | **(B) 코드 갭** | `GradingDashboard/index.jsx` 가 `getQuizQuestions` 결과를 그대로 사용 (expand 안 함). random_group placeholder 문항이 있으면 채점 대시보드에서 placeholder ID 가 그대로 노출되거나 답안 매핑이 어긋남. SCR-07 처럼 `expandAllForInstructor(items)` 호출 후 `getRecipientStudents(q, students)` 로 학생별 응답 매핑 필요. **Phase 2 우선 후보** |
+| G-12 | random_group 재채점 범위 결정 | **(B) 정책 미확정** | RegradeOptionsModal 의 "이번 시도/전체 응시자" 옵션이 풀 문항에 적용될 때 "출제된 학생만" / "풀 전체 후보 문항 일괄" 중 어느 범위인지 PD 결정 필요 |
+| G-13 | random_group 조건부 재응시 시 시드 처리 | **(B) 정책 미확정** | ConditionalRetakeModal 로 재응시 부여 시 동일 학생이 새 시드(`${studentId}_${quizId}_attemptN`?)로 다른 문항을 받을지, 동일 시드 유지할지 결정 필요. 재응시 정책 정합성 확인 |
 
 ---
 
@@ -500,4 +503,5 @@ RegradeOptionsModal 은 별도 fetch 없이 `selected` 옵션 결과만 부모(Q
 
 | **날짜** | **버전** | **변경 내용** | **변경자** |
 |---|---|---|---|
+| 2026-06-16 | v1.4 | random_group placeholder 처리 갭 명시. GradingDashboard 가 현재 `expandAllForInstructor` 미호출 → 채점 시 placeholder ID 노출 / 답안 매핑 어긋남 위험. 간극 G-11 (풀 평면화 미구현, Phase 2 우선), G-12 (재채점 범위 정책), G-13 (조건부 재응시 시드 처리 정책) 추가. SCR-03 v1.3 / SCR-07 v1.4 와의 정합성 확보를 위한 추가 작업 표시. | 김민주 (Creator/PD) |
 | 2026-06-09 | v1.1 | 백엔드 전달 산출물 보강. 6 화면(GRADE-DASHBOARD/REGRADE-OPTIONS/CONDITIONAL-RETAKE/PRINT-ANSWER-SHEET/PRINT-BULK/LX-ACTIVITY-LINK) 각각에 데이터 흐름 절 추가. GRADE-DASHBOARD 본체에 D-1~D-7 7단계 + 권한 검증 + 에러 응답 권고 포함. 데이터 사전 v0.1 엔티티 매핑 | 김민주 (Creator/PD) |

@@ -8,13 +8,13 @@
 | **항목** | **내용** |
 |---|---|
 | 프로젝트 ID | PRJ-XQ-BASE |
-| 문서 ID | XQ-SSD-SCR-01-v1.1 |
+| 문서 ID | XQ-SSD-SCR-01-v1.4 |
 | 작성자 | 김민주 (Creator/PD) |
 | 검토자 | 김범수 (PD) |
 | 작성일 | 2026-06-09 |
 | 상태 | Draft (PD 검토 전) |
 | 흡수한 URD | [XQ-URD-018](https://xinics.atlassian.net/wiki/spaces/XP2/pages/5082054658) v1.0 |
-| 참조 코드 | `src/pages/QuizList.jsx`, `src/pages/QuizDetail.jsx`, `src/components/StatusBadge.jsx`, `src/components/QuizSettingsDialog.jsx` |
+| 참조 코드 | `src/pages/QuizList.jsx`, `src/pages/QuizDetail.jsx`, `src/components/StatusBadge.jsx`, `src/components/QuizSettingsDialog.jsx`, `src/utils/randomGroups.js` (`expandRandomGroups` — 학생 상세 응시 결과 재현용) |
 | 권한 가이드 | [공통 권한 모델 가이드 (5097160727)](https://xinics.atlassian.net/wiki/spaces/XP2/pages/5097160727) |
 
 ---
@@ -259,6 +259,15 @@
 |---|---|---|---|---|---|
 | D-1 | 페이지 진입 (`/quiz/:id`) | `getQuiz(id)` + `getMyAttempts(id)` | `GET /api/quizzes/:id` + `GET /api/attempts?quizId=:id&userId=me` | 응시 정보 + 본인 응시 결과 렌더. `scoreRevealEnabled`/`scoreRevealScope`/`scoreRevealTiming` 으로 점수 표시 분기 (computeRevealStatus) | Quiz, Attempt |
 | D-2 | "응시 시작" 클릭 | `navigate('/quiz/:id/attempt')` | 동일 | SCR-09 진입 | (네비게이션) |
+| D-3 | 응시 결과 재현 (랜덤 출제 quiz) | `expandRandomGroups(rawItems, '${currentStudent.id}_${quizId}', getBankQuestions)` — 응시 당시와 동일 시드로 동일 문항 배열 재구성 | 동일. 또는 서버에서 응시 시점 expand 결과 캐시 반환 (`GET /api/attempts/:id/questions` 권고) | 본인 응시 결과 화면이 응시 당시 본 문항 그대로 재현됨 (점수 미공개여도 본문/정답 확인 가능 시) | random_group placeholder, BankQuestion |
+
+**랜덤 출제 학생 결과 재현 메커니즘 (v1.4 신규)**
+
+SCR-L-QUIZDETAIL 의 학생 결과 표시는 응시 당시(SCR-09)와 동일한 시드 `${currentStudent.id}_${quizId}` 로 `expandRandomGroups` 를 호출한다. 따라서:
+
+- 학생이 본 본문/정답/배점이 결과 화면에서도 동일하게 노출됨 (시드 결정론 보장)
+- 강사가 응시 후 풀 문항을 수정해도 학생 결과 화면은 응시 당시 결과를 재현 (단, 풀에서 문항이 삭제되면 누락 — 간극 G-6 후속)
+- 학생 점수 합계는 응시 시점 적용 배점(난이도별 차등 배점 포함) 기준
 
 **예상 권한 검증**: `role === 'student'` + 수강자 여부 + Quiz.visible + status 검증.
 
@@ -318,6 +327,7 @@
 | G-3 | 주차/차시 미연결 시험의 일관 처리 (UX-P07-002) | (A) 부분 충족 | "미지정" 옵션 처리. 카피 보강 가능 |
 | G-4 | 다회 응시 회차별 공개 여부 (UX-P08-001) | (A) 부분 충족 | 회차 표시는 있으나 회차별 공개 분기 카피 부족 |
 | G-5 | 편집/삭제 제한 사유 카피 (UX-P07-041) | (A) 부분 충족 | 일부 제한은 메뉴 disable. 명시 사유 카피는 모든 케이스 미커버 |
+| G-6 | random_group 풀 문항 삭제 후 결과 재현 누락 | (B) Phase 2 후속 | 강사가 응시 후 풀에서 문항을 삭제하면 학생 결과 화면이 일부 문항을 재현하지 못함. "출제 원본 삭제로 누락" 안내 카피 + 응시 시점 결과 캐시 권장 |
 
 ---
 
@@ -325,4 +335,5 @@
 
 | **날짜** | **버전** | **변경 내용** | **변경자** |
 |---|---|---|---|
+| 2026-06-16 | v1.4 | 학생 응시 결과 재현 랜덤 출제 처리 추가. SCR-L-QUIZDETAIL 에 D-3 (`expandRandomGroups` 호출, 응시 당시와 동일 시드 `${studentId}_${quizId}` 사용) 추가 + "랜덤 출제 학생 결과 재현 메커니즘" 절 신설. 풀 문항 삭제 후 결과 재현 누락 간극 G-6 추가. 참조 코드에 `randomGroups.js` 추가. | 김민주 (Creator/PD) |
 | 2026-06-09 | v1.1 | 백엔드 전달 산출물 보강. 4 화면(I-QUIZLIST/L-QUIZLIST/I-QUIZDETAIL/L-QUIZDETAIL) 각각에 데이터 흐름 절 추가. mock/api 분기 + 데이터 사전 v0.1 엔티티 매핑 + 권한 검증 권고 포함 | 김민주 (Creator/PD) |
