@@ -394,7 +394,7 @@ export const mockQuizzes = [
     scoreRevealTiming: 'immediately',
   },
   {
-    // 예약 발행: status open이지만 startDate가 미래 → 학생에게 "예정" 표시 + 응시 차단
+    // 예약 공개: status open이지만 startDate가 미래 → 학생에게 "예정" 표시 + 응시 차단
     id: '9',
     title: '주차별 퀴즈 5 - 트랜잭션과 동시성 제어',
     description: '트랜잭션 ACID 속성, 동시성 제어 기법(Lock, MVCC), 교착상태 처리를 다룹니다.',

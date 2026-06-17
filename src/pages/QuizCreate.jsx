@@ -160,6 +160,10 @@ export default function QuizCreate() {
       setAlertDialog({ title: '임시저장 불가', message: '퀴즈 제목을 입력해주세요.', variant: 'error' })
       return
     }
+    if (form.visible) {
+      setAlertDialog({ title: '임시저장 불가', message: '학생에게 퀴즈 공개가 켜져 있습니다. 임시저장은 비공개 상태에서만 가능합니다.', variant: 'error' })
+      return
+    }
     try {
       await persistQuiz('draft')
       setAlertDialog({
@@ -239,8 +243,17 @@ export default function QuizCreate() {
         <div className="flex items-center justify-between gap-2 mt-8 pt-5 border-t border-border flex-wrap">
           <Button size="lg" variant="ghost" onClick={handleCancel} className="text-muted-foreground hover:text-foreground px-4">취소</Button>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button size="lg" variant="outline" onClick={handleSaveDraft} className="px-4">임시저장</Button>
-            <Button size="lg" onClick={handlePublish} className="px-4">저장하기</Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={handleSaveDraft}
+              disabled={form.visible}
+              title={form.visible ? '학생에게 퀴즈 공개가 켜진 상태에서는 임시저장할 수 없습니다' : undefined}
+              className="px-4"
+            >
+              임시저장
+            </Button>
+            <Button size="lg" onClick={handlePublish} className="px-4">{form.visible ? '저장 후 공개' : '저장'}</Button>
           </div>
         </div>
       </div>
@@ -329,7 +342,7 @@ function InfoTab({ form, set }) {
 
       <Section title="응시 기간">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label={<span className="inline-flex items-center gap-1">응시 시작<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 시작할 수 있는 시점입니다.<br />미설정 시 게시 즉시 응시 가능합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><DateTimePicker value={form.startDate} onChange={v => set('startDate', v)} /></Field>
+          <Field label={<span className="inline-flex items-center gap-1">응시 시작<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 시작할 수 있는 시점입니다.<br />미설정 시 공개 즉시 응시 가능합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><DateTimePicker value={form.startDate} onChange={v => set('startDate', v)} /></Field>
           <Field label={<span className="inline-flex items-center gap-1">제출 마감<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 답안을 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><DateTimePicker value={form.dueDate} onChange={v => set('dueDate', v)} min={form.startDate || undefined} /></Field>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">미설정 시 응시 기간 제한 없이 학생이 언제든 응시할 수 있습니다.</p>
@@ -509,7 +522,7 @@ function InfoTab({ form, set }) {
           checked={form.visible}
           onChange={v => set('visible', v)}
           label="학생에게 퀴즈 공개"
-          description="비공개 시 학생 화면에 퀴즈가 표시되지 않습니다. 임시저장 상태는 자동 비공개입니다."
+          description="공개 시 저장 후 학생이 즉시 응시할 수 있습니다. 임시저장은 비공개 상태에서만 가능합니다."
         />
       </Section>
     </div>

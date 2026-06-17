@@ -148,7 +148,7 @@ function sortQuizzes(quizzes, sortKey) {
   }
 }
 
-// startDate 기반 예약 발행 판별 — status를 바꾸지 않고 조건 분기로 처리
+// startDate 기반 예약 공개 판별 — status를 바꾸지 않고 조건 분기로 처리
 function isScheduled(quiz) {
   if (quiz.status !== 'open' || !quiz.startDate) return false
   return new Date() < new Date(quiz.startDate)
@@ -449,7 +449,7 @@ function InstructorQuizList() {
   )
 }
 
-// 응시중일 때만 D-day 배지 반환 (예약 발행 퀴즈는 제외)
+// 응시중일 때만 D-day 배지 반환 (예약 공개 퀴즈는 제외)
 function getDdayBadge(quiz) {
   if (quiz.status !== 'open' || isScheduled(quiz)) return null
   const now = new Date()
