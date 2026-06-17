@@ -7,6 +7,7 @@ import { useRole } from '../context/role'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { useQuestionBank } from '../context/questionBank'
 import AddQuestionModal from '../components/AddQuestionModal'
+import InlineQuestionEditor from '../components/InlineQuestionEditor'
 import BankUploadModal from '../components/BankUploadModal'
 import TypeBadge from '../components/TypeBadge'
 import PageHeader from '../components/PageHeader'
@@ -39,7 +40,7 @@ export default function QuestionBank() {
   const [filterType, setFilterType] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
   const [editingQuestion, setEditingQuestion] = useState(null)
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [showInlineAdd, setShowInlineAdd] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [editingBankName, setEditingBankName] = useState(false)
   const [bankNameDraft, setBankNameDraft] = useState('')
@@ -84,7 +85,7 @@ export default function QuestionBank() {
 
   const handleAddQuestion = (newQ) => {
     addQuestions([{ ...newQ, id: `q_${Date.now()}`, bankId: bank.id, usageCount: 0 }])
-    setShowAddModal(false)
+    setShowInlineAdd(false)
   }
 
   const handleCsvImport = (rows) => {
@@ -148,7 +149,7 @@ export default function QuestionBank() {
                 <Upload size={14} />
                 <span className="hidden sm:block">일괄 업로드</span>
               </Button>
-              <Button onClick={() => setShowAddModal(true)}>
+              <Button onClick={() => setShowInlineAdd(true)} disabled={showInlineAdd}>
                 <Plus size={15} />
                 문항 추가
               </Button>
@@ -190,53 +191,57 @@ export default function QuestionBank() {
         <p className="text-xs mb-2 px-1 text-muted-foreground">총 {filtered.length}개 문항</p>
 
         {/* 문항 목록 */}
-        <Card className="overflow-hidden py-0 gap-0">
-          {filtered.length === 0 ? (
+        {filtered.length === 0 && !showInlineAdd ? (
+          <Card className="overflow-hidden py-0 gap-0">
             <div className="py-16 text-center">
               <p className="text-sm mb-1 text-muted-foreground">
                 {questions.length === 0 ? '아직 추가된 문항이 없습니다' : '검색 결과가 없습니다'}
               </p>
               {questions.length === 0 && (
-                <Button onClick={() => setShowAddModal(true)} className="mt-3">
+                <Button onClick={() => setShowInlineAdd(true)} className="mt-3">
                   <Plus size={14} />
                   첫 문항 추가하기
                 </Button>
               )}
             </div>
-          ) : (
-            <div>
-              {filtered.map((q, idx) => (
-                <div
-                  key={q.id}
-                  onDragOver={e => !isFiltered && handleDragOver(e, idx)}
-                  onDragLeave={() => !isFiltered && handleDragLeave()}
-                  onDrop={() => !isFiltered && handleDrop(idx)}
-                  className={cn(
-                    'border-t-2',
-                    !isFiltered && dragOverIndex === idx ? 'border-t-primary' : 'border-t-transparent',
-                  )}
-                >
-                  <QuestionItem
-                    question={q}
-                    onEdit={() => setEditingQuestion(q)}
-                    onDelete={() => handleDelete(q.id)}
-                    isLast={idx === filtered.length - 1}
-                    showDragHandle={!isFiltered}
-                    onDragStart={() => handleDragStart(idx)}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {filtered.length > 0 && (
+              <Card className="overflow-hidden py-0 gap-0">
+                {filtered.map((q, idx) => (
+                  <div
+                    key={q.id}
+                    onDragOver={e => !isFiltered && handleDragOver(e, idx)}
+                    onDragLeave={() => !isFiltered && handleDragLeave()}
+                    onDrop={() => !isFiltered && handleDrop(idx)}
+                    className={cn(
+                      'border-t-2',
+                      !isFiltered && dragOverIndex === idx ? 'border-t-primary' : 'border-t-transparent',
+                    )}
+                  >
+                    <QuestionItem
+                      question={q}
+                      onEdit={() => setEditingQuestion(q)}
+                      onDelete={() => handleDelete(q.id)}
+                      isLast={idx === filtered.length - 1}
+                      showDragHandle={!isFiltered}
+                      onDragStart={() => handleDragStart(idx)}
+                    />
+                  </div>
+                ))}
+              </Card>
+            )}
+            {showInlineAdd && (
+              <InlineQuestionEditor
+                index={questions.length}
+                onAdd={handleAddQuestion}
+                onCancel={() => setShowInlineAdd(false)}
+              />
+            )}
+          </div>
+        )}
       </div>
-
-      {showAddModal && (
-        <AddQuestionModal
-          onClose={() => setShowAddModal(false)}
-          onAdd={handleAddQuestion}
-        />
-      )}
 
       {editingQuestion && (
         <AddQuestionModal
