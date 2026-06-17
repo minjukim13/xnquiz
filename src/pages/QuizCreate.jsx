@@ -5,6 +5,7 @@ import { isRandomGroup, summarizeQuizItems } from '@/utils/randomGroups'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
 import AddQuestionModal from '../components/AddQuestionModal'
+import InlineQuestionEditor from '../components/InlineQuestionEditor'
 import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { QUIZ_TYPES, ASSIGNMENT_GROUPS } from '../data/mockData'
@@ -76,7 +77,8 @@ export default function QuizCreate() {
   const [questions, setQuestions] = useState([])
   const [showBankModal, setShowBankModal] = useState(false)
   const [showRandomBankModal, setShowRandomBankModal] = useState(false)
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [showInlineAdd, setShowInlineAdd] = useState(false)
+  const [inlineDirty, setInlineDirty] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState(null)
   const [confirmDialog, setConfirmDialog] = useState(null)
   const [alertDialog, setAlertDialog] = useState(null)
@@ -155,15 +157,26 @@ export default function QuizCreate() {
     return created
   }
 
-  const handleSaveDraft = async () => {
-    if (!form.title) {
-      setAlertDialog({ title: '임시저장 불가', message: '퀴즈 제목을 입력해주세요.', variant: 'error' })
-      return
+  // 인라인 편집 중인 문항이 있으면 확인 다이얼로그를 띄우고, 사용자가 그대로 진행하면 next() 호출
+  const guardInlineDirty = (next) => {
+    if (showInlineAdd && inlineDirty) {
+      setConfirmDialog({
+        title: '저장하지 않은 문항이 있습니다',
+        message: '작성 중인 새 문항이 있습니다. 그대로 진행하면 작성한 내용이 사라집니다. 계속하시겠습니까?',
+        confirmLabel: '그대로 진행',
+        cancelLabel: '문항 마저 작성',
+        onConfirm: () => {
+          setShowInlineAdd(false)
+          setInlineDirty(false)
+          next()
+        },
+      })
+      return false
     }
-    if (form.visible) {
-      setAlertDialog({ title: '임시저장 불가', message: '학생에게 퀴즈 공개가 켜져 있습니다. 임시저장은 비공개 상태에서만 가능합니다.', variant: 'error' })
-      return
-    }
+    return true
+  }
+
+  const doSaveDraft = async () => {
     try {
       await persistQuiz('draft')
       setAlertDialog({
@@ -174,6 +187,19 @@ export default function QuizCreate() {
       console.error('[QuizCreate] 임시저장 실패', err)
       setAlertDialog({ title: '임시저장 실패', message: err?.message ?? '저장 중 오류가 발생했습니다.', variant: 'error' })
     }
+  }
+
+  const handleSaveDraft = () => {
+    if (!form.title) {
+      setAlertDialog({ title: '임시저장 불가', message: '퀴즈 제목을 입력해주세요.', variant: 'error' })
+      return
+    }
+    if (form.visible) {
+      setAlertDialog({ title: '임시저장 불가', message: '학생에게 퀴즈 공개가 켜져 있습니다. 임시저장은 비공개 상태에서만 가능합니다.', variant: 'error' })
+      return
+    }
+    if (!guardInlineDirty(() => doSaveDraft())) return
+    doSaveDraft()
   }
 
   const addQuestion = useCallback((q) => {
@@ -217,6 +243,7 @@ export default function QuizCreate() {
       })
       return
     }
+    if (!guardInlineDirty(() => setShowPublishReview(true))) return
     setShowPublishReview(true)
   }
 
@@ -232,11 +259,14 @@ export default function QuizCreate() {
           completedSteps={getCompletedSteps(form, questions)}
         />
 
+        {/* 탭은 unmount 하지 않고 CSS 로만 가린다 — 인라인 편집기의 작성 중 내용을 보존하기 위함 */}
         <div className="pt-5">
-          {tab === 'info' && <InfoTab form={form} set={set} />}
-          {tab === 'questions' && (
-            <QuestionsTab form={form} set={set} questions={questions} totalPoints={totalPoints} onShowBank={() => setShowBankModal(true)} onShowRandomBank={() => setShowRandomBankModal(true)} onShowAdd={() => setShowAddModal(true)} onEdit={setEditingQuestion} onRemove={removeQuestion} onMove={moveQuestion} />
-          )}
+          <div className={tab === 'info' ? '' : 'hidden'}>
+            <InfoTab form={form} set={set} />
+          </div>
+          <div className={tab === 'questions' ? '' : 'hidden'}>
+            <QuestionsTab form={form} set={set} questions={questions} totalPoints={totalPoints} onShowBank={() => setShowBankModal(true)} onShowRandomBank={() => setShowRandomBankModal(true)} onShowAdd={() => setShowInlineAdd(true)} onEdit={setEditingQuestion} onRemove={removeQuestion} onMove={moveQuestion} showInlineAdd={showInlineAdd} onAddInline={(q) => { addNewQuestion(q); setShowInlineAdd(false); setInlineDirty(false) }} onCancelInline={() => { setShowInlineAdd(false); setInlineDirty(false) }} onInlineDirtyChange={setInlineDirty} />
+          </div>
         </div>
 
         {/* 하단 버튼 */}
@@ -260,7 +290,6 @@ export default function QuizCreate() {
 
       <QuestionBankModal open={showBankModal} onOpenChange={setShowBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse="CS301 데이터베이스" />
       <RandomQuestionBankModal open={showRandomBankModal} onOpenChange={setShowRandomBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse="CS301 데이터베이스" />
-      {showAddModal && <AddQuestionModal onClose={() => setShowAddModal(false)} onAdd={addNewQuestion} />}
       {editingQuestion && <AddQuestionModal onClose={() => setEditingQuestion(null)} onAdd={updateQuestion} initialQuestion={editingQuestion} />}
       {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
       {alertDialog && <AlertDialog title={alertDialog.title} message={alertDialog.message} variant={alertDialog.variant} onClose={() => setAlertDialog(null)} />}
@@ -576,7 +605,7 @@ function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDr
   )
 }
 
-function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove }) {
+function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove, showInlineAdd, onAddInline, onCancelInline, onInlineDirtyChange }) {
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
 
@@ -648,14 +677,14 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
       </div>
 
       {/* 문항 리스트 */}
-      {questions.length === 0 ? (
+      {questions.length === 0 && !showInlineAdd ? (
         <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-secondary space-y-1.5">
           <p className="text-sm text-secondary-foreground">아직 추가된 문항이 없습니다</p>
           <p className="text-xs text-muted-foreground">상단의 "문항 만들기" 또는 "문제모음에서 추가" 버튼으로 시작합니다</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {questions.map((q, i) => isRandomGroup(q) ? (
+          {questions.length > 0 && questions.map((q, i) => isRandomGroup(q) ? (
             <RandomGroupItemCard
               key={q.id}
               group={q}
@@ -708,6 +737,14 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
               </div>
             </div>
           ))}
+          {showInlineAdd && (
+            <InlineQuestionEditor
+              index={questions.length}
+              onAdd={onAddInline}
+              onCancel={onCancelInline}
+              onDirtyChange={onInlineDirtyChange}
+            />
+          )}
         </div>
       )}
     </div>

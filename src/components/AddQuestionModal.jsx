@@ -20,7 +20,7 @@ import {
 import { RichTextEditor, richTextHasContent } from './RichText'
 
 // ── 유형별 아이콘 + 설명 메타 ──────────
-const TYPE_META = {
+export const TYPE_META = {
   multiple_choice:          { Icon: CircleDot,      desc: '보기 중 1개 선택' },
   true_false:               { Icon: ToggleLeft,      desc: '참 또는 거짓 선택' },
   multiple_answers:         { Icon: ListChecks,      desc: '보기 여러 개 동시 선택' },
@@ -34,7 +34,7 @@ const TYPE_META = {
   file_upload:              { Icon: Paperclip,       desc: '파일 업로드로 제출' },
   text:                     { Icon: Type,            desc: '채점 없는 안내문 삽입' },
 }
-const TYPE_TW = {
+export const TYPE_TW = {
   multiple_choice:         { text: 'text-indigo-500', bg: 'bg-indigo-50', border: 'border-indigo-400', iconBorder: 'border-indigo-500/15' },
   true_false:              { text: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-400', iconBorder: 'border-emerald-600/15' },
   multiple_answers:        { text: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-400', iconBorder: 'border-blue-500/15' },
@@ -48,7 +48,7 @@ const TYPE_TW = {
   file_upload:             { text: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-300', iconBorder: 'border-slate-500/15' },
   text:                    { text: 'text-muted-foreground', bg: 'bg-neutral-100', border: 'border-neutral-300', iconBorder: 'border-neutral-400/15' },
 }
-const getTypeTw = (key) => TYPE_TW[key] ?? { text: 'text-muted-foreground', bg: 'bg-neutral-100', border: 'border-neutral-300', iconBorder: 'border-neutral-400/15' }
+export const getTypeTw = (key) => TYPE_TW[key] ?? { text: 'text-muted-foreground', bg: 'bg-neutral-100', border: 'border-neutral-300', iconBorder: 'border-neutral-400/15' }
 
 
 // ── 부분 점수 정책 옵션 (URD-010) ──────────────────────────────────────────
@@ -81,7 +81,7 @@ function describeScoringPolicy(scoringMode, penaltyMethod) {
 }
 
 // ── 폼 초기값 ───────────────────────────────────────────────────────────────
-function initForm(type) {
+export function initForm(type) {
   const base = { title: '', text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '' }
   switch (type) {
     case 'multiple_choice':         return { ...base, options: ['', '', '', ''], correctIdx: 0 }
@@ -110,7 +110,7 @@ function pickComments(form) {
 }
 
 // ── 폼 → 문항 객체 ─────────────────────────────────────────────────────────
-function buildQuestion(type, form) {
+export function buildQuestion(type, form) {
   // 본문 text 는 RichTextEditor 의 HTML 문자열일 수 있음 (이미지/iframe 인라인 포함)
   const base = { type, title: (form.title || '').trim(), text: form.text || '', points: Number.isFinite(Number(form.points)) ? Number(form.points) : 0, difficulty: form.difficulty || '', ...pickComments(form) }
   switch (type) {
@@ -149,7 +149,7 @@ function buildQuestion(type, form) {
 
 // ── 유효성 검사 ─────────────────────────────────────────────────────────────
 
-function isValid(type, form) {
+export function isValid(type, form) {
   if (type === 'text') return richTextHasContent(form.text)
   if (!richTextHasContent(form.text)) return false
   // 배점: 빈값/비숫자/음수 차단, 0 허용
@@ -349,7 +349,7 @@ function RadioRow({ active, onClick, label }) {
 }
 
 // ── 유형별 전용 폼 ──────────────────────────────────────────────────────────
-function TypeForm({ type, form, setForm, textareaRef }) {
+export function TypeForm({ type, form, setForm, textareaRef }) {
   const upd = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
 
   const insertAtCursor = (tag) => {
@@ -888,7 +888,7 @@ function TypeForm({ type, form, setForm, textareaRef }) {
 }
 
 // ── 문항 객체 → 폼 상태 변환 ────────────────────────────────────────────────
-function questionToForm(q) {
+export function questionToForm(q) {
   const base = {
     title: q.title || '',
     text: q.text || '',
