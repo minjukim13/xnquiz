@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, AlertCircle, EyeOff, Activity } from 'lucide-react'
+import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, AlertCircle, EyeOff, Activity, ChevronDown } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/PageHeader'
 import { mockQuizzes, getStudentAttempts, getQuizQuestions as mockGetQuestions } from '../data/mockData'
@@ -22,6 +22,7 @@ import { isDeadlinePassed } from '@/utils/deadlineUtils'
 import { computeRevealStatus } from '@/utils/scoreReveal'
 import { htmlToPlainText } from '../components/RichText'
 import QuestionAnswer from '../components/QuestionAnswer'
+import TypeBadge from '../components/TypeBadge'
 import CommentThread from './GradingDashboard/CommentThread'
 import { isResultViewed, markResultViewed } from '@/utils/resultsViewedStorage'
 import { useQuestionBank } from '../context/questionBank'
@@ -81,18 +82,69 @@ function InfoRow({ label, value, muted = false, badgeVariant }) {
   )
 }
 
-function Section({ title, summary, children }) {
+function QuestionPreviewItem({ question, order }) {
+  const title = (question.title || '').trim()
+  const bodyText = htmlToPlainText(question.text || '')
+  return (
+    <div className="px-3 py-2.5 rounded-lg border border-border bg-white">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[13px] font-bold text-secondary-foreground shrink-0">Q{order}</span>
+            <TypeBadge type={question.type} small />
+          </div>
+          {title && (
+            <p className="text-[13px] font-semibold leading-relaxed line-clamp-1 text-foreground">
+              {title}
+            </p>
+          )}
+          <p className={cn(
+            'text-[13px] leading-relaxed line-clamp-2',
+            title ? 'text-muted-foreground' : 'text-foreground'
+          )}>
+            {bodyText}
+          </p>
+        </div>
+        <span className="text-[13px] shrink-0 text-muted-foreground">{question.points ?? 0}점</span>
+      </div>
+    </div>
+  )
+}
+
+function QuestionPreviewList({ questions, quizId }) {
+  const [showAll, setShowAll] = useState(false)
+  if (!questions || questions.length === 0) return null
+
+  const previewCount = 3
+  const visible = showAll ? questions : questions.slice(0, previewCount)
+  const hiddenCount = Math.max(0, questions.length - previewCount)
+
   return (
     <Card className="overflow-hidden py-0 gap-0">
-      <div className="flex items-center gap-3 px-5 py-3.5">
-        <h3 className="text-[15px] font-semibold text-foreground shrink-0">{title}</h3>
-        {summary && (
-          <span className="text-xs text-muted-foreground truncate">{summary}</span>
-        )}
+      <div className="flex items-center justify-between px-5 py-3.5">
+        <div className="flex items-baseline gap-2">
+          <h3 className="text-[15px] font-semibold text-foreground">문항</h3>
+          <span className="text-xs text-muted-foreground">{questions.length}개</span>
+        </div>
+        <Link to={`/quiz/${quizId}/edit?tab=questions`} className="text-xs text-primary hover:underline">
+          편집
+        </Link>
       </div>
-      <div className="px-5 py-2 border-t border-border/60 divide-y divide-border/50">
-        {children}
+      <div className="px-5 py-3 border-t border-border/60 space-y-2">
+        {visible.map((q, idx) => (
+          <QuestionPreviewItem key={q.id ?? idx} question={q} order={idx + 1} />
+        ))}
       </div>
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowAll(v => !v)}
+          className="w-full border-t border-border/60 px-5 py-2.5 text-xs font-medium text-primary hover:bg-secondary/40 transition-colors flex items-center justify-center gap-1"
+        >
+          {showAll ? '접기' : `더보기 (${hiddenCount}개)`}
+          <ChevronDown size={13} className={cn('transition-transform', showAll && 'rotate-180')} />
+        </button>
+      )}
     </Card>
   )
 }
@@ -179,9 +231,10 @@ export default function QuizDetail() {
   const [rawItems, setRawItems] = useState([])
   const { getBankQuestions } = useQuestionBank() ?? {}
   // 학생별 응시 결과 화면도 응시 당시와 동일한 랜덤 그룹 결정 (시드 = studentId + quizId + groupId)
+  // 교수자 미리보기에는 quizId 만 시드로 사용
   const questions = expandRandomGroups(
     rawItems,
-    `${currentStudent?.id ?? 'anon'}_${id}`,
+    isStudent ? `${currentStudent?.id ?? 'anon'}_${id}` : `instructor_${id}`,
     getBankQuestions
   )
 
@@ -202,27 +255,28 @@ export default function QuizDetail() {
   }, [id])
 
   useEffect(() => {
-    if (!isStudent) return
     let mounted = true
     ;(async () => {
       try {
         if (isApiMode()) {
-          const [rows, qs] = await Promise.all([
-            listAttempts({ quizId: id }),
-            getQuizQuestions(id),
-          ])
+          const qs = await getQuizQuestions(id)
+          let rows = []
+          if (isStudent) rows = await listAttempts({ quizId: id })
           if (!mounted) return
           setMyAttempts(rows)
           setRawItems(qs ?? [])
         } else {
-          const all = getStudentAttempts(id)
-          const mine = all.filter(a => a.studentId === currentStudent?.id)
+          let mine = []
+          if (isStudent) {
+            const all = getStudentAttempts(id)
+            mine = all.filter(a => a.studentId === currentStudent?.id)
+          }
           if (!mounted) return
           setMyAttempts(mine)
           setRawItems(mockGetQuestions(id) ?? [])
         }
       } catch (err) {
-        console.error('[QuizDetail] listAttempts 실패', err)
+        console.error('[QuizDetail] 문항/응시 로드 실패', err)
       }
     })()
     return () => { mounted = false }
@@ -321,30 +375,28 @@ export default function QuizDetail() {
               </>
             ) : (
               <>
-                {quiz.status === 'open' && (
-                  <Button asChild>
-                    <Link to={`/quiz/${quiz.id}/moderate`}>
-                      <Activity size={15} />
-                      응시 모니터링
-                    </Link>
-                  </Button>
-                )}
                 {canGrade && (
-                  <Button asChild variant={quiz.status === 'open' ? 'outline' : 'default'}>
+                  <Button asChild>
                     <Link to={`/quiz/${quiz.id}/grade`}>
                       <ClipboardCheck size={15} />
                       채점
                     </Link>
                   </Button>
                 )}
-                {canStats && (
+                {quiz.status === 'open' && (
                   <Button asChild variant="outline">
-                    <Link to={`/quiz/${quiz.id}/stats`}>
-                      <BarChart3 size={15} />
-                      통계
+                    <Link to={`/quiz/${quiz.id}/moderate`}>
+                      <Activity size={15} />
+                      응시 모니터링
                     </Link>
                   </Button>
                 )}
+                <Button asChild variant="outline">
+                  <Link to={`/quiz/${quiz.id}/edit`}>
+                    <Pencil size={15} />
+                    편집
+                  </Link>
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
@@ -352,10 +404,12 @@ export default function QuizDetail() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/edit`)}>
-                      <Pencil size={14} />
-                      편집
-                    </DropdownMenuItem>
+                    {canStats && (
+                      <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/stats`)}>
+                        <BarChart3 size={14} />
+                        통계
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/attempt?preview=true`)}>
                       <Eye size={14} />
                       미리보기
@@ -483,77 +537,20 @@ export default function QuizDetail() {
             studentId={currentStudent?.id}
           />
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 items-start">
-            {/* 응시 조건 */}
-            <Section title="응시 조건">
-              <InfoRow label="응시 기간" value={formatDateRange(quiz.startDate, quiz.dueDate)} />
-              <InfoRow
-                label="이용 종료"
-                value={quiz.lockDate
-                  ? `${quiz.lockDate}${new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}`
-                  : '설정 안함'}
-              />
-              <InfoRow
-                label="지각 제출"
-                value={
-                  quiz.allowLateSubmit
-                    ? (quiz.lateSubmitDeadline ? `${quiz.lateSubmitDeadline.replace('T', ' ')}까지 허용` : '무제한 허용')
-                    : '비허용'
-                }
-              />
-              <InfoRow label="제한 시간" value={timeLimitLabel} />
-            </Section>
-
-            {/* 응시 정책 */}
-            <Section title="응시 정책">
-              <InfoRow label="응시 횟수" value={attemptLabel} />
-              {(quiz.allowAttempts === -1 || (quiz.allowAttempts ?? 1) > 1) && (
-                <InfoRow label="점수 정책" value={quiz.scorePolicy ?? '최고 점수 유지'} />
-              )}
-              <InfoRow label="문항 셔플" value={quiz.shuffleQuestions ? '사용' : '사용 안함'} />
-              <InfoRow label="보기 셔플" value={quiz.shuffleChoices ? '사용' : '사용 안함'} />
-              <InfoRow label="한 문항씩 표시" value={quiz.oneQuestionAtATime ? '사용' : '사용 안함'} />
-              <InfoRow label="답변 후 잠금" value={quiz.lockAfterAnswer ? '사용' : '사용 안함'} />
-            </Section>
-
-            {/* 성적 공개 */}
-            <Section title="성적 공개">
+          <div className="space-y-3">
+            <Card className="px-5 py-1 divide-y divide-border/50">
               {(() => {
                 const badge = scoreRevealBadge(quiz)
-                return <InfoRow label="공개 정책" value={badge.label} badgeVariant={badge.variant} />
+                const label = quiz.oneTimeResults ? `${badge.label} · 결과 1회 한정` : badge.label
+                return <InfoRow label="성적 공개" value={label} badgeVariant={badge.variant} />
               })()}
-              {(quiz.scoreRevealStart || quiz.scoreRevealEnd) && (
-                <>
-                  <InfoRow label="공개 시작" value={quiz.scoreRevealStart || '-'} />
-                  <InfoRow label="공개 종료" value={quiz.scoreRevealEnd || '-'} />
-                </>
-              )}
               <InfoRow
-                label="결과 확인"
-                value={quiz.oneTimeResults ? '1회만 허용' : '제한 없음'}
-              />
-            </Section>
-
-            {/* 접근 제한 */}
-            <Section title="접근 제한">
-              <InfoRow
-                label="접근 코드"
-                value={quiz.accessCode ? '설정됨' : '설정 안함'}
-                muted={!quiz.accessCode}
-              />
-              <InfoRow
-                label="IP 제한"
-                value={quiz.ipRestriction ? quiz.ipRestriction : '설정 안함'}
-                muted={!quiz.ipRestriction}
-              />
-              <InfoRow
-                label="학생 노출"
+                label="공개 여부"
                 value={quiz.visible === false ? '숨김' : '공개'}
+                muted={quiz.visible === false}
               />
-              {Array.isArray(quiz.assignments) && quiz.assignments.length > 0 && (
-                <InfoRow label="추가 기간 설정" value={`${quiz.assignments.length}건`} />
-              )}
-            </Section>
+            </Card>
+            <QuestionPreviewList questions={questions} quizId={quiz.id} />
           </div>
         )}
 
