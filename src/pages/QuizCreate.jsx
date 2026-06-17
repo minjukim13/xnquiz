@@ -89,11 +89,11 @@ export default function QuizCreate() {
   const getValidationErrors = () => {
     const errors = []
     if (!form.title) errors.push('퀴즈 제목을 입력해주세요')
-    if (form.startDate && form.dueDate && new Date(form.dueDate) <= new Date(form.startDate)) errors.push('마감 일시는 시작 일시 이후여야 합니다')
-    if (form.lockDate && form.dueDate && new Date(form.lockDate) < new Date(form.dueDate)) errors.push('이용 종료 일시는 마감 일시 이후로 설정해야 합니다')
-    if (!form.dueDate && form.allowLateSubmit && form.lateSubmitDeadline) errors.push('지각 제출 마감 일시는 마감 일시가 설정되어 있을 때만 사용할 수 있습니다')
+    if (form.startDate && form.dueDate && new Date(form.dueDate) <= new Date(form.startDate)) errors.push('제출 마감은 응시 시작 이후여야 합니다')
+    if (form.lockDate && form.dueDate && new Date(form.lockDate) < new Date(form.dueDate)) errors.push('이용 종료는 제출 마감 이후로 설정해야 합니다')
+    if (!form.dueDate && form.allowLateSubmit && form.lateSubmitDeadline) errors.push('지각 제출 마감은 제출 마감이 설정되어 있을 때만 사용할 수 있습니다')
     if (!form.unlimitedTimeLimit && (form.timeLimit === '' || Number(form.timeLimit) <= 0)) errors.push('제한 시간을 입력하거나 무제한으로 설정해주세요')
-    if (!form.unlimitedTimeLimit && form.disableAutoSubmit && !form.lockDate) errors.push('자동 제출 5분 유예 사용 시 이용 종료 일시를 반드시 설정해야 합니다')
+    if (!form.unlimitedTimeLimit && form.disableAutoSubmit && !form.lockDate) errors.push('자동 제출 5분 유예 사용 시 이용 종료를 반드시 설정해야 합니다')
     if (questions.length === 0) errors.push('최소 1개 이상의 문항을 추가해주세요')
     if (hasDuplicateStudent(form.assignments)) errors.push('동일한 학생이 여러 추가 기간 설정에 포함되어 있습니다')
     return errors
@@ -231,7 +231,7 @@ export default function QuizCreate() {
         <div className="pt-5">
           {tab === 'info' && <InfoTab form={form} set={set} />}
           {tab === 'questions' && (
-            <QuestionsTab questions={questions} totalPoints={totalPoints} onShowBank={() => setShowBankModal(true)} onShowRandomBank={() => setShowRandomBankModal(true)} onShowAdd={() => setShowAddModal(true)} onEdit={setEditingQuestion} onRemove={removeQuestion} onMove={moveQuestion} />
+            <QuestionsTab form={form} set={set} questions={questions} totalPoints={totalPoints} onShowBank={() => setShowBankModal(true)} onShowRandomBank={() => setShowRandomBankModal(true)} onShowAdd={() => setShowAddModal(true)} onEdit={setEditingQuestion} onRemove={removeQuestion} onMove={moveQuestion} />
           )}
         </div>
 
@@ -266,7 +266,7 @@ export default function QuizCreate() {
 function InfoTab({ form, set }) {
   return (
     <div className="space-y-3">
-      <Section title="퀴즈 유형">
+      <Section title="시험 유형">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { value: 'graded', label: '평가용 퀴즈', desc: '성적에 반영됩니다' },
@@ -310,20 +310,35 @@ function InfoTab({ form, set }) {
             courseKey="CS301 데이터베이스"
           />
         </div>
+
+        <div className="pt-3 mt-1 border-t border-slate-100 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-secondary-foreground">응시 전 안내 사항</p>
+            <p className="text-xs text-muted-foreground mt-0.5">응시 시작 전 학생에게 표시할 안내 문구를 작성합니다.</p>
+          </div>
+          <Toggle
+            checked={form.noticeEnabled}
+            onChange={v => set('noticeEnabled', v)}
+            label="안내 사항 표시"
+          />
+          {form.noticeEnabled && (
+            <textarea value={form.notice} onChange={e => set('notice', e.target.value)} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-y leading-relaxed" placeholder="학생에게 안내할 퀴즈 정책을 입력하세요." />
+          )}
+        </div>
       </Section>
 
       <Section title="응시 기간">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="시작 일시"><DateTimePicker value={form.startDate} onChange={v => set('startDate', v)} /></Field>
-          <Field label={<span className="inline-flex items-center gap-1">마감 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><DateTimePicker value={form.dueDate} onChange={v => set('dueDate', v)} min={form.startDate || undefined} /></Field>
+          <Field label={<span className="inline-flex items-center gap-1">응시 시작<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 퀴즈를 시작할 수 있는 시점입니다.<br />미설정 시 게시 즉시 응시 가능합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><DateTimePicker value={form.startDate} onChange={v => set('startDate', v)} /></Field>
+          <Field label={<span className="inline-flex items-center gap-1">제출 마감<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>학생이 답안을 제출해야 하는 기한입니다.<br />마감 이후에는 제출이 불가합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}><DateTimePicker value={form.dueDate} onChange={v => set('dueDate', v)} min={form.startDate || undefined} /></Field>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">미설정 시 응시 기간 제한 없이 학생이 언제든 응시할 수 있습니다.</p>
-        <Field label={<span className="inline-flex items-center gap-1">이용 종료 일시<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>퀴즈 페이지 자체에 접근할 수 없게 되는 시점입니다.<br />마감 이후에도 학생이 결과를 확인할 수 있도록<br />종료 일시는 마감 일시 이후로 설정하는 것을 권장합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
+        <Field label={<span className="inline-flex items-center gap-1">이용 종료<TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>퀴즈 페이지 자체에 접근할 수 없게 되는 시점입니다.<br />제출 마감 이후에도 학생이 결과를 확인할 수 있도록<br />이용 종료는 제출 마감 이후로 설정하는 것을 권장합니다.</p></TooltipContent></Tooltip></TooltipProvider></span>}>
           <DateTimePicker value={form.lockDate} onChange={v => set('lockDate', v)} />
-          <p className="text-xs mt-1.5 text-muted-foreground">이용 종료 일시가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
+          <p className="text-xs mt-1.5 text-muted-foreground">이용 종료가 지나면 학생은 퀴즈 정보를 확인할 수 없습니다. 미설정 시 제한 없음.</p>
           {form.lockDate && form.dueDate && new Date(form.lockDate) < new Date(form.dueDate) && (
             <div className="flex items-center gap-2 p-2.5 rounded-md text-xs bg-warning-bg/40 border border-warning-border text-secondary-foreground mt-2">
-              <span>이용 종료 일시가 마감 일시보다 앞서 있습니다. 마감 전에 퀴즈 접근이 차단될 수 있습니다.</span>
+              <span>이용 종료가 제출 마감보다 앞서 있습니다. 마감 전에 퀴즈 접근이 차단될 수 있습니다.</span>
             </div>
           )}
         </Field>
@@ -331,22 +346,26 @@ function InfoTab({ form, set }) {
           <Toggle checked={form.allowLateSubmit} onChange={v => set('allowLateSubmit', v)} label="마감 후 지각 제출 허용" />
           {form.allowLateSubmit && (
             <div className="border-l-2 border-border pl-4 ml-0.5 space-y-2">
-              <label className="block text-sm font-medium text-secondary-foreground">지각 제출 마감 일시</label>
+              <label className="block text-sm font-medium text-secondary-foreground">지각 제출 마감</label>
               <DateTimePicker value={form.lateSubmitDeadline} onChange={v => set('lateSubmitDeadline', v)} min={form.dueDate || undefined} />
               {!form.lateSubmitDeadline && <p className="text-xs text-muted-foreground">미설정 시 무제한 허용</p>}
             </div>
           )}
         </div>
+
+        <div className="pt-3 mt-1 border-t border-slate-100 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-secondary-foreground">추가 기간</p>
+            <p className="text-xs text-muted-foreground mt-0.5">특정 학과 또는 학생에게 별도의 응시 기간을 부여합니다. 추가 기간은 위 응시 기간을 대체합니다.</p>
+          </div>
+          <AssignmentOverrides
+            assignments={form.assignments}
+            onChange={val => set('assignments', val)}
+          />
+        </div>
       </Section>
 
-      <Section title="추가 기간 설정">
-        <AssignmentOverrides
-          assignments={form.assignments}
-          onChange={val => set('assignments', val)}
-        />
-      </Section>
-
-      <Section title="응시 설정">
+      <Section title="응시 조건">
         <div className="space-y-5">
           <div className="space-y-3">
             <Toggle
@@ -369,7 +388,7 @@ function InfoTab({ form, set }) {
                   label={
                     <span className="inline-flex items-center gap-1">
                       자동 제출 5분 유예
-                      <TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>이용 종료 일시 설정이 필수입니다.</p></TooltipContent></Tooltip></TooltipProvider>
+                      <TooltipProvider><Tooltip><TooltipTrigger asChild><HelpCircle size={14} className="text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent side="top" sideOffset={4}><p>이용 종료 설정이 필수입니다.</p></TooltipContent></Tooltip></TooltipProvider>
                     </span>
                   }
                   description="제한 시간이 끝난 후 5분간 직접 제출이 가능하고, 5분이 지나면 자동 제출됩니다"
@@ -416,32 +435,6 @@ function InfoTab({ form, set }) {
       </Section>
 
       <SecuritySection form={form} set={set} />
-
-      <Section title="문항 표시 설정">
-        <div className="space-y-3">
-          <Toggle checked={form.shuffleChoices} onChange={v => set('shuffleChoices', v)} label="선지 순서 섞기" description="객관식 문항의 선지 순서가 학생마다 무작위로 표시됩니다" />
-          <Toggle checked={form.shuffleQuestions} onChange={v => set('shuffleQuestions', v)} label="문제 순서 섞기" description="문제 순서가 학생마다 무작위로 표시됩니다" />
-          <Toggle
-            checked={form.oneQuestionAtATime}
-            onChange={v => {
-              set('oneQuestionAtATime', v)
-              if (!v) set('lockAfterAnswer', false)
-            }}
-            label="한 번에 한 문항씩 표시"
-            description="학생에게 문항을 1개씩만 보여주고 이전/다음 버튼으로 이동합니다"
-          />
-          {form.oneQuestionAtATime && (
-            <div className="border-l-2 border-border pl-4 ml-0.5 space-y-2">
-              <Toggle
-                checked={form.lockAfterAnswer}
-                onChange={v => set('lockAfterAnswer', v)}
-                label="응답 후 문항 잠금"
-                description="다음으로 이동하면 이전 문항으로 돌아갈 수 없습니다"
-              />
-            </div>
-          )}
-        </div>
-      </Section>
 
       <Section title="성적 공개 정책">
         <div className="space-y-4">
@@ -511,39 +504,6 @@ function InfoTab({ form, set }) {
         </div>
       </Section>
 
-      <Section title="퀴즈 접근 제한">
-        <Toggle
-          checked={form.accessControlEnabled}
-          onChange={v => set('accessControlEnabled', v)}
-          label="접근 제한 사용"
-          description="액세스 코드 또는 허용 IP 를 지정해 응시 가능 범위를 제한합니다."
-        />
-        {form.accessControlEnabled && (
-          <>
-            <Field label="액세스 코드">
-              <input type="text" value={form.accessCode} onChange={e => set('accessCode', e.target.value)} placeholder="코드를 입력하면 응시 시 코드 입력이 필요합니다" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
-              <p className="text-xs mt-1.5 text-muted-foreground">비워두면 액세스 코드 없이 응시 가능합니다.</p>
-            </Field>
-            <Field label="접근 가능한 IP 주소">
-              <textarea value={form.ipRestriction} onChange={e => set('ipRestriction', e.target.value)} placeholder={'허용할 IP 주소를 한 줄에 하나씩 입력하세요\n예) 192.168.1.0/24\n    203.0.113.10'} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-none" />
-              <p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP에서 접근 가능합니다. (CIDR 표기법 지원)</p>
-            </Field>
-          </>
-        )}
-      </Section>
-
-      <Section title="퀴즈 안내사항">
-        <Toggle
-          checked={form.noticeEnabled}
-          onChange={v => set('noticeEnabled', v)}
-          label="안내사항 표시"
-          description="응시 전 학생에게 표시될 안내 문구를 작성합니다."
-        />
-        {form.noticeEnabled && (
-          <textarea value={form.notice} onChange={e => set('notice', e.target.value)} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-y leading-relaxed" placeholder="학생에게 안내할 퀴즈 정책을 입력하세요." />
-        )}
-      </Section>
-
       <Section title="퀴즈 공개 여부">
         <Toggle
           checked={form.visible}
@@ -603,7 +563,7 @@ function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDr
   )
 }
 
-function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove }) {
+function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove }) {
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
 
@@ -618,9 +578,35 @@ function QuestionsTab({ questions, totalPoints, onShowBank, onShowRandomBank, on
   const { questionCount } = summarizeQuizItems(questions)
 
   return (
-    <div>
+    <div className="space-y-3">
+      <Section title="문항 표시 설정">
+        <div className="space-y-3">
+          <Toggle checked={form.shuffleChoices} onChange={v => set('shuffleChoices', v)} label="선지 순서 섞기" description="객관식 문항의 선지 순서가 학생마다 무작위로 표시됩니다" />
+          <Toggle checked={form.shuffleQuestions} onChange={v => set('shuffleQuestions', v)} label="문제 순서 섞기" description="문제 순서가 학생마다 무작위로 표시됩니다" />
+          <Toggle
+            checked={form.oneQuestionAtATime}
+            onChange={v => {
+              set('oneQuestionAtATime', v)
+              if (!v) set('lockAfterAnswer', false)
+            }}
+            label="한 번에 한 문항씩 표시"
+            description="학생에게 문항을 1개씩만 보여주고 이전/다음 버튼으로 이동합니다"
+          />
+          {form.oneQuestionAtATime && (
+            <div className="border-l-2 border-border pl-4 ml-0.5 space-y-2">
+              <Toggle
+                checked={form.lockAfterAnswer}
+                onChange={v => set('lockAfterAnswer', v)}
+                label="응답 후 문항 잠금"
+                description="다음으로 이동하면 이전 문항으로 돌아갈 수 없습니다"
+              />
+            </div>
+          )}
+        </div>
+      </Section>
+
       {/* 헤더: 문항 수/점수 + 액션 버튼 */}
-      <div className="flex items-center justify-between gap-2 mb-4 px-1 py-0.5 flex-wrap">
+      <div className="flex items-center justify-between gap-2 mb-4 px-1 pt-2 py-0.5 flex-wrap">
         <p className="text-[13px] text-secondary-foreground leading-none">
           <span className="font-semibold text-foreground">{questionCount}</span>문항
           <span className="text-muted-foreground mx-1.5">|</span>
