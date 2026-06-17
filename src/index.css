@@ -168,9 +168,9 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.175 0.014 254);
 
-  /* ── Primary = Toss Blue #3182F6 ── */
-  --primary: oklch(0.625 0.188 257);
-  --primary-hover: oklch(0.530 0.188 257);   /* #1B64DA */
+  /* ── Primary = xinics-ds Brand #157EF4 ── */
+  --primary: #157EF4;
+  --primary-hover: #1B64DA;   /* xinics-ds brand-primary-hover */
   --primary-foreground: oklch(1 0 0);
 
   /* ── Secondary = Gray Surface #F2F4F6 ── */
@@ -183,7 +183,7 @@
 
   /* ── Accent = Light Blue #E8F3FF ── */
   --accent: oklch(0.963 0.025 250);
-  --accent-foreground: oklch(0.625 0.188 257); /* #3182F6 */
+  --accent-foreground: #157EF4; /* xinics-ds brand-primary */
 
   /* ── Semantic ── */
   --destructive: oklch(0.600 0.215 22);        /* #F04452 */
@@ -214,10 +214,10 @@
   /* ── Border / Input ── */
   --border: oklch(0.916 0.007 248);            /* #E5E8EB */
   --input: oklch(0.916 0.007 248);
-  --ring: oklch(0.625 0.188 257);              /* #3182F6 */
+  --ring: #157EF4;                             /* xinics-ds brand-primary */
 
   /* ── Charts (다색 팔레트) ── */
-  --chart-1: oklch(0.625 0.188 257);           /* Blue   #3182F6 */
+  --chart-1: #157EF4;                          /* xinics-ds brand-primary */
   --chart-2: oklch(0.665 0.170 152);           /* Green  #31B46E */
   --chart-3: oklch(0.600 0.215 22);            /* Red    #F04452 */
   --chart-4: oklch(0.750 0.180 85);            /* Amber */

@@ -65,7 +65,7 @@ const BASE_STYLE = `
   .student-item { display: flex; gap: 6px; align-items: center; }
   .student-label { color: #94a3b8; }
   .student-value { font-weight: 600; color: #1e293b; }
-  .total-score { margin-left: auto; font-size: 16px; font-weight: 800; color: #3182F6; }
+  .total-score { margin-left: auto; font-size: 16px; font-weight: 800; color: #157EF4; }
 
   .footer { margin-top: 36px; padding-top: 14px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 11px; color: #94a3b8; }
 `
