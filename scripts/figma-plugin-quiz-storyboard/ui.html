@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Noto Sans KR", sans-serif;
+    margin: 0;
+    padding: 16px;
+    background: #fff;
+    color: #191F28;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  h1 {
+    font-size: 14px;
+    margin: 0 0 4px 0;
+  }
+  p.sub {
+    margin: 0 0 12px 0;
+    color: #8B95A1;
+    font-size: 12px;
+  }
+  .drop {
+    border: 2px dashed #C5CCD3;
+    border-radius: 10px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #4E5968;
+  }
+  .drop:hover, .drop.over {
+    border-color: #3182F6;
+    background: #F0F7FF;
+    color: #1B64DA;
+  }
+  .drop strong { color: #191F28; }
+  .drop input { display: none; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  button {
+    flex: 1;
+    border: 1px solid #E5E8EB;
+    background: #fff;
+    color: #191F28;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  button:hover { background: #F2F4F6; }
+  button.primary {
+    background: #3182F6;
+    color: #fff;
+    border-color: #3182F6;
+  }
+  button.primary:hover { background: #1B64DA; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  ul.files {
+    margin: 12px 0 0 0;
+    padding: 0;
+    list-style: none;
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #E5E8EB;
+    border-radius: 8px;
+  }
+  ul.files li {
+    padding: 6px 10px;
+    border-bottom: 1px solid #F2F4F6;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+  ul.files li:last-child { border-bottom: none; }
+  ul.files li .name { color: #191F28; }
+  ul.files li .size { color: #8B95A1; }
+  .status {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    background: #F2F4F6;
+    color: #4E5968;
+  }
+  .status.ok { background: #E8F3FF; color: #1B64DA; }
+  .status.err { background: #FEF2F2; color: #B91C1C; }
+</style>
+</head>
+<body>
+  <h1>캡쳐 이미지 일괄 배치</h1>
+  <p class="sub">파일 이름 앞 2자리 번호(01_, 02_, ...)로 슬라이드를 매칭합니다.</p>
+
+  <label class="drop" id="drop">
+    <strong>이미지 파일 선택</strong> 또는 이곳에 드래그<br>
+    <span style="font-size:12px;color:#8B95A1">PNG 18장 (~/Downloads/QUIZ참고/스토리보드_캡쳐/)</span>
+    <input type="file" id="filein" accept="image/png,image/jpeg" multiple>
+  </label>
+
+  <ul class="files" id="filelist" style="display:none"></ul>
+  <div class="status" id="status">파일을 선택해주세요.</div>
+
+  <div class="actions">
+    <button id="cancel">닫기</button>
+    <button id="apply" class="primary" disabled>배치 실행</button>
+  </div>
+
+<script>
+  const drop = document.getElementById('drop')
+  const filein = document.getElementById('filein')
+  const filelist = document.getElementById('filelist')
+  const status = document.getElementById('status')
+  const applyBtn = document.getElementById('apply')
+  const cancelBtn = document.getElementById('cancel')
+
+  let pendingFiles = []
+
+  function setStatus(text, kind) {
+    status.textContent = text
+    status.className = 'status' + (kind ? ' ' + kind : '')
+  }
+
+  function renderList() {
+    filelist.innerHTML = ''
+    if (!pendingFiles.length) {
+      filelist.style.display = 'none'
+      applyBtn.disabled = true
+      return
+    }
+    filelist.style.display = 'block'
+    pendingFiles.forEach(f => {
+      const li = document.createElement('li')
+      const sizeKb = Math.round(f.size / 1024)
+      li.innerHTML = `<span class="name">${f.name}</span><span class="size">${sizeKb} KB</span>`
+      filelist.appendChild(li)
+    })
+    applyBtn.disabled = false
+    setStatus(`${pendingFiles.length}개 파일 준비 완료. "배치 실행" 클릭`, 'ok')
+  }
+
+  drop.addEventListener('click', () => filein.click())
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over') })
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'))
+  drop.addEventListener('drop', e => {
+    e.preventDefault()
+    drop.classList.remove('over')
+    const files = Array.from(e.dataTransfer.files).filter(f => /\.(png|jpg|jpeg)$/i.test(f.name))
+    pendingFiles = files.sort((a, b) => a.name.localeCompare(b.name))
+    renderList()
+  })
+  filein.addEventListener('change', e => {
+    const files = Array.from(e.target.files).filter(f => /\.(png|jpg|jpeg)$/i.test(f.name))
+    pendingFiles = files.sort((a, b) => a.name.localeCompare(b.name))
+    renderList()
+  })
+
+  cancelBtn.addEventListener('click', () => parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*'))
+
+  applyBtn.addEventListener('click', async () => {
+    applyBtn.disabled = true
+    setStatus(`${pendingFiles.length}개 처리 중...`, 'ok')
+    const payload = []
+    for (const f of pendingFiles) {
+      const buf = await f.arrayBuffer()
+      payload.push({ name: f.name, bytes: new Uint8Array(buf) })
+    }
+    parent.postMessage({ pluginMessage: { type: 'apply', files: payload } }, '*')
+  })
+
+  window.onmessage = (event) => {
+    const msg = event.data.pluginMessage
+    if (!msg) return
+    if (msg.type === 'progress') {
+      setStatus(msg.text, 'ok')
+    } else if (msg.type === 'done') {
+      setStatus(msg.text, 'ok')
+    } else if (msg.type === 'error') {
+      setStatus(msg.text, 'err')
+      applyBtn.disabled = false
+    }
+  }
+</script>
+</body>
+</html>

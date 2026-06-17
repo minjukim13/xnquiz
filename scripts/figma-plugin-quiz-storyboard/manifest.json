@@ -1,0 +1,15 @@
+{
+  "name": "XN Quiz 생성 스토리보드 빌더",
+  "id": "xnquiz-quiz-create-storyboard-builder",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "menu": [
+    { "name": "1. 스토리보드 골격 생성 (22 슬라이드)", "command": "build" },
+    { "name": "2. 캡쳐 이미지 일괄 배치 (18장)", "command": "import" }
+  ],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
+}
