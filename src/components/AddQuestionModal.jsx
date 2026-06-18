@@ -86,7 +86,7 @@ export function initForm(type) {
   switch (type) {
     case 'multiple_choice':         return { ...base, options: ['', '', '', ''], optionComments: ['', '', '', ''], correctIdx: 0 }
     case 'true_false':              return { ...base, correctBool: true, trueComment: '', falseComment: '' }
-    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], optionComments: ['', '', '', ''], correctIdxs: [], overrideScoring: false, scoringMode: 'all_correct', penaltyMethod: 'none' }
+    case 'multiple_answers':        return { ...base, options: ['', '', '', ''], optionComments: ['', '', '', ''], correctIdxs: [0], overrideScoring: false, scoringMode: 'all_correct', penaltyMethod: 'none' }
     case 'short_answer':            return { ...base, acceptedAnswers: [''] }
     case 'essay':                   return { ...base, rubric: '' }
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }

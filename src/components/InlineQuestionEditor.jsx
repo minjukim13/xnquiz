@@ -131,9 +131,11 @@ function TypePicker({ value, onChange }) {
 }
 
 // ── 인라인 문항 편집기 (페이지에 직접 추가) ────────────────────────────────
-export default function InlineQuestionEditor({ index, onAdd, onCancel, onDirtyChange }) {
-  const [selectedType, setSelectedType] = useState('multiple_choice')
-  const [form, setForm] = useState(() => initForm('multiple_choice'))
+export default function InlineQuestionEditor({ index, prevType, onAdd, onCancel, onDirtyChange }) {
+  // 직전 문항 유형을 기본값으로 이어받음 (예: 참/거짓 다음엔 참/거짓). 유효하지 않으면 객관식
+  const initialType = QUIZ_TYPES[prevType] ? prevType : 'multiple_choice'
+  const [selectedType, setSelectedType] = useState(initialType)
+  const [form, setForm] = useState(() => ({ ...initForm(initialType), title: `문항${index + 1}` }))
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const bodyTextareaRef = useRef(null)
   const containerRef = useRef(null)
@@ -142,14 +144,15 @@ export default function InlineQuestionEditor({ index, onAdd, onCancel, onDirtyCh
     containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [])
 
-  // 부모에게 dirty 상태 알림 — 제목 또는 본문에 입력이 있으면 dirty
+  // 부모에게 dirty 상태 알림 — 기본 제목 외 제목 변경 또는 본문 입력이 있으면 dirty
+  const defaultTitle = `문항${index + 1}`
   useEffect(() => {
     if (!onDirtyChange) return
-    const titleHas = (form.title || '').trim().length > 0
+    const titleHas = (form.title || '').trim().length > 0 && (form.title || '').trim() !== defaultTitle
     const textHas = richTextHasContent(form.text || '')
     onDirtyChange(titleHas || textHas)
     return () => onDirtyChange(false)
-  }, [form.title, form.text, onDirtyChange])
+  }, [form.title, form.text, onDirtyChange, defaultTitle])
 
   const handleTypeChange = (newType) => {
     if (newType === selectedType) return

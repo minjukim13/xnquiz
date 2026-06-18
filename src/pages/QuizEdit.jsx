@@ -256,7 +256,7 @@ export default function QuizEdit() {
   if (role !== 'instructor') return <Navigate to="/" replace />
   if (!loaded) {
     return (
-      <div className="max-w-5xl mx-auto pb-4" aria-busy="true" aria-label="퀴즈 정보를 불러오는 중">
+      <div className="pb-4" aria-busy="true" aria-label="퀴즈 정보를 불러오는 중">
         <Skeleton className="h-7 w-40 mt-6 sm:mt-8 mb-4 sm:mb-5" />
         <div className="space-y-4">
           <div className="flex items-stretch gap-2 sm:gap-3">
@@ -453,7 +453,7 @@ export default function QuizEdit() {
 
   return (
     <>
-      <div className="max-w-5xl mx-auto pb-4">
+      <div className="pb-4">
         <h1 className="text-[20px] sm:text-[22px] font-bold text-foreground pt-6 sm:pt-8 pb-4 sm:pb-5">퀴즈 편집</h1>
 
         <StepIndicator
@@ -971,6 +971,7 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
           {showInlineAdd && (
             <InlineQuestionEditor
               index={questions.length}
+              prevType={questions[questions.length - 1]?.type}
               onAdd={onAddInline}
               onCancel={onCancelInline}
               onDirtyChange={onInlineDirtyChange}

@@ -249,7 +249,7 @@ export default function QuizCreate() {
 
   return (
     <>
-      <div className="max-w-5xl mx-auto pb-4">
+      <div className="pb-4">
         <h1 className="text-[20px] sm:text-[22px] font-bold text-foreground pt-6 sm:pt-8 pb-4 sm:pb-5">새 퀴즈 만들기</h1>
 
         <StepIndicator
@@ -740,6 +740,7 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
           {showInlineAdd && (
             <InlineQuestionEditor
               index={questions.length}
+              prevType={questions[questions.length - 1]?.type}
               onAdd={onAddInline}
               onCancel={onCancelInline}
               onDirtyChange={onInlineDirtyChange}

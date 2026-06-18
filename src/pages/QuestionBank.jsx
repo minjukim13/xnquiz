@@ -104,7 +104,7 @@ export default function QuestionBank() {
 
   return (
     <>
-      <div className="max-w-6xl mx-auto pb-8">
+      <div className="pb-8">
 
         <PageHeader
           ariaLabel="뒤로가기"
@@ -235,6 +235,7 @@ export default function QuestionBank() {
             {showInlineAdd && (
               <InlineQuestionEditor
                 index={questions.length}
+                prevType={questions[questions.length - 1]?.type}
                 onAdd={handleAddQuestion}
                 onCancel={() => setShowInlineAdd(false)}
               />
