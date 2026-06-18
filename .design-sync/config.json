@@ -1,0 +1,39 @@
+{
+  "projectId": "a179a07a-53ff-4190-9690-c362556fb592",
+  "pkg": "xn-quiz-prototype",
+  "globalName": "XN",
+  "shape": "package",
+  "tsconfig": "jsconfig.json",
+  "cssEntry": "dist/assets/index-CWfX-0dw.css",
+  "extraFonts": [".design-sync/pretendard.css"],
+  "readmeHeader": ".design-sync/conventions.md",
+  "componentSrcMap": {
+    "Button": "src/components/ui/button.jsx",
+    "Badge": "src/components/ui/badge.jsx",
+    "Card": "src/components/ui/card.jsx",
+    "Input": "src/components/ui/input.jsx",
+    "Dialog": "src/components/ui/dialog.jsx",
+    "AlertDialog": "src/components/ui/alert-dialog.jsx",
+    "DropdownMenu": "src/components/ui/dropdown-menu.jsx",
+    "Popover": "src/components/ui/popover.jsx",
+    "Separator": "src/components/ui/separator.jsx",
+    "Sheet": "src/components/ui/sheet.jsx",
+    "Skeleton": "src/components/ui/skeleton.jsx",
+    "Switch": "src/components/ui/switch.jsx",
+    "Table": "src/components/ui/table.jsx",
+    "Tabs": "src/components/ui/tabs.jsx",
+    "Tooltip": "src/components/ui/tooltip.jsx",
+    "Toast": "src/components/ui/toast.jsx",
+    "TypeBadge": "src/components/TypeBadge.jsx",
+    "StatusBadge": "src/components/StatusBadge.jsx"
+  },
+  "overrides": {
+    "Dialog": { "cardMode": "single", "viewport": "560x460" },
+    "AlertDialog": { "cardMode": "single", "viewport": "480x340" },
+    "DropdownMenu": { "cardMode": "single", "viewport": "360x420" },
+    "Popover": { "cardMode": "single", "viewport": "420x360" },
+    "Sheet": { "cardMode": "single", "viewport": "760x480" },
+    "Tooltip": { "cardMode": "single", "viewport": "360x220" },
+    "Toast": { "cardMode": "single", "viewport": "520x180" }
+  }
+}
