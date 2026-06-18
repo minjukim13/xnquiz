@@ -394,7 +394,7 @@ export default function QuizStats() {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto pb-10">
+      <div className="pb-10">
         <PageHeader
           ariaLabel="뒤로가기"
           title={

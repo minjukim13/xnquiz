@@ -341,7 +341,7 @@ function InstructorQuizList() {
 
   return (
     <>
-      <div className="max-w-5xl mx-auto pb-6">
+      <div className="pb-6">
         <div className="flex flex-wrap items-center justify-between gap-3 pt-6 sm:pt-8 pb-4 sm:pb-5">
           <div className="flex items-center gap-1.5 min-w-0">
             <h1 className="text-[20px] sm:text-[24px] font-bold text-foreground leading-tight truncate">퀴즈 관리</h1>
@@ -1026,7 +1026,7 @@ function StudentQuizList() {
 
   return (
     <>
-      <div className="max-w-5xl mx-auto pb-6">
+      <div className="pb-6">
         <div className="flex items-center justify-between gap-4 pt-6 sm:pt-8 pb-4 sm:pb-5">
           <h1 className="text-[20px] sm:text-[24px] font-bold text-foreground leading-tight">내 퀴즈</h1>
         </div>

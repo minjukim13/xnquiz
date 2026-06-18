@@ -133,7 +133,7 @@ export default function QuizMonitor() {
 
   return (
     <>
-      <div className="max-w-6xl mx-auto pb-8">
+      <div className="pb-8">
         <PageHeader
           title={
             <div className="flex items-center gap-2 min-w-0">

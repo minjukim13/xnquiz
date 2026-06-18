@@ -1,0 +1,163 @@
+/* ════════════════════════════════════════════════════════════════════════
+   XN Quiz Design Tokens
+   ─────────────────────────────────────────────────────────────────────
+   Source: c:/Users/김민주/Desktop/xnquiz/CLAUDE.md (Design System section)
+   Stack:  React 19 + Vite 8 + Tailwind CSS v4 + Pretendard
+   Style:  Toss-style (clean white mode, no dark mode)
+
+   Usage in claude.ai/design:
+   - Import this file to inherit all color/typography/spacing semantics
+   - Reference variables as `var(--primary)`, `var(--foreground)`, etc
+   - Never hardcode hex values; always use semantic vars
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ────── COLOR ────── */
+  /* Primary: 주요 액션 (채점, 응시, 저장) */
+  --primary:               #3182F6;
+  --primary-hover:         #1B64DA;
+  --primary-foreground:    #FFFFFF;
+
+  /* Accent: 강조 배경/배지 (active nav, 주차 배지, 정답 배지) */
+  --accent:                #E8F3FF;
+  --accent-foreground:     #3182F6;
+
+  /* Foreground: 텍스트 위계 (3단계) */
+  --foreground:            #191F28;  /* 제목, 본문 강조 */
+  --secondary-foreground:  #4E5968;  /* 본문 일반 */
+  --muted-foreground:      #8B95A1;  /* 캡션, 라벨, 약한 텍스트 */
+
+  /* Surface: 배경 표면 (3단계) */
+  --background:            #F9FAFB;  /* 페이지 배경 */
+  --secondary:             #F2F4F6;  /* 회색 배경 (필터 토글, 호버) */
+  --card:                  #FFFFFF;  /* 카드, 팝오버 배경 */
+
+  /* Border */
+  --border:                #E5E8EB;
+
+  /* Semantic: 위험/오류 */
+  --destructive:           #F04452;
+  --destructive-bg:        rgba(240, 68, 82, 0.10);
+
+  /* Question Type Badge Colors (12종) */
+  --type-multiple-choice-bg:         #EEF2FF;  /* indigo-50 */
+  --type-multiple-choice-fg:         #6366F1;  /* indigo-500 */
+  --type-true-false-bg:              #ECFDF5;  /* emerald-50 */
+  --type-true-false-fg:              #059669;  /* emerald-600 */
+  --type-multiple-answers-bg:        #EFF6FF;  /* blue-50 */
+  --type-multiple-answers-fg:        #3B82F6;  /* blue-500 */
+  --type-short-answer-bg:            #FFFBEB;  /* amber-50 */
+  --type-short-answer-fg:            #F59E0B;  /* amber-500 */
+  --type-essay-bg:                   #FEF2F2;  /* red-50 */
+  --type-essay-fg:                   #EF4444;  /* red-500 */
+  --type-numerical-bg:               #F5F3FF;  /* violet-50 */
+  --type-numerical-fg:               #8B5CF6;  /* violet-500 */
+  --type-formula-bg:                 #F0FDFA;  /* teal-50 */
+  --type-formula-fg:                 #0D9488;  /* teal-600 */
+  --type-matching-bg:                #ECFEFF;  /* cyan-50 */
+  --type-matching-fg:                #0891B2;  /* cyan-600 */
+  --type-text-bg:                    #F5F5F5;  /* neutral-100 */
+  --type-text-fg:                    #8B95A1;
+
+  /* Status Badge Colors */
+  --status-draft-bg:                 #F2F4F6;  /* 초안: 회색 */
+  --status-draft-fg:                 #8B95A1;
+  --status-open-bg:                  #ECFDF5;  /* 진행중: 초록 */
+  --status-open-fg:                  #059669;
+  --status-closed-bg:                #F2F4F6;  /* 마감: 회색 */
+  --status-closed-fg:                #8B95A1;
+  --status-grading-bg:               #EEF2FF;  /* 채점중: indigo */
+  --status-grading-fg:               #6366F1;
+  --status-scheduled-bg:             #FFFBEB;  /* 예정: amber */
+  --status-scheduled-fg:             #F59E0B;
+
+  /* Result Coloring (성적/채점) */
+  --correct:                         #059669;
+  --correct-bg:                      #ECFDF5;
+  --incorrect:                       #DC2626;
+  --incorrect-bg:                    #FEE2E2;
+  --warning:                         #D97706;
+  --warning-bg:                      #FEF3C7;
+  --warning-foreground:              #92400E;
+  --warning-border:                  #FCD34D;
+
+  /* ────── TYPOGRAPHY ────── */
+  --font-family-sans:
+    'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    'Segoe UI', Roboto, sans-serif;
+
+  /* Type scale (px) */
+  --text-xs:    11px;  /* 캡션, 메타 */
+  --text-sm:    13px;  /* 작은 본문, 라벨 */
+  --text-base:  14px;  /* 본문 기본 */
+  --text-md:    15px;  /* 카드 타이틀 */
+  --text-lg:    16px;  /* 강조 본문 */
+  --text-xl:    20px;  /* 페이지 타이틀 (sm) */
+  --text-2xl:   22px;  /* 페이지 타이틀 (lg) */
+  --text-3xl:   24px;  /* 화면 타이틀 */
+
+  /* Letter spacing (Pretendard 한글 최적화) */
+  --tracking-tight:  -0.02em;
+  --tracking-base:   -0.01em;
+  --tracking-normal:  0em;
+
+  /* Font weights */
+  --weight-normal:    400;
+  --weight-medium:    500;
+  --weight-semibold:  600;
+  --weight-bold:      700;
+
+  /* ────── SPACING ────── */
+  --space-0:   0px;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+
+  /* ────── RADIUS ────── */
+  --radius-sm:   4px;   /* 작은 배지 */
+  --radius-md:   6px;   /* 배지, 인풋 */
+  --radius-lg:   8px;   /* 버튼 */
+  --radius-xl:   12px;  /* 카드 (shadcn 기본) */
+  --radius-2xl:  16px;  /* 모달 */
+
+  /* ────── SHADOW (절제 사용) ────── */
+  --shadow-xs:   0 1px 1px rgba(0, 0, 0, 0.04);
+  --shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md:   0 4px 12px rgba(0, 0, 0, 0.08);
+
+  /* ────── LAYOUT ────── */
+  --sidebar-width:       200px;
+  --content-padding-x:   40px;  /* lg:px-10 */
+  --content-padding-x-sm: 24px; /* sm:px-6 */
+  --content-padding-x-xs: 16px; /* px-4 */
+}
+
+/* ────── BASE ────── */
+body {
+  font-family: var(--font-family-sans);
+  background: var(--background);
+  color: var(--foreground);
+  letter-spacing: var(--tracking-base);
+}
+
+/* ────── HEADING SCALE ────── */
+h1 { font-size: var(--text-3xl); font-weight: var(--weight-bold); letter-spacing: var(--tracking-tight); }
+h2 { font-size: var(--text-xl); font-weight: var(--weight-bold); }
+h3 { font-size: var(--text-md); font-weight: var(--weight-semibold); }
+h4 { font-size: var(--text-base); font-weight: var(--weight-semibold); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   ANTI-PATTERNS (금지 사항)
+   ─────────────────────────────────────────────────────────────────────
+   1. Hex 하드코딩 금지 (예: bg-[#3182F6]) — 반드시 시맨틱 변수 사용
+   2. 다크모드 금지 — 화이트 모드만
+   3. 이모지 사용 금지 (사용자 요청 시에만)
+   4. 가운뎃점(·) 으로 문장/단어 구분 금지
+   5. 말줄임표(...) 사용 금지 — "진행중"(O), "진행중..."(X)
+   6. 시스템 용어 (전역/글로벌/디폴트) 금지 → 도메인 어휘 사용 ("기본값")
+   ════════════════════════════════════════════════════════════════════════ */

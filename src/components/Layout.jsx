@@ -205,14 +205,6 @@ export default function Layout() {
         {/* 메인 콘텐츠 */}
         <div className="flex-1 min-w-0 flex flex-col">
 
-          {/* 학생 모드 안내 배너 — 데스크톱 */}
-          {role === 'student' && (
-            <div className="hidden sm:flex items-center gap-2 mx-6 lg:mx-10 mt-4 px-4 py-2.5 rounded-lg text-xs bg-accent">
-              <span className="text-primary font-medium">학생 모드</span>
-              <span className="text-primary">- {currentStudent.name} ({currentStudent.studentId})</span>
-            </div>
-          )}
-
           <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 pb-6">
             <Suspense fallback={<ContentFallback />}>
               <Outlet />

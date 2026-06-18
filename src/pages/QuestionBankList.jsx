@@ -70,7 +70,7 @@ export default function QuestionBankList() {
 
   return (
     <>
-      <div className="max-w-6xl mx-auto pb-8">
+      <div className="pb-8">
         {/* 헤더 */}
         <div className="flex items-center justify-between gap-4" style={{ paddingTop: 32, paddingBottom: 20 }}>
           <h1 className="text-[24px] font-bold text-foreground leading-tight">문제모음</h1>

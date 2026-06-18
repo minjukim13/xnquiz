@@ -326,13 +326,13 @@ export default function QuizDetail() {
 
   if (!loaded) {
     return (
-      <div className="max-w-4xl mx-auto pt-10 text-sm text-muted-foreground">로딩 중</div>
+      <div className="pt-10 text-sm text-muted-foreground">로딩 중</div>
     )
   }
 
   if (!quiz) {
     return (
-      <div className="max-w-4xl mx-auto pt-10 text-sm text-muted-foreground">퀴즈를 찾을 수 없습니다.</div>
+      <div className="pt-10 text-sm text-muted-foreground">퀴즈를 찾을 수 없습니다.</div>
     )
   }
 
@@ -366,7 +366,7 @@ export default function QuizDetail() {
 
   return (
     <>
-      <div className="max-w-4xl mx-auto pb-10">
+      <div className="pb-10">
         <PageHeader
           ariaLabel="뒤로가기"
           title={isStudent ? (

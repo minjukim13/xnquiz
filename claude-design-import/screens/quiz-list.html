@@ -1,0 +1,234 @@
+<!-- @dsCard group="Screens" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QuizList · 퀴즈 목록 (교수자)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="stylesheet" href="../tokens.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Pretendard', 'system-ui', 'sans-serif'] },
+        colors: {
+          primary: { DEFAULT: '#3182F6', hover: '#1B64DA' },
+          accent: { DEFAULT: '#E8F3FF', foreground: '#3182F6' },
+          foreground: '#191F28',
+          'secondary-foreground': '#4E5968',
+          'muted-foreground': '#8B95A1',
+          secondary: '#F2F4F6',
+          border: '#E5E8EB',
+          background: '#F9FAFB',
+          destructive: '#F04452',
+          card: '#FFFFFF',
+        },
+      },
+    },
+  }
+</script>
+<style>body { font-family: 'Pretendard', system-ui, sans-serif; letter-spacing: -0.01em; }</style>
+</head>
+
+<body class="bg-background text-foreground">
+<div class="min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="hidden sm:flex flex-col shrink-0 w-[200px] bg-background sticky top-0 h-screen z-30">
+    <div class="px-4 pt-5 pb-1">
+      <a href="#" class="flex items-center gap-2.5">
+        <div class="w-7 h-7 bg-primary rounded flex items-center justify-center">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="1" y="1" width="5" height="5" rx="1" fill="white" fill-opacity="0.9"/>
+            <rect x="8" y="1" width="5" height="5" rx="1" fill="white" fill-opacity="0.5"/>
+            <rect x="1" y="8" width="5" height="5" rx="1" fill="white" fill-opacity="0.5"/>
+            <rect x="8" y="8" width="5" height="5" rx="1" fill="white" fill-opacity="0.9"/>
+          </svg>
+        </div>
+        <span class="text-sm font-bold text-foreground">XN Quiz</span>
+      </a>
+    </div>
+    <nav class="p-3 space-y-0.5">
+      <p class="text-xs font-semibold px-2 pt-2 pb-1.5 text-muted-foreground/60 tracking-wide">강의</p>
+      <a href="#" class="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium bg-accent text-primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+        퀴즈
+      </a>
+      <a href="#" class="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium text-muted-foreground">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+        문제모음
+      </a>
+    </nav>
+    <div class="mt-auto p-3">
+      <div class="flex items-center p-0.5 rounded-lg w-full bg-secondary">
+        <button class="flex-1 flex items-center justify-center px-2 py-2 rounded-md text-xs bg-white text-foreground font-semibold shadow-sm">교수자</button>
+        <button class="flex-1 flex items-center justify-center px-2 py-2 rounded-md text-xs text-muted-foreground">학생</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="flex-1 min-w-0 flex flex-col">
+    <main class="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 pb-6">
+
+      <!-- 페이지 헤더 -->
+      <div class="pt-6 pb-4 flex items-start justify-between gap-4 flex-wrap">
+        <div class="min-w-0">
+          <p class="text-xs text-muted-foreground mb-1">CS301</p>
+          <h1 class="text-[22px] font-bold text-foreground">데이터베이스</h1>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="inline-flex items-center gap-1.5 px-4 h-9 rounded-lg text-sm font-medium border border-border bg-card text-foreground hover:bg-secondary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+            가져오기
+          </button>
+          <button class="inline-flex items-center gap-1.5 px-4 h-9 rounded-lg text-sm font-semibold bg-primary text-white hover:bg-primary-hover">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5v14"/></svg>
+            새 퀴즈
+          </button>
+        </div>
+      </div>
+
+      <!-- 검색 + 필터 -->
+      <div class="pb-4 flex items-center gap-2 flex-wrap">
+        <div class="relative flex-1 min-w-[240px] max-w-md">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="퀴즈 제목 검색" class="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-card text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-accent" />
+        </div>
+        <button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-card text-sm text-foreground hover:bg-secondary">
+          전체 주차
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-card text-sm text-muted-foreground hover:bg-secondary">
+          전체 차시
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-card text-sm text-foreground hover:bg-secondary">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg>
+          최신순
+        </button>
+      </div>
+
+      <!-- 카운트 -->
+      <div class="pb-3 text-xs text-muted-foreground">총 12개 퀴즈</div>
+
+      <!-- 퀴즈 카드 리스트 -->
+      <div class="space-y-2.5">
+
+        <!-- 카드 1: 진행중 -->
+        <div class="bg-card border border-border rounded-xl p-5 hover:border-primary/40 transition-colors cursor-pointer">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-wrap mb-1.5">
+                <span class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium" style="background:#ECFDF5; color:#059669"><span class="w-1.5 h-1.5 rounded-full" style="background:#059669"></span>진행중</span>
+                <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-accent text-primary">8주차 1차시</span>
+              </div>
+              <h3 class="text-[15px] font-semibold text-foreground mb-1.5 truncate">중간고사 대체 평가 - 트랜잭션 &amp; 동시성 제어</h3>
+              <div class="flex items-center gap-x-4 gap-y-1 text-xs text-muted-foreground flex-wrap">
+                <span>15문항</span>
+                <span>총 100점</span>
+                <span>제한 60분</span>
+                <span>2026-04-15 ~ 2026-04-22</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button class="inline-flex items-center gap-1 h-8 px-3 rounded-md text-xs font-medium border border-border bg-card text-foreground hover:bg-secondary">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+                채점
+              </button>
+              <button class="inline-flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 카드 2: 마감 -->
+        <div class="bg-card border border-border rounded-xl p-5 hover:border-primary/40 transition-colors cursor-pointer">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-wrap mb-1.5">
+                <span class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground"><span class="w-1.5 h-1.5 rounded-full bg-muted-foreground"></span>마감</span>
+                <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-accent text-primary">7주차 2차시</span>
+              </div>
+              <h3 class="text-[15px] font-semibold text-foreground mb-1.5 truncate">2차 형성평가 - 데이터베이스 설계 &amp; 정규화</h3>
+              <div class="flex items-center gap-x-4 gap-y-1 text-xs text-muted-foreground flex-wrap">
+                <span>10문항</span>
+                <span>총 50점</span>
+                <span>제한 없음</span>
+                <span>2026-03-31</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button class="inline-flex items-center gap-1 h-8 px-3 rounded-md text-xs font-medium border border-border bg-card text-foreground hover:bg-secondary">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+                채점
+              </button>
+              <button class="inline-flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 카드 3: 초안 -->
+        <div class="bg-card border border-border rounded-xl p-5 hover:border-primary/40 transition-colors cursor-pointer">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-wrap mb-1.5">
+                <span class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground"><span class="w-1.5 h-1.5 rounded-full bg-muted-foreground"></span>초안</span>
+                <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-accent text-primary">9주차</span>
+              </div>
+              <h3 class="text-[15px] font-semibold text-foreground mb-1.5 truncate">[작성중] 인덱스 &amp; 쿼리 최적화 퀴즈</h3>
+              <div class="flex items-center gap-x-4 gap-y-1 text-xs text-muted-foreground flex-wrap">
+                <span>0문항</span>
+                <span>총 0점</span>
+                <span>미게시</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button class="inline-flex items-center gap-1 h-8 px-3 rounded-md text-xs font-medium border border-border bg-card text-foreground hover:bg-secondary">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                편집
+              </button>
+              <button class="inline-flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 카드 4: 예정 -->
+        <div class="bg-card border border-border rounded-xl p-5 hover:border-primary/40 transition-colors cursor-pointer">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-wrap mb-1.5">
+                <span class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium" style="background:#FFFBEB; color:#F59E0B"><span class="w-1.5 h-1.5 rounded-full" style="background:#F59E0B"></span>예정</span>
+                <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-accent text-primary">10주차 1차시</span>
+              </div>
+              <h3 class="text-[15px] font-semibold text-foreground mb-1.5 truncate">기말고사 - 종합 평가</h3>
+              <div class="flex items-center gap-x-4 gap-y-1 text-xs text-muted-foreground flex-wrap">
+                <span>25문항</span>
+                <span>총 200점</span>
+                <span>제한 90분</span>
+                <span>2026-05-20 ~ 2026-05-27</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button class="inline-flex items-center gap-1 h-8 px-3 rounded-md text-xs font-medium border border-border bg-card text-foreground hover:bg-secondary">미리보기</button>
+              <button class="inline-flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>
