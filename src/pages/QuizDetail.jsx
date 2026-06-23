@@ -40,46 +40,10 @@ function resolveDisplayStatus(quiz) {
   return quiz.status
 }
 
-const DEFAULT_VALUE_TOKENS = new Set([
-  '사용 안함',
-  '설정 안함',
-  '비허용',
-  '비공개',
-  '제한 없음',
-  '응시 기간 제한 없음',
-])
-
-function isDefaultValue(value) {
-  if (typeof value !== 'string') return false
-  return DEFAULT_VALUE_TOKENS.has(value.trim())
-}
-
 const BADGE_VARIANT_CLASS = {
   default: 'bg-secondary text-muted-foreground',
   accent: 'bg-accent text-primary',
   amber: 'bg-warning-bg text-warning-foreground',
-}
-
-function InfoRow({ label, value, muted = false, badgeVariant }) {
-  const showBadge = !!badgeVariant || muted || isDefaultValue(value)
-  const variantKey = badgeVariant ?? 'default'
-  return (
-    <div className="flex items-baseline justify-between gap-4 py-2">
-      <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-      {showBadge ? (
-        <span className={cn(
-          'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0',
-          BADGE_VARIANT_CLASS[variantKey] ?? BADGE_VARIANT_CLASS.default
-        )}>
-          {value}
-        </span>
-      ) : (
-        <span className="text-sm text-right break-words text-foreground font-medium">
-          {value}
-        </span>
-      )}
-    </div>
-  )
 }
 
 function QuestionPreviewItem({ question, order }) {
@@ -115,7 +79,7 @@ function QuestionPreviewList({ questions, quizId }) {
   const [showAll, setShowAll] = useState(false)
   if (!questions || questions.length === 0) return null
 
-  const previewCount = 3
+  const previewCount = 10
   const visible = showAll ? questions : questions.slice(0, previewCount)
   const hiddenCount = Math.max(0, questions.length - previewCount)
 
@@ -126,7 +90,7 @@ function QuestionPreviewList({ questions, quizId }) {
           <h3 className="text-[15px] font-semibold text-foreground">문항</h3>
           <span className="text-xs text-muted-foreground">{questions.length}개</span>
         </div>
-        <Link to={`/quiz/${quizId}/edit?tab=questions`} className="text-xs text-primary hover:underline">
+        <Link to={`/quiz/${quizId}/edit?tab=questions`} state={{ from: 'detail' }} className="text-xs text-primary hover:underline">
           편집
         </Link>
       </div>
@@ -226,6 +190,30 @@ function scoreRevealCardLabel(quiz) {
   return '즉시 공개'
 }
 
+// 정책 패널용: 공개 범위(scope)와 공개 시점/기간(timing, 시간 포함)을 분리 반환
+function scoreRevealParts(quiz) {
+  if (quiz.scoreRevealEnabled === undefined && quiz.scoreReleasePolicy === undefined) {
+    return { scope: '설정 없음', timing: null, variant: 'default' }
+  }
+  const enabled = quiz.scoreRevealEnabled ?? (quiz.scoreReleasePolicy !== null)
+  if (!enabled) return { scope: '비공개', timing: null, variant: 'default' }
+
+  const isWithAnswer = quiz.scoreRevealScope === 'with_answer'
+  const timing = quiz.scoreRevealTiming ?? quiz.scoreReleasePolicy
+  const scope = isWithAnswer ? '정답 포함' : '점수만'
+
+  if (timing === 'after_due') return { scope, timing: '마감 후 공개', variant: 'amber' }
+  if (timing === 'period') {
+    if (quiz.scoreRevealStart || quiz.scoreRevealEnd) {
+      const start = formatDateTimeFull(quiz.scoreRevealStart)
+      const end = formatDateTimeFull(quiz.scoreRevealEnd)
+      return { scope, timing: `${start ?? '시작 없음'} ~ ${end ?? '마감 없음'}`, variant: 'accent' }
+    }
+    return { scope, timing: '공개 기간 지정', variant: 'accent' }
+  }
+  return { scope, timing: '즉시 공개', variant: 'accent' }
+}
+
 function scoreRevealBadge(quiz) {
   if (quiz.scoreRevealEnabled === undefined && quiz.scoreReleasePolicy === undefined) {
     return { label: '설정 없음', variant: 'default' }
@@ -323,6 +311,12 @@ export default function QuizDetail() {
     setToast(msg)
     setTimeout(() => setToast(null), 4000)
   }
+
+  // 편집 화면 등 다른 페이지에서 전달된 토스트 표시 (예: 상세에서 편집 후 저장 복귀 시)
+  useEffect(() => {
+    const msg = sessionStorage.getItem('xnq_toast')
+    if (msg) { showToast(msg); sessionStorage.removeItem('xnq_toast') }
+  }, [])
 
   if (!loaded) {
     return (
@@ -429,7 +423,7 @@ export default function QuizDetail() {
                   </Button>
                 )}
                 <Button asChild variant="outline">
-                  <Link to={`/quiz/${quiz.id}/edit`}>
+                  <Link to={`/quiz/${quiz.id}/edit`} state={{ from: 'detail' }}>
                     <Pencil size={15} />
                     편집
                   </Link>
@@ -499,95 +493,136 @@ export default function QuizDetail() {
           )}
         />
 
-        {/* 퀴즈 설명 카드 */}
-        {quiz.description && (
-          <Card className="mb-4 px-5 py-4">
-            <p className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed">
-              {quiz.description}
-            </p>
-          </Card>
-        )}
-
-        {/* 요약 카드 — 학생: 점수·문제·시간제한·응시횟수·성적공개 / 교수자: 문항수·총점·제한시간·응시횟수 */}
         {isStudent ? (
-          <Card className="mb-4 overflow-hidden">
-            <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-border">
-              <div className="text-center px-4 py-3.5">
-                <p className="text-xs text-muted-foreground mb-1">점수</p>
-                <p className="text-xl font-bold text-foreground">
-                  {quiz.totalPoints ?? 0}<span className="text-sm font-normal text-muted-foreground ml-0.5">점</span>
+          <>
+            {/* 퀴즈 설명 카드 */}
+            {quiz.description && (
+              <Card className="mb-4 px-5 py-4">
+                <p className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed">
+                  {quiz.description}
                 </p>
-              </div>
-              <div className="text-center px-4 py-3.5">
-                <p className="text-xs text-muted-foreground mb-1">문제</p>
-                <p className="text-xl font-bold text-foreground">
-                  {quiz.questions ?? 0}<span className="text-sm font-normal text-muted-foreground ml-0.5">개</span>
-                </p>
-              </div>
-              <div className="text-center px-4 py-3.5">
-                <p className="text-xs text-muted-foreground mb-1">시간 제한</p>
-                <p className="text-xl font-bold text-foreground">{timeLimitLabel}</p>
-              </div>
-              <div className="text-center px-4 py-3.5">
-                <p className="text-xs text-muted-foreground mb-1">응시 횟수</p>
-                <p className="text-xl font-bold text-foreground">{attemptLabel}</p>
-              </div>
-              <div className="text-center px-4 py-3.5">
-                <p className="text-xs text-muted-foreground mb-1">성적 공개</p>
-                <p className="text-base font-bold text-foreground leading-tight pt-1">{scoreRevealCardLabel(quiz)}</p>
-              </div>
-            </div>
-          </Card>
-        ) : (
-          <Card className="mb-4 overflow-hidden">
-            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border">
-              <div className="text-center px-4 py-3.5">
-                <p className="text-xs text-muted-foreground mb-1">문항 수</p>
-                <p className="text-xl font-bold text-foreground">
-                  {quiz.questions ?? 0}<span className="text-sm font-normal text-muted-foreground ml-0.5">개</span>
-                </p>
-              </div>
-              <div className="text-center px-4 py-3.5">
-                <p className="text-xs text-muted-foreground mb-1">총점</p>
-                <p className="text-xl font-bold text-foreground">
-                  {quiz.totalPoints ?? 0}<span className="text-sm font-normal text-muted-foreground ml-0.5">점</span>
-                </p>
-              </div>
-              <div className="text-center px-4 py-3.5">
-                <p className="text-xs text-muted-foreground mb-1">제한 시간</p>
-                <p className="text-xl font-bold text-foreground">{timeLimitLabel}</p>
-              </div>
-              <div className="text-center px-4 py-3.5">
-                <p className="text-xs text-muted-foreground mb-1">응시 횟수</p>
-                <p className="text-xl font-bold text-foreground">{attemptLabel}</p>
-              </div>
-            </div>
-          </Card>
-        )}
+              </Card>
+            )}
 
-        {/* 상세 섹션들 */}
-        {isStudent ? (
-          <StudentResultSection
-            quiz={quiz}
-            questions={questions}
-            myAttempts={myAttempts}
-            studentId={currentStudent?.id}
-          />
-        ) : (
-          <div className="space-y-3">
-            <Card className="px-5 py-1 divide-y divide-border/50">
-              {(() => {
-                const badge = scoreRevealBadge(quiz)
-                const label = quiz.oneTimeResults ? `${badge.label} · 결과 1회 한정` : badge.label
-                return <InfoRow label="성적 공개" value={label} badgeVariant={badge.variant} />
-              })()}
-              <InfoRow
-                label="공개 여부"
-                value={quiz.visible === false ? '숨김' : '공개'}
-                muted={quiz.visible === false}
-              />
+            {/* 요약 카드 — 점수·문제·시간제한·응시횟수·성적공개 */}
+            <Card className="mb-4 overflow-hidden">
+              <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-border">
+                <div className="text-center px-4 py-3.5">
+                  <p className="text-xs text-muted-foreground mb-1">점수</p>
+                  <p className="text-xl font-bold text-foreground">
+                    {quiz.totalPoints ?? 0}<span className="text-sm font-normal text-muted-foreground ml-0.5">점</span>
+                  </p>
+                </div>
+                <div className="text-center px-4 py-3.5">
+                  <p className="text-xs text-muted-foreground mb-1">문제</p>
+                  <p className="text-xl font-bold text-foreground">
+                    {quiz.questions ?? 0}<span className="text-sm font-normal text-muted-foreground ml-0.5">개</span>
+                  </p>
+                </div>
+                <div className="text-center px-4 py-3.5">
+                  <p className="text-xs text-muted-foreground mb-1">시간 제한</p>
+                  <p className="text-xl font-bold text-foreground">{timeLimitLabel}</p>
+                </div>
+                <div className="text-center px-4 py-3.5">
+                  <p className="text-xs text-muted-foreground mb-1">응시 횟수</p>
+                  <p className="text-xl font-bold text-foreground">{attemptLabel}</p>
+                </div>
+                <div className="text-center px-4 py-3.5">
+                  <p className="text-xs text-muted-foreground mb-1">성적 공개</p>
+                  <p className="text-base font-bold text-foreground leading-tight pt-1">{scoreRevealCardLabel(quiz)}</p>
+                </div>
+              </div>
             </Card>
-            <QuestionPreviewList questions={questions} quizId={quiz.id} />
+
+            <StudentResultSection
+              quiz={quiz}
+              questions={questions}
+              myAttempts={myAttempts}
+              studentId={currentStudent?.id}
+            />
+          </>
+        ) : (
+          /* 교수자: 좌측 설명+문항 / 우측 sticky 요약+정책 2단 레이아웃 */
+          <div className="flex flex-col lg:flex-row gap-4 items-start">
+            <div className="flex-1 min-w-0 w-full space-y-3">
+              {quiz.description && (
+                <Card className="px-5 py-4">
+                  <p className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed">
+                    {quiz.description}
+                  </p>
+                </Card>
+              )}
+              <QuestionPreviewList questions={questions} quizId={quiz.id} />
+            </div>
+
+            <aside className="w-full lg:w-[360px] shrink-0 lg:sticky lg:top-6 space-y-3">
+              {/* 요약 */}
+              <Card className="overflow-hidden py-0 gap-0">
+                <div className="px-5 py-3.5 border-b border-border/60">
+                  <h3 className="text-[15px] font-semibold text-foreground">요약</h3>
+                </div>
+                <div className="px-5 py-4 grid grid-cols-2 gap-x-4 gap-y-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">문항 수</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {quiz.questions ?? 0}<span className="text-sm font-normal text-muted-foreground ml-0.5">개</span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">총점</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {quiz.totalPoints ?? 0}<span className="text-sm font-normal text-muted-foreground ml-0.5">점</span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">제한 시간</p>
+                    <p className="text-lg font-bold text-foreground">{timeLimitLabel}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">응시 횟수</p>
+                    <p className="text-lg font-bold text-foreground">{attemptLabel}</p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* 정책 */}
+              <Card className="overflow-hidden py-0 gap-0">
+                <div className="px-5 py-3.5 border-b border-border/60">
+                  <h3 className="text-[15px] font-semibold text-foreground">정책</h3>
+                </div>
+                <div className="px-5 py-1 divide-y divide-border/50">
+                  <div className="flex items-center justify-between gap-3 py-3">
+                    <span className="text-sm text-muted-foreground shrink-0">성적 공개</span>
+                    {(() => {
+                      const { scope, timing, variant } = scoreRevealParts(quiz)
+                      const badgeText = timing ?? scope
+                      return (
+                        <div className="flex items-center gap-2 justify-end flex-wrap text-right">
+                          <span className={cn(
+                            'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium',
+                            BADGE_VARIANT_CLASS[variant] ?? BADGE_VARIANT_CLASS.default
+                          )}>
+                            {badgeText}
+                          </span>
+                          {quiz.oneTimeResults && (
+                            <span className="text-[13px] text-secondary-foreground">결과 1회 한정</span>
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                  <div className="flex items-center justify-between gap-3 py-3">
+                    <span className="text-sm text-muted-foreground shrink-0">공개 여부</span>
+                    <span className={cn(
+                      'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0',
+                      quiz.visible === false ? BADGE_VARIANT_CLASS.default : BADGE_VARIANT_CLASS.accent
+                    )}>
+                      {quiz.visible === false ? '숨김' : '공개'}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            </aside>
           </div>
         )}
 

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
-import { useParams, useNavigate, Navigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, Navigate, useSearchParams, useLocation } from 'react-router-dom'
 import { GripVertical, Pencil, Trash2, Printer, HelpCircle, Shuffle } from 'lucide-react'
 import { isRandomGroup, summarizeQuizItems } from '@/utils/randomGroups'
 import CustomSelect from '../components/CustomSelect'
@@ -60,7 +60,10 @@ const DEFAULT_NOTICE = `- 제출 후에는 답안을 수정할 수 없습니다.
 export default function QuizEdit() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { role } = useRole()
+  // 퀴즈 상세에서 편집을 진입한 경우 저장/취소 후 상세로 복귀, 그 외에는 목록으로 복귀
+  const returnTo = location.state?.from === 'detail' ? `/quiz/${id}` : '/'
   const [quiz, setQuiz] = useState(() => mockQuizzes.find(q => q.id === id) ?? null)
   const [loaded, setLoaded] = useState(DATA_MODE === 'mock' ? !!quiz : false)
   const [tab, setTab] = useState('info')
@@ -287,10 +290,10 @@ export default function QuizEdit() {
       setConfirmDialog({
         title: '편집 취소',
         message: '저장하지 않은 변경사항이 있습니다. 저장하지 않고 나가시겠습니까?',
-        onConfirm: () => navigate('/'),
+        onConfirm: () => navigate(returnTo),
       })
     } else {
-      navigate('/')
+      navigate(returnTo)
     }
   }
 
@@ -377,7 +380,7 @@ export default function QuizEdit() {
       setAlertDialog({
         title: '임시저장 완료',
         message: '변경사항이 임시저장되었습니다.',
-        onClose: () => navigate('/'),
+        onClose: () => navigate(returnTo),
       })
     } catch (err) {
       console.error('[QuizEdit] 임시저장 실패', err)
@@ -448,7 +451,7 @@ export default function QuizEdit() {
     }
     const reopenMsg = reopened ? ' 마감 처리된 퀴즈가 다시 공개되었습니다.' : ''
     sessionStorage.setItem('xnq_toast', `저장되었습니다.${reopenMsg}`)
-    navigate('/')
+    navigate(returnTo)
   }
 
   return (

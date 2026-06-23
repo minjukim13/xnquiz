@@ -14,12 +14,9 @@ const PREFETCH_MAP = {
   '/question-banks': prefetchRoute.questionBankList,
 }
 
-function NavLinks({ navItems, isActive, role, onNavigate }) {
+function NavLinks({ navItems, isActive, onNavigate }) {
   return (
     <nav className="p-3 space-y-0.5">
-      <p className="text-xs font-semibold px-2 pt-2 pb-1.5 text-muted-foreground/60 tracking-wide">
-        {role === 'student' ? '학습' : '강의'}
-      </p>
       {navItems.map(item => {
         const active = isActive(item.href)
         const Icon = item.icon
