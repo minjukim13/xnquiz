@@ -19,13 +19,14 @@ import { htmlToPlainText } from '../components/RichText'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import StepIndicator from '../components/StepIndicator'
 import PublishReviewModal from '../components/PublishReviewModal'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import DateTimePicker from '../components/DateTimePicker'
 import WeekSessionPicker from '../components/WeekSessionPicker'
-import { Section, Field, Toggle, SecuritySection } from '@/components/quiz-form'
+import { Section, Field, Toggle, SecuritySection, GradebookPolicySection } from '@/components/quiz-form'
 import { getCompletedSteps } from '@/utils/quizFormSteps'
 
 const ATTEMPT_OPTIONS = [
@@ -65,6 +66,7 @@ export default function QuizCreate() {
     scoreRevealEnabled: false, scoreRevealScope: 'wrong_only',
     scoreRevealTiming: 'immediately', scoreRevealStart: '', scoreRevealEnd: '',
     oneTimeResults: false,
+    gradebookPolicy: 'B',
     quizMode: 'graded', assignmentGroupId: 'quiz',
     accessControlEnabled: false, accessCode: '', ipRestriction: '',
     allowLateSubmit: false, lateSubmitDeadline: '', gracePeriod: 0,
@@ -136,6 +138,7 @@ export default function QuizCreate() {
     scoreRevealStart: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealStart || null : null,
     scoreRevealEnd: (form.scoreRevealEnabled && form.scoreRevealTiming === 'period') ? form.scoreRevealEnd || null : null,
     oneTimeResults: form.oneTimeResults,
+    gradebookPolicy: form.gradebookPolicy,
     accessCode: form.accessControlEnabled ? (form.accessCode || null) : null,
     ipRestriction: form.accessControlEnabled ? (form.ipRestriction || null) : null,
     allowLateSubmit: form.allowLateSubmit,
@@ -551,6 +554,8 @@ function InfoTab({ form, set }) {
         </div>
       </Section>
 
+      <GradebookPolicySection value={form.gradebookPolicy} onChange={v => set('gradebookPolicy', v)} />
+
       <Section title="퀴즈 공개 여부">
         <Toggle
           checked={form.visible}
@@ -613,6 +618,7 @@ function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDr
 function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove, showInlineAdd, onAddInline, onCancelInline, onInlineDirtyChange }) {
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
+  const [allExpanded, setAllExpanded] = useState(false)
 
   const handleDragStart = (i) => setDragIdx(i)
   const handleDragOver = (e, i) => { e.preventDefault(); setOverIdx(i) }
@@ -654,11 +660,19 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
 
       {/* 헤더: 문항 수/점수 + 액션 버튼 */}
       <div className="flex items-center justify-between gap-2 mb-4 px-1 pt-2 py-0.5 flex-wrap">
-        <p className="text-[13px] text-secondary-foreground leading-none">
-          <span className="font-semibold text-foreground">{questionCount}</span>문항
-          <span className="text-muted-foreground mx-1.5">|</span>
-          총 <span className="font-semibold text-foreground">{totalPoints}</span>점
-        </p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <p className="text-[13px] text-secondary-foreground leading-none">
+            <span className="font-semibold text-foreground">{questionCount}</span>문항
+            <span className="text-muted-foreground mx-1.5">|</span>
+            총 <span className="font-semibold text-foreground">{totalPoints}</span>점
+          </p>
+          {questions.length > 0 && (
+            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <Switch size="sm" checked={allExpanded} onCheckedChange={setAllExpanded} />
+              <span className="text-[13px] text-secondary-foreground leading-none">모두 펼치기</span>
+            </label>
+          )}
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button size="lg" variant="outline" onClick={onShowAdd}>문항 만들기</Button>
           <Popover>
@@ -731,13 +745,23 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
                 </div>
 
                 {/* 중단 행: 문제 본문 (HTML 태그 제거 후 요약 표시) */}
-                <p className="text-sm font-medium text-secondary-foreground line-clamp-2 mt-2 ml-8">{htmlToPlainText(q.text)}</p>
+                <p className={cn('text-sm font-medium text-secondary-foreground mt-2 ml-8', !allExpanded && 'line-clamp-2')}>{htmlToPlainText(q.text)}</p>
 
                 {/* 하단 행: 정답 영역 */}
                 {q.type !== 'essay' && q.type !== 'file_upload' && q.type !== 'text' && (
-                  <div className="mt-1.5 ml-8 bg-secondary/80 rounded px-2.5 py-1.5">
-                    <QuestionAnswer q={q} />
-                  </div>
+                  allExpanded ? (
+                    <div className="mt-1.5 ml-8">
+                      <QuestionAnswer q={q} expanded />
+                    </div>
+                  ) : (
+                    <div className="mt-1.5 ml-8 bg-secondary/80 rounded px-2.5 py-1.5">
+                      <QuestionAnswer q={q} />
+                    </div>
+                  )
+                )}
+
+                {allExpanded && (q.type === 'essay' || q.type === 'file_upload' || q.type === 'text') && (
+                  <p className="mt-1.5 ml-8 text-[13px] text-muted-foreground">정답이 없는 수동 채점 문항입니다</p>
                 )}
               </div>
             </div>

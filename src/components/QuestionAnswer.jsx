@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { htmlToPlainText } from './RichText'
 
@@ -9,10 +9,44 @@ const PILL_ACTIVE = "bg-primary text-primary-foreground"
 const PILL_INACTIVE = "bg-slate-100 text-muted-foreground"
 const ITEM_BADGE = "text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary"
 
-export default function QuestionAnswer({ q }) {
+export default function QuestionAnswer({ q, expanded = false }) {
   const t = q.type
   const ans = q.correctAnswer
   if (t === 'essay' || t === 'file_upload' || t === 'text') return null
+
+  // 모두 펼치기: 객관식/복수정답은 보기 전체를 표시하고 정답을 강조
+  const allChoices = q.choices ?? q.options ?? []
+  if (expanded && (t === 'multiple_choice' || t === 'multiple_answers') && allChoices.length > 0) {
+    const correctSet = new Set()
+    if (t === 'multiple_choice') {
+      const v = typeof ans === 'number' ? allChoices[ans] : ans
+      if (v != null) correctSet.add(toText(v))
+    } else {
+      let items = []
+      if (Array.isArray(ans)) items = ans.map(a => (typeof a === 'number' ? allChoices[a] : a))
+      else if (typeof ans === 'string') items = ans.split(',').map(s => s.trim())
+      items.map(toText).filter(Boolean).forEach(v => correctSet.add(v))
+    }
+    return (
+      <div className="space-y-1 mt-1.5">
+        {allChoices.map((c, i) => {
+          const text = toText(c)
+          const isCorrect = correctSet.has(text)
+          return (
+            <div key={i} className={cn(
+              'flex items-center gap-2 px-2.5 py-1.5 rounded text-[13px]',
+              isCorrect ? 'bg-correct-bg text-correct font-medium' : 'text-secondary-foreground'
+            )}>
+              {isCorrect
+                ? <Check size={14} className="shrink-0" />
+                : <span className="w-3.5 h-3.5 rounded-full border border-border shrink-0" />}
+              <span className="flex-1 min-w-0">{text}</span>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
 
   // 참/거짓: pill 칩
   if (t === 'true_false') {
