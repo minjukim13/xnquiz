@@ -2829,27 +2829,21 @@ const Q7_SCORES = [8, 10, 10, 6, 10, 8, 10, 10, 8, 6, 10, 8]
 const Q8_SCORES = [12, 13, 11, 14, 10, 12, 13, 11, 12, 14, 10, 13]
 // 총점: auto(i%5) + FIXED_SCORES[i%45] + Q5_SCORES[i%12] + Q7_SCORES[i%12] + Q8_SCORES[i%12]
 const TOTAL_SCORES = [87,91,81,81,63,86,91,78,82,64,88,89,76,83,65,89,90,75,83,65,89,84,80,78,69,88,89,75,82,61,91,89,81,79,64,84,90,80,81,62,92,82,83,80,65]
-const DEMO_NAMES = [
-  '김민준','이서연','박지호','최유진','정다은','한승우','오지수','윤채원','임도현','강수아',
-  '조현우','신예린','장하윤','권도윤','배수빈','홍지민','유하준','문서윤','송예준','양지아',
-  '류건우','전소율','남지안','하도영','심채영','구민서','곽태현','안지원','성윤호','황서현',
-  '노은채','서재원','엄시우','허윤아','추연우','진소희','나재민','봉예솔','변지환','고은서',
-  '백승현','마하은','천시윤','탁민재','길예지','주연호','왕수현','옥하린','석도경','공유나',
-  '편지율','위승민','부서진','빈채린','감하영','설민수','계도연','좌수민','방시원','판채은',
-  '차은호','원예담','표지훈','복현서','국하윤','연수연','풍태은','제민지','야도윤','장서아',
-  '김하진','이태윤','박나연','최건희','정수아','한지율','오예성','윤다윤','임서준','강하늘',
-  '조채민','신유빈','장은호','권서진','배하율','홍민채','유도현','서하은','남윤서','하채린',
-  '심도겸','구예원','곽시현','안태민','성지유','황도윤','노하영','엄수진','허건호','추예나',
-  '진민혁','나서율','봉지현','변하은','고태영','백서윤','마도현','천예림','탁수아','길현준',
-  '주하린','왕도영','옥민서','석채원','공시윤','편도현','위예진','부하준','빈태윤','감서현',
-]
+// 실데이터 금지: 실명 대신 익명 라벨(학생 A, B, ... Z, AA, AB ...) 사용
+const DEMO_NAMES = Array.from({ length: 120 }, (_, i) => {
+  let n = i
+  let label = ''
+  do {
+    label = String.fromCharCode(65 + (n % 26)) + label
+    n = Math.floor(n / 26) - 1
+  } while (n >= 0)
+  return `학생 ${label}`
+})
 
 const DEMO_DEPARTMENTS = [
   '컴퓨터공학과','소프트웨어학과','정보통신공학과','데이터사이언스학과',
   '전자공학과','인공지능학과','사이버보안학과','산업공학과',
 ]
-
-const DEMO_YEARS = ['2021','2022','2023','2024']
 
 // Quiz 1 학생: 87명 (82명 제출, 5명 미제출)
 export const mockStudents = Array.from({ length: 87 }, (_, i) => {
@@ -2861,7 +2855,7 @@ export const mockStudents = Array.from({ length: 87 }, (_, i) => {
     if (!startedButIncomplete) {
       return {
         id: `s${i + 1}`,
-        studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+        studentId: `S${String(i + 1).padStart(3, '0')}`,
         name: DEMO_NAMES[i % DEMO_NAMES.length],
         department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
         score: null,
@@ -2877,7 +2871,7 @@ export const mockStudents = Array.from({ length: 87 }, (_, i) => {
     // 응시 시작 후 이탈: 앞쪽 문항만 일부 응답
     return {
       id: `s${i + 1}`,
-      studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+      studentId: `S${String(i + 1).padStart(3, '0')}`,
       name: DEMO_NAMES[i % DEMO_NAMES.length],
       department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
       score: null,
@@ -2894,7 +2888,7 @@ export const mockStudents = Array.from({ length: 87 }, (_, i) => {
   }
   return {
     id: `s${i + 1}`,
-    studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+    studentId: `S${String(i + 1).padStart(3, '0')}`,
     name: DEMO_NAMES[i % DEMO_NAMES.length],
     department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
     score: i < 45 ? TOTAL_SCORES[i % TOTAL_SCORES.length] : null,
@@ -3046,7 +3040,7 @@ export const mockStudents8 = Array.from({ length: 120 }, (_, i) => {
   const timeStr = `${String(Math.min(hour, 17)).padStart(2, '0')}:${String(min).padStart(2, '0')}`
   return {
     id: `s8_${i + 1}`,
-    studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+    studentId: `S${String(i + 1).padStart(3, '0')}`,
     name: DEMO_NAMES[i % DEMO_NAMES.length],
     department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
     score: total,
@@ -3093,7 +3087,7 @@ function generateStudents(total, submitted, graded, prefix, _baseYear = '2022', 
       if (!startedButIncomplete) {
         return {
           id: `${prefix}${i + 1}`,
-          studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+          studentId: `S${String(i + 1).padStart(3, '0')}`,
           name: DEMO_NAMES[i % DEMO_NAMES.length],
           department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
           score: null, startTime: null, endTime: null, submitted: false, submittedAt: null,
@@ -3140,7 +3134,7 @@ function generateStudents(total, submitted, graded, prefix, _baseYear = '2022', 
 
       return {
         id: `${prefix}${i + 1}`,
-        studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+        studentId: `S${String(i + 1).padStart(3, '0')}`,
         name: DEMO_NAMES[i % DEMO_NAMES.length],
         department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
         score: null,
@@ -3221,7 +3215,7 @@ function generateStudents(total, submitted, graded, prefix, _baseYear = '2022', 
 
     return {
       id: `${prefix}${i + 1}`,
-      studentId: `${DEMO_YEARS[i % DEMO_YEARS.length]}${String(i + 1001).slice(1)}`,
+      studentId: `S${String(i + 1).padStart(3, '0')}`,
       name: DEMO_NAMES[i % DEMO_NAMES.length],
       department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
       score: totalScore,
