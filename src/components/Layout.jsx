@@ -105,7 +105,7 @@ export default function Layout() {
     ? [{ label: '내 퀴즈', href: '/', icon: LayoutList }]
     : [
         { label: '퀴즈', href: '/', icon: LayoutList },
-        { label: '문제모음', href: '/question-banks', icon: BookOpen },
+        { label: '문제은행', href: '/question-banks', icon: BookOpen },
       ]
 
   const isActive = (href) => {

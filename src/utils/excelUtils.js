@@ -435,10 +435,10 @@ export function parseExcelOrCsv(file, bankDifficulty = '') {
           const validDifficulties = ['high', 'medium', 'low']
           const difficulty = validDifficulties.includes(difficultyRaw) ? difficultyRaw : 'medium'
 
-          // XQ-URD-029: 문제모음 난이도가 설정된 경우 문항 난이도 불일치 = 경고 (등록은 허용)
+          // XQ-URD-029: 문제은행 난이도가 설정된 경우 문항 난이도 불일치 = 경고 (등록은 허용)
           const warnings = []
           if (bankDifficulty && validDifficulties.includes(bankDifficulty) && difficulty !== bankDifficulty) {
-            warnings.push(`문제모음 난이도(${DIFF_LABEL[bankDifficulty]})와 문항 난이도(${DIFF_LABEL[difficulty]})가 다릅니다`)
+            warnings.push(`문제은행 난이도(${DIFF_LABEL[bankDifficulty]})와 문항 난이도(${DIFF_LABEL[difficulty]})가 다릅니다`)
           }
 
           if (warnings.length > 0) {

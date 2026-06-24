@@ -89,7 +89,7 @@ export default function BankUploadModal({ open, onClose, onImport, bankName, ban
             {step === 'done' && '업로드 완료'}
           </DialogTitle>
           <DialogDescription>
-            {step === 'select' && `대상 문제모음: ${bankName || '현재 문제모음'}`}
+            {step === 'select' && `대상 문제은행: ${bankName || '현재 문제은행'}`}
             {step === 'review' && '등록 전에 행 단위 검증 결과를 확인해 주세요.'}
             {step === 'done' && '검증 결과에 따라 등록이 완료되었습니다.'}
           </DialogDescription>
@@ -361,7 +361,7 @@ function ReviewStep({ validCount, invalidCount, invalidRows, warningCount = 0, w
         <div className="bg-warning-bg border border-warning-border rounded-md p-3 flex items-start gap-2 text-xs">
           <AlertTriangle size={14} className="text-warning-foreground shrink-0 mt-0.5" />
           <div className="text-warning-foreground">
-            <p className="font-medium">문제모음과 난이도가 다른 문항이 일부 포함되어 있습니다.</p>
+            <p className="font-medium">문제은행과 난이도가 다른 문항이 일부 포함되어 있습니다.</p>
             <p className="mt-0.5">해당 문항들을 그대로 포함해 등록하시려면 [업로드]를 눌러주세요.</p>
           </div>
         </div>
@@ -380,7 +380,7 @@ function DoneStep({ added, bankName }) {
         {added}개 문항이 추가되었습니다.
       </p>
       <p className="text-sm text-muted-foreground">
-        대상 문제모음: {bankName || '현재 문제모음'}
+        대상 문제은행: {bankName || '현재 문제은행'}
       </p>
     </div>
   )

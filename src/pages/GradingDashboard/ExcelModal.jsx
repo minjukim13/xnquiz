@@ -46,7 +46,7 @@ export default function ExcelModal({ question, students: allStudents, onClose, o
     for (const row of result.rows) {
       const found = allStudents.find(s => s.studentId === row.studentId)
       if (!found) {
-        setErrorMsg(`학번 "${row.studentId}"(이)가 수강생 목록에 없습니다. 채점 양식을 수정하지 마세요. 전체 업로드가 불가합니다.`)
+        setErrorMsg(`학번 "${row.studentId}"(이)가 학생 목록에 없습니다. 채점 양식을 수정하지 마세요. 전체 업로드가 불가합니다.`)
         setStep('error')
         return
       }

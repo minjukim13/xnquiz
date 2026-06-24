@@ -122,7 +122,7 @@ export default function QuestionBankList() {
           bankId,
         })))
       }
-      showToast(`'${newName}' 문제모음이 생성되었습니다`, bankId)
+      showToast(`'${newName}' 문제은행이 생성되었습니다`, bankId)
     } catch (err) {
       console.error('[QuestionBankList] 복사 실패', err)
       showToast('복사 중 오류가 발생했습니다')
@@ -134,18 +134,18 @@ export default function QuestionBankList() {
       <div className="pb-8">
         {/* 헤더 */}
         <div className="flex items-center justify-between gap-4" style={{ paddingTop: 32, paddingBottom: 20 }}>
-          <h1 className="text-[24px] font-bold text-foreground leading-tight">문제모음</h1>
+          <h1 className="text-[24px] font-bold text-foreground leading-tight">문제은행</h1>
           <div className="flex items-center gap-2.5 shrink-0">
             <Button onClick={() => setShowAddModal(true)}>
               <Plus size={15} />
-              새 문제모음
+              새 문제은행
             </Button>
           </div>
         </div>
 
         {/* 안내: 사용자 단위 자산 */}
         <p className="text-[13px] text-muted-foreground -mt-1 mb-3">
-          문제모음은 과목과 무관하게 내 모든 과목에서 공유됩니다. 출처 과목과 태그로 분류해 찾으세요.
+          문제은행은 과목과 무관하게 내 모든 과목에서 공유됩니다. 출처 과목과 태그로 분류해 찾으세요.
         </p>
 
         {/* 검색/정렬/필터 툴바 */}
@@ -156,7 +156,7 @@ export default function QuestionBankList() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="문제모음 이름 또는 문항 내용 검색"
+              placeholder="문제은행 이름 또는 문항 내용 검색"
               className="w-full text-sm pl-9 pr-8 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all"
             />
             {search && (
@@ -332,14 +332,14 @@ export default function QuestionBankList() {
             )
           })}
 
-          {/* 추가 카드 (표시할 문제모음이 있을 때만 노출) */}
+          {/* 추가 카드 (표시할 문제은행이 있을 때만 노출) */}
           {visibleBanks.length > 0 && (
             <button
               onClick={() => setShowAddModal(true)}
               className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary"
             >
               <Plus size={20} />
-              <span className="text-sm font-medium">새 문제모음 추가</span>
+              <span className="text-sm font-medium">새 문제은행 추가</span>
             </button>
           )}
         </div>
@@ -348,7 +348,7 @@ export default function QuestionBankList() {
         {banks.length > 0 && visibleBanks.length === 0 && (
           <div className="mt-12 text-center">
             <Search size={36} className="mx-auto mb-3 text-muted-foreground" />
-            <p className="text-sm font-medium mb-1 text-muted-foreground">조건에 맞는 문제모음이 없습니다</p>
+            <p className="text-sm font-medium mb-1 text-muted-foreground">조건에 맞는 문제은행이 없습니다</p>
             <p className="text-xs mb-4 text-muted-foreground">검색어나 필터를 바꿔 보세요</p>
             {hasActiveFilter && (
               <Button variant="outline" size="sm" onClick={() => { setSearch(''); setFilterDiff('all'); setFilterCourse('all'); setFilterTag('all') }}>
@@ -362,13 +362,13 @@ export default function QuestionBankList() {
         {banks.length === 0 && (
           <div className="mt-12 text-center">
             <BookOpen size={36} className="mx-auto mb-3 text-muted-foreground" />
-            <p className="text-sm font-medium mb-1 text-muted-foreground">문제모음이 없습니다</p>
-            <p className="text-xs mb-4 text-muted-foreground">새 문제모음을 만들어 문항을 관리하세요</p>
+            <p className="text-sm font-medium mb-1 text-muted-foreground">문제은행이 없습니다</p>
+            <p className="text-xs mb-4 text-muted-foreground">새 문제은행을 만들어 문항을 관리하세요</p>
             <button
               onClick={() => setShowAddModal(true)}
               className="text-sm font-medium px-4 py-2 bg-primary text-primary-foreground rounded transition-colors hover:bg-primary-hover"
             >
-              첫 문제모음 만들기
+              첫 문제은행 만들기
             </button>
           </div>
         )}
@@ -402,7 +402,7 @@ export default function QuestionBankList() {
 
       {deleteTarget && (
         <ConfirmDialog
-          title={`'${deleteTarget.name}' 문제모음을 삭제할까요?`}
+          title={`'${deleteTarget.name}' 문제은행을 삭제할까요?`}
           message={`은행에 포함된 문항 ${getQuestionCount(deleteTarget.id)}개가 함께 삭제되며 복구할 수 없습니다.`}
           confirmLabel="삭제"
           confirmDanger
@@ -472,4 +472,4 @@ function TagEditor({ bank, allTags, onAdd, onToggle }) {
   )
 }
 
-// ── 새 문제모음 모달 ──────────────────────────────────────────────────────────
+// ── 새 문제은행 모달 ──────────────────────────────────────────────────────────

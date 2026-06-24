@@ -1,4 +1,4 @@
-// 문제모음 통합 검색 — 문항의 본문·보기·정답 텍스트를 한 문자열로 평탄화한다.
+// 문제은행 통합 검색 — 문항의 본문·보기·정답 텍스트를 한 문자열로 평탄화한다.
 export function questionSearchText(q) {
   const parts = [q.text]
   if (Array.isArray(q.options)) parts.push(...q.options)

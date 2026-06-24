@@ -11,7 +11,7 @@
  *   [L1590] 응시 (getStudentAttempts, saveStudentAttempt)
  *   [L1650] 채점 (regradeQuestion, regradeQuestionWithOption, recalculateScorePolicy, autoGradeAnswer)
  *   [L1995] 학생 답/파일 조회 (getStudentAnswer, getStudentFileSubmission, isAnswerCorrect)
- *   [L2044] 문제모음 (MOCK_COURSES, MOCK_BANKS, MOCK_BANK_QUESTIONS)
+ *   [L2044] 문제은행 (MOCK_COURSES, MOCK_BANKS, MOCK_BANK_QUESTIONS)
  *   [L2196] 학생 seed (mockStudents, mockStudents8) + generateStudents + getQuizStudents
  *
  * api 모드에서 사용 안 함 (CLAUDE.md 데이터 소스 섹션 참조)
@@ -2273,7 +2273,7 @@ export function isAnswerCorrect(answer, questionId) {
   return correct.some(c => a.includes(_normalizeAnswer(c, gs)))
 }
 
-// ── 문제모음 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──
+// ── 문제은행 공유 데이터 (QuestionBankList, QuestionBank, QuizCreate, QuizEdit 공통 사용) ──
 
 
 // 평가 그룹 (Assignment Groups) — LX 연계 항목. 평가용 퀴즈만 그룹에 귀속.
@@ -2293,8 +2293,8 @@ export const MOCK_COURSES = [
   { id: 'cs102', name: 'CS102 자료구조' },
 ]
 
-// 문제모음은 사용자(교수자) 단위 자산이다. course/courseCode 는 "만든 과목" 출처 라벨일 뿐
-// 가시성 경계가 아니며, 모든 과목에서 내 모든 문제모음이 보인다. tags 는 자유 키워드 라벨.
+// 문제은행은 사용자(교수자) 단위 자산이다. course/courseCode 는 "만든 과목" 출처 라벨일 뿐
+// 가시성 경계가 아니며, 모든 과목에서 내 모든 문제은행이 보인다. tags 는 자유 키워드 라벨.
 export const MOCK_BANKS = [
   { id: 'bank1', name: 'DB 종합 문제집', course: 'CS301 데이터베이스', difficulty: '',       createdAt: '2026-03-02', updatedAt: '2026-04-01', tags: ['기말고사', 'SQL'],     usedInQuizIds: ['1', '2'] },
   { id: 'bank2', name: 'SQL 심화',       course: 'CS301 데이터베이스', difficulty: 'high',   createdAt: '2026-03-10', updatedAt: '2026-03-28', tags: ['SQL', '심화'],        usedInQuizIds: ['1'] },

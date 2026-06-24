@@ -21,7 +21,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, onAdd, add
   const { banks, getBankQuestions } = useQuestionBank()
   const [step, setStep] = useState(1)
 
-  // Step 1: 복수 은행 선택 (사용자 단위 — 전체 문제모음을 검색/필터로 탐색)
+  // Step 1: 복수 은행 선택 (사용자 단위 — 전체 문제은행을 검색/필터로 탐색)
   const [selectedBankIds, setSelectedBankIds] = useState(new Set())
   const [search, setSearch] = useState('')
   const [filterDiff, setFilterDiff] = useState('all')
@@ -169,7 +169,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, onAdd, add
 
       const groupItem = createRandomGroupItem({
         bankId,
-        bankName: bank?.name ?? '문제모음',
+        bankName: bank?.name ?? '문제은행',
         bankCourse: bank?.course,
         count: cfg.count,
         pointsPerQuestion: cfg.points,
@@ -205,12 +205,12 @@ export default function RandomQuestionBankModal({ open, onOpenChange, onAdd, add
         <div className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-gray-200">
           <DialogHeader>
             <DialogTitle>랜덤 출제</DialogTitle>
-            <DialogDescription>문제모음을 골라 학생마다 다른 문항이 출제되도록 설정합니다.</DialogDescription>
+            <DialogDescription>문제은행을 골라 학생마다 다른 문항이 출제되도록 설정합니다.</DialogDescription>
           </DialogHeader>
 
           <div className="flex items-center gap-2 mt-4">
             {[
-              { n: 1, label: '문제모음 선택' },
+              { n: 1, label: '문제은행 선택' },
               { n: 2, label: '출제 옵션 설정' },
             ].map(({ n, label }, i) => (
               <div key={n} className="flex items-center gap-2 flex-1">
@@ -237,7 +237,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, onAdd, add
         {/* ── 본문 스크롤 영역 ── */}
         <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
 
-          {/* Step 1: 문제모음 복수 선택 (사용자 단위 전체 탐색) */}
+          {/* Step 1: 문제은행 복수 선택 (사용자 단위 전체 탐색) */}
           {step === 1 && (
             <div>
               {/* 검색/필터 툴바 */}
@@ -248,7 +248,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, onAdd, add
                     type="text"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    placeholder="문제모음 이름 또는 문항 내용 검색"
+                    placeholder="문제은행 이름 또는 문항 내용 검색"
                     className="w-full text-sm pl-9 pr-8 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all"
                   />
                   {search && (
@@ -300,7 +300,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, onAdd, add
               <div>
                 {filteredBanks.length === 0 ? (
                   <div className="py-12 text-center">
-                    <p className="text-sm text-muted-foreground">조건에 맞는 문제모음이 없습니다</p>
+                    <p className="text-sm text-muted-foreground">조건에 맞는 문제은행이 없습니다</p>
                     <p className="text-xs text-muted-foreground/70 mt-1">검색어나 필터를 바꿔 보세요</p>
                   </div>
                 ) : (
@@ -418,7 +418,7 @@ export default function RandomQuestionBankModal({ open, onOpenChange, onAdd, add
               {/* 선택 요약 */}
               {selectedBankIds.size > 0 && (
                 <p className="text-[13px] text-muted-foreground px-1 pt-4 mt-4 border-t border-gray-100">
-                  <span className="text-secondary-foreground font-medium">{selectedBankIds.size}개</span> 문제모음 선택됨
+                  <span className="text-secondary-foreground font-medium">{selectedBankIds.size}개</span> 문제은행 선택됨
                   {' / '}
                   총 <span className="text-secondary-foreground font-medium">{[...selectedBankIds].reduce((sum, id) => sum + getBankQuestions(id).filter(q => !added.includes(q.id)).length, 0)}개</span> 문항 출제 가능
                 </p>

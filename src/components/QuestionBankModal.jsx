@@ -27,7 +27,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added }) 
   const [checked, setChecked] = useState(new Set())
   const [visibleCount, setVisibleCount] = useState(20)
 
-  // 사용자 단위 — 전체 문제모음을 평면 리스트로. 검색은 은행명 + 문항 내용 통합.
+  // 사용자 단위 — 전체 문제은행을 평면 리스트로. 검색은 은행명 + 문항 내용 통합.
   const filteredBanks = useMemo(() => {
     const term = bankSearch.trim().toLowerCase()
     if (!term) return banks
@@ -152,9 +152,9 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added }) 
 
         {/* 헤더 */}
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 shrink-0 border-b border-border">
-          <DialogTitle>문제모음에서 추가</DialogTitle>
-          <DialogDescription className="hidden sm:block">좌측에서 문제모음을 선택하고, 우측에서 추가할 문항을 골라주세요</DialogDescription>
-          <DialogDescription className="sm:hidden">상단에서 문제모음을 선택하고 문항을 골라주세요</DialogDescription>
+          <DialogTitle>문제은행에서 추가</DialogTitle>
+          <DialogDescription className="hidden sm:block">좌측에서 문제은행을 선택하고, 우측에서 추가할 문항을 골라주세요</DialogDescription>
+          <DialogDescription className="sm:hidden">상단에서 문제은행을 선택하고 문항을 골라주세요</DialogDescription>
         </DialogHeader>
 
         {/* 본문: 사이드바 + 문항 목록 */}
@@ -162,7 +162,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added }) 
           {/* ── 좌측 사이드바 (모바일에서는 상단 가로 스크롤) ── */}
           <div className="flex flex-col shrink-0 w-full sm:w-[240px] sm:border-r border-b sm:border-b-0 border-border max-h-[180px] sm:max-h-none">
             <div className="px-3 pt-3 pb-2 shrink-0">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">문제모음</p>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">문제은행</p>
               <div className="relative">
                 <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -177,7 +177,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added }) 
             <div className="flex-1 overflow-y-auto">
               {totalBanks === 0 ? (
                 <p className="py-8 px-3 text-center text-xs text-muted-foreground">
-                  {bankSearch.trim() ? '검색 결과가 없습니다' : '등록된 문제모음이 없습니다'}
+                  {bankSearch.trim() ? '검색 결과가 없습니다' : '등록된 문제은행이 없습니다'}
                 </p>
               ) : (
                 filteredBanks.map(b => {
@@ -216,7 +216,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added }) 
           <div className="flex flex-col flex-1 min-w-0">
             {selectedBankIds.size === 0 ? (
               <div className="flex-1 flex items-center justify-center">
-                <p className="text-[14px] text-muted-foreground">좌측에서 문제모음을 선택하세요</p>
+                <p className="text-[14px] text-muted-foreground">좌측에서 문제은행을 선택하세요</p>
               </div>
             ) : (
               <>

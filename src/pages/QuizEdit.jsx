@@ -49,7 +49,7 @@ const EDIT_STEPS = [
   {
     value: 'questions',
     label: '문항 구성',
-    desc: '시험에 출제할 문항을 추가하거나 수정합니다. 새 문항을 직접 작성하거나, 기존 문제모음에서 선별해 가져오거나, 조건에 맞춰 무작위 출제하는 세 가지 방식을 조합할 수 있습니다.',
+    desc: '시험에 출제할 문항을 추가하거나 수정합니다. 새 문항을 직접 작성하거나, 기존 문제은행에서 선별해 가져오거나, 조건에 맞춰 랜덤 출제하는 세 가지 방식을 조합할 수 있습니다.',
     requirement: '최소 1개 문항을 추가해주세요',
   },
 ]
@@ -834,7 +834,7 @@ function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDr
               랜덤 출제 그룹
             </Badge>
             <span className="text-xs text-muted-foreground">
-              {group.bankName} 문제모음에서 <span className="font-semibold text-foreground">{group.count}문항</span>
+              {group.bankName} 문제은행에서 <span className="font-semibold text-foreground">{group.count}문항</span>
             </span>
             <span className="text-xs text-muted-foreground">· 총 {group.points}점</span>
           </div>
@@ -908,13 +908,13 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
           <Popover>
             <PopoverTrigger asChild>
               <Button size="lg">
-                문제모음에서 추가
+                문제은행에서 추가
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-72 p-1.5">
               <button onClick={onShowBank} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors">
                 <p className="text-sm font-medium text-foreground">직접 선택</p>
-                <p className="text-xs text-muted-foreground mt-0.5">문제모음에서 원하는 문항을 골라 추가합니다</p>
+                <p className="text-xs text-muted-foreground mt-0.5">문제은행에서 원하는 문항을 골라 추가합니다</p>
               </button>
               <button onClick={onShowRandomBank} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors">
                 <p className="text-sm font-medium text-foreground">랜덤 출제</p>
@@ -928,7 +928,7 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
       {questions.length === 0 && !showInlineAdd ? (
         <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-secondary space-y-1.5">
           <p className="text-sm text-secondary-foreground">아직 추가된 문항이 없습니다</p>
-          <p className="text-xs text-muted-foreground">상단의 "문항 만들기" 또는 "문제모음에서 추가" 버튼으로 시작합니다</p>
+          <p className="text-xs text-muted-foreground">상단의 "문항 만들기" 또는 "문제은행에서 추가" 버튼으로 시작합니다</p>
         </div>
       ) : (
         <div className="space-y-2">

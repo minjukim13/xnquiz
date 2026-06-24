@@ -205,7 +205,7 @@ export default function QuizMonitor() {
             <p className="font-medium text-foreground">학생 응시 로그 수집 안내</p>
             <p className="mt-0.5">
               학생 응시 중에는 시작/문항 이동/답변 변경/포커스 이탈/제출 시각이 자동 기록됩니다.
-              본 화면의 이상 후보 표시는 단서이며 부정행위 단정이 아니므로 최종 판단은 강사가 수행합니다.
+              본 화면의 이상 후보 표시는 단서이며 부정행위 단정이 아니므로 최종 판단은 교수자가 수행합니다.
             </p>
           </div>
         </div>

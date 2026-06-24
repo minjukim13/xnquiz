@@ -27,7 +27,7 @@ export default function AddBankModal({ onClose, onAdd }) {
     <Dialog open onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>새 문제모음 만들기</DialogTitle>
+          <DialogTitle>새 문제은행 만들기</DialogTitle>
         </DialogHeader>
         <div>
           <label className="text-xs font-medium block mb-1.5 text-slate-500">이름</label>
@@ -36,7 +36,7 @@ export default function AddBankModal({ onClose, onAdd }) {
             value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && name.trim() && onAdd(name.trim(), difficulty, tags)}
-            placeholder="문제모음 이름 (예: 기말고사 문제모음)"
+            placeholder="문제은행 이름 (예: 기말고사 문제은행)"
             autoFocus
             className="w-full text-[15px] px-3 py-2 border border-slate-200 rounded focus:outline-none focus:border-blue-400 text-slate-900"
           />
@@ -92,7 +92,7 @@ export default function AddBankModal({ onClose, onAdd }) {
             placeholder="키워드 입력 후 Enter (예: 기말고사, SQL)"
             className="w-full text-[15px] px-3 py-2 border border-slate-200 rounded focus:outline-none focus:border-blue-400 text-slate-900"
           />
-          <p className="text-xs mt-1.5 text-muted-foreground">여러 과목에 쌓인 문제모음을 빠르게 찾도록 분류 키워드를 답니다.</p>
+          <p className="text-xs mt-1.5 text-muted-foreground">여러 과목에 쌓인 문제은행을 빠르게 찾도록 분류 키워드를 답니다.</p>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>

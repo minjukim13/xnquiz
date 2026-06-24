@@ -135,7 +135,7 @@ export default function QuestionBank() {
                   type="button"
                   onClick={() => { setBankNameDraft(bank.name); setEditingBankName(true) }}
                   className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary shrink-0"
-                  aria-label="문제모음 이름 편집"
+                  aria-label="문제은행 이름 편집"
                 >
                   <Edit2 size={15} />
                 </button>
