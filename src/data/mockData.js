@@ -18,6 +18,7 @@
  */
 import { evalFormula as _evalFormula } from '@/utils/formulaEngine'
 import { autoSubmitExpiredStudents } from '@/utils/deadlineUtils'
+import { recordScoreAdjustment } from '@/utils/scoreAdjustments'
 
 // ── 전역 설정 읽기 (localStorage) ──
 function _getGlobalSettings() {
@@ -2098,7 +2099,11 @@ export function regradeQuestionWithOption(quizId, updatedQuestion, option, oldQu
         const diff = newScore - prevAuto
         attempt.autoScores[updatedQuestion.id] = newScore
         attempt.totalAutoScore = (attempt.totalAutoScore ?? 0) + diff
-        if (newScore !== currentScore) changedCount++
+        if (newScore !== currentScore) {
+          changedCount++
+          // XQ-D-09 R-006: 학생 결과 화면 "점수가 조정되었습니다" 안내용 기록
+          recordScoreAdjustment(quizId, attempt.studentId, attempt.totalAutoScore)
+        }
       }
     })
 

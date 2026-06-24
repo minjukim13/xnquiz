@@ -8,6 +8,7 @@ import {
 import { Toast } from '@/components/ui/toast'
 import { getStudentAnswer, QUIZ_TYPES } from '../../data/mockData'
 import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
+import { isRandomGroup, expandAllForInstructor, getRecipientStudents } from '@/utils/randomGroups'
 import { useRole } from '../../context/role'
 import { downloadAnswerSheetsXlsx } from '../../utils/excelUtils'
 import { cn } from '@/lib/utils'
@@ -26,6 +27,22 @@ import EmptyState from './EmptyState'
 import QuizInfoCard from './QuizInfoCard'
 import StudentListPanel from './StudentListPanel'
 
+
+// 문제은행(랜덤 그룹) 문항을 채점 화면 형태로 정규화 (options→choices, 인덱스/boolean 정답 → 값)
+function normalizeGradeQuestion(q) {
+  const autoGrade = q.autoGrade ?? QUIZ_TYPES[q.type]?.autoGrade ?? false
+  if (q.type === 'multiple_choice') {
+    const choices = q.choices ?? q.options ?? []
+    const correctAnswer = typeof q.correctAnswer === 'number' ? choices[q.correctAnswer] : q.correctAnswer
+    return { ...q, autoGrade, choices, correctAnswer }
+  }
+  if (q.type === 'true_false') {
+    const choices = q.choices ?? q.options ?? ['참', '거짓']
+    const correctAnswer = typeof q.correctAnswer === 'boolean' ? (q.correctAnswer ? '참' : '거짓') : q.correctAnswer
+    return { ...q, autoGrade, choices, correctAnswer }
+  }
+  return { ...q, autoGrade }
+}
 
 function GradingDashboardSkeleton() {
   return (
@@ -177,20 +194,32 @@ export default function GradingDashboard() {
     return () => { mounted = false }
   }, [id])
 
+  // 랜덤 출제(random_group) 문항을 응시본 기준으로 펼침 — 실제 출제된 문항만 (SC-26-C)
+  // 일반 퀴즈는 그대로 유지 (분기).
+  const gradeQuestions = useMemo(() => {
+    if (!quizQuestions.some(isRandomGroup)) return quizQuestions
+    const expanded = expandAllForInstructor(quizQuestions)
+    return expanded
+      .filter(q => !q.randomGroupId || getRecipientStudents(q, quizStudents).length > 0)
+      .map(normalizeGradeQuestion)
+  }, [quizQuestions, quizStudents])
+
   // localStorage 채점 기록을 반영한 실시간 gradedCount 계산
   const questionsWithLiveCounts = useMemo(() => {
     const grades = getLocalGrades()
     const submittedStudents = quizStudents.filter(s => s.submitted)
-    const totalCount = submittedStudents.length
-    return quizQuestions.map(q => {
+    return gradeQuestions.map(q => {
+      // 랜덤 출제 문항은 그 문항을 받은 학생만 분모로 (응시본 기준)
+      const recipients = q.randomGroupId ? getRecipientStudents(q, submittedStudents) : submittedStudents
+      const totalCount = recipients.length
       if (q.autoGrade) return { ...q, totalCount, gradedCount: totalCount }
-      const gradedCount = submittedStudents.filter(s => {
+      const gradedCount = recipients.filter(s => {
         const key = `${id}_${s.id}_${q.id}`
         return (key in grades) || s.manualScores?.[q.id] != null
       }).length
       return { ...q, totalCount, gradedCount }
     })
-  }, [quizQuestions, id, gradeVersion]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gradeQuestions, quizStudents, id, gradeVersion]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const typeFilterOptions = useMemo(() => {
     const presentTypes = []
@@ -235,7 +264,9 @@ export default function GradingDashboard() {
 
   const questionStudents = useMemo(() => {
     if (!selectedQ) return []
-    return quizStudents.filter(s =>
+    // 랜덤 출제 문항이면 그 문항을 받은 학생만 (응시본 기준 그룹화)
+    const base = selectedQ.randomGroupId ? getRecipientStudents(selectedQ, quizStudents) : quizStudents
+    return base.filter(s =>
       searchStudent === '' ||
       s.name.includes(searchStudent) ||
       s.studentId.includes(searchStudent)
@@ -516,7 +547,7 @@ export default function GradingDashboard() {
                 {!selectedStudent ? (
                   <EmptyState message="학생을 선택하면 전체 문항 답안을 확인할 수 있습니다" />
                 ) : (
-                  <StudentDetailPanel student={selectedStudent} questions={quizQuestions} quizId={id} onGradeSaved={onGradeSaved} />
+                  <StudentDetailPanel student={selectedStudent} questions={gradeQuestions.filter(q => !q.randomGroupId || getRecipientStudents(q, [selectedStudent]).length > 0)} quizId={id} onGradeSaved={onGradeSaved} />
                 )}
               </div>
             </>

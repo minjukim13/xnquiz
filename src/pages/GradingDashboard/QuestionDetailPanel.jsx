@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import TypeBadge from '../../components/TypeBadge'
 import { Download, FolderDown, ChevronDown, ChevronUp } from 'lucide-react'
 import ResponsesTab from './ResponsesTab'
+import AcceptedAnswerModal from './AcceptedAnswerModal'
 import { RichTextRenderer } from '../../components/RichText'
 import { getLocalGrades, setLocalGrades } from './utils'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
@@ -12,6 +13,7 @@ const REGRADE_OPTION_LABELS = {
   award_both: '이전 정답과 수정된 정답 모두 인정',
   new_answer_only: '수정된 정답 기준 재채점',
   full_points: '전원 만점 처리',
+  accepted_answer: '추가 인정 답안 소급 부여',
 }
 
 // ─── 문항 중심: 우측 상세 패널 ─────────────────────────────────────────────
@@ -19,6 +21,11 @@ export default function QuestionDetailPanel({ question, students, search, onSear
   const [changedStudentIds, setChangedStudentIds] = useState(new Set())
   const [clearPendingSignal, setClearPendingSignal] = useState(0)
   const [infoCollapsed, setInfoCollapsed] = useState(false)
+  const [showAcceptedModal, setShowAcceptedModal] = useState(false)
+  const [regradeTick, setRegradeTick] = useState(0)
+
+  // 추가 인정 답안 등록 대상 유형 (XQ-D-06 R-008: 단답형)
+  const canAcceptAnswer = question.type === 'short_answer'
 
   // 재채점 로그 읽기
   const regradeInfo = useMemo(() => {
@@ -28,7 +35,8 @@ export default function QuestionDetailPanel({ question, students, search, onSear
       const log = JSON.parse(raw)
       return log[quizId]?.[question.id] || null
     } catch { return null }
-  }, [quizId, question.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- regradeTick: 적용 후 강제 재조회
+  }, [quizId, question.id, regradeTick])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on question switch
@@ -195,6 +203,11 @@ export default function QuestionDetailPanel({ question, students, search, onSear
               제출물 일괄 다운로드
             </Button>
           )}
+          {canAcceptAnswer && (
+            <Button variant="outline" onClick={() => setShowAcceptedModal(true)}>
+              추가 인정 답안
+            </Button>
+          )}
           <Button variant="outline" onClick={() => handleBulkGrade('all_full')}>
             전체 정답
           </Button>
@@ -222,6 +235,21 @@ export default function QuestionDetailPanel({ question, students, search, onSear
       </div>
 
       <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} changedStudentIds={changedStudentIds} onStudentChanged={id => setChangedStudentIds(prev => new Set(prev).add(id))} clearPendingSignal={clearPendingSignal} />
+
+      {showAcceptedModal && (
+        <AcceptedAnswerModal
+          question={question}
+          students={students}
+          quizId={quizId}
+          onClose={() => setShowAcceptedModal(false)}
+          onApplied={() => {
+            setShowAcceptedModal(false)
+            setRegradeTick(t => t + 1)
+            onGradeSaved?.()
+          }}
+          showToast={showToast}
+        />
+      )}
 
     </div>
   )

@@ -25,6 +25,7 @@ import QuestionAnswer from '../components/QuestionAnswer'
 import TypeBadge from '../components/TypeBadge'
 import CommentThread from './GradingDashboard/CommentThread'
 import { isResultViewed, markResultViewed } from '@/utils/resultsViewedStorage'
+import { getStudentAdjustment } from '@/utils/scoreAdjustments'
 import { useQuestionBank } from '../context/questionBank'
 import { expandRandomGroups } from '@/utils/randomGroups'
 
@@ -212,31 +213,6 @@ function scoreRevealParts(quiz) {
     return { scope, timing: '공개 기간 지정', variant: 'accent' }
   }
   return { scope, timing: '즉시 공개', variant: 'accent' }
-}
-
-function scoreRevealBadge(quiz) {
-  if (quiz.scoreRevealEnabled === undefined && quiz.scoreReleasePolicy === undefined) {
-    return { label: '설정 없음', variant: 'default' }
-  }
-  const enabled = quiz.scoreRevealEnabled ?? (quiz.scoreReleasePolicy !== null)
-  if (!enabled) return { label: '비공개', variant: 'default' }
-
-  const isWithAnswer = quiz.scoreRevealScope === 'with_answer'
-  const timing = quiz.scoreRevealTiming ?? quiz.scoreReleasePolicy
-  const scopeLabel = isWithAnswer ? '정답 포함' : '점수만'
-
-  if (timing === 'after_due') {
-    return { label: `${scopeLabel} · 마감 후 공개`, variant: 'amber' }
-  }
-  if (timing === 'period') {
-    if (quiz.scoreRevealStart || quiz.scoreRevealEnd) {
-      const start = quiz.scoreRevealStart?.split(' ')[0] || ''
-      const end = quiz.scoreRevealEnd?.split(' ')[0] || ''
-      return { label: `${scopeLabel} · ${start} ~ ${end}`, variant: 'accent' }
-    }
-    return { label: `${scopeLabel} · 공개 기간 지정`, variant: 'accent' }
-  }
-  return { label: `${scopeLabel} · 즉시 공개`, variant: 'accent' }
 }
 
 export default function QuizDetail() {
@@ -649,7 +625,14 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
   const reveal = computeRevealStatus(quiz)
 
   const totalPoints = (questions ?? []).reduce((s, q) => s + (q.points || 0), 0)
-  const autoScore = latestAttempt?.totalAutoScore ?? 0
+  // XQ-D-09 R-006: 재채점으로 점수가 조정된 경우 갱신 점수·안내 노출
+  const adjustment = latestAttempt ? getStudentAdjustment(quiz.id, studentId) : null
+  const autoScore = adjustment?.newScore ?? latestAttempt?.totalAutoScore ?? 0
+  const adjustedAt = (() => {
+    if (!adjustment?.at) return null
+    const d = new Date(adjustment.at)
+    return Number.isNaN(d.getTime()) ? null : d.toLocaleString('ko-KR')
+  })()
   const hasGradableQuestions = totalPoints > 0
   const submittedAt = (() => {
     const raw = latestAttempt?.submittedAt
@@ -713,6 +696,17 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
           {latestAttempt.manualPending > 0 && (
             <div className="px-5 py-2.5 border-t border-border bg-secondary/40 text-xs text-muted-foreground">
               서술형 {latestAttempt.manualPending}개 문항은 채점이 완료되면 점수에 반영됩니다.
+            </div>
+          )}
+          {adjustment && (
+            <div className="px-5 py-2.5 border-t border-border bg-accent flex items-start gap-2">
+              <Activity size={14} className="shrink-0 mt-0.5 text-primary" />
+              <p className="text-xs text-accent-foreground leading-relaxed">
+                <span className="font-semibold text-foreground">점수가 조정되었습니다</span>
+                {adjustedAt && <span className="text-muted-foreground"> · {adjustedAt}</span>}
+                <br />
+                교수자 재채점으로 점수가 변경되어 위 점수에 반영되었습니다.
+              </p>
             </div>
           )}
         </Card>
