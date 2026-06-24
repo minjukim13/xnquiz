@@ -3,10 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
-import { ChevronRight, ChevronLeft, Check } from 'lucide-react'
+import { ChevronRight, ChevronLeft, ChevronDown, Check, Search, X } from 'lucide-react'
 import { useQuestionBank } from '../context/questionBank'
+import { DropdownSelect } from './DropdownSelect'
 import { QUIZ_TYPES } from '../data/mockData'
 import { createRandomGroupItem } from '@/utils/randomGroups'
+import { questionSearchText } from '@/utils/bankSearch'
 
 const DIFFICULTY_LABELS = { high: '상', medium: '중', low: '하' }
 const DIFFICULTY_COLORS = {
@@ -15,13 +17,16 @@ const DIFFICULTY_COLORS = {
   low:    'bg-green-50 text-green-800',
 }
 
-export default function RandomQuestionBankModal({ open, onOpenChange, currentCourse, onAdd, added = [] }) {
+export default function RandomQuestionBankModal({ open, onOpenChange, onAdd, added = [] }) {
   const { banks, getBankQuestions } = useQuestionBank()
   const [step, setStep] = useState(1)
 
-  // Step 1: 복수 은행 선택
+  // Step 1: 복수 은행 선택 (사용자 단위 — 전체 문제모음을 검색/필터로 탐색)
   const [selectedBankIds, setSelectedBankIds] = useState(new Set())
-  const [showOtherCourses, setShowOtherCourses] = useState(false)
+  const [search, setSearch] = useState('')
+  const [filterDiff, setFilterDiff] = useState('all')
+  const [filterCourse, setFilterCourse] = useState('all')
+  const [filterTag, setFilterTag] = useState('all')
 
   // Step 2: 은행별 설정
   const [bankConfigs, setBankConfigs] = useState({})
@@ -30,36 +35,33 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
   // 미리보기 상태
   const [previewBankId, setPreviewBankId] = useState(null)
 
-  const currentBanks = currentCourse ? banks.filter(b => b.course === currentCourse) : banks
-  const otherBanks = useMemo(
-    () => (currentCourse ? banks.filter(b => b.course !== currentCourse) : []),
-    [banks, currentCourse]
+  const allCourses = useMemo(
+    () => [...new Set(banks.map(b => b.course).filter(Boolean))].sort(),
+    [banks]
+  )
+  const allTags = useMemo(
+    () => [...new Set(banks.flatMap(b => b.tags ?? []))].sort(),
+    [banks]
   )
 
-  // 과목별 그룹핑
-  const otherGrouped = useMemo(() => {
-    return otherBanks.reduce((acc, b) => {
-      const key = b.course ?? '기타'
-      if (!acc[key]) acc[key] = []
-      acc[key].push(b)
-      return acc
-    }, {})
-  }, [otherBanks])
+  // 통합검색(은행명 + 문항 본문) + 난이도/출처 과목/태그 필터
+  const filteredBanks = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    return banks
+      .filter(b => filterDiff === 'all' || (b.difficulty || '') === filterDiff)
+      .filter(b => filterCourse === 'all' || b.course === filterCourse)
+      .filter(b => filterTag === 'all' || (b.tags ?? []).includes(filterTag))
+      .filter(b => {
+        if (!term) return true
+        if (b.name.toLowerCase().includes(term)) return true
+        return getBankQuestions(b.id).some(q => questionSearchText(q).includes(term))
+      })
+  }, [banks, search, filterDiff, filterCourse, filterTag, getBankQuestions])
 
   const toggleBank = (id) => {
     setSelectedBankIds(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-
-  const toggleAllCurrent = () => {
-    const ids = currentBanks.map(b => b.id)
-    const allSelected = ids.every(id => selectedBankIds.has(id))
-    setSelectedBankIds(prev => {
-      const next = new Set(prev)
-      ids.forEach(id => allSelected ? next.delete(id) : next.add(id))
       return next
     })
   }
@@ -189,6 +191,10 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
     setBankConfigs({})
     setUseDifficultyScoring(false)
     setPreviewBankId(null)
+    setSearch('')
+    setFilterDiff('all')
+    setFilterCourse('all')
+    setFilterTag('all')
   }
 
   return (
@@ -198,8 +204,8 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
         {/* ── 상단 고정 헤더 ── */}
         <div className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-gray-200">
           <DialogHeader>
-            <DialogTitle>복수 문제모음 랜덤 출제</DialogTitle>
-            <DialogDescription>여러 문제모음에서 조건에 맞는 문항을 랜덤으로 출제합니다.</DialogDescription>
+            <DialogTitle>랜덤 출제</DialogTitle>
+            <DialogDescription>문제모음을 골라 학생마다 다른 문항이 출제되도록 설정합니다.</DialogDescription>
           </DialogHeader>
 
           <div className="flex items-center gap-2 mt-4">
@@ -231,79 +237,133 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
         {/* ── 본문 스크롤 영역 ── */}
         <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
 
-          {/* Step 1: 문제모음 복수 선택 */}
+          {/* Step 1: 문제모음 복수 선택 (사용자 단위 전체 탐색) */}
           {step === 1 && (
             <div>
-              {/* 현재 과목 은행 */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  {currentCourse && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded font-medium">{currentCourse.split(' ')[0]}</span>
-                      <span className="text-[13px] font-semibold text-foreground">{currentCourse.split(' ').slice(1).join(' ')}</span>
-                    </div>
-                  )}
-                  {currentBanks.length > 0 && (
-                    <button onClick={toggleAllCurrent} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
-                      {currentBanks.every(b => selectedBankIds.has(b.id)) ? '전체 해제' : '전체 선택'}
+              {/* 검색/필터 툴바 */}
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <div className="relative flex-1 min-w-[180px]">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="문제모음 이름 또는 문항 내용 검색"
+                    className="w-full text-sm pl-9 pr-8 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all"
+                  />
+                  {search && (
+                    <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <X size={14} />
                     </button>
                   )}
                 </div>
+                <DropdownSelect
+                  value={filterDiff}
+                  onChange={setFilterDiff}
+                  options={[
+                    { value: 'all', label: '난이도 전체' },
+                    { value: 'high', label: '상' },
+                    { value: 'medium', label: '중' },
+                    { value: 'low', label: '하' },
+                    { value: '', label: '미설정' },
+                  ]}
+                  size="md"
+                  filterMode
+                  className="w-[112px] shrink-0"
+                />
+                <DropdownSelect
+                  value={filterCourse}
+                  onChange={setFilterCourse}
+                  options={[
+                    { value: 'all', label: '출처 과목 전체' },
+                    ...allCourses.map(c => ({ value: c, label: c })),
+                  ]}
+                  size="md"
+                  filterMode
+                  className="w-[150px] sm:w-[180px] shrink-0"
+                />
+                {allTags.length > 0 && (
+                  <DropdownSelect
+                    value={filterTag}
+                    onChange={setFilterTag}
+                    options={[
+                      { value: 'all', label: '태그 전체' },
+                      ...allTags.map(t => ({ value: t, label: t })),
+                    ]}
+                    size="md"
+                    filterMode
+                    className="w-[130px] sm:w-[150px] shrink-0"
+                  />
+                )}
+              </div>
 
-                {currentBanks.length === 0 ? (
-                  <p className="text-sm py-6 text-center text-muted-foreground">이 과목에 등록된 문제모음이 없습니다</p>
+              <div>
+                {filteredBanks.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <p className="text-sm text-muted-foreground">조건에 맞는 문제모음이 없습니다</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">검색어나 필터를 바꿔 보세요</p>
+                  </div>
                 ) : (
-                  <div>
-                    {currentBanks.map((b, idx) => {
-                      const questions = getBankQuestions(b.id)
-                      const available = questions.filter(q => !added.includes(q.id))
+                  <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
+                    {filteredBanks.map((b) => {
+                      const available = getBankQuestions(b.id).filter(q => !added.includes(q.id))
                       const isSelected = selectedBankIds.has(b.id)
                       const diffLabel = b.difficulty ? DIFFICULTY_LABELS[b.difficulty] : null
                       const diffColor = b.difficulty ? DIFFICULTY_COLORS[b.difficulty] : null
                       const isPreview = previewBankId === b.id
                       const previewQs = isPreview ? getBankQuestions(b.id) : []
                       return (
-                        <div key={b.id} className={cn(idx > 0 && 'border-t border-gray-100')}>
-                          <div className={cn(
-                            'group flex items-center gap-3 px-4 py-3.5 transition-colors',
-                            isSelected ? 'bg-background' : ''
-                          )}>
-                            <button
-                              type="button"
-                              onClick={() => toggleBank(b.id)}
-                              className={cn(
-                                'w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors',
-                                isSelected ? 'border-primary bg-primary' : 'border-slate-300 bg-white'
-                              )}
-                            >
-                              {isSelected && <Check size={10} className="text-white" />}
-                            </button>
+                        <div key={b.id} className={cn('transition-colors', isSelected ? 'bg-accent/60' : 'bg-white')}>
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => toggleBank(b.id)}
+                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleBank(b.id) } }}
+                            className={cn(
+                              'group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors',
+                              isSelected ? '' : 'hover:bg-secondary/50'
+                            )}
+                          >
+                            <span className={cn(
+                              'w-[18px] h-[18px] rounded-[5px] border flex items-center justify-center shrink-0 transition-colors',
+                              isSelected ? 'border-primary bg-primary' : 'border-slate-300 bg-white group-hover:border-slate-400'
+                            )}>
+                              {isSelected && <Check size={11} className="text-white" />}
+                            </span>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[15px] font-medium text-slate-700">{b.name}</span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[15px] font-medium text-foreground">{b.name}</span>
                                 {diffLabel && (
                                   <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-medium', diffColor)}>
                                     {diffLabel}
                                   </span>
                                 )}
+                                {b.course && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground truncate max-w-[140px]" title={`출처: ${b.course}`}>
+                                    {b.course}
+                                  </span>
+                                )}
+                                {(b.tags ?? []).slice(0, 3).map(t => (
+                                  <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{t}</span>
+                                ))}
                               </div>
                             </div>
+                            <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{available.length}문항</span>
                             <button
                               onClick={(e) => { e.stopPropagation(); setPreviewBankId(isPreview ? null : b.id) }}
                               className={cn(
-                                'text-[13px] font-semibold px-[10px] py-[6px] rounded-[6px] transition-colors shrink-0 bg-transparent border-0',
-                                isPreview
-                                  ? 'text-primary'
-                                  : 'text-muted-foreground hover:text-foreground group-hover:text-foreground'
+                                'flex items-center gap-0.5 text-xs font-medium px-2 py-1 rounded-md transition-colors shrink-0',
+                                isPreview ? 'text-primary bg-accent' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                               )}
                             >
-                              {available.length}개 미리보기
+                              미리보기
+                              <ChevronDown size={13} className={cn('transition-transform', isPreview && 'rotate-180')} />
                             </button>
                           </div>
 
                           {/* 인라인 미리보기 패널 */}
                           {isPreview && (
-                            <div className="mx-4 mb-3 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
+                            <div className="mx-4 mb-3 -mt-0.5 rounded-lg border border-border bg-secondary/40 overflow-hidden">
                               <div className="max-h-[220px] overflow-auto">
                                 <table className="w-full min-w-[480px] text-[12px] table-fixed">
                                   <thead className="sticky top-0 bg-gray-50">
@@ -354,61 +414,6 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                   </div>
                 )}
               </div>
-
-              {/* 다른 과목 */}
-              {currentCourse && Object.keys(otherGrouped).length > 0 && (
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  <button
-                    onClick={() => setShowOtherCourses(v => !v)}
-                    className="flex items-center gap-1 text-[13px] font-medium text-secondary-foreground hover:text-foreground transition-colors mb-3"
-                  >
-                    <ChevronLeft
-                      size={14}
-                      style={{ transform: showOtherCourses ? 'rotate(-90deg)' : 'rotate(-180deg)', transition: 'transform 0.15s' }}
-                    />
-                    다른 과목 문제모음
-                  </button>
-                  {showOtherCourses && (
-                    <div className="space-y-6">
-                      {Object.entries(otherGrouped).map(([course, courseBanks]) => (
-                        <div key={course}>
-                          <div className="flex items-center gap-2 px-4 mb-2">
-                            <span className="text-[11px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded font-medium">{course.split(' ')[0]}</span>
-                            <span className="text-[13px] font-semibold text-foreground">{course.split(' ').slice(1).join(' ')}</span>
-                          </div>
-                          <div className="divide-y divide-gray-100">
-                            {courseBanks.map(b => {
-                              const questions = getBankQuestions(b.id)
-                              const available = questions.filter(q => !added.includes(q.id))
-                              const isSelected = selectedBankIds.has(b.id)
-                              return (
-                                <button
-                                  key={b.id}
-                                  type="button"
-                                  onClick={() => toggleBank(b.id)}
-                                  className={cn(
-                                    'w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors',
-                                    isSelected ? 'bg-background' : 'hover:bg-slate-50'
-                                  )}
-                                >
-                                  <span className={cn(
-                                    'w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors',
-                                    isSelected ? 'border-primary bg-primary' : 'border-slate-300 bg-white'
-                                  )}>
-                                    {isSelected && <Check size={10} className="text-white" />}
-                                  </span>
-                                  <span className="text-[15px] font-medium text-slate-700 flex-1">{b.name}</span>
-                                  <span className="text-xs text-muted-foreground">{available.length}개</span>
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* 선택 요약 */}
               {selectedBankIds.size > 0 && (
@@ -499,45 +504,41 @@ export default function RandomQuestionBankModal({ open, onOpenChange, currentCou
                           </>
                         )}
 
-                        {/* 난이도별 배점 (옵션) */}
+                        {/* 난이도별 배점 (옵션) — 상/중/하/미설정 한 줄(넓은 화면) · 2x2(좁은 화면) */}
                         {useDifficultyScoring && (
                           <div className="space-y-2">
                             <span className="text-xs text-slate-500">난이도별 배점</span>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                               {[
                                 { key: 'high', label: '상', cls: 'text-destructive' },
                                 { key: 'medium', label: '중', cls: 'text-amber-500' },
                                 { key: 'low', label: '하', cls: 'text-correct' },
-                              ].map(({ key, label, cls }) => (
-                                <div key={key} className="flex items-center gap-2 bg-secondary px-3 py-2 rounded-lg">
-                                  <span className={cn('text-xs font-semibold shrink-0', cls)}>{label}</span>
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    max={100}
-                                    value={cfg.difficultyPoints[key]}
-                                    onChange={e => updateDifficultyPoints(bankId, key, Math.max(1, Number(e.target.value) || 1))}
-                                    className="w-10 text-center text-xs py-1 rounded-md bg-white border border-border focus:outline-none focus:border-primary transition-colors"
-                                  />
-                                  <span className="text-xs text-muted-foreground">점</span>
-                                  {cfg.byDifficulty[key] > 0 && (
-                                    <span className="text-[11px] ml-auto text-muted-foreground">({cfg.byDifficulty[key]}개)</span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                            {/* 난이도 미설정 문항용 기본 배점 */}
-                            <div className="flex items-center gap-2 bg-secondary px-3 py-2 rounded-lg w-fit">
-                              <span className="text-xs text-muted-foreground shrink-0">미설정</span>
-                              <input
-                                type="number"
-                                min={1}
-                                max={100}
-                                value={cfg.points}
-                                onChange={e => updateConfig(bankId, 'points', Math.max(1, Number(e.target.value) || 1))}
-                                className="w-10 text-center text-xs py-1 rounded-md bg-white border border-border focus:outline-none focus:border-primary transition-colors"
-                              />
-                              <span className="text-xs text-muted-foreground">점</span>
+                                { key: 'none', label: '미설정', cls: 'text-muted-foreground' },
+                              ].map(({ key, label, cls }) => {
+                                const isNone = key === 'none'
+                                const value = isNone ? cfg.points : cfg.difficultyPoints[key]
+                                const count = isNone ? 0 : cfg.byDifficulty[key]
+                                return (
+                                  <div key={key} className="flex items-center gap-2 bg-secondary px-3 py-2 rounded-lg">
+                                    <span className={cn('text-xs font-semibold shrink-0', cls)}>{label}</span>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={100}
+                                      value={value}
+                                      onChange={e => {
+                                        const v = Math.max(1, Number(e.target.value) || 1)
+                                        isNone ? updateConfig(bankId, 'points', v) : updateDifficultyPoints(bankId, key, v)
+                                      }}
+                                      className="w-10 text-center text-xs py-1 rounded-md bg-white border border-border focus:outline-none focus:border-primary transition-colors"
+                                    />
+                                    <span className="text-xs text-muted-foreground">점</span>
+                                    {count > 0 && (
+                                      <span className="text-[11px] ml-auto text-muted-foreground">({count}개)</span>
+                                    )}
+                                  </div>
+                                )
+                              })}
                             </div>
                           </div>
                         )}

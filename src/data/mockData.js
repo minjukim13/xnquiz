@@ -2285,15 +2285,17 @@ export const MOCK_COURSES = [
   { id: 'cs102', name: 'CS102 자료구조' },
 ]
 
+// 문제모음은 사용자(교수자) 단위 자산이다. course/courseCode 는 "만든 과목" 출처 라벨일 뿐
+// 가시성 경계가 아니며, 모든 과목에서 내 모든 문제모음이 보인다. tags 는 자유 키워드 라벨.
 export const MOCK_BANKS = [
-  { id: 'bank1', name: 'DB 종합 문제집', course: 'CS301 데이터베이스', difficulty: '',       updatedAt: '2026-04-01', usedInQuizIds: ['1', '2'] },
-  { id: 'bank2', name: 'SQL 심화',       course: 'CS301 데이터베이스', difficulty: 'high',   updatedAt: '2026-03-28', usedInQuizIds: ['1'] },
-  { id: 'bank3', name: 'SQL 기초',       course: 'CS301 데이터베이스', difficulty: 'medium', updatedAt: '2026-03-20', usedInQuizIds: [] },
-  { id: 'bank4', name: 'DB 입문',        course: 'CS301 데이터베이스', difficulty: 'low',    updatedAt: '2026-03-15', usedInQuizIds: [] },
-  { id: 'bank5', name: '운영체제 종합',  course: 'CS201 운영체제',     difficulty: '',       updatedAt: '2026-03-10', usedInQuizIds: [] },
-  { id: 'bank6', name: '알고리즘 심화',  course: 'CS401 알고리즘',     difficulty: 'high',   updatedAt: '2026-03-05', usedInQuizIds: [] },
-  { id: 'bank7', name: '자료구조 기초',  course: 'CS102 자료구조',     difficulty: 'low',    updatedAt: '2026-04-10', usedInQuizIds: ['cs102_1'] },
-  { id: 'bank8', name: '자료구조 심화',  course: 'CS102 자료구조',     difficulty: 'high',   updatedAt: '2026-04-12', usedInQuizIds: [] },
+  { id: 'bank1', name: 'DB 종합 문제집', course: 'CS301 데이터베이스', difficulty: '',       createdAt: '2026-03-02', updatedAt: '2026-04-01', tags: ['기말고사', 'SQL'],     usedInQuizIds: ['1', '2'] },
+  { id: 'bank2', name: 'SQL 심화',       course: 'CS301 데이터베이스', difficulty: 'high',   createdAt: '2026-03-10', updatedAt: '2026-03-28', tags: ['SQL', '심화'],        usedInQuizIds: ['1'] },
+  { id: 'bank3', name: 'SQL 기초',       course: 'CS301 데이터베이스', difficulty: 'medium', createdAt: '2026-03-05', updatedAt: '2026-03-20', tags: ['SQL', '기초'],        usedInQuizIds: [] },
+  { id: 'bank4', name: 'DB 입문',        course: 'CS301 데이터베이스', difficulty: 'low',    createdAt: '2026-02-20', updatedAt: '2026-03-15', tags: ['기초'],               usedInQuizIds: [] },
+  { id: 'bank5', name: '운영체제 종합',  course: 'CS201 운영체제',     difficulty: '',       createdAt: '2026-02-15', updatedAt: '2026-03-10', tags: ['중간고사'],           usedInQuizIds: [] },
+  { id: 'bank6', name: '알고리즘 심화',  course: 'CS401 알고리즘',     difficulty: 'high',   createdAt: '2026-02-10', updatedAt: '2026-03-05', tags: ['심화', '코딩테스트'], usedInQuizIds: [] },
+  { id: 'bank7', name: '자료구조 기초',  course: 'CS102 자료구조',     difficulty: 'low',    createdAt: '2026-03-25', updatedAt: '2026-04-10', tags: ['기초'],               usedInQuizIds: ['cs102_1'] },
+  { id: 'bank8', name: '자료구조 심화',  course: 'CS102 자료구조',     difficulty: 'high',   createdAt: '2026-03-30', updatedAt: '2026-04-12', tags: ['심화'],               usedInQuizIds: [] },
 ]
 
 export const MOCK_BANK_QUESTIONS = [

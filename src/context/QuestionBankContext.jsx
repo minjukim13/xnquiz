@@ -25,7 +25,8 @@ export function QuestionBankProvider({ children }) {
     try {
       const raw = localStorage.getItem(LS_BANKS_KEY)
       const loaded = raw ? JSON.parse(raw) : MOCK_BANKS
-      return loaded.map(b => ({ difficulty: '', ...b }))
+      // 사용자 단위 전환: 구 캐시 은행에 tags/createdAt 기본값 보강
+      return loaded.map(b => ({ difficulty: '', tags: [], createdAt: b.updatedAt, ...b }))
     } catch { return MOCK_BANKS }
   })
 

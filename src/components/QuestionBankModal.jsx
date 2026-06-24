@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { cn } from '@/lib/utils'
 import TypeBadge from './TypeBadge'
 import { DiffBadge } from './BankWizardShared'
+import { questionSearchText } from '@/utils/bankSearch'
 
 const DIFFICULTY_LABELS = { high: '상', medium: '중', low: '하' }
 const DIFFICULTY_COLORS = {
@@ -16,7 +17,7 @@ const DIFFICULTY_COLORS = {
   low:    'bg-green-50 text-green-800',
 }
 
-export default function QuestionBankModal({ open, onOpenChange, onAdd, added, currentCourse }) {
+export default function QuestionBankModal({ open, onOpenChange, onAdd, added }) {
   const { banks, getBankQuestions } = useQuestionBank()
   const [selectedBankIds, setSelectedBankIds] = useState(new Set())
   const [bankSearch, setBankSearch] = useState('')
@@ -26,31 +27,21 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
   const [checked, setChecked] = useState(new Set())
   const [visibleCount, setVisibleCount] = useState(20)
 
-  // 현재 과목 은행만 기본 표시 (다른 과목 은행은 사이드바 그룹으로 함께 노출)
-  const courseGroups = useMemo(() => {
+  // 사용자 단위 — 전체 문제모음을 평면 리스트로. 검색은 은행명 + 문항 내용 통합.
+  const filteredBanks = useMemo(() => {
     const term = bankSearch.trim().toLowerCase()
-    const groups = {}
-    banks.forEach(b => {
-      if (term && !b.name.toLowerCase().includes(term)) return
-      const key = b.course ?? '기타'
-      if (!groups[key]) groups[key] = []
-      groups[key].push(b)
-    })
-    return groups
-  }, [banks, bankSearch])
+    if (!term) return banks
+    return banks.filter(b =>
+      b.name.toLowerCase().includes(term) ||
+      getBankQuestions(b.id).some(q => questionSearchText(q).includes(term))
+    )
+  }, [banks, bankSearch, getBankQuestions])
 
-  // 현재 과목 우선, 그 외 과목 뒤로
-  const orderedCourses = useMemo(() => {
-    const keys = Object.keys(courseGroups)
-    if (!currentCourse) return keys
-    return [currentCourse, ...keys.filter(c => c !== currentCourse)].filter(c => courseGroups[c])
-  }, [courseGroups, currentCourse])
-
-  // 모달 열릴 때 현재 과목의 첫 은행을 자동 선택 (기존 UX 보존)
+  // 모달 열릴 때 첫 은행을 자동 선택 (기존 UX 보존)
   useEffect(() => {
     if (!open) return
     if (selectedBankIds.size > 0) return
-    const defaultBank = (currentCourse && courseGroups[currentCourse]?.[0]) || Object.values(courseGroups).flat()[0]
+    const defaultBank = banks[0]
     if (defaultBank) {
       setSelectedBankIds(new Set([defaultBank.id]))
     }
@@ -153,7 +144,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
     }
   }, [hasMore])
 
-  const totalBanks = Object.values(courseGroups).reduce((s, l) => s + l.length, 0)
+  const totalBanks = filteredBanks.length
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -178,7 +169,7 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                   type="text"
                   value={bankSearch}
                   onChange={e => setBankSearch(e.target.value)}
-                  placeholder="검색"
+                  placeholder="이름·문항 내용 검색"
                   className="w-full text-xs pl-7 pr-2 py-1.5 border border-border rounded-md focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground"
                 />
               </div>
@@ -189,43 +180,32 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
                   {bankSearch.trim() ? '검색 결과가 없습니다' : '등록된 문제모음이 없습니다'}
                 </p>
               ) : (
-                orderedCourses.map(course => {
-                  const list = courseGroups[course] || []
-                  if (list.length === 0) return null
-                  const [code, ...rest] = course.split(' ')
-                  const courseName = rest.join(' ')
+                filteredBanks.map(b => {
+                  const isChecked = selectedBankIds.has(b.id)
+                  const count = getBankQuestions(b.id).length
                   return (
-                    <div key={course}>
-                      <div className="px-3 py-1.5 flex items-center gap-1.5 bg-secondary/60 border-b border-border/60">
-                        <span className="text-[10px] font-semibold text-muted-foreground bg-white px-1 py-0.5 rounded">{code}</span>
-                        <span className="text-[11px] font-semibold text-secondary-foreground truncate">{courseName}</span>
+                    <label
+                      key={b.id}
+                      className={cn(
+                        'flex items-center gap-2 px-3 py-2 text-xs cursor-pointer transition-colors border-l-2',
+                        isChecked
+                          ? 'border-l-primary bg-accent font-medium text-primary'
+                          : 'border-l-transparent text-secondary-foreground hover:bg-secondary/40'
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleBank(b.id)}
+                        className="accent-primary shrink-0"
+                      />
+                      <DiffBadge difficulty={b.difficulty} />
+                      <div className="flex-1 min-w-0">
+                        <span className="truncate block">{b.name}</span>
+                        {b.course && <span className="text-[10px] text-muted-foreground truncate block">{b.course}</span>}
                       </div>
-                      {list.map(b => {
-                        const isChecked = selectedBankIds.has(b.id)
-                        const count = getBankQuestions(b.id).length
-                        return (
-                          <label
-                            key={b.id}
-                            className={cn(
-                              'flex items-center gap-2 px-3 py-2 text-xs cursor-pointer transition-colors border-l-2',
-                              isChecked
-                                ? 'border-l-primary bg-accent font-medium text-primary'
-                                : 'border-l-transparent text-secondary-foreground hover:bg-secondary/40'
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => toggleBank(b.id)}
-                              className="accent-primary shrink-0"
-                            />
-                            <DiffBadge difficulty={b.difficulty} />
-                            <span className="truncate flex-1">{b.name}</span>
-                            <span className="text-[10px] text-muted-foreground shrink-0">{count}</span>
-                          </label>
-                        )
-                      })}
-                    </div>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{count}</span>
+                    </label>
                   )
                 })
               )}
@@ -241,57 +221,61 @@ export default function QuestionBankModal({ open, onOpenChange, onAdd, added, cu
             ) : (
               <>
                 {/* 필터 영역 */}
-                <div className="px-3 sm:px-5 pt-3 pb-3 space-y-2 shrink-0 border-b border-border">
+                <div className="px-3 sm:px-5 pt-3 pb-2.5 space-y-2.5 shrink-0 border-b border-border">
                   <div className="relative">
-                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <input
                       type="text"
                       value={search}
                       onChange={e => { setSearch(e.target.value); setVisibleCount(20) }}
                       placeholder="문항 내용 검색"
-                      className="w-full text-[14px] pl-9 pr-3 py-1.5 focus:outline-none bg-secondary border border-border rounded text-foreground"
+                      className="w-full text-sm pl-9 pr-3 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all text-foreground"
                     />
                   </div>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {filtered.length > 0 && (
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={allChecked}
-                          ref={el => { if (el) el.indeterminate = someChecked && !allChecked }}
-                          onChange={toggleAll}
-                          className="rounded accent-primary"
-                          style={{ width: 14, height: 14 }}
-                        />
-                        <span className="text-xs font-medium text-foreground">전체</span>
-                      </label>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <DropdownSelect
-                        value={filterType}
-                        onChange={v => { setFilterType(v); setVisibleCount(20) }}
-                        filterMode
-                        options={[
-                          { value: 'all', label: '모든 유형' },
-                          ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
-                        ]}
-                      />
-                      <DropdownSelect
-                        value={filterDifficulty}
-                        onChange={v => { setFilterDifficulty(v); setVisibleCount(20) }}
-                        filterMode
-                        options={[
-                          { value: 'all', label: '모든 난이도' },
-                          { value: '', label: '미설정' },
-                          { value: 'high', label: '상' },
-                          { value: 'medium', label: '중' },
-                          { value: 'low', label: '하' },
-                        ]}
-                      />
-                    </div>
-                    <span className="text-xs ml-auto text-muted-foreground">총 {filtered.length}개</span>
+                  <div className="flex items-center gap-2">
+                    <DropdownSelect
+                      value={filterType}
+                      onChange={v => { setFilterType(v); setVisibleCount(20) }}
+                      filterMode
+                      options={[
+                        { value: 'all', label: '모든 유형' },
+                        ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
+                      ]}
+                    />
+                    <DropdownSelect
+                      value={filterDifficulty}
+                      onChange={v => { setFilterDifficulty(v); setVisibleCount(20) }}
+                      filterMode
+                      options={[
+                        { value: 'all', label: '모든 난이도' },
+                        { value: '', label: '미설정' },
+                        { value: 'high', label: '상' },
+                        { value: 'medium', label: '중' },
+                        { value: 'low', label: '하' },
+                      ]}
+                    />
+                    <span className="text-xs ml-auto text-muted-foreground tabular-nums">총 {filtered.length}개</span>
                   </div>
                 </div>
+
+                {/* 전체 선택 헤더 */}
+                {filtered.length > 0 && (
+                  <div className="px-3 sm:px-5 py-2 shrink-0 border-b border-border bg-secondary/30">
+                    <label className="flex items-center gap-2 cursor-pointer w-fit">
+                      <input
+                        type="checkbox"
+                        checked={allChecked}
+                        ref={el => { if (el) el.indeterminate = someChecked && !allChecked }}
+                        onChange={toggleAll}
+                        className="rounded accent-primary"
+                        style={{ width: 14, height: 14 }}
+                      />
+                      <span className="text-xs font-medium text-secondary-foreground">
+                        전체 선택{checked.size > 0 ? ` · ${checked.size}개 선택됨` : ''}
+                      </span>
+                    </label>
+                  </div>
+                )}
 
                 {/* 문항 목록 */}
                 <div className="flex-1 overflow-y-auto px-3 sm:px-5 pt-2 pb-3 space-y-1.5" onScroll={handleScroll}>
