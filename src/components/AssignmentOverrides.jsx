@@ -100,9 +100,6 @@ export default function AssignmentOverrides({ assignments, onChange }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">
-        특정 학생 또는 학과(그룹)에 기본 응시 기간과 다른 마감일 또는 열람 기간을 개별 설정합니다.
-      </p>
       {assignments.map((a, idx) => {
         const usedStudents = new Set()
         assignments.forEach(other => {

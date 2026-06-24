@@ -298,17 +298,17 @@ export default function QuizEdit() {
     }
   }
 
-  // 마감 처리된 퀴즈에서 마감일을 미래로 변경하면 자동 재오픈 (status: closed → open).
+  // 마감/채점 처리된 퀴즈에서 마감일을 미래로 변경하면 자동 재오픈 (status: closed/grading → open).
   // 효과적인 마감 시점(allowLateSubmit + lateSubmitDeadline 우선 / dueDate + grace) 이 미래일 때만 전환.
   const computeNextStatus = () => {
-    if (quiz.status !== 'closed') return quiz.status
+    if (quiz.status !== 'closed' && quiz.status !== 'grading') return quiz.status
     const synthetic = {
       dueDate: form.dueDate || null,
       allowLateSubmit: form.allowLateSubmit,
       lateSubmitDeadline: form.allowLateSubmit ? form.lateSubmitDeadline : null,
       gracePeriod: form.gracePeriod,
     }
-    return isDeadlinePassed(synthetic) ? 'closed' : 'open'
+    return isDeadlinePassed(synthetic) ? quiz.status : 'open'
   }
 
   const buildUpdateBody = (statusOverride) => ({
@@ -416,6 +416,8 @@ export default function QuizEdit() {
       const badIps = getInvalidIpTokens(form.ipRestriction)
       if (badIps.length) errors.push(`허용 IP 형식이 올바르지 않습니다: ${badIps.join(', ')}`)
     }
+    // XQ-D-02 R-011: 응시자 있는 퀴즈는 비공개 전환 차단
+    if (submittedCount > 0 && !form.visible) errors.push('응시자가 있어 비공개로 전환할 수 없습니다')
     return errors
   }
 
@@ -436,7 +438,7 @@ export default function QuizEdit() {
 
   const doSave = async (statusOverride) => {
     const nextStatus = statusOverride ?? computeNextStatus()
-    const reopened = nextStatus === 'open' && quiz.status === 'closed'
+    const reopened = nextStatus === 'open' && (quiz.status === 'closed' || quiz.status === 'grading')
     try {
       if (form.scorePolicy !== quiz.scorePolicy) await recalculateScorePolicy(quiz.id, form.scorePolicy)
       await updateQuiz(quiz.id, buildUpdateBody(nextStatus))
@@ -454,7 +456,7 @@ export default function QuizEdit() {
         localStorage.setItem('xnq_questions_modified', JSON.stringify(map))
       } catch { /* ignore */ }
     }
-    const reopenMsg = reopened ? ' 마감 처리된 퀴즈가 다시 공개되었습니다.' : ''
+    const reopenMsg = reopened ? ' 응시 기간이 연장되어 퀴즈가 다시 응시 가능 상태로 전환되었습니다.' : ''
     sessionStorage.setItem('xnq_toast', `저장되었습니다.${reopenMsg}`)
     navigate(returnTo)
   }
@@ -474,7 +476,7 @@ export default function QuizEdit() {
         {/* 탭은 unmount 하지 않고 CSS 로만 가린다 — 인라인 편집기의 작성 중 내용을 보존하기 위함 */}
         <div className="pt-5">
           <div className={tab === 'info' ? '' : 'hidden'}>
-            <InfoTab form={form} set={set} quizStatus={quiz?.status} courseKey={quiz?.course} />
+            <InfoTab form={form} set={set} quizStatus={quiz?.status} courseKey={quiz?.course} submittedCount={submittedCount} />
           </div>
           <div className={tab === 'questions' ? '' : 'hidden'}>
             <QuestionsTab
@@ -547,8 +549,9 @@ export default function QuizEdit() {
   )
 }
 
-function InfoTab({ form, set, quizStatus, courseKey }) {
+function InfoTab({ form, set, quizStatus, courseKey, submittedCount = 0 }) {
   const isDraft = quizStatus === 'draft'
+  const hasTakers = submittedCount > 0 // 응시자 있으면 비공개 전환 차단 (XQ-D-02 R-011)
   return (
     <div className="space-y-3">
       <Section title="시험 유형">
@@ -793,10 +796,13 @@ function InfoTab({ form, set, quizStatus, courseKey }) {
         <Toggle
           checked={form.visible}
           onChange={v => set('visible', v)}
+          disabled={hasTakers && form.visible}
           label="학생에게 퀴즈 공개"
-          description={isDraft
-            ? '공개 시 저장 후 학생이 즉시 응시할 수 있습니다. 임시저장은 비공개 상태에서만 가능합니다.'
-            : '비공개 시 학생 화면에 퀴즈가 표시되지 않습니다.'}
+          description={hasTakers && form.visible
+            ? '이미 응시자가 있어 비공개로 전환할 수 없습니다.'
+            : isDraft
+              ? '공개 시 저장 후 학생이 즉시 응시할 수 있습니다. 임시저장은 비공개 상태에서만 가능합니다.'
+              : '비공개 시 학생 화면에 퀴즈가 표시되지 않습니다.'}
         />
       </Section>
     </div>

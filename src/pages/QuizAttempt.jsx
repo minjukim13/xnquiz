@@ -481,8 +481,9 @@ export default function QuizAttempt() {
     )
   }
 
-  // 액세스 코드 게이트 (XQ-D-09 R-001) — 코드 설정 시 응시 진입 전 코드 입력 요구. 재진입(복원) 시 생략
-  const needsAccessCode = !isPreview && !submitted && !restored && !!quiz.accessCode && !accessCodeOk
+  // 액세스 코드 게이트 (XQ-D-09 R-001) — 코드 설정 시 응시 진입 전 코드 입력 요구.
+  // 재진입(이어서 응시) 시에도 코드를 재확인한다. accessCodeOk(이번 세션 통과)면 통과.
+  const needsAccessCode = !isPreview && !submitted && !!quiz.accessCode && !accessCodeOk
   if (needsAccessCode) {
     const submitCode = () => {
       if (codeInput.trim() === String(quiz.accessCode).trim()) {
@@ -945,10 +946,10 @@ function QuestionCard({ question, index, value, onChange, disabled, studentId })
           <RichTextRenderer html={question.text} className="text-sm leading-relaxed mb-4 block" />
         )}
 
-        {/* 객관식 / 참거짓 */}
+        {/* 객관식 / 참거짓 (문제은행 문항은 choices 대신 options 를 쓰므로 흡수, 참거짓은 기본 보기 제공) */}
         {(question.type === 'multiple_choice' || question.type === 'true_false') && (
           <div className="space-y-2">
-            {question.choices.map((choice, i) => (
+            {(question.choices ?? question.options ?? (question.type === 'true_false' ? ['참', '거짓'] : [])).map((choice, i) => (
               <label
                 key={i}
                 className={cn(

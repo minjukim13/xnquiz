@@ -1912,9 +1912,17 @@ function gradeByQuestion(question, answer) {
   const norm = (s) => _normalizeAnswer(s, gs)
 
   switch (question.type) {
-    case 'multiple_choice':
-    case 'true_false':
-      return norm(answer) === norm(ca) ? pts : 0
+    case 'multiple_choice': {
+      // 문제은행 문항은 correctAnswer 가 보기 인덱스(number)일 수 있음 → 보기 값으로 변환
+      const opts = question.choices || question.options || []
+      const correct = typeof ca === 'number' ? opts[ca] : ca
+      return norm(answer) === norm(correct) ? pts : 0
+    }
+    case 'true_false': {
+      // 문제은행 문항은 correctAnswer 가 boolean 일 수 있음 → '참'/'거짓' 으로 변환
+      const correct = typeof ca === 'boolean' ? (ca ? '참' : '거짓') : ca
+      return norm(answer) === norm(correct) ? pts : 0
+    }
     case 'short_answer': {
       const accepted = Array.isArray(ca) ? ca : [ca]
       return accepted.some(a => norm(answer) === norm(a)) ? pts : 0
