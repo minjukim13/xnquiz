@@ -173,7 +173,7 @@ export function isValid(type, form) {
   if (!Number.isFinite(pointsNum) || pointsNum < 0) return false
   switch (type) {
     case 'multiple_choice':         return form.options.filter(o => richTextHasContent(o)).length >= 2
-    case 'multiple_answers':        return form.options.filter(o => richTextHasContent(o)).length >= 2 && form.correctIdxs.length >= 1
+    case 'multiple_answers':        return form.options.filter(o => richTextHasContent(o)).length >= 3 && form.correctIdxs.length >= 1
     case 'short_answer':            return form.acceptedAnswers.some(a => a.trim())
     case 'numerical':               return form.correctNum !== '' && !isNaN(Number(form.correctNum))
     case 'formula': {
@@ -490,7 +490,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
               </div>
             ))}
           </div>
-          {form.options.length < 6 && (
+          {form.options.length < 10 && (
             <AddBtn
               onClick={() => setForm(prev => ({
                 ...prev,
@@ -562,7 +562,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
                     <RichTextEditor value={opt} placeholder={`보기 ${i + 1}`}
                       minHeight="min-h-[44px]"
                       onChange={val => { const n = [...form.options]; n[i] = val; upd('options', n) }}
-                      onDelete={form.options.length > 2 ? () => {
+                      onDelete={form.options.length > 3 ? () => {
                         setForm(prev => {
                           const newOptions = prev.options.filter((_, j) => j !== i)
                           const newComments = (prev.optionComments || []).filter((_, j) => j !== i)
@@ -584,7 +584,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
               )
             })}
           </div>
-          {form.options.length < 8 && (
+          {form.options.length < 10 && (
             <AddBtn
               onClick={() => setForm(prev => ({
                 ...prev,
@@ -673,7 +673,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
               </div>
             ))}
           </div>
-          {form.pairs.length < 8 && <AddBtn onClick={() => upd('pairs', [...form.pairs, { left: '', right: '' }])} label="항목 추가" />}
+          {form.pairs.length < 10 && <AddBtn onClick={() => upd('pairs', [...form.pairs, { left: '', right: '' }])} label="항목 추가" />}
 
           {/* 오답 보기 */}
           <div className="border-t border-border pt-3">

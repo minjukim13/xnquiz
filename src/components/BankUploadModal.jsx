@@ -176,7 +176,7 @@ function SelectStep({ file, fileInputRef, fileError, dragOver, onFileChange, onD
   return (
     <>
       <div className="rounded-md bg-accent border border-accent p-3 text-xs text-secondary-foreground space-y-1">
-        <p className="font-medium text-foreground">엑셀(.xlsx, .xls) 또는 CSV 파일을 업로드해 주세요.</p>
+        <p className="font-medium text-foreground">엑셀(.xlsx, .xls) 파일을 업로드해 주세요.</p>
         <p>지원 유형: {SUPPORTED_TYPE_LABEL}</p>
         <p className="text-muted-foreground">그 외 유형(연결형, 빈칸 채우기 등)은 [문항 구성] 화면에서 생성해 주세요.</p>
       </div>
@@ -206,7 +206,7 @@ function SelectStep({ file, fileInputRef, fileError, dragOver, onFileChange, onD
         <input
           ref={fileInputRef}
           type="file"
-          accept=".xlsx,.xls,.csv"
+          accept=".xlsx,.xls"
           className="hidden"
           onChange={onFileChange}
         />

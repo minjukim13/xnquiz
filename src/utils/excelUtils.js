@@ -345,6 +345,12 @@ export function parseExcelOrCsv(file, bankDifficulty = '') {
       return
     }
 
+    // XQ-D-03 R-010: 엑셀(.xlsx/.xls) 전용. CSV는 인코딩/파싱 모호성으로 차단.
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      resolve({ error: 'CSV는 지원하지 않습니다. 엑셀(.xlsx, .xls) 파일을 업로드해 주세요.' })
+      return
+    }
+
     const isCsv = file.name.toLowerCase().endsWith('.csv')
     const reader = new FileReader()
     reader.onload = (ev) => {

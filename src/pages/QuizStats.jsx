@@ -228,8 +228,8 @@ function computeItemMetrics(questions, students) {
 
 function discriminationGrade(value) {
   if (value == null) return { label: '-', cls: 'text-muted-foreground' }
-  if (value >= 0.4) return { label: '양호', cls: 'text-success-foreground' }
-  if (value >= 0.2) return { label: '주의', cls: 'text-warning-foreground' }
+  if (value >= 0.3) return { label: '양호', cls: 'text-success-foreground' }
+  if (value >= 0.1) return { label: '주의', cls: 'text-warning-foreground' }
   return { label: '재검토', cls: 'text-destructive' }
 }
 
@@ -1014,11 +1014,11 @@ function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               변별도는 점수가 높은 학생과 낮은 학생을 얼마나 잘 구분하는지의 지표입니다 (점이연 상관계수, -1~1).
               <span className="ml-1">
-                <span className="text-success-foreground font-medium">≥0.4 양호</span>
+                <span className="text-success-foreground font-medium">≥0.3 양호</span>
                 <span className="mx-1 text-border">·</span>
-                <span className="text-warning-foreground font-medium">0.2~0.4 주의</span>
+                <span className="text-warning-foreground font-medium">0.1~0.3 주의</span>
                 <span className="mx-1 text-border">·</span>
-                <span className="text-destructive font-medium">&lt;0.2 재검토</span>
+                <span className="text-destructive font-medium">&lt;0.1 재검토</span>
               </span>
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">
