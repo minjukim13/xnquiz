@@ -120,7 +120,7 @@ function QuestionCard({ question, student, studentIdx, quizId, pendingScore, onS
               type="number"
               value={displayScore}
               onChange={e => onScoreChange(question.id, e.target.value)}
-              placeholder="—"
+              placeholder="-"
               min={0}
               max={question.points}
               step="any"
@@ -307,7 +307,7 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
         <div className="shrink-0 text-right">
           <p className="leading-tight tabular-nums">
             <span className="text-[20px] font-bold text-foreground">
-              {hasScore ? student.score : '—'}
+              {hasScore ? student.score : '-'}
             </span>
             <span className="text-[13px] font-medium text-muted-foreground ml-1">
               / {totalPoints}점

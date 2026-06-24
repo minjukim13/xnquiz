@@ -43,7 +43,7 @@ export default function StudentListItem({ student, selected, onClick }) {
           'shrink-0 tabular-nums leading-tight',
           hasScore ? 'text-sm font-bold text-foreground' : 'text-[11px] font-medium text-muted-foreground'
         )}>
-          {hasScore ? `${student.score}점` : '—'}
+          {hasScore ? `${student.score}점` : '-'}
         </span>
       </div>
     </button>

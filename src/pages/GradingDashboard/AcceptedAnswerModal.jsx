@@ -90,7 +90,7 @@ export default function AcceptedAnswerModal({ question, students, quizId, onClos
     question.acceptedAnswers = [...new Set([...(question.acceptedAnswers ?? []), ...newAnswers])]
 
     showToast?.(affected.length > 0
-      ? `추가 인정 답안 등록 — ${affected.length}명에게 소급 점수가 부여되었습니다`
+      ? `추가 인정 답안 등록: ${affected.length}명에게 소급 점수가 부여되었습니다`
       : '추가 인정 답안이 등록되었습니다 (소급 대상 학생 없음)')
     onApplied?.(affected.length)
   }

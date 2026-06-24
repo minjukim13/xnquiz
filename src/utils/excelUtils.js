@@ -322,7 +322,7 @@ export function downloadQuestionTemplate() {
   const diffHeaders = ['난이도 코드', '한국어 이름', '설명']
   const diffRows = [
     ['high', '상', '고난도 문항 (상위 개념, 응용/분석 수준)'],
-    ['medium', '중', '기본 문항 (핵심 개념 이해 수준) — 기본값'],
+    ['medium', '중', '기본 문항 (핵심 개념 이해 수준, 기본값)'],
     ['low', '하', '입문 문항 (단순 암기, 기초 확인 수준)'],
   ]
   const ws3 = XLSX.utils.aoa_to_sheet([diffHeaders, ...diffRows])

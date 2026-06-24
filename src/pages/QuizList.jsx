@@ -291,8 +291,8 @@ function InstructorQuizList() {
       await reload()
       setShowImportModal(false)
       const msg = imported.length === 1
-        ? `'${imported[0].title}' 가져오기 완료 — 목록에서 편집하세요`
-        : `퀴즈 ${imported.length}개 가져오기 완료 — 임시저장 상태로 추가되었습니다`
+        ? `'${imported[0].title}' 가져오기 완료. 목록에서 편집하세요`
+        : `퀴즈 ${imported.length}개 가져오기 완료. 임시저장 상태로 추가되었습니다`
       showToast(msg)
     } catch (err) {
       console.error('[QuizList] import 실패', err)
@@ -607,7 +607,7 @@ function InlineStat({ label, value, cls, hideOnMobile = false }) {
   return (
     <div className={cn('flex-col items-center gap-1 min-w-[44px] sm:min-w-[56px]', hideOnMobile ? 'hidden sm:flex' : 'flex')}>
       <p className={cn('text-[14px] sm:text-[15px] font-bold leading-none whitespace-nowrap', cls || 'text-foreground')}>{value}</p>
-      <p className="text-[11px] text-muted-foreground leading-none whitespace-nowrap">{label}</p>
+      {label && <p className="text-[11px] text-muted-foreground leading-none whitespace-nowrap">{label}</p>}
     </div>
   )
 }
@@ -1176,7 +1176,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
             </div>
           ) : (
             <InlineStat
-              label="내 점수"
+              label={reveal.released ? '내 점수' : ''}
               value={reveal.released ? `${reveal.totalScore}/${reveal.totalPossible}점` : reveal.label}
               cls={reveal.released ? 'text-primary' : 'text-muted-foreground'}
             />

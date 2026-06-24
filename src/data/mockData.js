@@ -54,6 +54,10 @@ export const QUIZ_TYPES = {
 
 // ── mockQuizzes: 초기 mock 데이터 + localStorage 복원 ──
 const QUIZ_STORAGE_KEY = 'xnq_quizzes'
+// 시드 퀴즈(정적 mock)를 바꾸면 이 버전을 올린다. 버전이 바뀌면 localStorage 에 박제된
+// 정적 mock 수정본을 버리고 새 시드를 적용한다(사용자가 직접 만든 퀴즈는 보존).
+const QUIZ_SEED_VERSION = '2026-06-24.2'
+const QUIZ_VERSION_KEY = 'xnq_quizzes_seed_version'
 const _staticQuizIds = new Set()
 
 export const mockQuizzes = [
@@ -118,8 +122,8 @@ export const mockQuizzes = [
     status: 'open',
     visible: true,
     startDate: '2026-04-06 09:00',
-    dueDate: '2026-04-09 23:59',
-    lockDate: '2026-04-30 23:59',
+    dueDate: '2026-12-31 23:59',
+    lockDate: '2027-01-31 23:59',
     week: 4,
     session: 1,
     totalStudents: 65,
@@ -134,7 +138,7 @@ export const mockQuizzes = [
     scoreRevealScope: 'with_answer',
     scoreRevealTiming: 'after_due',
     allowLateSubmit: true,
-    lateSubmitDeadline: '2026-04-20T23:59',
+    lateSubmitDeadline: '2027-01-15T23:59',
   },
   {
     // draft / 성적 비공개
@@ -615,10 +619,12 @@ mockQuizzes.forEach(q => _staticQuizIds.add(q.id))
 
 // localStorage에서 사용자가 추가/수정한 퀴즈 복원
 try {
+  const seedChanged = localStorage.getItem(QUIZ_VERSION_KEY) !== QUIZ_SEED_VERSION
   const raw = localStorage.getItem(QUIZ_STORAGE_KEY)
   if (raw) {
-    const saved = JSON.parse(raw)
-    // 정적 mock 퀴즈의 수정사항 반영
+    let saved = JSON.parse(raw)
+    // 시드가 바뀌었으면 정적 mock 수정본은 버리고 새 시드를 적용한다 (사용자 생성 퀴즈만 보존)
+    if (seedChanged) saved = saved.filter(sq => !_staticQuizIds.has(sq.id))
     saved.forEach(sq => {
       const idx = mockQuizzes.findIndex(q => q.id === sq.id)
       if (idx !== -1) {
@@ -627,6 +633,11 @@ try {
         mockQuizzes.push(sq)
       }
     })
+  }
+  if (seedChanged) {
+    localStorage.setItem(QUIZ_VERSION_KEY, QUIZ_SEED_VERSION)
+    // 새 시드(정적 mock)를 다시 저장해 다음 로드부터 일관 유지
+    _persistQuizzes()
   }
 } catch { /* localStorage 파싱 실패 시 기본 mock 사용 */ }
 

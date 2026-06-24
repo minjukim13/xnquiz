@@ -24,6 +24,10 @@ import {
   loadAttemptSession,
   saveAttemptSession,
   clearAttemptSession,
+  buildAttemptSnapshotKey,
+  loadAttemptSnapshot,
+  saveAttemptSnapshot,
+  clearAttemptSnapshot,
   AUTOSAVE_INTERVAL_MS,
 } from '@/utils/autosave'
 import {
@@ -68,9 +72,13 @@ export default function QuizAttempt() {
     return `${currentStudent?.id ?? 'anon'}_${id}`
   }, [isPreview, currentStudent?.id, id])
 
+  // 응시본(동결된 문제지) 키 — 첫 문항 진입 시 동결되어 저장된다 (D-09 R-008, D-02 R-011).
+  const snapshotKey = !isPreview ? buildAttemptSnapshotKey(id, currentStudent?.id) : null
+  // 동결본이 있으면 live 문항에서 재파생하지 않고 그대로 사용해 교수자 수정·재추첨 영향을 차단한다.
+  const [frozenQuestions, setFrozenQuestions] = useState(() => loadAttemptSnapshot(snapshotKey))
   const questions = useMemo(
-    () => expandRandomGroups(rawItems, seedKey, getBankQuestions),
-    [rawItems, seedKey, getBankQuestions]
+    () => frozenQuestions ?? expandRandomGroups(rawItems, seedKey, getBankQuestions),
+    [frozenQuestions, rawItems, seedKey, getBankQuestions]
   )
 
   useEffect(() => {
@@ -136,6 +144,31 @@ export default function QuizAttempt() {
   const [lockConfirm, setLockConfirm] = useState(false)
   const [blankSkipConfirm, setBlankSkipConfirm] = useState(false)
   const [startNotice, setStartNotice] = useState(() => lockAfter && !restored && !isPreview)
+
+  // 게이트 판정 (응시 진입 가드 + 응시본 동결 시점 공용 기준)
+  const hasSecurity = !isPreview && (quiz?.securityTrustLock || quiz?.securityAiProctoring || quiz?.securityRequireConsent)
+  const needsAccessCode = !isPreview && !submitted && !!quiz?.accessCode && !accessCodeOk
+
+  // 첫 문항 진입 = 모든 게이트 통과. 응시본 동결 시점이자 "응시자" 판정 기준 (D-02 R-011, D-09 R-008).
+  const blockedBeforeStart = !isPreview && quiz?.status === 'open' && !!quiz?.startDate && new Date() < new Date(quiz.startDate)
+  const blockedLate = !isPreview && quiz?.status === 'open' && isLateSubmission(quiz) &&
+    (!quiz?.allowLateSubmit || (!!quiz?.lateSubmitDeadline && new Date() > new Date(quiz.lateSubmitDeadline)))
+  const atFirstQuestion =
+    loaded && !isPreview && !submitted &&
+    !!quiz && quiz.status === 'open' && questions.length > 0 &&
+    !blockedBeforeStart && !blockedLate &&
+    !needsAccessCode &&
+    !(hasSecurity && !consentGiven && !restored) &&
+    !startNotice
+
+  // 응시본 동결 (D-09 R-008, D-02 R-011): 첫 문항 진입 시 현재 출제본을 깊은 복사로 동결·저장.
+  // 이후 교수자 문항 수정·재추첨이 응시 중/재진입 화면·채점에 영향을 주지 않는다. 미리보기는 동결하지 않는다.
+  useEffect(() => {
+    if (!atFirstQuestion || frozenQuestions || !snapshotKey) return
+    const snapshot = JSON.parse(JSON.stringify(questions))
+    setFrozenQuestions(snapshot)
+    saveAttemptSnapshot(snapshotKey, snapshot)
+  }, [atFirstQuestion, frozenQuestions, snapshotKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Autosave: 30초 주기 + 페이지 이탈 시 즉시 저장 (dirty 변경이 있을 때만)
   const dirtyRef = useRef(false)
@@ -320,6 +353,8 @@ export default function QuizAttempt() {
       autoSubmitted: auto,
       isLate: isLate || false,
       scorePolicy: quiz?.scorePolicy ?? '최고 점수 유지',
+      // 응시본(동결된 문제지) 동봉 — 결과 화면·재채점이 이 학생이 받은 문항 기준으로 동작 (D-09 R-006·R-008)
+      quizSnapshot: questions,
     }
 
     if (!isPreview) {
@@ -376,6 +411,7 @@ export default function QuizAttempt() {
         }
       }
       clearAttemptSession(sessionKey)
+      clearAttemptSnapshot(snapshotKey)
       dirtyRef.current = false
       if (activityKey) appendActivityLog(activityKey, { type: ACTIVITY_TYPES.SUBMIT, auto })
     }
@@ -483,7 +519,7 @@ export default function QuizAttempt() {
 
   // 액세스 코드 게이트 (XQ-D-09 R-001) — 코드 설정 시 응시 진입 전 코드 입력 요구.
   // 재진입(이어서 응시) 시에도 코드를 재확인한다. accessCodeOk(이번 세션 통과)면 통과.
-  const needsAccessCode = !isPreview && !submitted && !!quiz.accessCode && !accessCodeOk
+  // needsAccessCode 는 상단에서 hoist 됨 (응시본 동결 게이트와 공용).
   if (needsAccessCode) {
     const submitCode = () => {
       if (codeInput.trim() === String(quiz.accessCode).trim()) {
@@ -523,8 +559,7 @@ export default function QuizAttempt() {
     )
   }
 
-  // 보안/감독 게이트 — 보안 옵션 활성 시 응시 진입 직전 안내 + 동의
-  const hasSecurity = !isPreview && (quiz.securityTrustLock || quiz.securityAiProctoring || quiz.securityRequireConsent)
+  // 보안/감독 게이트 — 보안 옵션 활성 시 응시 진입 직전 안내 + 동의 (hasSecurity 는 상단 hoist)
   if (hasSecurity && !consentGiven && !submitted && !restored) {
     return (
       <PreflightGate
@@ -619,7 +654,7 @@ export default function QuizAttempt() {
                 ) : timeRemaining === 0 && quiz?.disableAutoSubmit ? (
                   <div className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-destructive-soft text-destructive border border-red-200">
                     <Clock size={13} />
-                    시간 종료 — {formatTime(graceRemaining ?? 0)} 내 제출
+                    시간 종료, {formatTime(graceRemaining ?? 0)} 내 제출
                   </div>
                 ) : (
                   <div className={cn(
@@ -774,7 +809,6 @@ export default function QuizAttempt() {
           result={result}
           quiz={quiz}
           questions={questions}
-          quizId={id}
           onClose={() => navigate('/')}
           onViewDetail={() => navigate(`/quiz/${id}`)}
         />
@@ -1181,7 +1215,7 @@ function QuestionCard({ question, index, value, onChange, disabled, studentId })
   )
 }
 
-function ResultModal({ result, quiz, questions, quizId, onClose, onViewDetail }) {
+function ResultModal({ result, quiz, questions, onClose, onViewDetail }) {
   const autoTotal = result.totalAutoScore
   const totalPoints = questions.reduce((s, q) => s + (q.points || 0), 0)
   const autoMax = totalPoints > 0 ? totalPoints : result.totalPossibleAuto
@@ -1202,7 +1236,7 @@ function ResultModal({ result, quiz, questions, quizId, onClose, onViewDetail })
           </div>
           <DialogHeader>
             <DialogTitle className="!text-2xl !font-semibold !leading-tight text-foreground text-center">
-              {result.autoSubmitted ? '시간 종료 — 자동 제출되었습니다' : '제출 완료!'}
+              {result.autoSubmitted ? '시간이 종료되어 자동 제출되었습니다' : '제출 완료!'}
             </DialogTitle>
           </DialogHeader>
           <p className="text-[13px] text-muted-foreground mt-1.5">{result.submittedAt}</p>
