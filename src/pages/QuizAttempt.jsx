@@ -104,6 +104,12 @@ export default function QuizAttempt() {
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
   const [consentGiven, setConsentGiven] = useState(false)
+  // XQ-D-09 R-001: 액세스 코드 게이트
+  const [accessCodeOk, setAccessCodeOk] = useState(false)
+  const [codeInput, setCodeInput] = useState('')
+  const [codeError, setCodeError] = useState(false)
+  // XQ-D-09 R-005: 제출 확인 다이얼로그
+  const [submitConfirm, setSubmitConfirm] = useState(false)
   const [startedAt] = useState(() => restored?.startedAt ?? Date.now())
   const computeRemaining = () => {
     if (noTimeLimit) return null
@@ -475,6 +481,47 @@ export default function QuizAttempt() {
     )
   }
 
+  // 액세스 코드 게이트 (XQ-D-09 R-001) — 코드 설정 시 응시 진입 전 코드 입력 요구. 재진입(복원) 시 생략
+  const needsAccessCode = !isPreview && !submitted && !restored && !!quiz.accessCode && !accessCodeOk
+  if (needsAccessCode) {
+    const submitCode = () => {
+      if (codeInput.trim() === String(quiz.accessCode).trim()) {
+        setAccessCodeOk(true)
+        setCodeError(false)
+      } else {
+        setCodeError(true)
+      }
+    }
+    return (
+      <>
+        <div className="max-w-md mx-auto py-16">
+          <div className="text-center mb-6">
+            <Lock size={36} className="mx-auto mb-3 text-muted-foreground/50" />
+            <p className="text-base font-semibold mb-1 text-secondary-foreground">액세스 코드 입력</p>
+            <p className="text-sm text-muted-foreground">이 퀴즈는 응시하려면 액세스 코드가 필요합니다</p>
+          </div>
+          <input
+            type="text"
+            value={codeInput}
+            onChange={e => { setCodeInput(e.target.value); setCodeError(false) }}
+            onKeyDown={e => { if (e.key === 'Enter') submitCode() }}
+            placeholder="액세스 코드"
+            autoFocus
+            className={cn(
+              'w-full text-sm px-3.5 py-2.5 rounded-md border bg-white focus:outline-none focus:ring-2 transition-all',
+              codeError ? 'border-destructive focus:ring-red-100 focus:border-destructive' : 'border-border focus:ring-blue-100 focus:border-primary'
+            )}
+          />
+          {codeError && <p className="text-xs mt-1.5 text-destructive">코드가 올바르지 않습니다</p>}
+          <div className="flex gap-2 mt-5">
+            <Button variant="outline" onClick={() => navigate('/')} className="flex-1">퀴즈 목록으로</Button>
+            <Button onClick={submitCode} disabled={!codeInput.trim()} className="flex-1">확인</Button>
+          </div>
+        </div>
+      </>
+    )
+  }
+
   // 보안/감독 게이트 — 보안 옵션 활성 시 응시 진입 직전 안내 + 동의
   const hasSecurity = !isPreview && (quiz.securityTrustLock || quiz.securityAiProctoring || quiz.securityRequireConsent)
   if (hasSecurity && !consentGiven && !submitted && !restored) {
@@ -675,7 +722,7 @@ export default function QuizAttempt() {
                     <ChevronRight size={14} />
                   </Button>
                 ) : (
-                  <Button onClick={() => handleSubmit(false)}>
+                  <Button onClick={() => setSubmitConfirm(true)}>
                     <Send size={14} />
                     제출하기
                   </Button>
@@ -710,7 +757,7 @@ export default function QuizAttempt() {
                     ? `${questions.length - answeredCount}개 문항이 미답변 상태입니다.`
                     : '모든 문항에 답변했습니다.'}
                 </p>
-                <Button onClick={() => handleSubmit(false)}>
+                <Button onClick={() => setSubmitConfirm(true)}>
                   <Send size={14} />
                   제출하기
                 </Button>
@@ -739,6 +786,22 @@ export default function QuizAttempt() {
           onClose={() => setAlertDialog(null)}
         />
       )}
+      {submitConfirm && (() => {
+        const unanswered = questions.filter(q => q.type !== 'text').length - answeredCount
+        return (
+          <ConfirmDialog
+            title="퀴즈를 제출할까요?"
+            message={unanswered > 0
+              ? `아직 답변하지 않은 문항이 ${unanswered}개 있습니다.\n제출 후에는 답변을 수정할 수 없습니다.`
+              : '제출 후에는 답변을 수정할 수 없습니다.'}
+            confirmLabel="제출하기"
+            cancelLabel="돌아가기"
+            confirmDanger={unanswered > 0}
+            onConfirm={() => { setSubmitConfirm(false); handleSubmit(false) }}
+            onCancel={() => setSubmitConfirm(false)}
+          />
+        )
+      })()}
       {lockConfirm && (
         <ConfirmDialog
           title="다음 문항으로 이동"

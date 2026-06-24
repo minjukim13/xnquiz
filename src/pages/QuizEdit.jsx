@@ -15,6 +15,7 @@ import { useRole } from '../context/role'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import AssignmentOverrides from '../components/AssignmentOverrides'
 import { hasDuplicateStudent, sanitizeAssignments } from '../utils/assignments'
+import { getInvalidIpTokens } from '../utils/ipValidation'
 import { htmlToPlainText } from '../components/RichText'
 import { isDeadlinePassed } from '@/utils/deadlineUtils'
 import { cn } from '@/lib/utils'
@@ -411,6 +412,10 @@ export default function QuizEdit() {
     if (!form.unlimitedTimeLimit && form.disableAutoSubmit && !form.lockDate) errors.push('자동 제출 5분 유예 사용 시 이용 종료를 반드시 설정해야 합니다')
     if (questions.length === 0) errors.push('최소 1개 이상의 문항을 추가해주세요')
     if (hasDuplicateStudent(form.assignments)) errors.push('동일한 학생이 여러 추가 기간 설정에 포함되어 있습니다')
+    if (form.accessControlEnabled) {
+      const badIps = getInvalidIpTokens(form.ipRestriction)
+      if (badIps.length) errors.push(`허용 IP 형식이 올바르지 않습니다: ${badIps.join(', ')}`)
+    }
     return errors
   }
 

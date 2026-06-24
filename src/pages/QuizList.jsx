@@ -303,6 +303,11 @@ function InstructorQuizList() {
   const handleToggleVisibility = async (quiz) => {
     if (quiz.status === 'draft') return
     const nextVisible = quiz.visible === false
+    // XQ-D-02 R-011: 응시자가 있으면 비공개(숨기기) 전환 차단
+    if (!nextVisible && (quiz.submitted ?? 0) > 0) {
+      showToast(`'${quiz.title}'은(는) 이미 응시자가 있어 비공개로 전환할 수 없습니다`)
+      return
+    }
     setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, visible: nextVisible } : q))
     try {
       await updateQuiz(quiz.id, { ...quiz, visible: nextVisible })
@@ -468,6 +473,8 @@ function QuizCard({ quiz, onCopy, onDelete, onToggleVisibility }) {
   const isDraft = quiz.status === 'draft'
   // 임시저장은 학생 화면에 노출되지 않으므로 visible 값과 무관하게 항상 비공개로 표시
   const isVisible = !isDraft && quiz.visible !== false
+  const hasTakers = (quiz.submitted ?? 0) > 0
+  const hideBlocked = isVisible && hasTakers // 응시자 있으면 비공개 전환 불가 (XQ-D-02 R-011)
 
   const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
   const stats = getInlineStats(quiz, scheduled)
@@ -547,9 +554,9 @@ function QuizCard({ quiz, onCopy, onDelete, onToggleVisibility }) {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                disabled={isDraft}
-                onClick={() => !isDraft && onToggleVisibility(quiz)}
-                title={isDraft ? '임시저장 상태에선 자동 비공개입니다' : undefined}
+                disabled={isDraft || hideBlocked}
+                onClick={() => !isDraft && !hideBlocked && onToggleVisibility(quiz)}
+                title={isDraft ? '임시저장 상태에선 자동 비공개입니다' : hideBlocked ? '응시자가 있어 비공개로 전환할 수 없습니다' : undefined}
               >
                 {isVisible ? <EyeOff size={14} /> : <Eye size={14} />}
                 {isDraft ? '비공개 (임시저장)' : isVisible ? '학생에게 숨기기' : '학생에게 공개'}

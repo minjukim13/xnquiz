@@ -1,12 +1,14 @@
 import { Section } from './Section'
 import { Toggle } from './Toggle'
 import { Field } from './Field'
+import { getInvalidIpTokens } from '@/utils/ipValidation'
 
 export const DEFAULT_CONSENT_TEXT = `- 응시 중 화면, 웹캠 이미지, 시스템 활동 로그가 본 시험의 부정행위 검증 목적으로 기록됩니다.
 - 수집된 정보는 시험 종료 후 6개월간 보관 후 안전하게 삭제됩니다.
 - 응시 중 다른 응용프로그램 사용/외부 통신은 부정행위로 판단될 수 있습니다.`
 
 export function SecuritySection({ form, set }) {
+  const invalidIps = form.accessControlEnabled ? getInvalidIpTokens(form.ipRestriction) : []
   return (
     <Section title="응시 보안">
       <Toggle
@@ -53,8 +55,12 @@ export function SecuritySection({ form, set }) {
             <p className="text-xs mt-1.5 text-muted-foreground">비워두면 액세스 코드 없이 응시 가능합니다.</p>
           </Field>
           <Field label="접근 가능한 IP 주소">
-            <textarea value={form.ipRestriction} onChange={e => set('ipRestriction', e.target.value)} placeholder={'허용할 IP 주소를 한 줄에 하나씩 입력하세요\n예) 192.168.1.0/24\n    203.0.113.10'} rows={3} className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all resize-none" />
-            <p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP에서 접근 가능합니다. (CIDR 표기법 지원)</p>
+            <textarea value={form.ipRestriction} onChange={e => set('ipRestriction', e.target.value)} placeholder={'허용할 IP 주소를 한 줄에 하나씩 입력하세요\n예) 192.168.1.0/24\n    203.0.113.10'} rows={3} className={`w-full text-sm px-3.5 py-2.5 rounded-md border bg-white focus:outline-none focus:ring-2 transition-all resize-none ${invalidIps.length ? 'border-destructive focus:ring-red-100 focus:border-destructive' : 'border-border focus:ring-blue-100 focus:border-primary'}`} />
+            {invalidIps.length > 0 ? (
+              <p className="text-xs mt-1.5 text-destructive">형식이 올바르지 않은 IP가 있습니다: {invalidIps.join(', ')} (저장하려면 수정해 주세요)</p>
+            ) : (
+              <p className="text-xs mt-1.5 text-muted-foreground">비워두면 모든 IP에서 접근 가능합니다. (CIDR 표기법 지원)</p>
+            )}
           </Field>
         </div>
       )}
