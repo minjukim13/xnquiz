@@ -4,7 +4,7 @@ import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock
 import { Toast } from '@/components/ui/toast'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
-import { getStudentAttempts } from '../data/mockData'
+import { getStudentAttempts, hasAttemptSnapshot } from '../data/mockData'
 import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, updateQuiz, deleteQuiz, listAttempts, isApiMode, listCourses } from '@/lib/data'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
@@ -473,8 +473,9 @@ function QuizCard({ quiz, onCopy, onDelete, onToggleVisibility }) {
   const isDraft = quiz.status === 'draft'
   // 임시저장은 학생 화면에 노출되지 않으므로 visible 값과 무관하게 항상 비공개로 표시
   const isVisible = !isDraft && quiz.visible !== false
-  const hasTakers = (quiz.submitted ?? 0) > 0
-  const hideBlocked = isVisible && hasTakers // 응시자 있으면 비공개 전환 불가 (XQ-D-02 R-011)
+  // XQ-D-02 R-011: 응시본(동결 문제지) 생성 여부 기준. 시드 카운트 + 로컬 실제 응시본 존재를 함께 본다.
+  const hasTakers = (quiz.submitted ?? 0) > 0 || hasAttemptSnapshot(quiz.id)
+  const hideBlocked = isVisible && hasTakers // 응시본 있으면 비공개 전환 불가
 
   const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
   const stats = getInlineStats(quiz, scheduled)

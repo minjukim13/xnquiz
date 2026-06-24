@@ -9,7 +9,7 @@ import InlineQuestionEditor from '../components/InlineQuestionEditor'
 import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { printQuizQuestions } from '../utils/pdfUtils'
-import { QUIZ_TYPES, mockQuizzes, ASSIGNMENT_GROUPS } from '../data/mockData'
+import { QUIZ_TYPES, mockQuizzes, ASSIGNMENT_GROUPS, hasAttemptSnapshot } from '../data/mockData'
 import { getQuiz, getQuizQuestions, setQuizQuestions, updateQuiz, recalculateScorePolicy } from '@/lib/data'
 import { useRole } from '../context/role'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
@@ -235,6 +235,9 @@ export default function QuizEdit() {
   }, [])
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
   const submittedCount = quiz?.submitted || 0
+  // XQ-D-02 R-011: 비공개 전환 차단은 "응시본(동결 문제지) 생성 여부" 기준.
+  // 시드 submitted 카운트 + 로컬 실제 응시본 존재를 함께 본다.
+  const hasTakers = submittedCount > 0 || hasAttemptSnapshot(id)
 
   const initialAssignmentsSnapshot = useMemo(
     () => JSON.stringify(Array.isArray(quiz?.assignments) ? quiz.assignments : []),
@@ -420,8 +423,8 @@ export default function QuizEdit() {
       const badIps = getInvalidIpTokens(form.ipRestriction)
       if (badIps.length) errors.push(`허용 IP 형식이 올바르지 않습니다: ${badIps.join(', ')}`)
     }
-    // XQ-D-02 R-011: 응시자 있는 퀴즈는 비공개 전환 차단
-    if (submittedCount > 0 && !form.visible) errors.push('응시자가 있어 비공개로 전환할 수 없습니다')
+    // XQ-D-02 R-011: 응시본이 생성된 퀴즈는 비공개 전환 차단
+    if (hasTakers && !form.visible) errors.push('응시자가 있어 비공개로 전환할 수 없습니다')
     return errors
   }
 
@@ -480,7 +483,7 @@ export default function QuizEdit() {
         {/* 탭은 unmount 하지 않고 CSS 로만 가린다 — 인라인 편집기의 작성 중 내용을 보존하기 위함 */}
         <div className="pt-5">
           <div className={tab === 'info' ? '' : 'hidden'}>
-            <InfoTab form={form} set={set} quizStatus={quiz?.status} courseKey={quiz?.course} submittedCount={submittedCount} />
+            <InfoTab form={form} set={set} quizStatus={quiz?.status} courseKey={quiz?.course} hasTakers={hasTakers} />
           </div>
           <div className={tab === 'questions' ? '' : 'hidden'}>
             <QuestionsTab
@@ -553,9 +556,8 @@ export default function QuizEdit() {
   )
 }
 
-function InfoTab({ form, set, quizStatus, courseKey, submittedCount = 0 }) {
+function InfoTab({ form, set, quizStatus, courseKey, hasTakers = false }) {
   const isDraft = quizStatus === 'draft'
-  const hasTakers = submittedCount > 0 // 응시자 있으면 비공개 전환 차단 (XQ-D-02 R-011)
   return (
     <div className="space-y-3">
       <Section title="시험 유형">

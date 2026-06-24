@@ -1846,6 +1846,22 @@ export function getStudentAttempts(quizId) {
   } catch { return [] }
 }
 
+/**
+ * 해당 퀴즈에 동결된 응시본(quizSnapshot 동봉 응시 기록)이 하나라도 생성됐는지 여부
+ * - 비공개 전환 차단 판정용 (XQ-D-02 R-011): 학생이 응시본을 받은 적이 있으면 숨길 수 없음
+ * - 시드 submitted 카운트와 별개로, 로컬에서 실제 응시가 발생한 경우를 정밀하게 포착
+ */
+export function hasAttemptSnapshot(quizId) {
+  try {
+    const raw = localStorage.getItem('xnq_student_attempts')
+    if (!raw) return false
+    const all = JSON.parse(raw)
+    const attempts = all[quizId]
+    if (!attempts || attempts.length === 0) return false
+    return attempts.some(a => Array.isArray(a.quizSnapshot) && a.quizSnapshot.length > 0)
+  } catch { return false }
+}
+
 export function saveStudentAttempt(quizId, attempt) {
   try {
     const raw = localStorage.getItem('xnq_student_attempts')

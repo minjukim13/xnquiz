@@ -624,7 +624,11 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
   const latestAttempt = myAttempts.length > 0 ? myAttempts[myAttempts.length - 1] : null
   const reveal = computeRevealStatus(quiz)
 
-  const totalPoints = (questions ?? []).reduce((s, q) => s + (q.points || 0), 0)
+  // XQ-D-09 R-006: 결과는 학생이 실제 응시한 문제지(동결된 응시본) 기준으로 표시.
+  // 제출 attempt 에 quizSnapshot 이 동봉돼 있으면 우선 사용, 없으면 현재 문항으로 폴백.
+  const resultQuestions = (latestAttempt?.quizSnapshot?.length ? latestAttempt.quizSnapshot : questions) ?? []
+
+  const totalPoints = resultQuestions.reduce((s, q) => s + (q.points || 0), 0)
   // XQ-D-09 R-006: 재채점으로 점수가 조정된 경우 갱신 점수·안내 노출
   const adjustment = latestAttempt ? getStudentAdjustment(quiz.id, studentId) : null
   const autoScore = adjustment?.newScore ?? latestAttempt?.totalAutoScore ?? 0
@@ -644,7 +648,7 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
     return raw
   })()
 
-  const scoreableQuestions = (questions ?? []).filter(q => q.type !== 'text')
+  const scoreableQuestions = resultQuestions.filter(q => q.type !== 'text')
 
   // oneTimeResults 정책: 1회 조회 후에는 응답/정답 공개 차단 (점수는 별도 정책)
   const oneTimeResults = !!quiz.oneTimeResults
@@ -730,7 +734,7 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
               <h3 className="text-[15px] font-semibold text-foreground">문항별 채점 결과</h3>
             </div>
             <div className="px-5 py-4 space-y-2">
-              {questions.map((q, idx) => {
+              {resultQuestions.map((q, idx) => {
                 if (q.type === 'text') return null
                 const scored = latestAttempt.autoScores?.[q.id]
                 const isAutoGraded = scored !== undefined
