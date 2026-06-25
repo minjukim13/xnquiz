@@ -28,6 +28,8 @@ import DateTimePicker from '../components/DateTimePicker'
 import WeekSessionPicker from '../components/WeekSessionPicker'
 import { Section, Field, Toggle, SecuritySection, GradebookPolicySection } from '@/components/quiz-form'
 import { getCompletedSteps } from '@/utils/quizFormSteps'
+import { getQuizDefaultsForForm, diffFromDefaults } from '@/utils/quizGlobalSettings'
+import DefaultOverrideNotice from '../components/DefaultOverrideNotice'
 
 const ATTEMPT_OPTIONS = [
   ...Array.from({ length: 9 }, (_, i) => ({ value: i + 2, label: `${i + 2}회` })),
@@ -58,13 +60,15 @@ export default function QuizCreate() {
   const navigate = useNavigate()
   const { role } = useRole()
   const [tab, setTab] = useState('info')
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => {
+   const d = getQuizDefaultsForForm() // 과목 기본값 자동 적용 (D-05 R-002), 미설정 시 시스템 기본값(R-003)
+   return {
     title: '', description: '', week: null, session: null,
     startDate: '', dueDate: '', lockDate: '', timeLimit: '60', unlimitedTimeLimit: false,
-    allowAttempts: 1, unlimitedAttempts: false, scorePolicy: '최고 점수 유지',
+    allowAttempts: d.allowAttempts, unlimitedAttempts: d.unlimitedAttempts, scorePolicy: d.scorePolicy,
     shuffleChoices: false, shuffleQuestions: false,
-    scoreRevealEnabled: false, scoreRevealScope: 'wrong_only',
-    scoreRevealTiming: 'immediately', scoreRevealStart: '', scoreRevealEnd: '',
+    scoreRevealEnabled: d.scoreRevealEnabled, scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: d.scoreRevealTiming, scoreRevealStart: '', scoreRevealEnd: '',
     oneTimeResults: false,
     gradebookPolicy: 'B',
     quizMode: 'graded', assignmentGroupId: 'quiz',
@@ -76,6 +80,7 @@ export default function QuizCreate() {
     securityRequireConsent: false, securityConsentText: '',
     assignments: [],
     noticeEnabled: false, notice: DEFAULT_NOTICE, visible: true,
+   }
   })
   const [questions, setQuestions] = useState([])
   const [showBankModal, setShowBankModal] = useState(false)
@@ -314,6 +319,14 @@ export default function QuizCreate() {
 }
 
 function InfoTab({ form, set }) {
+  // D-05 R-002: 과목 기본값과 다른 항목 표시 + 되돌리기
+  const overrides = diffFromDefaults(form)
+  const revertToDefault = (which) => {
+    const d = getQuizDefaultsForForm()
+    if (which === 'attempts') { set('allowAttempts', d.allowAttempts); set('unlimitedAttempts', d.unlimitedAttempts) }
+    else if (which === 'scorePolicy') set('scorePolicy', d.scorePolicy)
+    else if (which === 'scoreReveal') { set('scoreRevealEnabled', d.scoreRevealEnabled); set('scoreRevealTiming', d.scoreRevealTiming) }
+  }
   return (
     <div className="space-y-3">
       <Section title="시험 유형">
@@ -457,6 +470,7 @@ function InfoTab({ form, set }) {
               label="재응시 허용"
               description="학생이 같은 퀴즈에 여러 번 응시할 수 있습니다"
             />
+            <DefaultOverrideNotice show={overrides.attempts} onRevert={() => revertToDefault('attempts')} />
             {(form.allowAttempts >= 2 || form.unlimitedAttempts) && (
               <div className="border-l-2 border-border pl-4 ml-0.5 space-y-3">
                 <div className="flex items-center gap-3">
@@ -465,6 +479,7 @@ function InfoTab({ form, set }) {
                     <CustomSelect value={form.scorePolicy} onChange={v => set('scorePolicy', v)} options={SCORE_POLICIES} />
                   </div>
                 </div>
+                <DefaultOverrideNotice show={overrides.scorePolicy} onRevert={() => revertToDefault('scorePolicy')} />
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium text-secondary-foreground shrink-0 w-24">제출 횟수 제한</span>
                   <div className="w-48">
@@ -489,6 +504,7 @@ function InfoTab({ form, set }) {
       <Section title="성적 공개 정책">
         <div className="space-y-4">
           <Toggle checked={form.scoreRevealEnabled} onChange={v => set('scoreRevealEnabled', v)} label="성적 공개" description="제출 후 학생에게 성적 정보를 공개합니다" />
+          <DefaultOverrideNotice show={overrides.scoreReveal} onRevert={() => revertToDefault('scoreReveal')} />
           {form.scoreRevealEnabled && (
             <div className="space-y-4 pt-1">
               <div>

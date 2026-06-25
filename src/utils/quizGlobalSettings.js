@@ -1,0 +1,66 @@
+// 퀴즈 기본 설정(과목 기본값) 저장/조회 유틸 — 전역 1벌 (xnq_global_settings)
+// D-05 과목 기본값: 신규 퀴즈 생성 시 자동 적용. 미설정 시 시스템 기본값(R-003) 사용.
+// 정답 판정/부분 점수는 채점 시점(mockData)에서도 같은 키를 읽는다.
+
+const STORAGE_KEY = 'xnq_global_settings'
+
+// 시스템 기본값 (R-003): 응시 1회 / 성적 반영 최고점 / 결과 공개 비공개
+export const GLOBAL_SETTINGS_DEFAULTS = {
+  // 채점 관련 (기존)
+  multipleAnswersScoringMode: 'all_correct',
+  penaltyMethod: 'none',
+  caseSensitive: false,
+  whitespaceSensitive: false,
+  // 신규 퀴즈 기본값 (D-05 R-001 / R-003)
+  defaultAllowAttempts: 1,             // 1, N(>=2), 또는 -1(무제한)
+  defaultScorePolicy: '최고 점수 유지', // 최고/최신/평균
+  defaultScoreRevealEnabled: false,    // 결과 공개 (기본 비공개)
+  defaultScoreRevealTiming: 'immediately', // 공개 시 시점 (immediately/after_due/period)
+}
+
+export function getGlobalSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? { ...GLOBAL_SETTINGS_DEFAULTS, ...JSON.parse(raw) } : { ...GLOBAL_SETTINGS_DEFAULTS }
+  } catch {
+    return { ...GLOBAL_SETTINGS_DEFAULTS }
+  }
+}
+
+export function saveGlobalSettings(settings) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+  } catch { /* ignore */ }
+}
+
+// 과목 기본값을 신규 퀴즈 폼 초기값 형태로 변환
+export function getQuizDefaultsForForm() {
+  const g = getGlobalSettings()
+  const unlimited = g.defaultAllowAttempts === -1
+  return {
+    allowAttempts: unlimited ? 2 : (g.defaultAllowAttempts ?? 1),
+    unlimitedAttempts: unlimited,
+    scorePolicy: g.defaultScorePolicy ?? '최고 점수 유지',
+    scoreRevealEnabled: !!g.defaultScoreRevealEnabled,
+    scoreRevealTiming: g.defaultScoreRevealTiming ?? 'immediately',
+  }
+}
+
+// 현재 폼 값이 과목 기본값과 다른지 항목별로 판정 (R-002 재정의 표시용)
+// 반환: { attempts, scorePolicy, scoreReveal } 각 boolean (true = 기본값과 다름)
+export function diffFromDefaults(form) {
+  const g = getGlobalSettings()
+  const effectiveAttempts = form.unlimitedAttempts ? -1 : form.allowAttempts
+  const isMulti = form.unlimitedAttempts || form.allowAttempts >= 2
+
+  const attempts = effectiveAttempts !== (g.defaultAllowAttempts ?? 1)
+  // 성적 반영 방식은 다중 응시일 때만 의미가 있음
+  const scorePolicy = isMulti && form.scorePolicy !== (g.defaultScorePolicy ?? '최고 점수 유지')
+  // 결과 공개: 켬/끔이 다르거나, 둘 다 켜졌는데 시점이 다른 경우
+  const revealOnOff = !!form.scoreRevealEnabled !== !!g.defaultScoreRevealEnabled
+  const revealTiming = form.scoreRevealEnabled && g.defaultScoreRevealEnabled &&
+    form.scoreRevealTiming !== (g.defaultScoreRevealTiming ?? 'immediately')
+  const scoreReveal = revealOnOff || revealTiming
+
+  return { attempts, scorePolicy, scoreReveal }
+}

@@ -4,31 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { GLOBAL_SETTINGS_DEFAULTS as DEFAULTS, getGlobalSettings, saveGlobalSettings } from '@/utils/quizGlobalSettings'
 
-
-const STORAGE_KEY = 'xnq_global_settings'
-
-const DEFAULTS = {
-  multipleAnswersScoringMode: 'all_correct',
-  penaltyMethod: 'none',
-  caseSensitive: false,
-  whitespaceSensitive: false,
-}
-
-function getGlobalSettings() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS }
-  } catch {
-    return { ...DEFAULTS }
-  }
-}
-
-function saveGlobalSettings(settings) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-  } catch { /* ignore */ }
-}
+const SCORE_POLICY_OPTIONS = ['최고 점수 유지', '최신 점수 유지', '평균 점수'].map(v => ({ value: v, label: v }))
+const REVEAL_TIMING_OPTIONS = [
+  { value: 'immediately', label: '제출 즉시' },
+  { value: 'after_due', label: '마감 후' },
+  { value: 'period', label: '기간 설정' },
+]
 
 const SCORING_MODES = [
   {
@@ -166,6 +149,66 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
               )}
             </div>
           </SettingsSection>
+
+          {/* 신규 퀴즈 기본값 (D-05) */}
+          <SettingsSection title="신규 퀴즈 기본값">
+            <p className="text-xs text-muted-foreground -mt-1">새 퀴즈를 만들 때 자동으로 적용됩니다. 개별 퀴즈에서 언제든 변경할 수 있습니다.</p>
+
+            {/* 응시 횟수 */}
+            <div className="space-y-2">
+              <p className="text-[15px] font-medium text-slate-700">응시 횟수</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                {[{ v: 1, l: '1회' }, { v: 2, l: '여러 번' }, { v: -1, l: '무제한' }].map(opt => {
+                  const active = opt.v === 1 ? local.defaultAllowAttempts === 1
+                    : opt.v === -1 ? local.defaultAllowAttempts === -1
+                    : local.defaultAllowAttempts >= 2
+                  return (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => set('defaultAllowAttempts', opt.v)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-md text-sm border transition-colors',
+                        active ? 'border-primary bg-accent text-primary font-medium' : 'border-border bg-white text-slate-600 hover:border-slate-300'
+                      )}
+                    >
+                      {opt.l}
+                    </button>
+                  )
+                })}
+                {local.defaultAllowAttempts >= 2 && (
+                  <input
+                    type="number" min={2} max={99} value={local.defaultAllowAttempts}
+                    onChange={e => set('defaultAllowAttempts', Math.max(2, Number(e.target.value) || 2))}
+                    className="w-16 text-center text-sm px-2 py-1.5 rounded-md border border-slate-200 focus:outline-none focus:border-primary"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 성적 반영 방식 */}
+            <div className="space-y-2 pt-3 border-t border-slate-100">
+              <p className="text-[15px] font-medium text-slate-700">성적 반영 방식</p>
+              <p className="text-xs text-muted-foreground">여러 번 응시한 경우 어떤 점수를 성적으로 반영할지 정합니다.</p>
+              <PillGroup options={SCORE_POLICY_OPTIONS} value={local.defaultScorePolicy} onChange={v => set('defaultScorePolicy', v)} />
+            </div>
+
+            {/* 결과 공개 */}
+            <div className="space-y-2 pt-3 border-t border-slate-100">
+              <SettingsToggle
+                checked={local.defaultScoreRevealEnabled}
+                onChange={v => set('defaultScoreRevealEnabled', v)}
+                label="결과 공개"
+                description="제출 후 학생에게 점수와 정답을 공개합니다. 기본값은 비공개입니다."
+              />
+              {local.defaultScoreRevealEnabled && (
+                <div className="ml-11">
+                  <p className="text-xs text-muted-foreground mb-1.5">공개 시점</p>
+                  <PillGroup options={REVEAL_TIMING_OPTIONS} value={local.defaultScoreRevealTiming} onChange={v => set('defaultScoreRevealTiming', v)} />
+                </div>
+              )}
+            </div>
+          </SettingsSection>
         </div>
 
         <DialogFooter>
@@ -223,6 +266,30 @@ function FormulaTooltip({ formula }) {
         </span>
       )}
     </span>
+  )
+}
+
+// 모달 안에서는 portal 드롭다운(CustomSelect)이 막히므로 인라인 pill 버튼 사용
+function PillGroup({ options, value, onChange }) {
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {options.map(opt => {
+        const active = String(opt.value) === String(value)
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              'px-3 py-1.5 rounded-md text-sm border transition-colors',
+              active ? 'border-primary bg-accent text-primary font-medium' : 'border-border bg-white text-slate-600 hover:border-slate-300'
+            )}
+          >
+            {opt.label}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
