@@ -79,7 +79,9 @@ export default function QuizAttempt() {
   }, [isPreview, currentStudent?.id, id, attemptIndex])
 
   // 응시본(동결된 문제지) 키 — 첫 문항 진입 시 동결되어 저장된다 (D-09 R-008, D-02 R-011).
-  const snapshotKey = !isPreview ? buildAttemptSnapshotKey(id, currentStudent?.id) : null
+  // 회차를 포함해 재시도 시 이전 응시본을 복원하지 않고 새로 추첨·동결한다.
+  const snapshotBaseKey = !isPreview ? buildAttemptSnapshotKey(id, currentStudent?.id) : null
+  const snapshotKey = snapshotBaseKey ? `${snapshotBaseKey}_a${attemptIndex}` : null
   // 동결본이 있으면 live 문항에서 재파생하지 않고 그대로 사용해 교수자 수정·재추첨 영향을 차단한다.
   const [frozenQuestions, setFrozenQuestions] = useState(() => loadAttemptSnapshot(snapshotKey))
   const questions = useMemo(
@@ -117,7 +119,9 @@ export default function QuizAttempt() {
   // 응시 세션 복원 (Canvas 스펙: 새로고침/재접속 시 중단 지점에서 재개)
   const oneAtATime = !!quiz?.oneQuestionAtATime
   const lockAfter = oneAtATime && !!quiz?.lockAfterAnswer
-  const sessionKey = !isPreview ? buildAttemptSessionKey(id, currentStudent?.id) : null
+  // 회차 포함 — 재시도 시 이전 응시 세션(시작 시각·답안)을 복원하지 않고 새 응시로 시작한다.
+  const sessionBaseKey = !isPreview ? buildAttemptSessionKey(id, currentStudent?.id) : null
+  const sessionKey = sessionBaseKey ? `${sessionBaseKey}_a${attemptIndex}` : null
   const activityKey = !isPreview ? buildActivityLogKey(id, currentStudent?.id) : null
   const restored = loadAttemptSession(sessionKey)
 
