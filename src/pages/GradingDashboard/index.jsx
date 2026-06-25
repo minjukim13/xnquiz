@@ -194,9 +194,20 @@ export default function GradingDashboard() {
     return () => { mounted = false }
   }, [id])
 
-  // 랜덤 출제(random_group) 문항을 응시본 기준으로 펼침 — 실제 출제된 문항만 (SC-26-C)
-  // 일반 퀴즈는 그대로 유지 (분기).
+  // 채점 문항 구성 (D-09 R-006/R-008): 응시본이 있으면 실제 출제된 동결 문항 합집합 기준으로 채점.
+  // → 교수자가 응시 후 문항을 수정·삭제해도 채점 화면(문항/학생 중심)에서 사라지지 않는다.
+  // 응시본이 없으면 기존 live 경로: 랜덤 그룹은 응시본 기준 펼침(SC-26-C), 일반 퀴즈는 그대로.
   const gradeQuestions = useMemo(() => {
+    const snapped = quizStudents.filter(s => Array.isArray(s.quizSnapshot) && s.quizSnapshot.length > 0)
+    if (snapped.length > 0) {
+      const byId = new Map()
+      for (const s of snapped) {
+        for (const q of s.quizSnapshot) {
+          if (!byId.has(q.id)) byId.set(q.id, q)
+        }
+      }
+      return Array.from(byId.values()).map(normalizeGradeQuestion)
+    }
     if (!quizQuestions.some(isRandomGroup)) return quizQuestions
     const expanded = expandAllForInstructor(quizQuestions)
     return expanded
@@ -547,7 +558,11 @@ export default function GradingDashboard() {
                 {!selectedStudent ? (
                   <EmptyState message="학생을 선택하면 전체 문항 답안을 확인할 수 있습니다" />
                 ) : (
-                  <StudentDetailPanel student={selectedStudent} questions={gradeQuestions.filter(q => !q.randomGroupId || getRecipientStudents(q, [selectedStudent]).length > 0)} quizId={id} onGradeSaved={onGradeSaved} />
+                  <StudentDetailPanel student={selectedStudent} questions={
+                    Array.isArray(selectedStudent.quizSnapshot) && selectedStudent.quizSnapshot.length > 0
+                      ? selectedStudent.quizSnapshot.map(normalizeGradeQuestion)
+                      : gradeQuestions.filter(q => !q.randomGroupId || getRecipientStudents(q, [selectedStudent]).length > 0)
+                  } quizId={id} onGradeSaved={onGradeSaved} />
                 )}
               </div>
             </>

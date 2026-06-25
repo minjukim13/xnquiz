@@ -14,9 +14,14 @@ function resolveDisplayStatus(quiz) {
 // ─── 퀴즈 정보 카드 ─────────────────────────────────────────────────────────
 export default function QuizInfoCard({ quiz, students }) {
   const [collapsed, setCollapsed] = useState(false)
+  // 시드 명부가 없는 사용자 생성 퀴즈는 실제 명부(로컬 응시 반영)를 기준으로 집계 + 분모 폴백
+  const isUserCreated = !quiz.totalStudents
+  const rosterTotal = quiz.totalStudents || (Array.isArray(students) ? students.length : 0)
   const effectiveSubmitted = useMemo(
-    () => getEffectiveSubmittedCount(quiz, students),
-    [quiz, students]
+    () => isUserCreated && Array.isArray(students)
+      ? students.filter(s => s.submitted).length
+      : getEffectiveSubmittedCount(quiz, students),
+    [quiz, students, isUserCreated]
   )
   // 마감 후 자동 0점 처리된 학생도 채점 완료로 집계하기 위해 students 기반 동적 계산
   const effectiveGraded = useMemo(() => {
@@ -26,8 +31,8 @@ export default function QuizInfoCard({ quiz, students }) {
     return quiz.graded ?? 0
   }, [students, quiz.graded])
   const submitRate = useMemo(
-    () => quiz.totalStudents > 0 ? Math.round((effectiveSubmitted / quiz.totalStudents) * 100) : 0,
-    [effectiveSubmitted, quiz.totalStudents]
+    () => rosterTotal > 0 ? Math.round((effectiveSubmitted / rosterTotal) * 100) : 0,
+    [effectiveSubmitted, rosterTotal]
   )
 
   const status = resolveDisplayStatus(quiz)
@@ -51,11 +56,11 @@ export default function QuizInfoCard({ quiz, students }) {
             </span>
             <span className="text-muted-foreground">
               응시 <span className="font-bold text-foreground">{effectiveSubmitted}</span>
-              <span className="text-muted-foreground"> / {quiz.totalStudents}명</span>
+              <span className="text-muted-foreground"> / {rosterTotal}명</span>
             </span>
             <span className="text-muted-foreground">
               채점 <span className="font-bold text-foreground">{effectiveGraded}</span>
-              <span className="text-muted-foreground"> / {quiz.totalStudents}명</span>
+              <span className="text-muted-foreground"> / {rosterTotal}명</span>
             </span>
           </div>
           <ChevronDown size={16} className="text-muted-foreground shrink-0" />
@@ -123,14 +128,14 @@ export default function QuizInfoCard({ quiz, students }) {
             <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
               <p className="text-xs mb-2 text-muted-foreground">응시 인원</p>
               <p className="text-2xl leading-none font-extrabold text-foreground">
-                {effectiveSubmitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.totalStudents}명</span>
+                {effectiveSubmitted}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {rosterTotal}명</span>
               </p>
             </div>
             <div className="w-px bg-border" />
             <div className="flex flex-col justify-center px-5 py-4 text-center min-w-[110px]">
               <p className="text-xs mb-2 text-muted-foreground">채점 완료</p>
               <p className="text-2xl leading-none font-extrabold text-foreground">
-                {effectiveGraded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {quiz.totalStudents}명</span>
+                {effectiveGraded}<span className="text-sm ml-1 font-normal text-muted-foreground">/ {rosterTotal}명</span>
               </p>
             </div>
           </div>

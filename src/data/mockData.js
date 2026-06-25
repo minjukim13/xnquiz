@@ -3275,12 +3275,57 @@ function generateStudents(total, submitted, graded, prefix, _baseYear = '2022', 
 
 // 퀴즈 ID별 학생 데이터 반환
 const studentCache = {}
+// 채점 대시보드 명부의 기준 학생 (역할 전환으로 실제 응시 가능한 데모 학생 = role.js DEMO_STUDENTS / DB 시드 s1~s3 일치)
+const ROSTER_STUDENTS = [
+  { id: 's1', studentId: 'S001', name: '학생 A', department: '컴퓨터공학과' },
+  { id: 's2', studentId: 'S002', name: '학생 B', department: '소프트웨어학과' },
+  { id: 's3', studentId: 'S003', name: '학생 C', department: '정보통신공학과' },
+]
+
+// 사용자 생성 퀴즈용 명부: 과목 학생 전체를 미응시로 깔고, 실제 로컬 응시본(xnq_student_attempts)을 덮어쓴다.
+// 응시 여부와 무관하게 모든 학생을 노출(미응시 학생 클릭 시 "제출된 답안이 없습니다"). 캐시 안 함 — 응시 누적을 매번 반영.
+function buildLocalRoster(quizId) {
+  const byId = new Map(
+    ROSTER_STUDENTS.map(s => [s.id, {
+      id: s.id, studentId: s.studentId, name: s.name, department: s.department,
+      score: null, startTime: null, endTime: null, submitted: false, submittedAt: null,
+      response: null, autoScores: {}, manualScores: null, selections: {},
+    }])
+  )
+  for (const a of getStudentAttempts(quizId)) {
+    const base = byId.get(a.studentId)
+    byId.set(a.studentId, {
+      id: a.studentId,
+      studentId: a.studentNumber ?? base?.studentId ?? '',
+      name: a.studentName ?? base?.name ?? '',
+      department: a.department ?? base?.department ?? '',
+      score: a.totalAutoScore ?? null,
+      startTime: null,
+      endTime: a.submittedAt ?? null,
+      submitted: true,
+      submittedAt: a.submittedAt ?? null,
+      response: null,
+      autoScores: a.autoScores ?? {},
+      manualScores: null,
+      selections: a.answers ?? {},
+      attemptId: a.id,
+      // 채점이 응시 당시 출제된 동결 문항 기준으로 동작하도록 응시본 동봉 (D-09 R-006/R-008)
+      quizSnapshot: Array.isArray(a.quizSnapshot) ? a.quizSnapshot : null,
+    })
+  }
+  return Array.from(byId.values())
+}
+
 export function getQuizStudents(quizId) {
   const quiz = mockQuizzes.find(q => q.id === quizId)
 
   if (quizId === '1') return autoSubmitExpiredStudents(mockStudents, quiz, new Date(), getQuizQuestions('1'))
   if (quizId === '8') return autoSubmitExpiredStudents(mockStudents8, quiz, new Date(), getQuizQuestions('8'))
   if (quizId === '12') return mockStudents12
+
+  // 사용자 생성 퀴즈는 시드 명부(totalStudents)가 없음 → 데모 학생 명부 + 로컬 응시본
+  if (quiz && !quiz.totalStudents) return buildLocalRoster(quizId)
+
   if (studentCache[quizId]) return studentCache[quizId]
 
   if (!quiz) return mockStudents
