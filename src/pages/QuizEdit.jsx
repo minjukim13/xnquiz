@@ -926,7 +926,8 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
             <span className="text-muted-foreground mx-1.5">|</span>
             총 <span className="font-semibold text-foreground">{totalPoints}</span>점
           </p>
-          {questions.length > 0 && (
+          {/* 랜덤 출제만 있으면 펼칠 본문이 없어 토글을 숨긴다 (XQ-57) */}
+          {questions.some(q => !isRandomGroup(q)) && (
             <label className="flex items-center gap-1.5 cursor-pointer select-none">
               <Switch size="sm" checked={allExpanded} onCheckedChange={setAllExpanded} />
               <span className="text-[13px] text-secondary-foreground leading-none">모두 펼치기</span>
