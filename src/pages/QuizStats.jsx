@@ -6,6 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
 import { QUIZ_TYPES } from '../data/mockData'
+import { htmlToPlainText } from '../components/RichText'
 import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
 import { expandAllForInstructor, getRecipientStudents } from '@/utils/randomGroups'
 import { Shuffle, Users } from 'lucide-react'
@@ -368,7 +369,7 @@ export default function QuizStats() {
               </span>
             </>
           }
-          description={quiz.description ? <CollapsibleDescription text={quiz.description} /> : null}
+          description={quiz.description ? <CollapsibleDescription text={htmlToPlainText(quiz.description)} /> : null}
         />
 
         <StatsPageTabs

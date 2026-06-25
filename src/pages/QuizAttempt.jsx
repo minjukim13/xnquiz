@@ -641,7 +641,7 @@ export default function QuizAttempt() {
                 <p className="text-xs mb-0.5 text-muted-foreground">{quiz.week}주차 {quiz.session}차시 · {questions.reduce((s, q) => s + (q.points || 0), 0)}점</p>
                 <h1 className="text-base font-bold">{quiz.title}</h1>
                 {quiz.description && (
-                  <p className="text-sm mt-1.5 text-muted-foreground">{quiz.description}</p>
+                  <RichTextRenderer html={quiz.description} className="text-sm mt-1.5 text-muted-foreground" />
                 )}
                 {hasSecurity && (
                   <SecurityActiveBadges quiz={quiz} />

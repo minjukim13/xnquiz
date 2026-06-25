@@ -20,7 +20,7 @@ import { Toast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 import { isDeadlinePassed } from '@/utils/deadlineUtils'
 import { computeRevealStatus } from '@/utils/scoreReveal'
-import { htmlToPlainText } from '../components/RichText'
+import { htmlToPlainText, RichTextRenderer } from '../components/RichText'
 import QuestionAnswer from '../components/QuestionAnswer'
 import TypeBadge from '../components/TypeBadge'
 import CommentThread from './GradingDashboard/CommentThread'
@@ -475,9 +475,7 @@ export default function QuizDetail() {
             {/* 퀴즈 설명 카드 */}
             {quiz.description && (
               <Card className="mb-4 px-5 py-4">
-                <p className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed">
-                  {quiz.description}
-                </p>
+                <RichTextRenderer html={quiz.description} className="text-sm text-secondary-foreground leading-relaxed" />
               </Card>
             )}
 
@@ -524,9 +522,7 @@ export default function QuizDetail() {
             <div className="flex-1 min-w-0 w-full space-y-3">
               {quiz.description && (
                 <Card className="px-5 py-4">
-                  <p className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed">
-                    {quiz.description}
-                  </p>
+                  <RichTextRenderer html={quiz.description} className="text-sm text-secondary-foreground leading-relaxed" />
                 </Card>
               )}
               <QuestionPreviewList questions={questions} quizId={quiz.id} />
