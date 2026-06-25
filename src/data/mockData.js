@@ -56,7 +56,7 @@ export const QUIZ_TYPES = {
 const QUIZ_STORAGE_KEY = 'xnq_quizzes'
 // 시드 퀴즈(정적 mock)를 바꾸면 이 버전을 올린다. 버전이 바뀌면 localStorage 에 박제된
 // 정적 mock 수정본을 버리고 새 시드를 적용한다(사용자가 직접 만든 퀴즈는 보존).
-const QUIZ_SEED_VERSION = '2026-06-24.2'
+const QUIZ_SEED_VERSION = '2026-06-25.1'
 const QUIZ_VERSION_KEY = 'xnq_quizzes_seed_version'
 const _staticQuizIds = new Set()
 
@@ -65,6 +65,7 @@ export const mockQuizzes = [
     // grading 상태 / 성적 비공개 (채점 중 공개 안 함)
     id: '1',
     title: '중간고사 - 데이터베이스 설계 및 SQL',
+    assignmentGroupId: 'midterm',
     description: 'ERD 설계, SQL 쿼리 작성, 정규화 전 범위를 다룹니다. 오픈북 불가, 제한 시간 내 제출하세요.',
     course: 'CS301 데이터베이스',
     status: 'grading',
@@ -92,6 +93,7 @@ export const mockQuizzes = [
     // closed / 오답여부만 · 즉시 공개
     id: '2',
     title: '1차 형성평가 - SQL 기초',
+    assignmentGroupId: 'quiz',
     description: 'SELECT, WHERE, JOIN 등 SQL 기초 구문을 다룹니다. 강의 3~4주차 내용 기반으로 출제됩니다.',
     course: 'CS301 데이터베이스',
     status: 'closed',
@@ -118,6 +120,7 @@ export const mockQuizzes = [
     // open / 정답까지 · 마감 후 공개 (재응시 3회)
     id: '3',
     title: '주차별 퀴즈 4 - 인덱스와 쿼리 최적화',
+    assignmentGroupId: 'quiz',
     course: 'CS301 데이터베이스',
     status: 'open',
     visible: true,
@@ -144,6 +147,7 @@ export const mockQuizzes = [
     // draft / 성적 비공개
     id: '4',
     title: '기말고사 - 데이터베이스 심화',
+    assignmentGroupId: 'final',
     course: 'CS301 데이터베이스',
     status: 'draft',
     visible: false,
@@ -169,6 +173,7 @@ export const mockQuizzes = [
     // closed / 정답까지 · 즉시 공개 (재응시 2회)
     id: '5',
     title: '주차별 퀴즈 5-1 - ER 다이어그램',
+    assignmentGroupId: 'quiz',
     course: 'CS301 데이터베이스',
     status: 'closed',
     visible: true,
@@ -194,6 +199,7 @@ export const mockQuizzes = [
     // closed / 오답여부만 · 마감 후 공개
     id: '6',
     title: '5주차 형성평가 - 관계 대수',
+    assignmentGroupId: 'quiz',
     course: 'CS301 데이터베이스',
     status: 'closed',
     visible: true,
@@ -219,6 +225,7 @@ export const mockQuizzes = [
     // grading 상태 / 서술형 수동채점 / 마감 후 공개
     id: '7',
     title: '5주차 서술형 과제 - 정규화 단계 분석',
+    assignmentGroupId: 'homework',
     course: 'CS301 데이터베이스',
     status: 'grading',
     visible: true,
@@ -244,6 +251,7 @@ export const mockQuizzes = [
     // closed / 정답까지 · 기간 설정 공개
     id: '8',
     title: '2차 형성평가 - 데이터베이스 설계 & 정규화',
+    assignmentGroupId: 'quiz',
     description: '관계형 데이터베이스 설계 원칙과 1NF~3NF 정규화 과정을 평가합니다. 강의 6~7주차 내용 기반으로 출제됩니다.',
     course: 'CS301 데이터베이스',
     status: 'closed',
@@ -272,6 +280,7 @@ export const mockQuizzes = [
   {
     id: 'cs201_1',
     title: '중간고사 - 프로세스 및 스레드',
+    assignmentGroupId: 'midterm',
     description: '프로세스 생명주기, 스레드 모델, 동기화 문제를 다룹니다.',
     course: 'CS201 운영체제',
     status: 'closed',
@@ -298,6 +307,7 @@ export const mockQuizzes = [
   {
     id: 'cs201_2',
     title: '1차 형성평가 - 프로세스 스케줄링',
+    assignmentGroupId: 'quiz',
     description: 'CPU 스케줄링 알고리즘(FCFS, SJF, Round Robin)을 평가합니다.',
     course: 'CS201 운영체제',
     status: 'closed',
@@ -324,6 +334,7 @@ export const mockQuizzes = [
   {
     id: 'cs201_3',
     title: '주차별 퀴즈 - 메모리 관리',
+    assignmentGroupId: 'quiz',
     description: '페이징, 세그멘테이션, 가상 메모리 기초 개념을 다룹니다.',
     course: 'CS201 운영체제',
     status: 'draft',
@@ -350,6 +361,7 @@ export const mockQuizzes = [
   {
     id: 'cs401_1',
     title: '중간고사 - 정렬 알고리즘',
+    assignmentGroupId: 'midterm',
     description: '버블 정렬부터 퀵 정렬까지 시간복잡도 및 동작 원리를 평가합니다.',
     course: 'CS401 알고리즘',
     status: 'closed',
@@ -376,6 +388,7 @@ export const mockQuizzes = [
   {
     id: 'cs401_2',
     title: '1차 형성평가 - 탐색 알고리즘',
+    assignmentGroupId: 'quiz',
     description: '이진 탐색, BFS, DFS의 시간복잡도와 활용 사례를 다룹니다.',
     course: 'CS401 알고리즘',
     status: 'draft',
@@ -402,6 +415,7 @@ export const mockQuizzes = [
     // 예약 공개: status open이지만 startDate가 미래 → 학생에게 "예정" 표시 + 응시 차단
     id: '9',
     title: '주차별 퀴즈 5 - 트랜잭션과 동시성 제어',
+    assignmentGroupId: 'quiz',
     description: '트랜잭션 ACID 속성, 동시성 제어 기법(Lock, MVCC), 교착상태 처리를 다룹니다.',
     course: 'CS301 데이터베이스',
     status: 'open',
@@ -429,6 +443,7 @@ export const mockQuizzes = [
     // 보안/감독 옵션 시연용: securityAiProctoring + securityRequireConsent 활성
     id: '10',
     title: '주차별 퀴즈 6 - 회복 기법과 백업 전략',
+    assignmentGroupId: 'quiz',
     description: 'Undo/Redo 로깅, 체크포인트, 백업 전략(전체/증분/차등)을 다룹니다. 응시 기간 내 자유롭게 제출하세요.',
     course: 'CS301 데이터베이스',
     status: 'open',
@@ -457,6 +472,7 @@ export const mockQuizzes = [
     // 재응시 다회 시나리오: 3회 응시 허용, 평균 점수 정책
     id: '11',
     title: '연습 퀴즈 - SQL 쿼리 작성 (재응시 자유)',
+    assignmentGroupId: 'quiz',
     description: '재응시 3회까지 가능합니다. 평균 점수가 최종 성적으로 반영됩니다.',
     course: 'CS301 데이터베이스',
     status: 'closed',
@@ -484,6 +500,7 @@ export const mockQuizzes = [
   {
     id: 'cs102_1',
     title: '중간고사 - 스택과 큐',
+    assignmentGroupId: 'midterm',
     description: '스택, 큐, 덱(Deque)의 동작 원리와 시간복잡도를 평가합니다.',
     course: 'CS102 자료구조',
     status: 'closed',
@@ -511,6 +528,7 @@ export const mockQuizzes = [
     // 채점 진행 중: 서술형 포함 → 일부만 채점 완료
     id: 'cs102_2',
     title: '주차별 과제 4 - 트리 순회 구현',
+    assignmentGroupId: 'homework',
     description: '이진 트리의 전위/중위/후위 순회를 의사 코드로 작성하고 시간복잡도를 분석하시오.',
     course: 'CS102 자료구조',
     status: 'grading',
@@ -536,6 +554,7 @@ export const mockQuizzes = [
   {
     id: 'cs102_3',
     title: '주차별 퀴즈 - 그래프 기초 (예정)',
+    assignmentGroupId: 'quiz',
     description: '인접 행렬, 인접 리스트 표현 방식과 BFS/DFS 동작 차이를 다룹니다.',
     course: 'CS102 자료구조',
     status: 'draft',
@@ -562,6 +581,7 @@ export const mockQuizzes = [
     // CS401 채점 진행 중 — 서술형 비중 큼
     id: 'cs401_3',
     title: '기말고사 - 그래프 알고리즘 종합',
+    assignmentGroupId: 'final',
     description: '최단 경로(다익스트라/벨만-포드), 최소 신장 트리(MST), 위상 정렬을 종합 평가합니다.',
     course: 'CS401 알고리즘',
     status: 'grading',
@@ -589,6 +609,7 @@ export const mockQuizzes = [
     // bank1 (DB 종합 문제집, 6문항) 에서 학생별로 3문항씩 무작위 출제
     id: '12',
     title: '[데모] 랜덤 출제 - 학생별 다른 문항',
+    assignmentGroupId: 'quiz',
     description: '랜덤 출제 그룹 기능 시연용 퀴즈. 학생마다 DB 종합 문제집에서 서로 다른 3문항이 출제됩니다.',
     course: 'CS301 데이터베이스',
     status: 'grading',

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3 } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
-import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
+import { mockQuizzes, MOCK_COURSES, ASSIGNMENT_GROUPS } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts, hasAttemptSnapshot } from '../data/mockData'
 import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, updateQuiz, deleteQuiz, listAttempts, isApiMode, listCourses } from '@/lib/data'
@@ -85,6 +85,22 @@ function applyWeekSessionFilter(quizzes, filterWeek, filterSession) {
     if (filterSession !== 'all' && q.session !== filterSession) return false
     return true
   })
+}
+
+// ─────────────────────────────── 시험구분(평가 그룹) 필터 ───────────────────────────────
+// 별도 시험구분 필드를 두지 않고 기존 평가 그룹(assignmentGroupId)을 분류 기준으로 재사용한다.
+// 평가 그룹이 없는 퀴즈(연습용 등)는 '미분류'로 묶는다.
+const GROUP_LABELS = Object.fromEntries(ASSIGNMENT_GROUPS.map(g => [g.id, g.label]))
+const GROUP_OPTIONS = [
+  { value: 'all', label: '전체 구분' },
+  ...ASSIGNMENT_GROUPS.map(g => ({ value: g.id, label: g.label })),
+  { value: 'unclassified', label: '미분류' },
+]
+
+function applyGroupFilter(quizzes, filterGroup) {
+  if (filterGroup === 'all') return quizzes
+  if (filterGroup === 'unclassified') return quizzes.filter(q => !q.assignmentGroupId)
+  return quizzes.filter(q => q.assignmentGroupId === filterGroup)
 }
 
 // ─────────────────────────────── 정렬 옵션 ───────────────────────────────
@@ -202,6 +218,7 @@ function InstructorQuizList() {
 
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
+  const [filterGroup, setFilterGroup] = useState('all')
   const [sortKey, setSortKey] = useState('recent')
   const [copySourceQuiz, setCopySourceQuiz] = useState(null)
   const [showImportModal, setShowImportModal] = useState(false)
@@ -340,8 +357,8 @@ function InstructorQuizList() {
   }
 
   const sortedQuizzes = useMemo(
-    () => sortQuizzes(applyWeekSessionFilter(quizzes, filterWeek, filterSession), sortKey),
-    [quizzes, filterWeek, filterSession, sortKey]
+    () => sortQuizzes(applyGroupFilter(applyWeekSessionFilter(quizzes, filterWeek, filterSession), filterGroup), sortKey),
+    [quizzes, filterWeek, filterSession, filterGroup, sortKey]
   )
 
   return (
@@ -374,13 +391,24 @@ function InstructorQuizList() {
         </div>
 
         <div className="flex items-center justify-between gap-2 mt-1 mb-3">
-          <WeekSessionFilter
-            quizzes={quizzes}
-            filterWeek={filterWeek}
-            filterSession={filterSession}
-            onWeekChange={setFilterWeek}
-            onSessionChange={setFilterSession}
-          />
+          <div className="flex items-center gap-2 min-w-0">
+            <WeekSessionFilter
+              quizzes={quizzes}
+              filterWeek={filterWeek}
+              filterSession={filterSession}
+              onWeekChange={setFilterWeek}
+              onSessionChange={setFilterSession}
+            />
+            <DropdownSelect
+              value={filterGroup}
+              onChange={setFilterGroup}
+              options={GROUP_OPTIONS}
+              size="md"
+              filterMode
+              ghost
+              className="w-[100px] sm:w-[120px]"
+            />
+          </div>
           <DropdownSelect
             value={sortKey}
             onChange={setSortKey}
@@ -493,6 +521,11 @@ function QuizCard({ quiz, onCopy, onDelete, onToggleVisibility }) {
           <div className="flex items-center gap-1.5 sm:gap-2 mb-2 flex-wrap">
             {!isDraft && <VisibilityBadge isVisible={isVisible} />}
             <StatusBadge status={displayStatus} />
+            {quiz.assignmentGroupId && GROUP_LABELS[quiz.assignmentGroupId] && (
+              <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-white text-secondary-foreground ring-1 ring-border whitespace-nowrap">
+                {GROUP_LABELS[quiz.assignmentGroupId]}
+              </span>
+            )}
             {(quiz.week > 0 || quiz.session > 0) && (
               <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-secondary text-secondary-foreground whitespace-nowrap">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
