@@ -348,7 +348,7 @@ function InfoTab({ form, set }) {
 
       <Section title="기본 정보">
         <Field label="퀴즈 제목" required>
-          <input type="text" value={form.title} onChange={e => set('title', e.target.value)} placeholder="예) 중간고사 - 데이터베이스 설계" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
+          <input type="text" value={form.title} onChange={e => set('title', e.target.value)} maxLength={254} placeholder="예) 중간고사 - 데이터베이스 설계" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
         </Field>
         <Field label="설명">
           <RichTextEditor value={form.description} onChange={v => set('description', v)} placeholder="학생에게 표시될 퀴즈 설명 (선택). 서식·수식·이미지·오디오를 넣을 수 있습니다." minHeight="min-h-[140px]" />

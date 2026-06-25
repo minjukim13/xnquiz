@@ -1941,6 +1941,19 @@ export function saveStudentAttempt(quizId, attempt) {
   }
 }
 
+// 특정 학생의 누적 응시 횟수 (원시 기록 기준, 정책 합산 전).
+// 재시도 시 랜덤 출제를 다시 추첨하기 위한 시드 회차 산출에 사용한다 (D-09 R-007).
+export function getStudentAttemptCount(quizId, studentId) {
+  try {
+    const raw = localStorage.getItem('xnq_student_attempts')
+    const all = raw ? JSON.parse(raw) : {}
+    const list = all[quizId] || []
+    return list.filter(a => a.studentId === studentId).length
+  } catch {
+    return 0
+  }
+}
+
 /**
  * 특정 문항 정답 변경 후 소급 재채점
  * - 이미 제출 완료된 응시: 자동 재채점 (수동 조정된 점수는 유지)

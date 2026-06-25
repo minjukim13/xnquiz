@@ -265,6 +265,21 @@ export default function QuizEdit() {
   const [confirmDialog, setConfirmDialog] = useState(null)
   const [alertDialog, setAlertDialog] = useState(null)
 
+  // 문항/그룹 삭제는 확인 단계를 거친다 (D-03 R-008).
+  const requestRemoveQuestion = (qId) => {
+    const item = questions.find(q => q.id === qId)
+    const isGroup = item && isRandomGroup(item)
+    setConfirmDialog({
+      title: isGroup ? '출제 그룹 삭제' : '문항 삭제',
+      message: isGroup
+        ? '이 랜덤 출제 그룹을 삭제하시겠습니까?'
+        : '이 문항을 삭제하시겠습니까?',
+      confirmLabel: '삭제',
+      confirmDanger: true,
+      onConfirm: () => removeQuestion(qId),
+    })
+  }
+
   if (role !== 'instructor') return <Navigate to="/" replace />
   if (!loaded) {
     return (
@@ -498,7 +513,7 @@ export default function QuizEdit() {
               onShowRandomBank={() => setShowRandomBankModal(true)}
               onShowAdd={() => setShowInlineAdd(true)}
               onEdit={setEditingQuestion}
-              onRemove={removeQuestion}
+              onRemove={requestRemoveQuestion}
               onMove={moveQuestion}
               showInlineAdd={showInlineAdd}
               onAddInline={(q) => { addNewQuestion(q); setShowInlineAdd(false); setInlineDirty(false) }}
@@ -544,7 +559,7 @@ export default function QuizEdit() {
       <QuestionBankModal open={showBankModal} onOpenChange={setShowBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse={quiz?.course} />
       <RandomQuestionBankModal open={showRandomBankModal} onOpenChange={setShowRandomBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse={quiz?.course} />
       {editingQuestion && <AddQuestionModal onClose={() => setEditingQuestion(null)} onAdd={updateQuestion} initialQuestion={editingQuestion} submittedCount={submittedCount} />}
-      {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
+      {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} confirmDanger={confirmDialog.confirmDanger} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
       <PublishReviewModal
         open={showPublishReview}
         onOpenChange={setShowPublishReview}
@@ -589,7 +604,7 @@ function InfoTab({ form, set, quizStatus, courseKey, hasTakers = false }) {
 
       <Section title="기본 정보">
         <Field label="퀴즈 제목" required>
-          <input type="text" value={form.title} onChange={e => set('title', e.target.value)} placeholder="예) 중간고사 - 데이터베이스 설계" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
+          <input type="text" value={form.title} onChange={e => set('title', e.target.value)} maxLength={254} placeholder="예) 중간고사 - 데이터베이스 설계" className="w-full text-sm px-3.5 py-2.5 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all" />
         </Field>
         <Field label="설명">
           <RichTextEditor value={form.description} onChange={v => set('description', v)} placeholder="학생에게 표시될 퀴즈 설명 (선택). 서식·수식·이미지·오디오를 넣을 수 있습니다." minHeight="min-h-[140px]" />

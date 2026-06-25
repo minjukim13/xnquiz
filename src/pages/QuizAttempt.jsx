@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Check, AlertCircle, Send, X, Lock } from 'lucide-react'
-import { mockQuizzes, getQuizQuestions as mockGetQuestions, autoGradeAnswer, saveStudentAttempt } from '../data/mockData'
+import { mockQuizzes, getQuizQuestions as mockGetQuestions, autoGradeAnswer, saveStudentAttempt, getStudentAttemptCount } from '../data/mockData'
 import { getQuiz, getQuizQuestions, startAttempt, saveAnswers, submitAttempt } from '@/lib/data'
 import { useRole } from '../context/role'
 import { useQuestionBank } from '../context/questionBank'
@@ -67,11 +67,16 @@ export default function QuizAttempt() {
   const [loaded, setLoaded] = useState(DATA_MODE === 'mock')
   const [apiAttemptId, setApiAttemptId] = useState(null)
 
-  // 랜덤 출제 그룹은 학생별 시드로 매 응시 동일하게 결정 (새로고침/재접속 시 동일 문항 유지)
+  // 재시도 회차 — 마운트 시점의 누적 응시 횟수를 고정. 회차가 다르면 시드가 달라져 다시 추첨된다 (D-09 R-007).
+  const [attemptIndex] = useState(() =>
+    isPreview ? 0 : getStudentAttemptCount(id, currentStudent?.id)
+  )
+
+  // 랜덤 출제 그룹은 학생+회차 시드로 결정. 같은 회차 내 새로고침/재접속은 동일 문항, 재시도는 새 추첨.
   const seedKey = useMemo(() => {
     if (isPreview) return `preview_${currentStudent?.id ?? 'anon'}_${id}`
-    return `${currentStudent?.id ?? 'anon'}_${id}`
-  }, [isPreview, currentStudent?.id, id])
+    return `${currentStudent?.id ?? 'anon'}_${id}_${attemptIndex}`
+  }, [isPreview, currentStudent?.id, id, attemptIndex])
 
   // 응시본(동결된 문제지) 키 — 첫 문항 진입 시 동결되어 저장된다 (D-09 R-008, D-02 R-011).
   const snapshotKey = !isPreview ? buildAttemptSnapshotKey(id, currentStudent?.id) : null
