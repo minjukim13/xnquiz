@@ -26,67 +26,6 @@ import {
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
 
-// ─────────────────────────────── 공통: 주차/차시 드롭다운 필터 ───────────────────────────────
-const WEEK_OPTIONS = [
-  { value: 'all', label: '전체 주차' },
-  { value: 'unassigned', label: '미지정' },
-  ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `${i + 1}주차` })),
-]
-
-function WeekSessionFilter({ quizzes, filterWeek, filterSession, onWeekChange, onSessionChange, hideUnassigned = false }) {
-  const weekOptions = hideUnassigned
-    ? WEEK_OPTIONS.filter(o => o.value !== 'unassigned')
-    : WEEK_OPTIONS
-
-  const sessionOptions = useMemo(() => {
-    if (filterWeek === 'all') return []
-    let base = quizzes
-    if (filterWeek === 'unassigned') base = quizzes.filter(q => !q.week || q.week === 0)
-    else base = quizzes.filter(q => q.week === filterWeek)
-    const fromQuizzes = base.map(q => q.session).filter(s => s && s > 0)
-    const withDefault = filterWeek !== 'unassigned' ? [1, ...fromQuizzes] : fromQuizzes
-    const sessions = [...new Set(withDefault)].sort((a, b) => a - b)
-    return [
-      { value: 'all', label: '전체 차시' },
-      ...sessions.map(s => ({ value: s, label: `${s}차시` })),
-    ]
-  }, [quizzes, filterWeek])
-
-  return (
-    <div className="flex gap-2 min-w-0">
-      <DropdownSelect
-        value={filterWeek}
-        onChange={v => { onWeekChange(v); onSessionChange('all') }}
-        options={weekOptions}
-        size="md"
-        filterMode
-        ghost
-        className="w-[100px] sm:w-[120px]"
-      />
-      <DropdownSelect
-        value={filterSession}
-        onChange={onSessionChange}
-        options={sessionOptions}
-        placeholder="차시 선택"
-        disabled={filterWeek === 'all'}
-        size="md"
-        filterMode
-        ghost
-        className="w-[92px] sm:w-[108px]"
-      />
-    </div>
-  )
-}
-
-function applyWeekSessionFilter(quizzes, filterWeek, filterSession) {
-  return quizzes.filter(q => {
-    if (filterWeek === 'unassigned') { if (q.week && q.week > 0) return false }
-    else if (filterWeek !== 'all') { if (q.week !== filterWeek) return false }
-    if (filterSession !== 'all' && q.session !== filterSession) return false
-    return true
-  })
-}
-
 // ─────────────────────────────── 시험구분(평가 그룹) 필터 ───────────────────────────────
 // 별도 시험구분 필드를 두지 않고 기존 평가 그룹(assignmentGroupId)을 분류 기준으로 재사용한다.
 // 평가 그룹이 없는 퀴즈(연습용 등)는 '미분류'로 묶는다.
@@ -311,8 +250,6 @@ function InstructorQuizList() {
     return () => { mounted = false }
   }, [])
 
-  const [filterWeek, setFilterWeek] = useState('all')
-  const [filterSession, setFilterSession] = useState('all')
   const [filterGroup, setFilterGroup] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -457,15 +394,12 @@ function InstructorQuizList() {
   const sortedQuizzes = useMemo(
     () => sortQuizzes(
       applyTitleSearch(
-        applyStatusFilter(
-          applyGroupFilter(applyWeekSessionFilter(quizzes, filterWeek, filterSession), filterGroup),
-          filterStatus,
-        ),
+        applyStatusFilter(applyGroupFilter(quizzes, filterGroup), filterStatus),
         searchQuery,
       ),
       sortKey,
     ),
-    [quizzes, filterWeek, filterSession, filterGroup, filterStatus, searchQuery, sortKey]
+    [quizzes, filterGroup, filterStatus, searchQuery, sortKey]
   )
   const groupedQuizzes = useMemo(() => groupByQuizMode(sortedQuizzes), [sortedQuizzes])
 
@@ -502,13 +436,6 @@ function InstructorQuizList() {
           <SearchInput value={searchQuery} onChange={setSearchQuery} />
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              <WeekSessionFilter
-                quizzes={quizzes}
-                filterWeek={filterWeek}
-                filterSession={filterSession}
-                onWeekChange={setFilterWeek}
-                onSessionChange={setFilterSession}
-              />
               <DropdownSelect
                 value={filterStatus}
                 onChange={setFilterStatus}
@@ -1145,8 +1072,6 @@ const STUDENT_SORT_OPTIONS = [
 
 function StudentQuizList() {
   const { currentStudent } = useRole()
-  const [filterWeek, setFilterWeek] = useState('all')
-  const [filterSession, setFilterSession] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState('recent')
   const [collapsedGroups, setCollapsedGroups] = useState({})
@@ -1191,8 +1116,8 @@ function StudentQuizList() {
   }, [])
 
   const filteredAll = useMemo(
-    () => sortQuizzes(applyTitleSearch(applyWeekSessionFilter(allQuizzes, filterWeek, filterSession), searchQuery), sortKey),
-    [allQuizzes, filterWeek, filterSession, searchQuery, sortKey]
+    () => sortQuizzes(applyTitleSearch(allQuizzes, searchQuery), sortKey),
+    [allQuizzes, searchQuery, sortKey]
   )
   const groupedAll = useMemo(() => groupByQuizMode(filteredAll), [filteredAll])
 
@@ -1207,14 +1132,7 @@ function StudentQuizList() {
 
         <div className="mt-1 mb-3 space-y-2">
           <SearchInput value={searchQuery} onChange={setSearchQuery} />
-          <div className="flex items-center justify-between gap-2">
-            <WeekSessionFilter
-              quizzes={allQuizzes}
-              filterWeek={filterWeek}
-              filterSession={filterSession}
-              onWeekChange={setFilterWeek}
-              onSessionChange={setFilterSession}
-            />
+          <div className="flex items-center justify-end gap-2">
             <DropdownSelect
               value={sortKey}
               onChange={setSortKey}
@@ -1266,7 +1184,7 @@ function StudentQuizList() {
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <FileText size={32} className="mb-3 opacity-40" />
             <p className="text-sm">
-              {filterWeek !== 'all' || filterSession !== 'all' || searchQuery.trim()
+              {searchQuery.trim()
                 ? '해당 조건에 맞는 퀴즈가 없습니다.'
                 : '현재 응시 가능한 퀴즈가 없습니다.'
               }
