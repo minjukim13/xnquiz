@@ -80,6 +80,111 @@ function describeScoringPolicy(scoringMode, penaltyMethod) {
   return `적용 · ${PENALTY_METHOD_LABEL[penaltyMethod] || PENALTY_METHOD_LABEL.none}`
 }
 
+// ── 정답 판정(대소문자·공백·유사 표현) 과목 기본값 + 문항 override (7.5) ──────
+function getGlobalJudgmentDefaults() {
+  try {
+    const gs = JSON.parse(localStorage.getItem('xnq_global_settings') || '{}')
+    return {
+      caseSensitive: !!gs.caseSensitive,
+      whitespaceSensitive: !!gs.whitespaceSensitive,
+      fuzzyMatch: !!gs.shortAnswerFuzzy,
+      fuzzyDistance: Number(gs.shortAnswerFuzzyDistance ?? 1) || 1,
+    }
+  } catch {
+    return { caseSensitive: false, whitespaceSensitive: false, fuzzyMatch: false, fuzzyDistance: 1 }
+  }
+}
+
+function getGlobalMatchingDefault() {
+  try {
+    const gs = JSON.parse(localStorage.getItem('xnq_global_settings') || '{}')
+    return gs.matchingPartial ? 'partial' : 'all_correct'
+  } catch { return 'all_correct' }
+}
+
+function describeJudgment(j) {
+  const parts = [j.caseSensitive ? '대소문자 구분' : '대소문자 무시', j.whitespaceSensitive ? '공백 구분' : '공백 무시']
+  if (j.fuzzyMatch) parts.push(`유사 허용 ${j.fuzzyDistance}글자`)
+  return parts.join(' · ')
+}
+
+// 단답형/빈칸 정답 판정 문항 단위 override
+function ShortAnswerJudgmentPolicy({ form, setForm }) {
+  const upd = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
+  const globalDesc = describeJudgment(getGlobalJudgmentDefaults())
+  const Chip = ({ active, onClick, children }) => (
+    <button type="button" onClick={onClick}
+      className={cn('px-2.5 py-1 rounded-md text-[13px] border transition-colors',
+        active ? 'border-primary bg-accent text-primary font-medium' : 'border-border bg-white text-slate-600 hover:border-slate-300')}>
+      {children}
+    </button>
+  )
+  return (
+    <div className="mt-2 pt-3 border-t border-border">
+      <div className="flex items-center justify-between mb-2">
+        <Label>정답 판정</Label>
+        <span className="text-xs text-muted-foreground">퀴즈 기본값: <span className="text-foreground font-medium">{globalDesc}</span></span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <PolicySourceOption active={!form.overrideJudgment} onClick={() => upd('overrideJudgment', false)} title="퀴즈 기본값 사용" desc="퀴즈 기본 설정의 정답 판정 기준을 따릅니다" />
+        <PolicySourceOption active={!!form.overrideJudgment} onClick={() => upd('overrideJudgment', true)} title="이 문항만 다르게 설정" desc="이 문항에 한해 별도 판정 기준을 적용합니다" />
+      </div>
+      {form.overrideJudgment && (
+        <div className="mt-3 rounded-lg border border-border bg-slate-50/60 p-3 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[13px] text-slate-600">영문 대소문자</span>
+            <div className="flex gap-1.5">
+              <Chip active={!form.caseSensitive} onClick={() => upd('caseSensitive', false)}>무시</Chip>
+              <Chip active={!!form.caseSensitive} onClick={() => upd('caseSensitive', true)}>구분</Chip>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[13px] text-slate-600">띄어쓰기</span>
+            <div className="flex gap-1.5">
+              <Chip active={!form.whitespaceSensitive} onClick={() => upd('whitespaceSensitive', false)}>무시</Chip>
+              <Chip active={!!form.whitespaceSensitive} onClick={() => upd('whitespaceSensitive', true)}>구분</Chip>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-[13px] text-slate-600">유사 표현(오탈자)</span>
+            <div className="flex gap-1.5 items-center">
+              <Chip active={!form.fuzzyMatch} onClick={() => upd('fuzzyMatch', false)}>불허</Chip>
+              <Chip active={!!form.fuzzyMatch} onClick={() => upd('fuzzyMatch', true)}>허용</Chip>
+              {form.fuzzyMatch && [1, 2].map(d => (
+                <Chip key={d} active={(Number(form.fuzzyDistance) || 1) === d} onClick={() => upd('fuzzyDistance', d)}>{d}글자</Chip>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// 짝짓기(연결형) 부분 점수 문항 단위 override
+function MatchingScoringPolicy({ form, setForm }) {
+  const upd = (key, val) => setForm(prev => ({ ...prev, [key]: val }))
+  const globalDesc = getGlobalMatchingDefault() === 'partial' ? '적용 (맞힌 연결 비율만큼 부분 점수)' : '미적용 (모두 맞혀야 만점)'
+  return (
+    <div className="mt-2 pt-3 border-t border-border">
+      <div className="flex items-center justify-between mb-2">
+        <Label>부분 점수</Label>
+        <span className="text-xs text-muted-foreground">퀴즈 기본값: <span className="text-foreground font-medium">{globalDesc}</span></span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <PolicySourceOption active={!form.overrideScoring} onClick={() => upd('overrideScoring', false)} title="퀴즈 기본값 사용" desc="퀴즈 기본 설정의 부분 점수 정책을 따릅니다" />
+        <PolicySourceOption active={!!form.overrideScoring} onClick={() => upd('overrideScoring', true)} title="이 문항만 다르게 설정" desc="이 문항에 한해 별도 정책을 적용합니다" />
+      </div>
+      {form.overrideScoring && (
+        <div className="mt-3 rounded-lg border border-border bg-slate-50/60 p-3 space-y-1.5">
+          <RadioRow active={form.scoringMode === 'all_correct'} onClick={() => upd('scoringMode', 'all_correct')} label="미적용 (모든 연결을 맞혀야 만점)" />
+          <RadioRow active={form.scoringMode === 'partial'} onClick={() => upd('scoringMode', 'partial')} label="적용 (맞힌 연결 개수 비율만큼 부분 점수)" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── 폼 초기값 ───────────────────────────────────────────────────────────────
 export function initForm(type) {
   const base = { title: '', text: '', points: 5, difficulty: '', correct_comments: '', incorrect_comments: '', neutral_comments: '' }
@@ -87,11 +192,11 @@ export function initForm(type) {
     case 'multiple_choice':         return { ...base, options: ['', '', '', ''], optionComments: ['', '', '', ''], correctIdx: 0 }
     case 'true_false':              return { ...base, correctBool: true, trueComment: '', falseComment: '' }
     case 'multiple_answers':        return { ...base, options: ['', '', '', ''], optionComments: ['', '', '', ''], correctIdxs: [0], overrideScoring: false, scoringMode: 'all_correct', penaltyMethod: 'none' }
-    case 'short_answer':            return { ...base, acceptedAnswers: [''] }
+    case 'short_answer':            { const j = getGlobalJudgmentDefaults(); return { ...base, acceptedAnswers: [''], overrideJudgment: false, caseSensitive: j.caseSensitive, whitespaceSensitive: j.whitespaceSensitive, fuzzyMatch: j.fuzzyMatch, fuzzyDistance: j.fuzzyDistance } }
     case 'essay':                   return { ...base, rubric: '' }
     case 'numerical':               return { ...base, correctNum: '', tolerance: '0' }
     case 'formula':                 return { ...base, variables: [{ name: '', min: '1', max: '10', decimals: '0' }], formula: '', tolerance: '0', toleranceType: 'absolute', answerDecimals: '2', solutions: [] }
-    case 'matching':                return { ...base, pairs: [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }], distractors: [] }
+    case 'matching':                return { ...base, pairs: [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }], distractors: [], overrideScoring: false, scoringMode: getGlobalMatchingDefault() }
     case 'fill_in_multiple_blanks': return { ...base, blanks: [] }
     case 'multiple_dropdowns':      return { ...base, dropdowns: [] }
     case 'file_upload':             return base
@@ -144,11 +249,11 @@ export function buildQuestion(type, form) {
       if (comments.some(c => (c || '').trim())) result.optionComments = comments
       return result
     }
-    case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()) }
+    case 'short_answer':            return { ...base, correctAnswer: form.acceptedAnswers.filter(a => a.trim()), ...(form.overrideJudgment ? { caseSensitive: !!form.caseSensitive, whitespaceSensitive: !!form.whitespaceSensitive, fuzzyMatch: !!form.fuzzyMatch, fuzzyDistance: Number(form.fuzzyDistance) || 1 } : {}) }
     case 'essay':                   return { ...base, rubric: form.rubric }
     case 'numerical':               return { ...base, correctAnswer: Number(form.correctNum), tolerance: Number(form.tolerance) || 0 }
     case 'formula':                 return { ...base, variables: form.variables.filter(v => v.name.trim()), formula: form.formula.trim(), tolerance: Number(form.tolerance) || 0, toleranceType: form.toleranceType || 'absolute', answerDecimals: Number.isFinite(Number(form.answerDecimals)) ? Number(form.answerDecimals) : 2, solutions: form.solutions || [] }
-    case 'matching':                return { ...base, pairs: form.pairs.filter(p => p.left.trim() && p.right.trim()), distractors: (form.distractors || []).filter(d => d.trim()) }
+    case 'matching':                return { ...base, pairs: form.pairs.filter(p => p.left.trim() && p.right.trim()), distractors: (form.distractors || []).filter(d => d.trim()), ...(form.overrideScoring ? { scoringMode: form.scoringMode || 'all_correct' } : {}) }
     case 'fill_in_multiple_blanks': return { ...base, correctAnswer: form.blanks.map(b => b.filter(a => a.trim())).filter(b => b.length > 0) }
     case 'multiple_dropdowns':      return { ...base, dropdowns: form.dropdowns.map(d => {
       const opts = d.options.filter(o => o.trim())
@@ -613,6 +718,8 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
             </div>
           ))}
           {form.acceptedAnswers.length < 5 && <AddBtn onClick={() => upd('acceptedAnswers', [...form.acceptedAnswers, ''])} label="대체 정답 추가" />}
+
+          <ShortAnswerJudgmentPolicy form={form} setForm={setForm} />
         </div>
       )
 
@@ -695,6 +802,8 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
               </div>
             )}
           </div>
+
+          <MatchingScoringPolicy form={form} setForm={setForm} />
         </div>
       )
 
@@ -1049,11 +1158,19 @@ export function questionToForm(q) {
         penaltyMethod: hasOverride ? (q.penaltyMethod || 'none') : 'none',
       }
     }
-    case 'short_answer':
+    case 'short_answer': {
+      const g = getGlobalJudgmentDefaults()
+      const hasJ = q.caseSensitive != null || q.whitespaceSensitive != null || q.fuzzyMatch != null
       return {
         ...base,
         acceptedAnswers: Array.isArray(q.correctAnswer) && q.correctAnswer.length ? [...q.correctAnswer] : typeof q.correctAnswer === 'string' ? [q.correctAnswer] : [''],
+        overrideJudgment: hasJ,
+        caseSensitive: q.caseSensitive ?? g.caseSensitive,
+        whitespaceSensitive: q.whitespaceSensitive ?? g.whitespaceSensitive,
+        fuzzyMatch: q.fuzzyMatch ?? g.fuzzyMatch,
+        fuzzyDistance: q.fuzzyDistance ?? g.fuzzyDistance,
       }
+    }
     case 'essay':
       return { ...base, rubric: q.rubric || '' }
     case 'numerical':
@@ -1061,7 +1178,7 @@ export function questionToForm(q) {
     case 'formula':
       return { ...base, variables: q.variables?.length ? q.variables.map(v => ({ ...v })) : [{ name: '', min: '1', max: '10', decimals: '0' }], formula: q.formula || '', tolerance: q.tolerance != null ? String(q.tolerance) : '0', toleranceType: q.toleranceType || 'absolute', answerDecimals: q.answerDecimals != null ? String(q.answerDecimals) : '2', solutions: q.solutions || [] }
     case 'matching':
-      return { ...base, pairs: q.pairs?.length ? q.pairs.map(p => ({ ...p })) : [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }], distractors: q.distractors?.length ? [...q.distractors] : [] }
+      return { ...base, pairs: q.pairs?.length ? q.pairs.map(p => ({ ...p })) : [{ left: '', right: '' }, { left: '', right: '' }, { left: '', right: '' }], distractors: q.distractors?.length ? [...q.distractors] : [], overrideScoring: q.scoringMode != null, scoringMode: q.scoringMode ?? getGlobalMatchingDefault() }
     case 'fill_in_multiple_blanks': {
       let blanks = []
       if (Array.isArray(q.correctAnswer) && q.correctAnswer.length) {

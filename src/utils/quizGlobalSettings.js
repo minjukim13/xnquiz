@@ -11,6 +11,11 @@ export const GLOBAL_SETTINGS_DEFAULTS = {
   penaltyMethod: 'none',
   caseSensitive: false,
   whitespaceSensitive: false,
+  // 단답형/빈칸 유사 표현(오탈자) 허용 (7.5). 기본 OFF. 거리 = 허용 오타 글자 수(Levenshtein).
+  shortAnswerFuzzy: false,
+  shortAnswerFuzzyDistance: 1,
+  // 짝짓기(연결형) 부분 점수 기본 사용 여부 (7.5). 기본 OFF = 완전 매칭 시에만 만점.
+  matchingPartial: false,
   // 신규 퀴즈 기본값 (D-05 R-001 / R-003)
   defaultAllowAttempts: 1,             // 1, N(>=2), 또는 -1(무제한)
   defaultScorePolicy: '최고 점수 유지', // 최고/최신/평균

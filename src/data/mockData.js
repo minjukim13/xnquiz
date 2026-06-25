@@ -36,6 +36,48 @@ function _normalizeAnswer(str, gs) {
   return s
 }
 
+// 편집 거리(Levenshtein) — 단답형/빈칸 유사 표현·오탈자 허용 채점용 (7.5)
+function _levenshtein(a, b) {
+  const m = a.length, n = b.length
+  if (m === 0) return n
+  if (n === 0) return m
+  let prev = Array.from({ length: n + 1 }, (_, i) => i)
+  let curr = new Array(n + 1)
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost)
+    }
+    const tmp = prev; prev = curr; curr = tmp
+  }
+  return prev[n]
+}
+
+// 문항 단위 정답 판정 설정 — 문항 override(과목 기본값과 다르게) 우선, 없으면 전역 기본값 (7.5)
+function _resolveJudgment(question, gs) {
+  return {
+    caseSensitive: question.caseSensitive ?? gs.caseSensitive ?? false,
+    whitespaceSensitive: question.whitespaceSensitive ?? gs.whitespaceSensitive ?? false,
+    fuzzy: question.fuzzyMatch ?? gs.shortAnswerFuzzy ?? false,
+    fuzzyDistance: Number(question.fuzzyDistance ?? gs.shortAnswerFuzzyDistance ?? 1) || 1,
+  }
+}
+
+// 학생 답이 허용 정답 중 하나와 일치하는지 — 정규화 일치 또는 (유사 허용 시) 편집 거리 이내
+function _matchesAccepted(studentAns, acceptedList, j) {
+  const sa = _normalizeAnswer(studentAns, j)
+  if (!sa) return false
+  return (acceptedList || []).some(acc => {
+    const na = _normalizeAnswer(acc, j)
+    if (!na) return false
+    if (sa === na) return true
+    // 유사 허용: 정답이 허용 오타 수보다 길 때만 적용해 짧은 단답 오매칭 방지
+    if (j.fuzzy && na.length > j.fuzzyDistance) return _levenshtein(sa, na) <= j.fuzzyDistance
+    return false
+  })
+}
+
 // QUIZ_TYPES: Canvas LMS 전체 퀴즈 유형 (Classic + New Quizzes)
 export const QUIZ_TYPES = {
   multiple_choice:        { label: '객관식',          autoGrade: true      },
@@ -1974,7 +2016,7 @@ function gradeByQuestion(question, answer) {
     }
     case 'short_answer': {
       const accepted = Array.isArray(ca) ? ca : [ca]
-      return accepted.some(a => norm(answer) === norm(a)) ? pts : 0
+      return _matchesAccepted(answer, accepted, _resolveJudgment(question, gs)) ? pts : 0
     }
     case 'numerical': {
       const num = parseFloat(answer)
@@ -2019,11 +2061,12 @@ function gradeByQuestion(question, answer) {
     case 'fill_in_multiple_blanks': {
       const blanks = Array.isArray(ca) ? ca : []
       const answers = Array.isArray(answer) ? answer : String(answer).split(',').map(s => s.trim())
+      const j = _resolveJudgment(question, gs)
       const correct = blanks.length > 0 && blanks.every((b, i) => {
         const studentAns = answers[i]
         if (!studentAns) return false
         const accepted = Array.isArray(b) ? b : [b]
-        return accepted.some(a => norm(studentAns) === norm(a))
+        return _matchesAccepted(studentAns, accepted, j)
       })
       return correct ? pts : 0
     }
@@ -2039,8 +2082,11 @@ function gradeByQuestion(question, answer) {
           if (l && r) answerMap[l] = r
         })
       } else { return 0 }
-      const correct = pairs.every(p => norm(answerMap[p.left] || '') === norm(p.right))
-      return correct ? pts : 0
+      // 부분 점수: 문항 override(scoringMode) 우선, 없으면 과목 기본값(matchingPartial)
+      const mode = question.scoringMode ?? (gs.matchingPartial ? 'partial' : 'all_correct')
+      const correctCount = pairs.filter(p => norm(answerMap[p.left] || '') === norm(p.right)).length
+      if (mode === 'partial') return Math.round((correctCount / pairs.length) * pts * 2) / 2
+      return correctCount === pairs.length ? pts : 0
     }
     case 'multiple_dropdowns': {
       const dropdowns = question.dropdowns || []
