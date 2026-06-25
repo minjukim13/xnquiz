@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
 import { AlertCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Check, ListFilter, RefreshCw, BarChart3 } from 'lucide-react'
 import { downloadGradesXlsx, downloadItemAnalysisXlsx } from '../utils/excelUtils'
@@ -6,8 +6,8 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
 import { QUIZ_TYPES } from '../data/mockData'
-import { getQuiz, getQuizQuestions, listAttempts, regradeQuestion } from '@/lib/data'
-import { expandAllForInstructor, getRecipientStudents, isRandomGroup } from '@/utils/randomGroups'
+import { getQuiz, getQuizQuestions, listAttempts } from '@/lib/data'
+import { expandAllForInstructor, getRecipientStudents } from '@/utils/randomGroups'
 import { Shuffle, Users } from 'lucide-react'
 import { getLateThreshold } from '../utils/deadlineUtils'
 import { useRole } from '../context/role'
@@ -17,7 +17,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import PageHeader from '../components/PageHeader'
-import RegradeOptionsModal from '../components/RegradeOptionsModal'
 import QuestionStatsPanel from './GradingDashboard/StatsTab'
 
 function CollapsibleDescription({ text }) {
@@ -291,9 +290,6 @@ export default function QuizStats() {
   const [quizQuestions, setQuizQuestions] = useState([])
   const [quizStudents, setQuizStudents] = useState([])
   const [loading, setLoading] = useState(true)
-  const [regradeTarget, setRegradeTarget] = useState(null)
-  const [regradeBusy, setRegradeBusy] = useState(false)
-  const [regradeToast, setRegradeToast] = useState(null)
 
   useEffect(() => {
     let mounted = true
@@ -328,49 +324,6 @@ export default function QuizStats() {
     () => enrichQuestions(flattenedQuestions, quizStudents),
     [flattenedQuestions, quizStudents]
   )
-
-  const reloadAttempts = useCallback(async () => {
-    try {
-      const qs = await listAttempts({ quizId: id })
-      setQuizStudents(qs ?? [])
-    } catch (err) {
-      console.error('[QuizStats] 재로드 실패', err)
-    }
-  }, [id])
-
-  const handleRegradeConfirm = useCallback(async (option) => {
-    if (!regradeTarget) return
-    const { question } = regradeTarget
-    setRegradeBusy(true)
-    try {
-      const result = await regradeQuestion(id, question, option, question)
-      const count = result?.regradedStudents ?? 0
-      try {
-        const existing = JSON.parse(localStorage.getItem('xnq_regrade_log') || '{}')
-        existing[id] = {
-          ...(existing[id] || {}),
-          [question.id]: { option, count, timestamp: new Date().toISOString() },
-        }
-        localStorage.setItem('xnq_regrade_log', JSON.stringify(existing))
-      } catch { /* ignore */ }
-      await reloadAttempts()
-      setRegradeTarget(null)
-      setRegradeToast(count > 0
-        ? `재채점 완료 (${count}명 점수 변경)`
-        : '재채점 완료 (점수 변경 없음)')
-    } catch (err) {
-      console.error('[QuizStats] 재채점 실패', err)
-      setRegradeToast('재채점 실패')
-    } finally {
-      setRegradeBusy(false)
-    }
-  }, [id, regradeTarget, reloadAttempts])
-
-  useEffect(() => {
-    if (!regradeToast) return
-    const t = setTimeout(() => setRegradeToast(null), 3000)
-    return () => clearTimeout(t)
-  }, [regradeToast])
 
   if (role !== 'instructor') return <Navigate to="/" replace />
 
@@ -422,23 +375,8 @@ export default function QuizStats() {
           quiz={quiz}
           quizQuestions={enrichedQuestions}
           quizStudents={quizStudents}
-          onRequestRegrade={(question, submittedCount) => setRegradeTarget({ question, submittedCount })}
         />
       </div>
-      {regradeTarget && (
-        <RegradeOptionsModal
-          mode="manual"
-          submittedCount={regradeTarget.submittedCount}
-          questionLabel={`Q${regradeTarget.question.order}`}
-          onConfirm={handleRegradeConfirm}
-          onCancel={() => { if (!regradeBusy) setRegradeTarget(null) }}
-        />
-      )}
-      {regradeToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-md bg-foreground text-white text-sm shadow-lg">
-          {regradeToast}
-        </div>
-      )}
     </>
   )
 }
@@ -457,7 +395,7 @@ function calcElapsed(startTime, submittedAt) {
   return `${s}초`
 }
 
-function StatsPageTabs({ quiz, quizQuestions, quizStudents, onRequestRegrade }) {
+function StatsPageTabs({ quiz, quizQuestions, quizStudents }) {
   const [activeTab, setActiveTab] = useState('grades')
   return (
     <>
@@ -485,7 +423,7 @@ function StatsPageTabs({ quiz, quizQuestions, quizStudents, onRequestRegrade }) 
       <div className="px-2">
         {activeTab === 'grades'
           ? <GradesTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
-          : <StatsTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} onRequestRegrade={onRequestRegrade} />
+          : <StatsTab quiz={quiz} quizQuestions={quizQuestions} students={quizStudents} />
         }
       </div>
     </>
@@ -792,7 +730,7 @@ function GradesTab({ quiz, quizQuestions, students: allStudents }) {
   )
 }
 
-function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade }) {
+function StatsTab({ quiz, quizQuestions, students: allStudents }) {
   const [statsDetailQ, setStatsDetailQ] = useState(null)
   const totalPoints = quizQuestions.reduce((s, q) => s + (q.points || 0), 0)
   // 응시 시작 여부 기준 분류 (자동 0점 처리된 미시작자도 '미제출' 로 유지)
@@ -1081,11 +1019,10 @@ function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade
           <h3 className="text-base font-semibold mb-1">선택지별 응답 패턴</h3>
           <p className="text-xs text-muted-foreground mb-4">
             객관식/복수 선택/드롭다운 문항에 한해, 채점 완료 학생의 선택지별 응답 분포를 표시합니다.
-            정답을 수정한 뒤 우측의 재채점 버튼으로 학생 점수를 일괄 갱신할 수 있습니다.
+            정답 수정에 따른 재채점은 채점 화면(문항 중심)에서 진행합니다.
           </p>
           <div className="space-y-4">
             {choiceQuestions.map(q => {
-              const submittedForQ = allStudents.filter(s => s.submitted && s.selections?.[q.id] !== undefined).length
               return (
                 <div key={q.id} className="border border-border rounded-md p-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -1102,16 +1039,6 @@ function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade
                     >
                       <BarChart3 size={11} />
                       통계 상세
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="xs"
-                      disabled={submittedForQ === 0 || !onRequestRegrade}
-                      onClick={() => onRequestRegrade?.(q, submittedForQ)}
-                      title={submittedForQ === 0 ? '응시 학생이 없어 재채점할 수 없습니다' : '이 문항을 재채점합니다'}
-                    >
-                      <RefreshCw size={11} />
-                      재채점
                     </Button>
                   </div>
                   <div className="space-y-1.5">
@@ -1315,7 +1242,6 @@ function StatsTab({ quiz, quizQuestions, students: allStudents, onRequestRegrade
                   <RecipientSection
                     question={statsDetailQ}
                     students={allStudents}
-                    onRegrade={() => onRequestRegrade?.(statsDetailQ, statsDetailQ.recipientCount ?? 0)}
                   />
                 )}
                 <QuestionStatsPanel

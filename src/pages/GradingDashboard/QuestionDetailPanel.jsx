@@ -5,7 +5,9 @@ import TypeBadge from '../../components/TypeBadge'
 import { Download, FolderDown, ChevronDown, ChevronUp } from 'lucide-react'
 import ResponsesTab from './ResponsesTab'
 import AcceptedAnswerModal from './AcceptedAnswerModal'
+import RegradeOptionsModal from '../../components/RegradeOptionsModal'
 import { RichTextRenderer } from '../../components/RichText'
+import { regradeQuestion } from '@/lib/data'
 import { getLocalGrades, setLocalGrades } from './utils'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
@@ -22,10 +24,40 @@ export default function QuestionDetailPanel({ question, students, search, onSear
   const [clearPendingSignal, setClearPendingSignal] = useState(0)
   const [infoCollapsed, setInfoCollapsed] = useState(false)
   const [showAcceptedModal, setShowAcceptedModal] = useState(false)
+  const [showRegradeModal, setShowRegradeModal] = useState(false)
+  const [regradeBusy, setRegradeBusy] = useState(false)
   const [regradeTick, setRegradeTick] = useState(0)
 
   // 추가 인정 답안 등록 대상 유형 (XQ-D-06 R-008: 단답형)
   const canAcceptAnswer = question.type === 'short_answer'
+  // 재채점 대상 = 이 문항을 받은 제출 학생 (XQ-D-06 R-008: 채점 화면 문항 중심)
+  const submittedCount = students.filter(s => s.submitted).length
+
+  // 재채점 실행 (현재 정답 기준 재채점 / 전원 만점) — 응시본 기준
+  const handleRegradeConfirm = async (option) => {
+    setRegradeBusy(true)
+    try {
+      const result = await regradeQuestion(quizId, question, option, question)
+      const count = result?.regradedStudents ?? result?.changedCount ?? 0
+      try {
+        const existing = JSON.parse(localStorage.getItem('xnq_regrade_log') || '{}')
+        existing[quizId] = {
+          ...(existing[quizId] || {}),
+          [question.id]: { option, count, timestamp: new Date().toISOString() },
+        }
+        localStorage.setItem('xnq_regrade_log', JSON.stringify(existing))
+      } catch { /* ignore */ }
+      setShowRegradeModal(false)
+      setRegradeTick(t => t + 1)
+      onGradeSaved?.()
+      showToast?.(count > 0 ? `재채점 완료 (${count}명 점수 변경)` : '재채점 완료 (점수 변경 없음)')
+    } catch (err) {
+      console.error('[QuestionDetailPanel] 재채점 실패', err)
+      showToast?.('재채점 실패')
+    } finally {
+      setRegradeBusy(false)
+    }
+  }
 
   // 재채점 로그 읽기
   const regradeInfo = useMemo(() => {
@@ -208,6 +240,9 @@ export default function QuestionDetailPanel({ question, students, search, onSear
               추가 인정 답안
             </Button>
           )}
+          <Button variant="outline" disabled={submittedCount === 0} onClick={() => setShowRegradeModal(true)}>
+            재채점
+          </Button>
           <Button variant="outline" onClick={() => handleBulkGrade('all_full')}>
             전체 정답
           </Button>
@@ -248,6 +283,16 @@ export default function QuestionDetailPanel({ question, students, search, onSear
             onGradeSaved?.()
           }}
           showToast={showToast}
+        />
+      )}
+
+      {showRegradeModal && (
+        <RegradeOptionsModal
+          mode="manual"
+          submittedCount={submittedCount}
+          questionLabel={`Q${question.order ?? ''}`.trim()}
+          onConfirm={handleRegradeConfirm}
+          onCancel={() => { if (!regradeBusy) setShowRegradeModal(false) }}
         />
       )}
 
