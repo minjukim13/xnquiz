@@ -60,7 +60,9 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
       {open && createPortal(
         <div
           ref={menuRef}
-          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
+          // pointerEvents:auto — 모달(Radix Dialog)이 body 에 pointer-events:none 을 걸어도
+          // body 로 portal 된 메뉴 클릭이 동작하도록 복원 (DialogContent 는 onInteractOutside preventDefault 라 닫히지 않음)
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999, pointerEvents: 'auto' }}
           className="bg-white py-1 max-h-60 overflow-y-auto border border-border rounded-md shadow-lg"
         >
           {options.map(o => {
