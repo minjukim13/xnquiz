@@ -99,7 +99,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
           {/* --- 헤더 --- */}
           <DialogHeader className="mb-6">
             <DialogTitle>조건부 재응시 부여</DialogTitle>
-            <DialogDescription>조건에 해당하는 학생에게만 추가 응시 기회를 부여합니다.</DialogDescription>
+            <DialogDescription>조건에 해당하는 학생에게만 추가 응시 횟수를 부여합니다.</DialogDescription>
           </DialogHeader>
 
           {/* --- 스텝 바 --- */}
@@ -298,7 +298,7 @@ export default function ConditionalRetakeModal({ open, onOpenChange, quizId, qui
           {step === 3 && (
             <div className="flex flex-col gap-5">
               <div className="bg-secondary rounded-xl px-5 py-4">
-                <p className="text-[15px] font-bold text-foreground">{finalTargets.length}명에게 추가 응시 기회를 부여합니다.</p>
+                <p className="text-[15px] font-bold text-foreground">{finalTargets.length}명에게 추가 응시 횟수를 부여합니다.</p>
               </div>
 
               <div className="bg-secondary rounded-xl p-5">

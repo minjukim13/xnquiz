@@ -179,10 +179,10 @@ function buildReviewItems(form, questions, totalPoints) {
     isDefault: !form.allowLateSubmit,
   })
 
-  // 4. 추가 기간 설정 (assignments)
+  // 4. 추가 할당 (assignments)
   const assignmentCount = form.assignments?.length || 0
   items.push({
-    key: 'overrides', no: 4, title: '추가 기간 설정',
+    key: 'overrides', no: 4, title: '추가 할당',
     value: assignmentCount > 0
       ? `${assignmentCount}건 (대상자별 별도 마감 적용)`
       : '없음',

@@ -420,7 +420,7 @@ export default function QuizEdit() {
     if (!form.unlimitedTimeLimit && (form.timeLimit === '' || Number(form.timeLimit) <= 0)) errors.push('제한 시간을 입력하거나 무제한으로 설정해주세요')
     if (!form.unlimitedTimeLimit && form.disableAutoSubmit && !form.lockDate) errors.push('자동 제출 5분 유예 사용 시 이용 종료를 반드시 설정해야 합니다')
     if (questions.length === 0) errors.push('최소 1개 이상의 문항을 추가해주세요')
-    if (hasDuplicateStudent(form.assignments)) errors.push('동일한 학생이 여러 추가 기간 설정에 포함되어 있습니다')
+    if (hasDuplicateStudent(form.assignments)) errors.push('동일한 학생이 여러 추가 할당에 포함되어 있습니다')
     if (form.accessControlEnabled) {
       const badIps = getInvalidIpTokens(form.ipRestriction)
       if (badIps.length) errors.push(`허용 IP 형식이 올바르지 않습니다: ${badIps.join(', ')}`)
@@ -659,8 +659,8 @@ function InfoTab({ form, set, quizStatus, courseKey, hasTakers = false }) {
 
         <div className="pt-3 mt-1 border-t border-slate-100 space-y-3">
           <div>
-            <p className="text-sm font-semibold text-secondary-foreground">추가 기간</p>
-            <p className="text-xs text-muted-foreground mt-0.5">특정 학과 또는 학생에게 별도의 응시 기간을 부여합니다. 추가 기간은 위 응시 기간을 대체합니다.</p>
+            <p className="text-sm font-semibold text-secondary-foreground">추가 할당</p>
+            <p className="text-xs text-muted-foreground mt-0.5">특정 학과 또는 학생에게 별도의 응시 기간을 부여합니다. 추가 할당은 위 응시 기간을 대체합니다.</p>
           </div>
           <AssignmentOverrides
             assignments={form.assignments}
@@ -866,7 +866,7 @@ function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDr
           </div>
         </div>
         <p className="text-xs mt-2 ml-8 text-secondary-foreground leading-relaxed">
-          학생마다 서로 다른 <span className="font-semibold text-foreground">{group.count}개</span> 문항이 무작위로 출제됩니다
+          학생마다 서로 다른 <span className="font-semibold text-foreground">{group.count}개</span> 문항이 랜덤으로 출제됩니다
           {group.useDifficultyScoring
             ? ' (난이도별 차등 배점)'
             : ` · 문항당 ${group.pointsPerQuestion}점`}

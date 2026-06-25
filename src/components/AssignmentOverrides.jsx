@@ -108,7 +108,7 @@ export default function AssignmentOverrides({ assignments, onChange }) {
         return (
           <div key={a.id} className="p-3 rounded-md space-y-3 border border-border bg-slate-50/60">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-slate-700">추가 대상 {idx + 1}</p>
+              <p className="text-xs font-semibold text-slate-700">추가 할당 {idx + 1}</p>
               <Button
                 variant="ghost"
                 size="sm"
@@ -180,7 +180,7 @@ export default function AssignmentOverrides({ assignments, onChange }) {
         className="w-full text-sm py-2 rounded-md border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary hover:bg-accent/40 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
       >
         <Plus size={14} />
-        추가 기간 설정 추가
+        추가 할당 추가
       </button>
 
       <AssignTargetModal

@@ -108,9 +108,9 @@ export default function AssignTargetModal({ open, onOpenChange, initialSelected 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>추가 대상 선택</DialogTitle>
+          <DialogTitle>추가 할당 대상 선택</DialogTitle>
           <DialogDescription>
-            추가 기간을 적용할 학생 또는 학과(그룹)를 선택합니다.
+            추가 할당을 적용할 학생 또는 학과(그룹)를 선택합니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -198,7 +198,7 @@ export default function AssignTargetModal({ open, onOpenChange, initialSelected 
                         type="button"
                         disabled={isExcluded}
                         onClick={() => toggle(key)}
-                        title={isExcluded ? '다른 추가 대상에 이미 포함된 학생입니다' : ''}
+                        title={isExcluded ? '다른 추가 할당에 이미 포함된 학생입니다' : ''}
                         className={cn(
                           'w-full grid grid-cols-[40px_1.4fr_1fr_1.4fr] items-center px-4 py-2.5 text-sm text-left border-b border-secondary last:border-b-0 transition-colors',
                           isChecked ? 'bg-accent/50' : 'hover:bg-secondary/40',
