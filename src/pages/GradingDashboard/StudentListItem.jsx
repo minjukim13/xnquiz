@@ -1,9 +1,13 @@
 import { cn } from '@/lib/utils'
+import { getVoidedAdjustment } from '@/utils/voidedQuestions'
 
 // ─── 학생 중심: 학생 리스트 아이템 ────────────────────────────────────────
-export default function StudentListItem({ student, selected, onClick }) {
+export default function StudentListItem({ student, selected, onClick, quizId, questions }) {
   const isSubmitted = student.submitted
   const hasScore = student.score !== null
+  // 채점 제외(무효화) 문항 차감 (XQ-D-06 R-008)
+  const { scoreExcluded } = getVoidedAdjustment(quizId, student, questions)
+  const displayScore = hasScore ? student.score - scoreExcluded : null
 
   return (
     <button
@@ -43,7 +47,7 @@ export default function StudentListItem({ student, selected, onClick }) {
           'shrink-0 tabular-nums leading-tight',
           hasScore ? 'text-sm font-bold text-foreground' : 'text-[11px] font-medium text-muted-foreground'
         )}>
-          {hasScore ? `${student.score}점` : '-'}
+          {hasScore ? `${displayScore}점` : '-'}
         </span>
       </div>
     </button>

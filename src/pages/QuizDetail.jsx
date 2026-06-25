@@ -26,6 +26,7 @@ import TypeBadge from '../components/TypeBadge'
 import CommentThread from './GradingDashboard/CommentThread'
 import { isResultViewed, markResultViewed } from '@/utils/resultsViewedStorage'
 import { getStudentAdjustment } from '@/utils/scoreAdjustments'
+import { getVoidedAdjustment } from '@/utils/voidedQuestions'
 import { useQuestionBank } from '../context/questionBank'
 import { expandRandomGroups } from '@/utils/randomGroups'
 
@@ -628,10 +629,16 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
   // 제출 attempt 에 quizSnapshot 이 동봉돼 있으면 우선 사용, 없으면 현재 문항으로 폴백.
   const resultQuestions = (latestAttempt?.quizSnapshot?.length ? latestAttempt.quizSnapshot : questions) ?? []
 
-  const totalPoints = resultQuestions.reduce((s, q) => s + (q.points || 0), 0)
+  // XQ-D-06 R-008: 채점 제외(무효화)된 문항은 만점·점수에서 차감
+  const { pointsExcluded, scoreExcluded } = getVoidedAdjustment(
+    quiz.id,
+    { autoScores: latestAttempt?.autoScores, manualScores: latestAttempt?.manualScores },
+    resultQuestions,
+  )
+  const totalPoints = resultQuestions.reduce((s, q) => s + (q.points || 0), 0) - pointsExcluded
   // XQ-D-09 R-006: 재채점으로 점수가 조정된 경우 갱신 점수·안내 노출
   const adjustment = latestAttempt ? getStudentAdjustment(quiz.id, studentId) : null
-  const autoScore = adjustment?.newScore ?? latestAttempt?.totalAutoScore ?? 0
+  const autoScore = (adjustment?.newScore ?? latestAttempt?.totalAutoScore ?? 0) - scoreExcluded
   const adjustedAt = (() => {
     if (!adjustment?.at) return null
     const d = new Date(adjustment.at)

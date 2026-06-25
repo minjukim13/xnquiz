@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { getLocalGrades, setLocalGrades, getLocalFudgePoints, setLocalFudgePoints, getUnreadCount } from './utils'
 import { getStudentAnswer, isAnswerCorrect, getStudentFileSubmission } from '../../data/mockData'
+import { getVoidedAdjustment } from '@/utils/voidedQuestions'
 import TypeBadge from '../../components/TypeBadge'
 import { Button } from '@/components/ui/button'
 import { Paperclip, Download, Plus, Minus, MoreVertical } from 'lucide-react'
@@ -282,7 +283,10 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
   }
 
   const hasScore = student.score !== null
-  const totalPoints = questions.reduce((s, q) => s + (q.points || 0), 0)
+  // 채점 제외(무효화) 문항은 만점·점수에서 차감 (XQ-D-06 R-008)
+  const { pointsExcluded, scoreExcluded } = getVoidedAdjustment(quizId, student, questions)
+  const totalPoints = questions.reduce((s, q) => s + (q.points || 0), 0) - pointsExcluded
+  const displayScore = hasScore ? student.score - scoreExcluded : null
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-white rounded-xl border border-slate-200">
@@ -307,7 +311,7 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
         <div className="shrink-0 text-right">
           <p className="leading-tight tabular-nums">
             <span className="text-[20px] font-bold text-foreground">
-              {hasScore ? student.score : '-'}
+              {hasScore ? displayScore : '-'}
             </span>
             <span className="text-[13px] font-medium text-muted-foreground ml-1">
               / {totalPoints}점

@@ -551,6 +551,8 @@ export default function GradingDashboard() {
                 unsubmittedStudents={unsubmittedStudents}
                 selectedStudent={selectedStudent}
                 onSelect={handleSelectStudent}
+                quizId={id}
+                questions={gradeQuestions}
               />
 
               {/* 학생 중심: 우측 학생별 전체 문항 */}

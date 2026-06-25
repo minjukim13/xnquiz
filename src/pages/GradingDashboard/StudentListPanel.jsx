@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils'
 import { Search } from 'lucide-react'
 import StudentListItem from './StudentListItem'
 
-function Section({ label, variant, students, selectedStudent, onSelect }) {
+function Section({ label, variant, students, selectedStudent, onSelect, quizId, questions }) {
   if (students.length === 0) return null
   const labelColor = variant === 'muted' ? 'text-muted-foreground' : 'text-secondary-foreground'
   return (
@@ -19,6 +19,8 @@ function Section({ label, variant, students, selectedStudent, onSelect }) {
             student={s}
             selected={selectedStudent?.id === s.id}
             onClick={() => onSelect(s)}
+            quizId={quizId}
+            questions={questions}
           />
         ))}
       </div>
@@ -35,6 +37,8 @@ export default function StudentListPanel({
   selectedStudent,
   onSelect,
   visible,
+  quizId,
+  questions,
 }) {
   return (
     <aside
@@ -57,9 +61,9 @@ export default function StudentListPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin p-2 bg-white flex flex-col gap-2">
-        <Section label="미채점" variant="default" students={ungradedStudents} selectedStudent={selectedStudent} onSelect={onSelect} />
-        <Section label="채점 완료" variant="default" students={gradedStudents} selectedStudent={selectedStudent} onSelect={onSelect} />
-        <Section label="미제출" variant="muted" students={unsubmittedStudents} selectedStudent={selectedStudent} onSelect={onSelect} />
+        <Section label="미채점" variant="default" students={ungradedStudents} selectedStudent={selectedStudent} onSelect={onSelect} quizId={quizId} questions={questions} />
+        <Section label="채점 완료" variant="default" students={gradedStudents} selectedStudent={selectedStudent} onSelect={onSelect} quizId={quizId} questions={questions} />
+        <Section label="미제출" variant="muted" students={unsubmittedStudents} selectedStudent={selectedStudent} onSelect={onSelect} quizId={quizId} questions={questions} />
       </div>
     </aside>
   )
