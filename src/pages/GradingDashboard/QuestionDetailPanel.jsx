@@ -37,20 +37,25 @@ export default function QuestionDetailPanel({ question, students, search, onSear
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const isVoided = useMemo(() => getVoidedQuestions(quizId).has(question.id), [quizId, question.id, regradeTick])
 
-  // 문항 무효화 — 전원 정답 처리 (full_points 재채점) / 채점 제외 (총점에서 제외) / 해제
-  const handleVoid = async (mode) => {
-    if (mode === 'all_correct') {
-      await handleRegradeConfirm('full_points')
-      return
-    }
-    setQuestionVoided(quizId, question.id, mode === 'exclude')
+  // 채점 제외 해제 (배지의 해제 버튼)
+  const handleUnexclude = () => {
+    setQuestionVoided(quizId, question.id, false)
     setRegradeTick(t => t + 1)
     onGradeSaved?.()
-    showToast?.(mode === 'exclude' ? '문항을 채점에서 제외했습니다 (총점에서 제외)' : '채점 제외를 해제했습니다')
+    showToast?.('채점 제외를 해제했습니다')
   }
 
-  // 재채점 실행 (현재 정답 기준 재채점 / 전원 만점) — 응시본 기준
+  // 재채점 실행 (현재 정답 기준 재채점 / 전원 만점 / 채점에서 제외) — 응시본 기준
   const handleRegradeConfirm = async (option) => {
+    // 채점에서 제외: 재계산 대신 총점에서 제외 (XQ-D-06 R-008 문항 무효화)
+    if (option === 'exclude') {
+      setQuestionVoided(quizId, question.id, true)
+      setShowRegradeModal(false)
+      setRegradeTick(t => t + 1)
+      onGradeSaved?.()
+      showToast?.('문항을 채점에서 제외했습니다 (총점에서 제외)')
+      return
+    }
     setRegradeBusy(true)
     try {
       const result = await regradeQuestion(quizId, question, option, question)
@@ -246,8 +251,9 @@ export default function QuestionDetailPanel({ question, students, search, onSear
             응시 현황
           </div>
           {isVoided && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground border border-border">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground border border-border">
               채점 제외됨 (총점에서 제외)
+              <button type="button" onClick={handleUnexclude} className="text-primary hover:underline font-medium">해제</button>
             </span>
           )}
         </div>
@@ -266,30 +272,6 @@ export default function QuestionDetailPanel({ question, students, search, onSear
           <Button variant="outline" disabled={submittedCount === 0} onClick={() => setShowRegradeModal(true)}>
             재채점
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                문항 무효화
-                <ChevronDown size={12} className="text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 p-2 border-0 rounded-xl shadow-lg">
-              {isVoided ? (
-                <DropdownMenuItem onClick={() => handleVoid('unexclude')}>
-                  채점 제외 해제
-                </DropdownMenuItem>
-              ) : (
-                <>
-                  <DropdownMenuItem onClick={() => handleVoid('exclude')}>
-                    채점에서 제외 (총점에서 제외)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleVoid('all_correct')}>
-                    전원 정답 처리 (모두 만점)
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
           <Button variant="outline" onClick={() => handleBulkGrade('all_full')}>
             전체 정답
           </Button>

@@ -34,6 +34,15 @@ const REGRADE_OPTIONS = [
     dotColor: 'bg-primary',
   },
   {
+    id: 'exclude',
+    title: '채점에서 제외',
+    desc: '이 문항을 총점에서 제외합니다. 아무도 이 문항으로 점수를 얻거나 잃지 않습니다.',
+    color: 'text-secondary-foreground',
+    bg: 'bg-secondary',
+    activeBorder: 'border-slate-400',
+    dotColor: 'bg-slate-500',
+  },
+  {
     id: 'no_regrade',
     title: '재채점 없이 문제만 업데이트',
     desc: '문제 내용만 변경하고 기존 채점 결과를 그대로 유지합니다.',
@@ -47,7 +56,7 @@ const REGRADE_OPTIONS = [
 export default function RegradeOptionsModal({ submittedCount, mode = 'edit', questionLabel, onConfirm, onCancel }) {
   const isManual = mode === 'manual'
   const availableOptions = isManual
-    ? REGRADE_OPTIONS.filter(o => o.id === 'new_answer_only' || o.id === 'full_points')
+    ? REGRADE_OPTIONS.filter(o => o.id === 'new_answer_only' || o.id === 'full_points' || o.id === 'exclude')
     : REGRADE_OPTIONS
   const [selected, setSelected] = useState(isManual ? 'new_answer_only' : 'award_both')
 
