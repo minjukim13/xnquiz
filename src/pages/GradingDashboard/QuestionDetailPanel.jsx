@@ -244,18 +244,24 @@ export default function QuestionDetailPanel({ question, students, search, onSear
         </div>
       )}
 
+      {/* 채점 제외(무효화) 안내 */}
+      {isVoided && (
+        <div className="flex items-center justify-between gap-2.5 mb-3 px-3.5 py-2.5 rounded-lg bg-secondary border border-border">
+          <p className="text-[12px] leading-relaxed text-secondary-foreground">
+            <span className="font-semibold text-foreground">채점에서 제외된 문항입니다</span>
+            <span className="mx-1.5 text-muted-foreground">|</span>
+            이 문항은 총점에 반영되지 않습니다.
+          </p>
+          <button type="button" onClick={handleUnexclude} className="shrink-0 text-[12px] font-medium text-primary hover:underline">
+            제외 해제
+          </button>
+        </div>
+      )}
+
       {/* 응시 현황 헤더 + 일괄 채점 액션 */}
       <div className="flex items-center justify-between mb-3 gap-2 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="px-3 py-2 text-sm border-b-2 border-primary text-primary font-medium -mb-px">
-            응시 현황
-          </div>
-          {isVoided && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground border border-border">
-              채점 제외됨 (총점에서 제외)
-              <button type="button" onClick={handleUnexclude} className="text-primary hover:underline font-medium">해제</button>
-            </span>
-          )}
+        <div className="px-3 py-2 text-sm border-b-2 border-primary text-primary font-medium -mb-px">
+          응시 현황
         </div>
         <div className="flex items-center gap-2">
           {question.type === 'file_upload' && (
