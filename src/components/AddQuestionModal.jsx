@@ -324,6 +324,53 @@ function AnswerTextarea({ value, onChange, placeholder, className }) {
   )
 }
 
+// ── 보기 입력 — 단순 텍스트 기본, 필요 시 '서식'으로 리치 에디터 전환 (FRD D-03 R-003) ──
+function HybridTextField({ value, onChange, placeholder, onDelete }) {
+  // 기존 데이터(HTML 태그/미디어 포함)는 리치 모드로 시작
+  const [rich, setRich] = useState(() => /<[a-z!/][\s\S]*>/i.test(value || ''))
+  if (rich) {
+    return (
+      <RichTextEditor
+        value={value}
+        placeholder={placeholder}
+        minHeight="min-h-[44px]"
+        onChange={onChange}
+        onDelete={onDelete}
+      />
+    )
+  }
+  return (
+    <div className="flex items-start gap-1.5">
+      <AnswerTextarea
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="flex-1 text-[15px] px-2.5 py-1.5 bg-white focus:outline-none border border-border rounded-lg text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+      />
+      <button
+        type="button"
+        onClick={() => setRich(true)}
+        title="서식·수식·이미지 추가"
+        aria-label="서식 추가"
+        className="mt-0.5 p-1.5 rounded-md border border-border text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors shrink-0"
+      >
+        <PenLine size={14} />
+      </button>
+      {onDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          title="보기 삭제"
+          aria-label="보기 삭제"
+          className="mt-0.5 p-1.5 rounded-md border border-border text-slate-400 hover:text-destructive hover:border-destructive/40 transition-colors shrink-0"
+        >
+          <Trash2 size={14} />
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ── 보기별 코멘트 입력 (Canvas "이 답변을 선택한 경우의 의견") ─────────────
 // 코멘트가 있으면 자동 펼침, 없으면 토글 버튼만 노출
 function OptionCommentField({ value, onChange, indent = true }) {
@@ -555,7 +602,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
       return (
         <div className="space-y-3">
           <Label required>보기 옵션</Label>
-          <p className="text-xs text-muted-foreground -mt-1">각 보기 입력란의 툴바에서 이미지/동영상을 인라인 삽입할 수 있습니다</p>
+          <p className="text-xs text-muted-foreground -mt-1">보기는 단순 텍스트로 입력하고, 필요하면 '서식'을 눌러 이미지·수식을 추가할 수 있습니다</p>
           <div className="space-y-3">
             {form.options.map((opt, i) => (
               <div key={i} className="flex items-start gap-2">
@@ -568,8 +615,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
                   {form.correctIdx === i && <Check size={12} strokeWidth={3} className="text-white" />}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <RichTextEditor value={opt} placeholder={`보기 ${i + 1}`}
-                    minHeight="min-h-[44px]"
+                  <HybridTextField value={opt} placeholder={`보기 ${i + 1}`}
                     onChange={val => { const n = [...form.options]; n[i] = val; upd('options', n) }}
                     onDelete={form.options.length > 2 ? () => {
                       setForm(prev => {
@@ -650,7 +696,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
       return (
         <div className="space-y-3">
           <Label required>보기 옵션</Label>
-          <p className="text-xs text-muted-foreground -mt-1">각 보기 입력란의 툴바에서 이미지/동영상을 인라인 삽입할 수 있습니다</p>
+          <p className="text-xs text-muted-foreground -mt-1">보기는 단순 텍스트로 입력하고, 필요하면 '서식'을 눌러 이미지·수식을 추가할 수 있습니다</p>
           <div className="space-y-3">
             {form.options.map((opt, i) => {
               const isCorrect = form.correctIdxs.includes(i)
@@ -664,8 +710,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
                     {isCorrect && <span className="text-white text-[9px]">✓</span>}
                   </button>
                   <div className="flex-1 min-w-0">
-                    <RichTextEditor value={opt} placeholder={`보기 ${i + 1}`}
-                      minHeight="min-h-[44px]"
+                    <HybridTextField value={opt} placeholder={`보기 ${i + 1}`}
                       onChange={val => { const n = [...form.options]; n[i] = val; upd('options', n) }}
                       onDelete={form.options.length > 3 ? () => {
                         setForm(prev => {
