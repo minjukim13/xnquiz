@@ -5,6 +5,13 @@ import { Switch } from '@/components/ui/switch'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { GLOBAL_SETTINGS_DEFAULTS as DEFAULTS, getGlobalSettings, saveGlobalSettings } from '@/utils/quizGlobalSettings'
+import { DEMO_STUDENTS } from '@/context/role'
+import CustomSelect from './CustomSelect'
+
+const ACCOMMODATION_UNITS = [
+  { value: 'minutes', label: '분' },
+  { value: 'percent', label: '%' },
+]
 
 const SCORE_POLICY_OPTIONS = ['최고 점수 유지', '최신 점수 유지', '평균 점수'].map(v => ({ value: v, label: v }))
 const REVEAL_TIMING_OPTIONS = [
@@ -56,8 +63,21 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
 
   const set = (key, val) => setLocal(prev => ({ ...prev, [key]: val }))
 
+  // 응시 편의 지원: 학생별 추가 시간 (수량 + 단위). 수량 0/빈값은 미적용이지만,
+  // 단위 선택을 유지하려고 입력 중에는 항목을 보존하고 저장 시점에 0 이하를 걸러낸다.
+  const updateAccommodation = (studentId, patch) => {
+    setLocal(prev => {
+      const list = prev.accommodations || []
+      const existing = list.find(a => a.studentId === studentId) || { studentId, extraAmount: 0, extraUnit: 'minutes' }
+      const next = { studentId, extraAmount: existing.extraAmount ?? existing.extraTimePercent ?? 0, extraUnit: existing.extraUnit ?? (existing.extraTimePercent != null ? 'percent' : 'minutes'), ...patch }
+      return { ...prev, accommodations: [...list.filter(a => a.studentId !== studentId), next] }
+    })
+  }
+
   const handleSave = () => {
-    saveGlobalSettings(local)
+    // 수량 0 이하 항목은 저장하지 않는다
+    const cleaned = { ...local, accommodations: (local.accommodations || []).filter(a => Number(a.extraAmount) > 0) }
+    saveGlobalSettings(cleaned)
     onOpenChange(false)
     window.dispatchEvent(new CustomEvent('xnq-settings-changed'))
   }
@@ -208,6 +228,53 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
                 </div>
               )}
             </div>
+          </SettingsSection>
+
+          {/* 응시 편의 지원 (Accommodation, 7.7) */}
+          <SettingsSection title="응시 편의 지원">
+            <p className="text-xs text-muted-foreground -mt-1">특정 학생에게 추가 시간을 부여합니다. 한 번 설정하면 이 과목의 모든 시간 제한 퀴즈에 자동 적용됩니다. 날짜 연장은 퀴즈별 추가 할당에서 설정합니다.</p>
+            <div className="space-y-2">
+              {DEMO_STUDENTS.map(s => {
+                const acc = (local.accommodations || []).find(a => a.studentId === s.id)
+                const rawAmount = acc?.extraAmount ?? acc?.extraTimePercent
+                const amount = Number(rawAmount) > 0 ? String(rawAmount) : ''
+                const unit = acc?.extraUnit ?? (acc?.extraTimePercent != null ? 'percent' : 'minutes')
+                const active = amount !== ''
+                return (
+                  <div
+                    key={s.id}
+                    className={cn(
+                      'flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition-colors',
+                      active ? 'border-primary/40 bg-accent/40' : 'border-border bg-white'
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-700 truncate">{s.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{s.studentId} · {s.department}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-muted-foreground">추가 시간</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={amount}
+                        onChange={e => updateAccommodation(s.id, { extraAmount: Number(e.target.value.replace(/[^0-9]/g, '')) || 0 })}
+                        placeholder="0"
+                        aria-label={`${s.name} 추가 시간 수량`}
+                        className="w-16 text-center text-sm px-2 py-2.5 rounded-md border border-border bg-white text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all"
+                      />
+                      <CustomSelect
+                        value={unit}
+                        onChange={v => updateAccommodation(s.id, { extraUnit: v })}
+                        options={ACCOMMODATION_UNITS}
+                        className="w-[68px]"
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground">예: 제한 시간 60분 퀴즈 기준 +50%는 90분, +30분은 90분이 부여됩니다.</p>
           </SettingsSection>
         </div>
 

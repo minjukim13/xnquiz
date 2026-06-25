@@ -11,6 +11,7 @@ const DATA_MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 import { AlertDialog, ConfirmDialog } from '../components/ConfirmDialog'
 import PreflightGate, { SecurityActiveBadges } from '../components/PreflightGate'
 import { isLateSubmission } from '../utils/deadlineUtils'
+import { getAccommodation, getEffectiveTimeLimit, formatAccommodationLabel } from '@/utils/quizGlobalSettings'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -101,6 +102,13 @@ export default function QuizAttempt() {
   const noTimeLimit = !quiz?.timeLimit || isPreview
   const isLate = !isPreview && isLateSubmission(quiz)
 
+  // 응시 편의 지원 (Accommodation, 7.7): 현재 학생의 추가 시간 비율을 제한 시간에 반영. 미리보기는 미적용.
+  const accommodation = !isPreview ? getAccommodation(currentStudent?.id) : null
+  const effectiveTimeLimit = useMemo(
+    () => (isPreview ? quiz?.timeLimit : getEffectiveTimeLimit(quiz?.timeLimit, currentStudent?.id)),
+    [quiz?.timeLimit, currentStudent?.id, isPreview]
+  )
+
   // 응시 세션 복원 (Canvas 스펙: 새로고침/재접속 시 중단 지점에서 재개)
   const oneAtATime = !!quiz?.oneQuestionAtATime
   const lockAfter = oneAtATime && !!quiz?.lockAfterAnswer
@@ -121,7 +129,7 @@ export default function QuizAttempt() {
   const [startedAt] = useState(() => restored?.startedAt ?? Date.now())
   const computeRemaining = () => {
     if (noTimeLimit) return null
-    const total = (quiz?.timeLimit ?? 30) * 60
+    const total = (effectiveTimeLimit ?? 30) * 60
     const elapsed = Math.floor((Date.now() - startedAt) / 1000)
     return Math.max(0, total - elapsed)
   }
@@ -131,7 +139,7 @@ export default function QuizAttempt() {
     if (noTimeLimit || !quiz?.disableAutoSubmit) return null
     const remaining = computeRemaining()
     if (remaining > 0) return GRACE_AFTER_TIMEOUT_SEC
-    const expirationAt = startedAt + (quiz?.timeLimit ?? 30) * 60 * 1000
+    const expirationAt = startedAt + (effectiveTimeLimit ?? 30) * 60 * 1000
     const graceEndAt = expirationAt + GRACE_AFTER_TIMEOUT_SEC * 1000
     return Math.max(0, Math.floor((graceEndAt - Date.now()) / 1000))
   }
@@ -348,7 +356,7 @@ export default function QuizAttempt() {
       // Canvas 정책: time_spent 는 time_limit 으로 클램프. 무제한 퀴즈는 실제 경과.
       timeTaken: (() => {
         const elapsed = Math.max(1, Math.round((Date.now() - startedAt) / 60000))
-        return noTimeLimit ? elapsed : Math.min(quiz?.timeLimit ?? elapsed, elapsed)
+        return noTimeLimit ? elapsed : Math.min(effectiveTimeLimit ?? elapsed, elapsed)
       })(),
       autoSubmitted: auto,
       isLate: isLate || false,
@@ -664,6 +672,11 @@ export default function QuizAttempt() {
                     <Clock size={13} />
                     {formatTime(timeRemaining)}
                   </div>
+                )}
+                {accommodation && !noTimeLimit && effectiveTimeLimit > quiz.timeLimit && (
+                  <span className="text-[11px] text-primary bg-accent px-2 py-0.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
+                    응시 편의 지원 {formatAccommodationLabel(accommodation)} · {effectiveTimeLimit}분
+                  </span>
                 )}
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-xs text-muted-foreground">답변 완료</span>
