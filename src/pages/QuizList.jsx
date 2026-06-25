@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3 } from 'lucide-react'
+import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3, ChevronDown, ChevronRight } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { mockQuizzes, MOCK_COURSES, ASSIGNMENT_GROUPS } from '../data/mockData'
 import { useRole } from '../context/role'
@@ -101,6 +101,48 @@ function applyGroupFilter(quizzes, filterGroup) {
   if (filterGroup === 'all') return quizzes
   if (filterGroup === 'unclassified') return quizzes.filter(q => !q.assignmentGroupId)
   return quizzes.filter(q => q.assignmentGroupId === filterGroup)
+}
+
+// ─────────────────────────────── 퀴즈 유형 그룹 (평가용/연습용) ───────────────────────────────
+// 목록을 평가용/연습용 2그룹으로 묶어 그룹 헤더와 함께 표시한다 (FRD D-01 R-002).
+// quizMode 가 있으면 우선 사용하고, 없으면 평가 그룹(assignmentGroupId) 유무로 추론한다.
+function getQuizMode(quiz) {
+  if (quiz.quizMode === 'graded' || quiz.quizMode === 'practice') return quiz.quizMode
+  return quiz.assignmentGroupId ? 'graded' : 'practice'
+}
+
+const QUIZ_MODE_SECTIONS = [
+  { mode: 'graded', label: '평가용' },
+  { mode: 'practice', label: '연습용' },
+]
+
+function groupByQuizMode(quizzes) {
+  const g = { graded: [], practice: [] }
+  quizzes.forEach(q => { g[getQuizMode(q)].push(q) })
+  return g
+}
+
+// 그룹 헤더 + 접기/펼치기. 비어 있어도 헤더는 유지하고 안내를 표시한다.
+function QuizGroupSection({ label, count, collapsed, onToggle, children }) {
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={!collapsed}
+        className="flex items-center gap-1.5 w-full text-left py-2 text-[13px] font-semibold text-secondary-foreground"
+      >
+        {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+        <span>{label}</span>
+        <span className="text-muted-foreground font-medium tabular-nums">{count}</span>
+      </button>
+      {!collapsed && (
+        count > 0
+          ? <div className="grid gap-3">{children}</div>
+          : <p className="text-[13px] text-muted-foreground py-3 pl-6">해당 유형의 퀴즈 없음</p>
+      )}
+    </div>
+  )
 }
 
 // ─────────────────────────────── 정렬 옵션 ───────────────────────────────
@@ -220,6 +262,7 @@ function InstructorQuizList() {
   const [filterSession, setFilterSession] = useState('all')
   const [filterGroup, setFilterGroup] = useState('all')
   const [sortKey, setSortKey] = useState('recent')
+  const [collapsedGroups, setCollapsedGroups] = useState({})
   const [copySourceQuiz, setCopySourceQuiz] = useState(null)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showGlobalSettings, setShowGlobalSettings] = useState(false)
@@ -360,6 +403,7 @@ function InstructorQuizList() {
     () => sortQuizzes(applyGroupFilter(applyWeekSessionFilter(quizzes, filterWeek, filterSession), filterGroup), sortKey),
     [quizzes, filterWeek, filterSession, filterGroup, sortKey]
   )
+  const groupedQuizzes = useMemo(() => groupByQuizMode(sortedQuizzes), [sortedQuizzes])
 
   return (
     <>
@@ -424,15 +468,25 @@ function InstructorQuizList() {
             {[0, 1, 2].map(i => <QuizCardSkeleton key={i} />)}
           </div>
         ) : sortedQuizzes.length > 0 ? (
-          <div className="grid gap-3">
-            {sortedQuizzes.map(quiz => (
-              <QuizCard
-                key={quiz.id}
-                quiz={quiz}
-                onCopy={setCopySourceQuiz}
-                onDelete={handleDeleteQuiz}
-                onToggleVisibility={handleToggleVisibility}
-              />
+          <div className="grid gap-5">
+            {QUIZ_MODE_SECTIONS.map(({ mode, label }) => (
+              <QuizGroupSection
+                key={mode}
+                label={label}
+                count={groupedQuizzes[mode].length}
+                collapsed={!!collapsedGroups[mode]}
+                onToggle={() => setCollapsedGroups(c => ({ ...c, [mode]: !c[mode] }))}
+              >
+                {groupedQuizzes[mode].map(quiz => (
+                  <QuizCard
+                    key={quiz.id}
+                    quiz={quiz}
+                    onCopy={setCopySourceQuiz}
+                    onDelete={handleDeleteQuiz}
+                    onToggleVisibility={handleToggleVisibility}
+                  />
+                ))}
+              </QuizGroupSection>
             ))}
           </div>
         ) : (
@@ -1018,6 +1072,7 @@ function StudentQuizList() {
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
   const [sortKey, setSortKey] = useState('recent')
+  const [collapsedGroups, setCollapsedGroups] = useState({})
 
   // 데이터 레이어 경유 — api 모드에선 서버가 visible + 수강 과목 필터링까지 수행
   // mock 모드는 초기값을 동기로 채워 첫 렌더 깜빡임 제거
@@ -1062,6 +1117,7 @@ function StudentQuizList() {
     () => sortQuizzes(applyWeekSessionFilter(allQuizzes, filterWeek, filterSession), sortKey),
     [allQuizzes, filterWeek, filterSession, sortKey]
   )
+  const groupedAll = useMemo(() => groupByQuizMode(filteredAll), [filteredAll])
 
   const hasAny = filteredAll.length > 0
 
@@ -1095,25 +1151,35 @@ function StudentQuizList() {
             {[0, 1, 2].map(i => <QuizCardSkeleton key={i} />)}
           </div>
         ) : hasAny ? (
-          <div className="grid gap-3">
-            {filteredAll.map(quiz => (
-              isLockDatePassed(quiz)
-                ? <Card key={quiz.id} className="opacity-60">
-                    <div className="flex items-start gap-4 px-6 pt-3 pb-3">
-                      <Lock size={16} className="text-muted-foreground/50 shrink-0 mt-1" />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold leading-snug mb-1 truncate text-muted-foreground">{quiz.title}</h3>
-                        <p className="text-xs text-muted-foreground/60">이용이 종료되어 퀴즈 정보를 확인할 수 없습니다</p>
-                      </div>
-                    </div>
-                  </Card>
-                : <StudentQuizCard
-                    key={quiz.id}
-                    quiz={quiz}
-                    studentId={currentStudent.id}
-                    scheduled={isScheduled(quiz)}
-                    apiAttempts={apiAttempts ? apiAttempts.filter(a => a.quizId === quiz.id) : null}
-                  />
+          <div className="grid gap-5">
+            {QUIZ_MODE_SECTIONS.map(({ mode, label }) => (
+              <QuizGroupSection
+                key={mode}
+                label={label}
+                count={groupedAll[mode].length}
+                collapsed={!!collapsedGroups[mode]}
+                onToggle={() => setCollapsedGroups(c => ({ ...c, [mode]: !c[mode] }))}
+              >
+                {groupedAll[mode].map(quiz => (
+                  isLockDatePassed(quiz)
+                    ? <Card key={quiz.id} className="opacity-60">
+                        <div className="flex items-start gap-4 px-6 pt-3 pb-3">
+                          <Lock size={16} className="text-muted-foreground/50 shrink-0 mt-1" />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-semibold leading-snug mb-1 truncate text-muted-foreground">{quiz.title}</h3>
+                            <p className="text-xs text-muted-foreground/60">이용이 종료되어 퀴즈 정보를 확인할 수 없습니다</p>
+                          </div>
+                        </div>
+                      </Card>
+                    : <StudentQuizCard
+                        key={quiz.id}
+                        quiz={quiz}
+                        studentId={currentStudent.id}
+                        scheduled={isScheduled(quiz)}
+                        apiAttempts={apiAttempts ? apiAttempts.filter(a => a.quizId === quiz.id) : null}
+                      />
+                ))}
+              </QuizGroupSection>
             ))}
           </div>
         ) : (
