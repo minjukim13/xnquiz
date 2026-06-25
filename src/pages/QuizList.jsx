@@ -220,6 +220,59 @@ function resolveDisplayStatus(quiz) {
   return quiz.status
 }
 
+// ─────────────────────────────── 진행 상태 필터 (FRD D-01 R-003) ───────────────────────────────
+// 퀴즈를 진행 상태 단일 값으로 환산한다. 이용 종료(lockDate 경과)가 진행중보다 우선한다(R-006).
+function getProgressStatus(quiz) {
+  if (quiz.status === 'draft') return 'draft'
+  if (isLockDatePassed(quiz)) return 'ended'
+  if (isScheduled(quiz)) return 'scheduled'
+  if (quiz.status === 'open') return isDeadlinePassed(quiz) ? 'closed' : 'open'
+  if (quiz.status === 'closed' || quiz.status === 'grading') return 'closed'
+  return quiz.status
+}
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: '전체 상태' },
+  { value: 'draft', label: '임시저장' },
+  { value: 'scheduled', label: '예정' },
+  { value: 'open', label: '진행중' },
+  { value: 'closed', label: '마감' },
+  { value: 'ended', label: '종료' },
+]
+
+function applyStatusFilter(quizzes, filterStatus) {
+  if (filterStatus === 'all') return quizzes
+  return quizzes.filter(q => getProgressStatus(q) === filterStatus)
+}
+
+// ─────────────────────────────── 제목 검색 (FRD D-01 R-004) ───────────────────────────────
+// 제목만 대상, 대소문자 무관, 입력 토큰 전부 포함(AND 매칭).
+function applyTitleSearch(quizzes, query) {
+  const q = (query || '').trim().toLowerCase()
+  if (!q) return quizzes
+  const tokens = q.split(/\s+/)
+  return quizzes.filter(quiz => {
+    const title = (quiz.title || '').toLowerCase()
+    return tokens.every(t => title.includes(t))
+  })
+}
+
+// 제목 검색 입력 — 입력 즉시 목록을 좁힌다.
+function SearchInput({ value, onChange, placeholder = '퀴즈 제목 검색' }) {
+  return (
+    <div className="relative w-full sm:max-w-xs">
+      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
+      />
+    </div>
+  )
+}
+
 // STATUS_CONFIG 제거 → StatusBadge 컴포넌트로 통합
 
 export default function QuizList() {
@@ -261,6 +314,8 @@ function InstructorQuizList() {
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
   const [filterGroup, setFilterGroup] = useState('all')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState('recent')
   const [collapsedGroups, setCollapsedGroups] = useState({})
   const [copySourceQuiz, setCopySourceQuiz] = useState(null)
@@ -400,8 +455,17 @@ function InstructorQuizList() {
   }
 
   const sortedQuizzes = useMemo(
-    () => sortQuizzes(applyGroupFilter(applyWeekSessionFilter(quizzes, filterWeek, filterSession), filterGroup), sortKey),
-    [quizzes, filterWeek, filterSession, filterGroup, sortKey]
+    () => sortQuizzes(
+      applyTitleSearch(
+        applyStatusFilter(
+          applyGroupFilter(applyWeekSessionFilter(quizzes, filterWeek, filterSession), filterGroup),
+          filterStatus,
+        ),
+        searchQuery,
+      ),
+      sortKey,
+    ),
+    [quizzes, filterWeek, filterSession, filterGroup, filterStatus, searchQuery, sortKey]
   )
   const groupedQuizzes = useMemo(() => groupByQuizMode(sortedQuizzes), [sortedQuizzes])
 
@@ -434,33 +498,45 @@ function InstructorQuizList() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 mt-1 mb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <WeekSessionFilter
-              quizzes={quizzes}
-              filterWeek={filterWeek}
-              filterSession={filterSession}
-              onWeekChange={setFilterWeek}
-              onSessionChange={setFilterSession}
-            />
+        <div className="mt-1 mb-3 space-y-2">
+          <SearchInput value={searchQuery} onChange={setSearchQuery} />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+              <WeekSessionFilter
+                quizzes={quizzes}
+                filterWeek={filterWeek}
+                filterSession={filterSession}
+                onWeekChange={setFilterWeek}
+                onSessionChange={setFilterSession}
+              />
+              <DropdownSelect
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={STATUS_FILTER_OPTIONS}
+                size="md"
+                filterMode
+                ghost
+                className="w-[100px] sm:w-[120px]"
+              />
+              <DropdownSelect
+                value={filterGroup}
+                onChange={setFilterGroup}
+                options={GROUP_OPTIONS}
+                size="md"
+                filterMode
+                ghost
+                className="w-[100px] sm:w-[120px]"
+              />
+            </div>
             <DropdownSelect
-              value={filterGroup}
-              onChange={setFilterGroup}
-              options={GROUP_OPTIONS}
+              value={sortKey}
+              onChange={setSortKey}
+              options={SORT_OPTIONS}
               size="md"
-              filterMode
               ghost
-              className="w-[100px] sm:w-[120px]"
+              className="w-[120px] sm:w-[140px] shrink-0"
             />
           </div>
-          <DropdownSelect
-            value={sortKey}
-            onChange={setSortKey}
-            options={SORT_OPTIONS}
-            size="md"
-            ghost
-            className="w-[120px] sm:w-[140px] shrink-0"
-          />
         </div>
 
         {loading ? (
@@ -1071,6 +1147,7 @@ function StudentQuizList() {
   const { currentStudent } = useRole()
   const [filterWeek, setFilterWeek] = useState('all')
   const [filterSession, setFilterSession] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState('recent')
   const [collapsedGroups, setCollapsedGroups] = useState({})
 
@@ -1114,8 +1191,8 @@ function StudentQuizList() {
   }, [])
 
   const filteredAll = useMemo(
-    () => sortQuizzes(applyWeekSessionFilter(allQuizzes, filterWeek, filterSession), sortKey),
-    [allQuizzes, filterWeek, filterSession, sortKey]
+    () => sortQuizzes(applyTitleSearch(applyWeekSessionFilter(allQuizzes, filterWeek, filterSession), searchQuery), sortKey),
+    [allQuizzes, filterWeek, filterSession, searchQuery, sortKey]
   )
   const groupedAll = useMemo(() => groupByQuizMode(filteredAll), [filteredAll])
 
@@ -1128,22 +1205,25 @@ function StudentQuizList() {
           <h1 className="text-[20px] sm:text-[24px] font-bold text-foreground leading-tight">내 퀴즈</h1>
         </div>
 
-        <div className="flex items-center justify-between gap-2 mt-1 mb-3">
-          <WeekSessionFilter
-            quizzes={allQuizzes}
-            filterWeek={filterWeek}
-            filterSession={filterSession}
-            onWeekChange={setFilterWeek}
-            onSessionChange={setFilterSession}
-          />
-          <DropdownSelect
-            value={sortKey}
-            onChange={setSortKey}
-            options={STUDENT_SORT_OPTIONS}
-            size="md"
-            ghost
-            className="w-[120px] sm:w-[140px] shrink-0"
-          />
+        <div className="mt-1 mb-3 space-y-2">
+          <SearchInput value={searchQuery} onChange={setSearchQuery} />
+          <div className="flex items-center justify-between gap-2">
+            <WeekSessionFilter
+              quizzes={allQuizzes}
+              filterWeek={filterWeek}
+              filterSession={filterSession}
+              onWeekChange={setFilterWeek}
+              onSessionChange={setFilterSession}
+            />
+            <DropdownSelect
+              value={sortKey}
+              onChange={setSortKey}
+              options={STUDENT_SORT_OPTIONS}
+              size="md"
+              ghost
+              className="w-[120px] sm:w-[140px] shrink-0"
+            />
+          </div>
         </div>
 
         {loading ? (
@@ -1186,7 +1266,7 @@ function StudentQuizList() {
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <FileText size={32} className="mb-3 opacity-40" />
             <p className="text-sm">
-              {filterWeek !== 'all' || filterSession !== 'all'
+              {filterWeek !== 'all' || filterSession !== 'all' || searchQuery.trim()
                 ? '해당 조건에 맞는 퀴즈가 없습니다.'
                 : '현재 응시 가능한 퀴즈가 없습니다.'
               }
