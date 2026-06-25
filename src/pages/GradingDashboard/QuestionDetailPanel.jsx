@@ -252,9 +252,9 @@ export default function QuestionDetailPanel({ question, students, search, onSear
             <span className="mx-1.5 text-muted-foreground">|</span>
             이 문항은 총점에 반영되지 않습니다.
           </p>
-          <button type="button" onClick={handleUnexclude} className="shrink-0 text-[12px] font-medium text-primary hover:underline">
+          <Button variant="outline" size="xs" onClick={handleUnexclude} className="shrink-0">
             제외 해제
-          </button>
+          </Button>
         </div>
       )}
 
