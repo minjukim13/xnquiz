@@ -11,6 +11,7 @@ const DATA_MODE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 import { AlertDialog, ConfirmDialog } from '../components/ConfirmDialog'
 import PreflightGate, { SecurityActiveBadges } from '../components/PreflightGate'
 import { isLateSubmission } from '../utils/deadlineUtils'
+import { getEffectiveSchedule } from '../utils/assignments'
 import { getAccommodation, getEffectiveTimeLimit, formatAccommodationLabel } from '@/utils/quizGlobalSettings'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -106,8 +107,12 @@ export default function QuizAttempt() {
     return () => { mounted = false }
   }, [id])
 
+  // 추가 할당(override)이 반영된 학생별 effective 일정. 게이트·안내가 차등 일정을 따른다 (FRD D-11 R-006).
+  const schedule = getEffectiveSchedule(quiz, currentStudent)
+  const gateQuiz = quiz ? { ...quiz, startDate: schedule.startDate, dueDate: schedule.dueDate, lockDate: schedule.lockDate } : quiz
+
   const noTimeLimit = !quiz?.timeLimit || isPreview
-  const isLate = !isPreview && isLateSubmission(quiz)
+  const isLate = !isPreview && isLateSubmission(gateQuiz)
 
   // 응시 편의 지원 (Accommodation, 7.7): 현재 학생의 추가 시간 비율을 제한 시간에 반영. 미리보기는 미적용.
   const accommodation = !isPreview ? getAccommodation(currentStudent?.id) : null
@@ -167,8 +172,8 @@ export default function QuizAttempt() {
   const needsAccessCode = !isPreview && !submitted && !!quiz?.accessCode && !accessCodeOk
 
   // 첫 문항 진입 = 모든 게이트 통과. 응시본 동결 시점이자 "응시자" 판정 기준 (D-02 R-011, D-09 R-008).
-  const blockedBeforeStart = !isPreview && quiz?.status === 'open' && !!quiz?.startDate && new Date() < new Date(quiz.startDate)
-  const blockedLate = !isPreview && quiz?.status === 'open' && isLateSubmission(quiz) &&
+  const blockedBeforeStart = !isPreview && quiz?.status === 'open' && !!gateQuiz?.startDate && new Date() < new Date(gateQuiz.startDate)
+  const blockedLate = !isPreview && quiz?.status === 'open' && isLateSubmission(gateQuiz) &&
     (!quiz?.allowLateSubmit || (!!quiz?.lateSubmitDeadline && new Date() > new Date(quiz.lateSubmitDeadline)))
   const atFirstQuestion =
     loaded && !isPreview && !submitted &&
@@ -310,8 +315,8 @@ export default function QuizAttempt() {
   // Canvas 정책: lockDate(lock_at) 도래 시 열려있는 attempt 자동 제출
   // 응시 중 lockDate 가 지나면 답안을 날리지 않고 즉시 제출 처리
   useEffect(() => {
-    if (!loaded || submitted || isPreview || !quiz?.lockDate) return
-    const lockTime = new Date(quiz.lockDate).getTime()
+    if (!loaded || submitted || isPreview || !gateQuiz?.lockDate) return
+    const lockTime = new Date(gateQuiz.lockDate).getTime()
     const now = Date.now()
     if (now >= lockTime) {
       // 응시 중이던 세션만 자동 제출 (진입 전이라면 아래 차단 화면이 표시됨)
@@ -439,7 +444,7 @@ export default function QuizAttempt() {
 
   // 응시 중 lockDate 가 지나면 위 useEffect 가 자동 제출 → submitted=true 이후
   // 결과 모달이 뜸. 아래 차단 화면은 '첫 진입인데 이미 만료' 케이스 전용.
-  if (!isPreview && !submitted && quiz && quiz.lockDate && new Date() > new Date(quiz.lockDate) && !restored) {
+  if (!isPreview && !submitted && gateQuiz && gateQuiz.lockDate && new Date() > new Date(gateQuiz.lockDate) && !restored) {
     return (
       <>
         <div className="max-w-2xl mx-auto py-16 text-center">
@@ -454,13 +459,13 @@ export default function QuizAttempt() {
     )
   }
 
-  if (!isPreview && quiz && quiz.status === 'open' && quiz.startDate && new Date() < new Date(quiz.startDate)) {
+  if (!isPreview && quiz && quiz.status === 'open' && gateQuiz.startDate && new Date() < new Date(gateQuiz.startDate)) {
     return (
       <>
         <div className="max-w-2xl mx-auto py-16 text-center">
           <Clock size={36} className="mx-auto mb-3 text-warning" />
           <p className="text-base font-semibold mb-1 text-secondary-foreground">응시 시작 전입니다</p>
-          <p className="text-sm mb-5 text-muted-foreground">{quiz.startDate}부터 응시할 수 있습니다</p>
+          <p className="text-sm mb-5 text-muted-foreground">{gateQuiz.startDate}부터 응시할 수 있습니다</p>
           <Button variant="outline" onClick={() => navigate('/')}>
             퀴즈 목록으로
           </Button>
@@ -490,7 +495,7 @@ export default function QuizAttempt() {
   }
 
   // 지각 제출 검증: dueDate + gracePeriod 경과 시 allowLateSubmit 정책 확인
-  if (!isPreview && quiz && quiz.status === 'open' && isLateSubmission(quiz)) {
+  if (!isPreview && quiz && quiz.status === 'open' && isLateSubmission(gateQuiz)) {
     const lateDeadlinePassed = quiz.allowLateSubmit && quiz.lateSubmitDeadline && new Date() > new Date(quiz.lateSubmitDeadline)
     if (!quiz.allowLateSubmit || lateDeadlinePassed) {
       return (
@@ -503,7 +508,7 @@ export default function QuizAttempt() {
             <p className="text-sm mb-5 text-muted-foreground">
               {lateDeadlinePassed
                 ? `지각 제출 마감: ${quiz.lateSubmitDeadline.replace('T', ' ')}`
-                : `마감일: ${quiz.dueDate}`}
+                : `마감일: ${gateQuiz.dueDate}`}
             </p>
             <Button variant="outline" onClick={() => navigate('/')}>
               퀴즈 목록으로
@@ -614,7 +619,7 @@ export default function QuizAttempt() {
             <div className="flex items-center gap-2">
               <AlertCircle size={15} className="text-warning shrink-0" />
               <span className="text-sm font-semibold text-warning-foreground">지각 제출</span>
-              <span className="text-xs text-warning-foreground">마감일({quiz.dueDate})이 지났습니다. 제출 시 지각으로 기록됩니다.</span>
+              <span className="text-xs text-warning-foreground">마감일({gateQuiz.dueDate})이 지났습니다. 제출 시 지각으로 기록됩니다.</span>
             </div>
             {quiz.lateSubmitDeadline && (
               <p className="text-xs text-warning mt-1.5 ml-[23px]">지각 제출 마감: {quiz.lateSubmitDeadline.replace('T', ' ')}</p>

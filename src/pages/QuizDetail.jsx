@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader'
 import { mockQuizzes, getStudentAttempts, getQuizQuestions as mockGetQuestions } from '../data/mockData'
 import { getQuiz, getQuizQuestions, deleteQuiz, isApiMode, listAttempts } from '@/lib/data'
 import { useRole } from '../context/role'
+import { getEffectiveSchedule } from '../utils/assignments'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
@@ -239,6 +240,8 @@ export default function QuizDetail() {
     isStudent ? `${currentStudent?.id ?? 'anon'}_${id}` : `instructor_${id}`,
     getBankQuestions
   )
+  // 학생에게는 추가 할당(override)이 반영된 effective 일정을 보여준다 (FRD D-11 R-006)
+  const studentSchedule = getEffectiveSchedule(quiz, currentStudent)
 
   useEffect(() => {
     let mounted = true
@@ -436,7 +439,10 @@ export default function QuizDetail() {
             <div className="flex items-center gap-x-5 gap-y-1 flex-wrap text-sm">
               <span className="inline-flex items-baseline gap-1.5">
                 <span className="text-muted-foreground">응시 기간</span>
-                <span className="font-medium text-foreground">{formatPeriodFull(quiz.startDate, quiz.dueDate)}</span>
+                <span className="font-medium text-foreground">{formatPeriodFull(studentSchedule.startDate, studentSchedule.dueDate)}</span>
+                {studentSchedule.isOverridden && (
+                  <span className="text-[11px] font-medium text-primary bg-accent px-1.5 py-0.5 rounded">개별 적용</span>
+                )}
               </span>
               <span className="inline-flex items-baseline gap-1.5">
                 <span className="text-muted-foreground">지각 제출</span>
