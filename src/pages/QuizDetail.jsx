@@ -94,9 +94,20 @@ function QuestionPreviewList({ questions, quizId }) {
           <h3 className="text-[15px] font-semibold text-foreground">문항</h3>
           <span className="text-xs text-muted-foreground">{questions.length}개</span>
         </div>
-        <Link to={`/quiz/${quizId}/edit?tab=questions`} state={{ from: 'detail' }} className="text-xs text-primary hover:underline">
-          편집
-        </Link>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm" className="h-7 px-2.5 text-xs">
+            <Link to={`/quiz/${quizId}/attempt?preview=true`}>
+              <Eye size={13} />
+              미리보기
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="h-7 px-2.5 text-xs">
+            <Link to={`/quiz/${quizId}/edit?tab=questions`} state={{ from: 'detail' }}>
+              <Pencil size={13} />
+              편집
+            </Link>
+          </Button>
+        </div>
       </div>
       <div className="px-5 py-3 border-t border-border/60 space-y-2">
         {visible.map((q, idx) => (
@@ -524,12 +535,14 @@ export default function QuizDetail() {
                     </Link>
                   </Button>
                 )}
-                <Button asChild variant="outline">
-                  <Link to={`/quiz/${quiz.id}/edit`} state={{ from: 'detail' }}>
-                    <Pencil size={15} />
-                    편집
-                  </Link>
-                </Button>
+                {canStats && (
+                  <Button asChild variant="outline">
+                    <Link to={`/quiz/${quiz.id}/stats`}>
+                      <BarChart3 size={15} />
+                      통계
+                    </Link>
+                  </Button>
+                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
@@ -537,15 +550,9 @@ export default function QuizDetail() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {canStats && (
-                      <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/stats`)}>
-                        <BarChart3 size={14} />
-                        통계
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/attempt?preview=true`)}>
-                      <Eye size={14} />
-                      미리보기
+                    <DropdownMenuItem onClick={() => navigate(`/quiz/${quiz.id}/edit`, { state: { from: 'detail' } })}>
+                      <Pencil size={14} />
+                      편집
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem variant="destructive" onClick={() => setDeleteConfirm(true)}>
