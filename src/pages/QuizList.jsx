@@ -1166,15 +1166,6 @@ function StudentQuizList() {
           <SearchInput value={searchQuery} onChange={setSearchQuery} />
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              <label className="flex items-center gap-1.5 px-2 py-1.5 text-sm text-secondary-foreground cursor-pointer select-none whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  checked={hideClosed}
-                  onChange={e => setHideClosed(e.target.checked)}
-                  className="shrink-0 accent-primary"
-                />
-                마감된 퀴즈 제외
-              </label>
               <DropdownSelect
                 value={attemptFilter}
                 onChange={setAttemptFilter}
@@ -1184,6 +1175,15 @@ function StudentQuizList() {
                 ghost
                 className="w-[100px] sm:w-[120px]"
               />
+              <label className="flex items-center gap-1.5 px-2 py-1.5 text-sm text-secondary-foreground cursor-pointer select-none whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={hideClosed}
+                  onChange={e => setHideClosed(e.target.checked)}
+                  className="shrink-0 accent-primary"
+                />
+                마감된 퀴즈 제외
+              </label>
             </div>
             <DropdownSelect
               value={sortKey}
