@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom'
-import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Check, AlertCircle, Send, X, Lock } from 'lucide-react'
+import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Check, AlertCircle, Send, X, Lock, Printer } from 'lucide-react'
 import { mockQuizzes, getQuizQuestions as mockGetQuestions, autoGradeAnswer, saveStudentAttempt, getStudentAttemptCount } from '../data/mockData'
 import { getQuiz, getQuizQuestions, startAttempt, saveAnswers, submitAttempt } from '@/lib/data'
 import { useRole } from '../context/role'
@@ -38,6 +38,7 @@ import {
   ACTIVITY_TYPES,
 } from '@/utils/activityLog'
 import { parseInlineBody, hasInlinePlaceholders } from '@/utils/placeholderUtils'
+import { printQuizQuestions } from '../utils/pdfUtils'
 
 // 응시 여부 판정 (유형별 답안 구조 대응)
 function isQuestionAnswered(q, v) {
@@ -635,14 +636,25 @@ export default function QuizAttempt() {
                 <p className="text-sm font-semibold text-warning-foreground">미리보기 모드</p>
                 <p className="text-xs text-warning-foreground mt-1">학생에게 보이는 실제 화면입니다. 답변 선택 및 제출을 테스트할 수 있습니다.</p>
               </div>
-              <Button
-                variant="outline"
-                onClick={() => navigate(-1)}
-                className="shrink-0 border-warning-border text-warning-foreground hover:bg-warning-bg"
-              >
-                <X size={14} />
-                미리보기 종료
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  onClick={() => questions.length > 0 && printQuizQuestions(quiz, questions)}
+                  disabled={questions.length === 0}
+                  className="border-warning-border text-warning-foreground hover:bg-warning-bg"
+                >
+                  <Printer size={14} />
+                  문제지 인쇄
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(-1)}
+                  className="border-warning-border text-warning-foreground hover:bg-warning-bg"
+                >
+                  <X size={14} />
+                  미리보기 종료
+                </Button>
+              </div>
             </div>
           </div>
         )}
