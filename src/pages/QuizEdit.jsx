@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Navigate, useSearchParams, useLocation } from 'react-router-dom'
-import { GripVertical, Pencil, Trash2, Printer, HelpCircle, Shuffle } from 'lucide-react'
+import { GripVertical, Pencil, Trash2, HelpCircle, Shuffle, ChevronRight } from 'lucide-react'
 import { isRandomGroup, summarizeQuizItems } from '@/utils/randomGroups'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
@@ -8,7 +8,7 @@ import AddQuestionModal from '../components/AddQuestionModal'
 import InlineQuestionEditor from '../components/InlineQuestionEditor'
 import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
-import { printQuizQuestions } from '../utils/pdfUtils'
+import RandomGroupPreviewModal from '../components/RandomGroupPreviewModal'
 import { QUIZ_TYPES, mockQuizzes, ASSIGNMENT_GROUPS, hasAttemptSnapshot } from '../data/mockData'
 import { getQuiz, getQuizQuestions, setQuizQuestions, updateQuiz, recalculateScorePolicy, regradeQuestion } from '@/lib/data'
 import { useRole } from '../context/role'
@@ -566,7 +566,7 @@ export default function QuizEdit() {
         {/* 탭은 unmount 하지 않고 CSS 로만 가린다 — 인라인 편집기의 작성 중 내용을 보존하기 위함 */}
         <div className="pt-5">
           <div className={tab === 'info' ? '' : 'hidden'}>
-            <InfoTab form={form} set={set} quizStatus={quiz?.status} courseKey={quiz?.course} hasTakers={hasTakers} />
+            <InfoTab form={form} set={set} courseKey={quiz?.course} />
           </div>
           <div className={tab === 'questions' ? '' : 'hidden'}>
             <QuestionsTab
@@ -605,17 +605,6 @@ export default function QuizEdit() {
                 임시저장
               </Button>
             )}
-            {tab === 'questions' && (
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => questions.length > 0 && printQuizQuestions(quiz, questions)}
-                disabled={questions.length === 0}
-                className="px-4"
-              >
-                <Printer size={15} />문제지 인쇄
-              </Button>
-            )}
             <Button size="lg" onClick={handleSave} className="px-4">
               {quiz.status === 'draft' && form.visible ? '저장 후 공개' : '저장'}
             </Button>
@@ -640,25 +629,10 @@ export default function QuizEdit() {
   )
 }
 
-function InfoTab({ form, set, quizStatus, courseKey, hasTakers = false }) {
-  const isDraft = quizStatus === 'draft'
+function InfoTab({ form, set, courseKey }) {
   // D-05 R-002: 과목 기본값과 다른 항목 표시 + 되돌리기
   return (
     <div className="space-y-3">
-      <Section title="퀴즈 공개 여부">
-        <Toggle
-          checked={form.visible}
-          onChange={v => set('visible', v)}
-          disabled={hasTakers && form.visible}
-          label="학생에게 퀴즈 공개"
-          description={hasTakers && form.visible
-            ? '이미 응시자가 있어 비공개로 전환할 수 없습니다.'
-            : isDraft
-              ? '공개 시 저장 후 학생이 즉시 응시할 수 있습니다. 임시저장은 비공개 상태에서만 가능합니다.'
-              : '비공개 시 학생 화면에 퀴즈가 표시되지 않습니다.'}
-        />
-      </Section>
-
       <Section title="시험 유형">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
@@ -908,7 +882,7 @@ function InfoTab({ form, set, quizStatus, courseKey, hasTakers = false }) {
   )
 }
 
-function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDragOver, onDrop, onDragEnd, onRemove }) {
+function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDragOver, onDrop, onDragEnd, onRemove, onPreview }) {
   return (
     <div
       draggable
@@ -930,12 +904,17 @@ function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDr
           <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
             <Badge className="bg-primary/10 text-primary hover:bg-primary/10 gap-1">
               <Shuffle size={11} />
-              랜덤 출제 그룹
+              랜덤
             </Badge>
-            <span className="text-xs text-muted-foreground">
-              {group.bankName} 문제은행에서 <span className="font-semibold text-foreground">{group.count}문항</span>
-            </span>
-            <span className="text-xs text-muted-foreground">· 총 {group.points}점</span>
+            <button
+              type="button"
+              onClick={() => onPreview?.(group)}
+              title="연결된 문제은행 문항 보기"
+              className="inline-flex items-center gap-0.5 bg-transparent text-[13px] font-medium text-foreground hover:underline underline-offset-2 min-w-0 max-w-full"
+            >
+              <span className="truncate">{group.bankName}</span>
+              <ChevronRight size={13} className="shrink-0" />
+            </button>
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
             <button onClick={() => onRemove(group.id)} title="그룹 삭제" className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-soft transition-colors">
@@ -943,11 +922,10 @@ function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDr
             </button>
           </div>
         </div>
-        <p className="text-xs mt-2 ml-8 text-secondary-foreground leading-relaxed">
-          학생마다 서로 다른 <span className="font-semibold text-foreground">{group.count}개</span> 문항이 랜덤으로 출제됩니다
-          {group.useDifficultyScoring
-            ? ' (난이도별 차등 배점)'
-            : ` · 문항당 ${group.pointsPerQuestion}점`}
+        <p className="text-xs mt-2 ml-8 text-muted-foreground leading-relaxed">
+          학생마다 다른 <span className="font-semibold text-foreground">{group.count}문항</span>
+          {' · '}총 <span className="font-semibold text-foreground">{group.points}점</span>
+          {group.useDifficultyScoring ? ' · 난이도별 차등 배점' : ` · 문항당 ${group.pointsPerQuestion}점`}
         </p>
       </div>
     </div>
@@ -958,6 +936,7 @@ function QuestionsTab({ form, set, questions, totalPoints, regradeMap = {}, onSh
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
   const [allExpanded, setAllExpanded] = useState(false)
+  const [previewGroup, setPreviewGroup] = useState(null)
 
   const handleDragStart = (i) => setDragIdx(i)
   const handleDragOver = (e, i) => { e.preventDefault(); setOverIdx(i) }
@@ -973,8 +952,8 @@ function QuestionsTab({ form, set, questions, totalPoints, regradeMap = {}, onSh
     <div className="space-y-3">
       <Section title="문항 표시 설정">
         <div className="space-y-3">
-          <Toggle checked={form.shuffleChoices} onChange={v => set('shuffleChoices', v)} label="선지 순서 섞기" description="객관식 문항의 선지 순서가 학생마다 무작위로 표시됩니다" />
-          <Toggle checked={form.shuffleQuestions} onChange={v => set('shuffleQuestions', v)} label="문제 순서 섞기" description="문제 순서가 학생마다 무작위로 표시됩니다" />
+          <Toggle checked={form.shuffleChoices} onChange={v => set('shuffleChoices', v)} label="보기 순서 섞기" description="객관식 보기 순서가 학생마다 무작위로 표시됩니다" />
+          <Toggle checked={form.shuffleQuestions} onChange={v => set('shuffleQuestions', v)} label="문항 순서 섞기" description="문항 순서가 학생마다 무작위로 표시됩니다" />
           <Toggle
             checked={form.oneQuestionAtATime}
             onChange={v => {
@@ -1013,7 +992,7 @@ function QuestionsTab({ form, set, questions, totalPoints, regradeMap = {}, onSh
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button size="lg" variant="outline" onClick={onShowAdd}>문항 만들기</Button>
+          <Button size="lg" variant="outline" onClick={onShowAdd}>문항 추가</Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button size="lg">
@@ -1037,7 +1016,7 @@ function QuestionsTab({ form, set, questions, totalPoints, regradeMap = {}, onSh
       {questions.length === 0 && !showInlineAdd ? (
         <div className="p-14 text-center rounded-md border-2 border-dashed border-border bg-secondary space-y-1.5">
           <p className="text-sm text-secondary-foreground">아직 추가된 문항이 없습니다</p>
-          <p className="text-xs text-muted-foreground">상단의 "문항 만들기" 또는 "문제은행에서 추가" 버튼으로 시작합니다</p>
+          <p className="text-xs text-muted-foreground">상단의 "문항 추가" 또는 "문제은행에서 추가" 버튼으로 시작합니다</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -1053,6 +1032,7 @@ function QuestionsTab({ form, set, questions, totalPoints, regradeMap = {}, onSh
               onDrop={handleDrop}
               onDragEnd={handleDragEnd}
               onRemove={onRemove}
+              onPreview={setPreviewGroup}
             />
           ) : (
             <div key={q.id} draggable onDragStart={() => handleDragStart(i)} onDragOver={e => handleDragOver(e, i)} onDrop={() => handleDrop(i)} onDragEnd={handleDragEnd}
@@ -1113,6 +1093,12 @@ function QuestionsTab({ form, set, questions, totalPoints, regradeMap = {}, onSh
           )}
         </div>
       )}
+
+      <RandomGroupPreviewModal
+        group={previewGroup}
+        open={!!previewGroup}
+        onOpenChange={(o) => { if (!o) setPreviewGroup(null) }}
+      />
     </div>
   )
 }
