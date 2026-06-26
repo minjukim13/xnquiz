@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, FolderInput, FolderOutput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, FileText, AlertCircle, FolderInput, FolderOutput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3, ChevronDown, ChevronRight, Check, Ban } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
@@ -445,8 +445,8 @@ function InstructorQuizList() {
     try {
       await updateQuiz(quiz.id, { ...quiz, visible: nextVisible })
       showToast(nextVisible
-        ? `'${quiz.title}'을(를) 학생에게 공개했습니다`
-        : `'${quiz.title}'을(를) 학생에게서 숨겼습니다`)
+        ? `'${quiz.title}' 공개로 전환했습니다`
+        : `'${quiz.title}' 비공개로 전환했습니다`)
     } catch (err) {
       console.error('[QuizList] visibility toggle 실패', err)
       setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, visible: !nextVisible } : q))
@@ -661,6 +661,7 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
             {/* 상태 정보 그룹 (#2) */}
             {!isDraft && <VisibilityBadge isVisible={isVisible} />}
             <StatusBadge status={displayStatus} />
+            <DdayBadge dday={ddayBadge} />
             {/* 설정 정보 그룹 (#2) */}
             {hasWeekSession && (
               <span className="w-px h-3 bg-border mx-0.5 hidden sm:inline-block" aria-hidden="true" />
@@ -674,7 +675,7 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
           <h3 className="text-base font-semibold leading-snug mb-1 truncate text-foreground">{quiz.title}</h3>
           {/* 일시(#3) | 구성 정보(#4) 순으로 한 줄에 배치, '|' 로 그룹 구분 */}
           <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap text-xs">
-            <QuizDateMeta quiz={quiz} dday={ddayBadge} />
+            <QuizDateMeta quiz={quiz} />
             <span className="text-border" aria-hidden="true">|</span>
             <span className="text-secondary-foreground whitespace-nowrap">
               {quiz.questions}문항 <span className="text-border">·</span> {quiz.totalPoints}점 <span className="text-border">·</span> 제한 {quiz.timeLimit ? `${quiz.timeLimit}분` : '없음'}
@@ -706,6 +707,32 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
             </div>
           )}
 
+          <button
+            type="button"
+            disabled={isDraft || hideBlocked}
+            onClick={() => !isDraft && !hideBlocked && onToggleVisibility(quiz)}
+            title={isDraft
+              ? '임시저장 상태에선 자동 비공개입니다'
+              : hideBlocked
+                ? '응시자가 있어 비공개로 전환할 수 없습니다'
+                : isVisible
+                  ? '공개됨 · 클릭하면 비공개'
+                  : '비공개 · 클릭하면 공개'}
+            aria-label="공개 여부 전환"
+            className={cn(
+              'p-1.5 rounded-md transition-colors',
+              isDraft || hideBlocked ? 'cursor-not-allowed' : 'hover:bg-secondary'
+            )}
+          >
+            {isVisible ? (
+              <span className="w-5 h-5 rounded-full flex items-center justify-center bg-primary">
+                <Check size={13} strokeWidth={3} className="text-white" />
+              </span>
+            ) : (
+              <Ban size={20} className="text-muted-foreground/70" />
+            )}
+          </button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
@@ -724,15 +751,6 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
               <DropdownMenuItem onClick={() => onCopy(quiz)}>
                 <Copy size={14} />
                 복사
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                disabled={isDraft || hideBlocked}
-                onClick={() => !isDraft && !hideBlocked && onToggleVisibility(quiz)}
-                title={isDraft ? '임시저장 상태에선 자동 비공개입니다' : hideBlocked ? '응시자가 있어 비공개로 전환할 수 없습니다' : undefined}
-              >
-                {isVisible ? <EyeOff size={14} /> : <Eye size={14} />}
-                {isDraft ? '비공개 (임시저장)' : isVisible ? '학생에게 숨기기' : '학생에게 공개'}
               </DropdownMenuItem>
               {canGrade && (
                 <>
@@ -799,9 +817,22 @@ function getAttemptStats(quiz) {
   return { submitted, total, rate, unsubmitted, avgScore: quiz.avgScore }
 }
 
-// 일시 메타 — 시작/마감을 라벨로 분리 표시 (#3). D-day 는 마감 옆에 인라인 표기.
+// D-day 배지 — 상단 상태 배지 줄에 표기 (마감 임박일수록 강조)
+function DdayBadge({ dday }) {
+  if (!dday) return null
+  return (
+    <span className={cn(
+      'text-xs font-semibold px-2 py-0.5 rounded-md whitespace-nowrap',
+      dday.urgent ? 'text-destructive bg-destructive-soft' : 'text-warning bg-warning-bg'
+    )}>
+      {dday.label}
+    </span>
+  )
+}
+
+// 일시 메타 — 시작/마감을 라벨로 분리 표시 (#3).
 // fragment 로 반환해 호출부의 flex 한 줄 안에서 다른 정보와 함께 흐르도록 함.
-function QuizDateMeta({ quiz, divider = false, dday = null }) {
+function QuizDateMeta({ quiz, divider = false }) {
   const segs = []
   if (quiz.startDate) segs.push(['시작', quiz.startDate])
   if (quiz.dueDate) segs.push(['마감', quiz.dueDate])
@@ -820,14 +851,6 @@ function QuizDateMeta({ quiz, divider = false, dday = null }) {
           {(i > 0 || divider) && <span className="text-border mr-1" aria-hidden="true">|</span>}
           <span className="text-muted-foreground">{label}</span>
           <span className="text-secondary-foreground tabular-nums">{val}</span>
-          {label === '마감' && dday && (
-            <span className={cn(
-              'ml-1 text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap',
-              dday.urgent ? 'text-destructive bg-destructive-soft' : 'text-warning bg-warning-bg'
-            )}>
-              {dday.label}
-            </span>
-          )}
         </span>
       ))}
     </>
@@ -1683,6 +1706,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <StatusBadge status={studentDisplayStatus} />
+            <DdayBadge dday={ddayBadge} />
             {myBadge && (
               <span className={cn('text-xs font-medium px-2 py-0.5 rounded-md whitespace-nowrap', myBadge.cls)}>
                 {myBadge.label}
@@ -1698,7 +1722,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
           <h3 className="text-base font-semibold leading-snug mb-1 truncate text-foreground">{quiz.title}</h3>
 
           <div className="flex items-center gap-2 flex-wrap text-xs">
-            <QuizDateMeta quiz={quiz} dday={ddayBadge} />
+            <QuizDateMeta quiz={quiz} />
           </div>
         </div>
 
