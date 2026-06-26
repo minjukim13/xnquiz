@@ -8,6 +8,7 @@ const statusBadgeVariants = cva(
       status: {
         open:      'bg-green-50 text-green-700',
         closed:    'bg-secondary text-muted-foreground',
+        ended:     'bg-slate-100 text-slate-500',
         draft:     'bg-accent text-primary',
         scheduled: 'bg-amber-50 text-amber-600',
       },
@@ -18,6 +19,7 @@ const statusBadgeVariants = cva(
 const STATUS_LABELS = {
   open: '진행중',
   closed: '마감',
+  ended: '종료',
   draft: '임시저장',
   scheduled: '예정',
 }
@@ -25,6 +27,7 @@ const STATUS_LABELS = {
 const DOT_VARIANTS = {
   open:      'bg-green-500',
   closed:    'bg-muted-foreground',
+  ended:     'bg-slate-400',
   draft:     'bg-primary',
   scheduled: 'bg-amber-500',
 }

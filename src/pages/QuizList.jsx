@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, FileText, AlertCircle, FolderInput, FolderOutput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3, ChevronDown, ChevronRight } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
-import { mockQuizzes, MOCK_COURSES, ASSIGNMENT_GROUPS } from '../data/mockData'
+import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts, hasAttemptSnapshot } from '../data/mockData'
 import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, updateQuiz, deleteQuiz, listAttempts, isApiMode, listCourses } from '@/lib/data'
@@ -25,22 +25,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 const CURRENT_COURSE = 'CS301 데이터베이스'
-
-// ─────────────────────────────── 시험구분(평가 그룹) 필터 ───────────────────────────────
-// 별도 시험구분 필드를 두지 않고 기존 평가 그룹(assignmentGroupId)을 분류 기준으로 재사용한다.
-// 평가 그룹이 없는 퀴즈(연습용 등)는 '미분류'로 묶는다.
-const GROUP_LABELS = Object.fromEntries(ASSIGNMENT_GROUPS.map(g => [g.id, g.label]))
-const GROUP_OPTIONS = [
-  { value: 'all', label: '전체 구분' },
-  ...ASSIGNMENT_GROUPS.map(g => ({ value: g.id, label: g.label })),
-  { value: 'unclassified', label: '미분류' },
-]
-
-function applyGroupFilter(quizzes, filterGroup) {
-  if (filterGroup === 'all') return quizzes
-  if (filterGroup === 'unclassified') return quizzes.filter(q => !q.assignmentGroupId)
-  return quizzes.filter(q => q.assignmentGroupId === filterGroup)
-}
 
 // ─────────────────────────────── 퀴즈 유형 그룹 (평가용/연습용) ───────────────────────────────
 // 목록을 평가용/연습용 2그룹으로 묶어 그룹 헤더와 함께 표시한다 (FRD D-01 R-002).
@@ -151,12 +135,11 @@ function isScheduled(quiz) {
   return new Date() < new Date(quiz.startDate)
 }
 
-// dueDate 기반 화면용 상태 결정 — DB status 는 유지, 표시만 마감으로 전환
+// 화면용 상태 결정 — DB status 는 유지, 표시만 전환.
+// 이용 종료(lockDate 경과)는 '종료' 배지로 명시해 마감과 구분한다 (#3).
 // 지각 제출 허용 시 lateSubmitDeadline 까지는 '진행중' 으로 유지됨 (deadlineUtils)
 function resolveDisplayStatus(quiz) {
-  if (isScheduled(quiz)) return 'scheduled'
-  if (quiz.status === 'open' && isDeadlinePassed(quiz)) return 'closed'
-  return quiz.status
+  return getProgressStatus(quiz)
 }
 
 // ─────────────────────────────── 진행 상태 필터 (FRD D-01 R-003) ───────────────────────────────
@@ -171,7 +154,7 @@ function getProgressStatus(quiz) {
 }
 
 const STATUS_FILTER_OPTIONS = [
-  { value: 'all', label: '전체 상태' },
+  { value: 'all', label: '전체' },
   { value: 'draft', label: '임시저장' },
   { value: 'scheduled', label: '예정' },
   { value: 'open', label: '진행중' },
@@ -208,6 +191,33 @@ function SearchInput({ value, onChange, placeholder = '퀴즈 제목 검색' }) 
         placeholder={placeholder}
         className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
       />
+    </div>
+  )
+}
+
+// 상태 필터 — 드롭다운 대신 세그먼트 탭으로 직관성 향상 (#5)
+function StatusFilterTabs({ value, onChange, options }) {
+  return (
+    <div className="flex items-center gap-1 overflow-x-auto -mx-0.5 px-0.5 py-0.5">
+      {options.map(opt => {
+        const active = value === opt.value
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            aria-pressed={active}
+            className={cn(
+              'shrink-0 h-8 px-3 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors',
+              active
+                ? 'bg-primary text-white'
+                : 'bg-secondary text-secondary-foreground hover:bg-border'
+            )}
+          >
+            {opt.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -250,7 +260,6 @@ function InstructorQuizList() {
     return () => { mounted = false }
   }, [])
 
-  const [filterGroup, setFilterGroup] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState('recent')
@@ -415,12 +424,12 @@ function InstructorQuizList() {
   const sortedQuizzes = useMemo(
     () => sortQuizzes(
       applyTitleSearch(
-        applyStatusFilter(applyGroupFilter(quizzes, filterGroup), filterStatus),
+        applyStatusFilter(quizzes, filterStatus),
         searchQuery,
       ),
       sortKey,
     ),
-    [quizzes, filterGroup, filterStatus, searchQuery, sortKey]
+    [quizzes, filterStatus, searchQuery, sortKey]
   )
   const groupedQuizzes = useMemo(() => groupByQuizMode(sortedQuizzes), [sortedQuizzes])
 
@@ -453,28 +462,15 @@ function InstructorQuizList() {
           </div>
         </div>
 
-        <div className="mt-1 mb-3 space-y-2">
-          <SearchInput value={searchQuery} onChange={setSearchQuery} />
+        <div className="mt-1 mb-3 space-y-2.5">
+          <StatusFilterTabs
+            value={filterStatus}
+            onChange={setFilterStatus}
+            options={STATUS_FILTER_OPTIONS}
+          />
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              <DropdownSelect
-                value={filterStatus}
-                onChange={setFilterStatus}
-                options={STATUS_FILTER_OPTIONS}
-                size="md"
-                filterMode
-                ghost
-                className="w-[100px] sm:w-[120px]"
-              />
-              <DropdownSelect
-                value={filterGroup}
-                onChange={setFilterGroup}
-                options={GROUP_OPTIONS}
-                size="md"
-                filterMode
-                ghost
-                className="w-[100px] sm:w-[120px]"
-              />
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <SearchInput value={searchQuery} onChange={setSearchQuery} />
             </div>
             <DropdownSelect
               value={sortKey}
@@ -593,7 +589,10 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
   const hideBlocked = isVisible && hasTakers // 응시본 있으면 비공개 전환 불가
 
   const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
-  const stats = getInlineStats(quiz, scheduled)
+  // 설정 정보 그룹 (#2)
+  const hasWeekSession = quiz.week > 0 || quiz.session > 0
+  // 응시 정보는 임시저장/예정에는 없음 — 그 외 상태에서만 우측에 표시 (#4·#6)
+  const attempt = !isDraft && !scheduled ? getAttemptStats(quiz) : null
 
   return (
     <Card
@@ -605,39 +604,28 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
     >
       <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 flex-wrap">
+            {/* 상태 정보 그룹 (#2) */}
             {!isDraft && <VisibilityBadge isVisible={isVisible} />}
             <StatusBadge status={displayStatus} />
-            {quiz.assignmentGroupId && GROUP_LABELS[quiz.assignmentGroupId] && (
-              <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-white text-secondary-foreground ring-1 ring-border whitespace-nowrap">
-                {GROUP_LABELS[quiz.assignmentGroupId]}
-              </span>
+            {/* 설정 정보 그룹 (#2) */}
+            {hasWeekSession && (
+              <span className="w-px h-3 bg-border mx-0.5 hidden sm:inline-block" aria-hidden="true" />
             )}
-            {(quiz.week > 0 || quiz.session > 0) && (
+            {hasWeekSession && (
               <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-secondary text-secondary-foreground whitespace-nowrap">
                 {quiz.week > 0 ? `${quiz.week}주차` : ''}{quiz.week > 0 && quiz.session > 0 ? ' ' : ''}{quiz.session > 0 ? `${quiz.session}차시` : ''}
               </span>
             )}
           </div>
           <h3 className="text-base font-semibold leading-snug mb-1 truncate text-foreground">{quiz.title}</h3>
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs text-muted-foreground break-keep">
-              {quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}
-              {quiz.lockDate && (
-                <>
-                  <span className="text-muted-foreground">{' | '}</span>
-                  <span className="text-muted-foreground">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span>
-                </>
-              )}
-            </p>
-            {ddayBadge && (
-              <span className={cn(
-                'text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap',
-                ddayBadge.urgent ? 'text-destructive bg-destructive-soft' : 'text-warning bg-warning-bg'
-              )}>
-                {ddayBadge.label}
-              </span>
-            )}
+          {/* 일시(#3) | 구성 정보(#4) 순으로 한 줄에 배치, '|' 로 그룹 구분 */}
+          <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap text-xs">
+            <QuizDateMeta quiz={quiz} dday={ddayBadge} />
+            <span className="text-border" aria-hidden="true">|</span>
+            <span className="text-secondary-foreground whitespace-nowrap">
+              {quiz.questions}문항 <span className="text-border">·</span> {quiz.totalPoints}점 <span className="text-border">·</span> 제한 {quiz.timeLimit ? `${quiz.timeLimit}분` : '없음'}
+            </span>
           </div>
           {quiz.allowLateSubmit && quiz.lateSubmitDeadline && (
             <p className="text-xs text-warning mt-0.5">지각 제출: {quiz.lateSubmitDeadline.replace('T', ' ')}까지</p>
@@ -648,11 +636,22 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
         </div>
 
         <div className="flex items-center gap-3 sm:gap-5 shrink-0" onClick={e => e.stopPropagation()}>
-          <div className="hidden sm:flex items-center gap-3 sm:gap-5">
-            {stats.map(s => (
-              <InlineStat key={s.label} label={s.label} value={s.value} cls={s.cls} />
-            ))}
-          </div>
+          {attempt && (
+            <div className="hidden sm:flex items-center gap-4 sm:gap-6">
+              {/* 응시인원 / 응시율 (전체인원은 과목 내 동일하므로 생략) */}
+              <InlineStat label="응시인원 / 응시율" value={`${attempt.submitted} / ${attempt.rate}%`} />
+              <InlineStat
+                label="미제출"
+                value={`${attempt.unsubmitted}명`}
+                cls={attempt.unsubmitted > 0 ? 'text-warning' : 'text-muted-foreground'}
+              />
+              <InlineStat
+                label="평균점수"
+                value={attempt.avgScore != null ? `${attempt.avgScore}점` : '-'}
+                cls="text-primary"
+              />
+            </div>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -738,24 +737,48 @@ function InlineStat({ label, value, cls, hideOnMobile = false }) {
   )
 }
 
-function getInlineStats(quiz, scheduled) {
-  if (quiz.status === 'draft' || scheduled) {
-    return [
-      { label: '문항 수',  value: `${quiz.questions}개` },
-      { label: '총점',     value: `${quiz.totalPoints}점` },
-      { label: '제한시간', value: !quiz.timeLimit ? '없음' : `${quiz.timeLimit}분` },
-    ]
-  }
+// 응시 통계 — 응시인원(응시자/전체) + 응시율 + 미제출 + 평균 (#6)
+function getAttemptStats(quiz) {
   const submitted = quiz.submitted ?? 0
-  const totalStudents = quiz.totalStudents ?? 0
-  const submitRate = totalStudents > 0 ? Math.round((submitted / totalStudents) * 100) : 0
-  const unsubmitted = Math.max(0, totalStudents - submitted)
-  return [
-    { label: '응시율',   value: `${submitRate}%`, primary: true },
-    { label: '응시인원', value: `${submitted}명` },
-    { label: '미제출',   value: `${unsubmitted}명`, cls: unsubmitted > 0 ? 'text-warning' : 'text-muted-foreground' },
-    { label: '평균점수', value: quiz.avgScore != null ? `${quiz.avgScore}점` : '-', cls: 'text-primary', primary: true },
-  ]
+  const total = quiz.totalStudents ?? 0
+  const rate = total > 0 ? Math.round((submitted / total) * 100) : 0
+  const unsubmitted = Math.max(0, total - submitted)
+  return { submitted, total, rate, unsubmitted, avgScore: quiz.avgScore }
+}
+
+// 일시 메타 — 시작/마감을 라벨로 분리 표시 (#3). D-day 는 마감 옆에 인라인 표기.
+// fragment 로 반환해 호출부의 flex 한 줄 안에서 다른 정보와 함께 흐르도록 함.
+function QuizDateMeta({ quiz, divider = false, dday = null }) {
+  const segs = []
+  if (quiz.startDate) segs.push(['시작', quiz.startDate])
+  if (quiz.dueDate) segs.push(['마감', quiz.dueDate])
+  if (segs.length === 0) {
+    return (
+      <>
+        {divider && <span className="text-border" aria-hidden="true">|</span>}
+        <span className="text-muted-foreground">응시 기간 제한 없음</span>
+      </>
+    )
+  }
+  return (
+    <>
+      {segs.map(([label, val], i) => (
+        <span key={label} className="inline-flex items-center gap-1 whitespace-nowrap">
+          {(i > 0 || divider) && <span className="text-border mr-1" aria-hidden="true">|</span>}
+          <span className="text-muted-foreground">{label}</span>
+          <span className="text-secondary-foreground tabular-nums">{val}</span>
+          {label === '마감' && dday && (
+            <span className={cn(
+              'ml-1 text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap',
+              dday.urgent ? 'text-destructive bg-destructive-soft' : 'text-warning bg-warning-bg'
+            )}>
+              {dday.label}
+            </span>
+          )}
+        </span>
+      ))}
+    </>
+  )
 }
 
 
@@ -1279,20 +1302,16 @@ function StudentQuizList() {
           <h1 className="text-[20px] sm:text-[24px] font-bold text-foreground leading-tight">내 퀴즈</h1>
         </div>
 
-        <div className="mt-1 mb-3 space-y-2">
-          <SearchInput value={searchQuery} onChange={setSearchQuery} />
+        <div className="mt-1 mb-3 space-y-2.5">
+          <StatusFilterTabs
+            value={attemptFilter}
+            onChange={setAttemptFilter}
+            options={STUDENT_ATTEMPT_FILTER_OPTIONS}
+          />
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              <DropdownSelect
-                value={attemptFilter}
-                onChange={setAttemptFilter}
-                options={STUDENT_ATTEMPT_FILTER_OPTIONS}
-                size="md"
-                filterMode
-                ghost
-                className="w-[100px] sm:w-[120px]"
-              />
-              <label className="flex items-center gap-1.5 px-2 py-1.5 text-sm text-secondary-foreground cursor-pointer select-none whitespace-nowrap">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <SearchInput value={searchQuery} onChange={setSearchQuery} />
+              <label className="flex items-center gap-1.5 px-2 py-1.5 text-sm text-secondary-foreground cursor-pointer select-none whitespace-nowrap shrink-0">
                 <input
                   type="checkbox"
                   checked={hideClosed}
@@ -1398,7 +1417,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
     >
       <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <StatusBadge status={studentDisplayStatus} />
             {myBadge && (
               <span className={cn('text-xs font-medium px-2 py-0.5 rounded-md whitespace-nowrap', myBadge.cls)}>
@@ -1414,24 +1433,8 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
 
           <h3 className="text-base font-semibold leading-snug mb-1 truncate text-foreground">{quiz.title}</h3>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs text-muted-foreground break-keep">
-              {quiz.startDate || quiz.dueDate ? `${quiz.startDate || '제한 없음'} ~ ${quiz.dueDate || '제한 없음'}` : '응시 기간 제한 없음'}
-              {quiz.lockDate && (
-                <>
-                  <span className="text-muted-foreground">{' | '}</span>
-                  <span className="text-muted-foreground">이용 종료: {quiz.lockDate}{new Date() > new Date(quiz.lockDate) ? ' (종료됨)' : ''}</span>
-                </>
-              )}
-            </p>
-            {ddayBadge && (
-              <span className={cn(
-                'text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap',
-                ddayBadge.urgent ? 'text-destructive bg-destructive-soft' : 'text-warning bg-warning-bg'
-              )}>
-                {ddayBadge.label}
-              </span>
-            )}
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            <QuizDateMeta quiz={quiz} dday={ddayBadge} />
           </div>
         </div>
 
