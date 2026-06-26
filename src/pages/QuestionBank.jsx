@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
-import { Plus, Search, Edit2, Trash2, Upload } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Upload, Pencil } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { QUIZ_TYPES } from '../data/mockData'
 import { useRole } from '../context/role'
@@ -12,10 +12,12 @@ import BankUploadModal from '../components/BankUploadModal'
 import MoveQuestionsModal from '../components/MoveQuestionsModal'
 import TypeBadge from '../components/TypeBadge'
 import PageHeader from '../components/PageHeader'
-import { htmlToPlainText } from '../components/RichText'
+import { htmlToPlainText, RichTextRenderer } from '../components/RichText'
+import QuestionAnswer from '../components/QuestionAnswer'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -49,6 +51,7 @@ export default function QuestionBank() {
   const [toast, setToast] = useState(null)
   const [selectedIds, setSelectedIds] = useState([])
   const [showMoveModal, setShowMoveModal] = useState(false)
+  const [allExpanded, setAllExpanded] = useState(false)
 
   const filtered = useMemo(() => questions.filter(q => {
     const matchSearch = search === '' || q.text.toLowerCase().includes(search.toLowerCase())
@@ -175,34 +178,43 @@ export default function QuestionBank() {
           }
         />
 
-        {/* 필터 + 검색 툴바 */}
-        <div className="flex items-center gap-3 mb-3">
-          <DropdownSelect
-            value={filterType} onChange={setFilterType} filterMode ghost
-            style={{ width: 130 }}
-            options={[
-              { value: 'all', label: '모든 유형' },
-              ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
-            ]}
-          />
-          <DropdownSelect
-            value={filterDifficulty} onChange={setFilterDifficulty} filterMode ghost
-            style={{ width: 130 }}
-            options={[
-              { value: 'all', label: '모든 난이도' },
-              { value: '', label: '미설정' },
-              { value: 'high', label: '상' },
-              { value: 'medium', label: '중' },
-              { value: 'low', label: '하' },
-            ]}
-          />
-          <div className="relative flex-1">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        {/* 검색 + 필터 툴바 — 퀴즈 목록과 동일한 배치(검색 상단, 필터 좌측) */}
+        <div className="mt-1 mb-3 space-y-2">
+          <div className="relative w-full sm:max-w-xs">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="문항 내용 검색"
-              className="w-full text-sm pl-9 pr-3 py-2.5 bg-white border border-border rounded-lg shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all"
+              className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
             />
+          </div>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <DropdownSelect
+                value={filterType} onChange={setFilterType} filterMode ghost size="md"
+                className="w-[120px] sm:w-[130px]"
+                options={[
+                  { value: 'all', label: '모든 유형' },
+                  ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
+                ]}
+              />
+              <DropdownSelect
+                value={filterDifficulty} onChange={setFilterDifficulty} filterMode ghost size="md"
+                className="w-[110px] sm:w-[120px]"
+                options={[
+                  { value: 'all', label: '난이도 전체' },
+                  { value: 'high', label: '상' },
+                  { value: 'medium', label: '중' },
+                  { value: 'low', label: '하' },
+                ]}
+              />
+            </div>
+            {filtered.length > 0 && (
+              <label className="flex items-center gap-1.5 cursor-pointer select-none shrink-0">
+                <Switch size="sm" checked={allExpanded} onCheckedChange={setAllExpanded} />
+                <span className="text-[13px] text-secondary-foreground leading-none">모두 펼치기</span>
+              </label>
+            )}
           </div>
         </div>
 
@@ -259,6 +271,7 @@ export default function QuestionBank() {
                     isLast={idx === filtered.length - 1}
                     selected={selectedIds.includes(q.id)}
                     onToggleSelect={() => toggleSelect(q.id)}
+                    allExpanded={allExpanded}
                   />
                 ))}
               </Card>
@@ -323,22 +336,16 @@ export default function QuestionBank() {
   )
 }
 
-function QuestionItem({ question, onEdit, onDelete, isLast, selected, onToggleSelect }) {
+function QuestionItem({ question, onEdit, onDelete, isLast, selected, onToggleSelect, allExpanded }) {
   const diff = question.difficulty && DIFFICULTY_META[question.difficulty]
+  const noAnswer = question.type === 'essay' || question.type === 'file_upload' || question.type === 'text'
   return (
-    <div className={cn('flex transition-colors hover:bg-background', selected && 'bg-accent', !isLast && 'border-b border-secondary')}>
+    <div className={cn('flex transition-colors', selected ? 'bg-accent' : 'hover:bg-background', !isLast && 'border-b border-secondary')}>
       {/* 선택 체크박스 */}
       <div className="flex items-center px-3.5 shrink-0 self-stretch">
         <Checkbox checked={selected} onChange={onToggleSelect} aria-label="문항 선택" />
       </div>
-      {/* 클릭 가능한 문항 영역 */}
-      <div
-        className="flex-1 min-w-0 px-4 py-5 cursor-pointer"
-        onClick={onEdit}
-        role="button"
-        tabIndex={0}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit() } }}
-      >
+      <div className="flex-1 min-w-0 px-2 py-4">
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -352,16 +359,43 @@ function QuestionItem({ question, onEdit, onDelete, isLast, selected, onToggleSe
                 </Badge>
               )}
             </div>
-            <p className="text-sm leading-relaxed line-clamp-3">{htmlToPlainText(question.text)}</p>
-            <p className="text-[11px] text-muted-foreground mt-1.5">배점 {question.points}점</p>
+            {allExpanded ? (
+              <RichTextRenderer html={question.text} className="text-sm leading-relaxed text-foreground" />
+            ) : (
+              <p className="text-sm leading-relaxed line-clamp-2">{htmlToPlainText(question.text)}</p>
+            )}
+            {!noAnswer && (
+              allExpanded ? (
+                <QuestionAnswer q={question} expanded />
+              ) : (
+                <div className="mt-1.5 bg-secondary/80 rounded px-2.5 py-1.5">
+                  <QuestionAnswer q={question} />
+                </div>
+              )
+            )}
+            {allExpanded && noAnswer && (
+              <p className="mt-1.5 text-[13px] text-muted-foreground">정답이 없는 수동 채점 문항입니다</p>
+            )}
+            <p className="text-[11px] text-muted-foreground mt-2">배점 {question.points}점</p>
           </div>
-          <Button
-            variant="ghost" size="icon-xs"
-            onClick={e => { e.stopPropagation(); onDelete() }}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive-soft shrink-0"
-          >
-            <Trash2 size={14} />
-          </Button>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button
+              variant="ghost" size="icon-xs"
+              onClick={onEdit}
+              className="text-muted-foreground hover:text-primary hover:bg-secondary"
+              title="문항 편집"
+            >
+              <Pencil size={14} />
+            </Button>
+            <Button
+              variant="ghost" size="icon-xs"
+              onClick={onDelete}
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive-soft"
+              title="문항 삭제"
+            >
+              <Trash2 size={14} />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

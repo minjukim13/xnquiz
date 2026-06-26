@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { Plus, BookOpen, Trash2, Copy, Pencil, Search, X, Tag } from 'lucide-react'
+import { Plus, BookOpen, Trash2, Copy, Pencil, Search, X, Tag, LayoutGrid, List as ListIcon, FolderClosed } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useQuestionBank } from '../context/questionBank'
@@ -34,24 +34,30 @@ export default function QuestionBankList() {
   const [toast, setToast] = useState(null)
   const [editingBankId, setEditingBankId] = useState(null)
   const [bankNameDraft, setBankNameDraft] = useState('')
-  // 사용자 단위 조직화 — 검색/정렬/필터
+  // 사용자 단위 조직화 — 검색/정렬/필터 + 과목 탐색기 + 보기 모드
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('updated')
   const [filterDiff, setFilterDiff] = useState('all')
-  const [filterCourse, setFilterCourse] = useState('all')
   const [filterTag, setFilterTag] = useState('all')
+  // 과목 탐색기 — 기본은 현재 과목만 표시. '__all__' 이면 전체.
+  const [selectedCourse, setSelectedCourse] = useState(CURRENT_COURSE)
+  // 보기 모드(카드/리스트) — 로컬에 유지
+  const [viewMode, setViewMode] = useState(() => {
+    try { return localStorage.getItem('xnq_bank_view') || 'card' } catch { return 'card' }
+  })
+  const changeViewMode = (m) => {
+    setViewMode(m)
+    try { localStorage.setItem('xnq_bank_view', m) } catch { /* noop */ }
+  }
 
-  const allCourses = useMemo(
-    () => [...new Set(banks.map(b => b.course).filter(Boolean))].sort(),
-    [banks]
-  )
+  const NO_COURSE = '미지정'
   const allTags = useMemo(
     () => [...new Set(banks.flatMap(b => b.tags ?? []))].sort(),
     [banks]
   )
 
-  // 필터 + 통합검색(은행명 + 문항 본문/보기) + 정렬 적용. qHits = 본문으로 매칭된 문항 수.
-  const visibleBanks = useMemo(() => {
+  // 검색 + 난이도 + 태그 필터까지만 적용한 중간 결과 (과목 선택은 별도). qHits = 본문으로 매칭된 문항 수.
+  const filteredBanks = useMemo(() => {
     const term = search.trim().toLowerCase()
     return banks
       .map(b => {
@@ -66,17 +72,40 @@ export default function QuestionBankList() {
       })
       .filter(x => x.matched)
       .filter(x => filterDiff === 'all' || (x.bank.difficulty || '') === filterDiff)
-      .filter(x => filterCourse === 'all' || x.bank.course === filterCourse)
       .filter(x => filterTag === 'all' || (x.bank.tags ?? []).includes(filterTag))
-      .sort((a, b) => {
-        if (sortBy === 'name') return a.bank.name.localeCompare(b.bank.name, 'ko')
-        if (sortBy === 'count') return b.count - a.count
-        if (sortBy === 'created') return (b.bank.createdAt || '').localeCompare(a.bank.createdAt || '')
-        return (b.bank.updatedAt || '').localeCompare(a.bank.updatedAt || '') // updated
-      })
-  }, [banks, search, sortBy, filterDiff, filterCourse, filterTag, getBankQuestions])
+  }, [banks, search, filterDiff, filterTag, getBankQuestions])
 
-  const hasActiveFilter = search.trim() || filterDiff !== 'all' || filterCourse !== 'all' || filterTag !== 'all'
+  // 과목 탐색기 항목: 현재 과목(고정) → 전체 → 그 외 과목들. 각 항목 옆 개수는 현재 필터 기준.
+  const courseNav = useMemo(() => {
+    const counts = {}
+    filteredBanks.forEach(x => {
+      const c = x.bank.course || NO_COURSE
+      counts[c] = (counts[c] || 0) + 1
+    })
+    const others = [...new Set(banks.map(b => b.course || NO_COURSE))]
+      .filter(c => c !== CURRENT_COURSE)
+      .sort((a, b) => (a === NO_COURSE ? 1 : b === NO_COURSE ? -1 : a.localeCompare(b, 'ko')))
+    return {
+      current: { key: CURRENT_COURSE, label: '현재 과목', sub: CURRENT_COURSE, count: counts[CURRENT_COURSE] || 0 },
+      all: { key: '__all__', label: '전체 과목', count: filteredBanks.length },
+      others: others.map(c => ({ key: c, label: c === NO_COURSE ? '출처 미지정' : c, count: counts[c] || 0 })),
+    }
+  }, [filteredBanks, banks])
+
+  // 선택 과목 + 정렬 적용
+  const visibleBanks = useMemo(() => {
+    const inCourse = selectedCourse === '__all__'
+      ? filteredBanks
+      : filteredBanks.filter(x => (x.bank.course || NO_COURSE) === selectedCourse)
+    return inCourse.slice().sort((a, b) => {
+      if (sortBy === 'name') return a.bank.name.localeCompare(b.bank.name, 'ko')
+      if (sortBy === 'count') return b.count - a.count
+      if (sortBy === 'created') return (b.bank.createdAt || '').localeCompare(a.bank.createdAt || '')
+      return (b.bank.updatedAt || '').localeCompare(a.bank.updatedAt || '') // updated
+    })
+  }, [filteredBanks, selectedCourse, sortBy])
+
+  const hasActiveFilter = search.trim() || filterDiff !== 'all' || filterTag !== 'all'
 
   if (role !== 'instructor') return <Navigate to="/" replace />
 
@@ -129,6 +158,17 @@ export default function QuestionBankList() {
     }
   }
 
+  // 카드/리스트 공용 핸들러 묶음
+  const bankHandlers = {
+    navigate,
+    editingBankId, setEditingBankId,
+    bankNameDraft, setBankNameDraft,
+    updateBank,
+    executeCopyBank,
+    setDeleteTarget,
+    allTags, toggleBankTag, addBankTag,
+  }
+
   return (
     <>
       <div className="pb-8">
@@ -145,19 +185,19 @@ export default function QuestionBankList() {
 
         {/* 안내: 사용자 단위 자산 */}
         <p className="text-[13px] text-muted-foreground -mt-1 mb-3">
-          문제은행은 과목과 무관하게 내 모든 과목에서 공유됩니다. 출처 과목과 태그로 분류해 찾으세요.
+          문제은행은 과목과 무관하게 내 모든 과목에서 공유됩니다. 좌측에서 과목을 골라 탐색하세요.
         </p>
 
-        {/* 검색/정렬/필터 툴바 */}
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        {/* 검색/필터 툴바 (검색 상단, 필터 좌측·정렬/보기 우측 — 퀴즈 목록과 동일) */}
+        <div className="mt-1 mb-3 space-y-2">
+          <div className="relative w-full sm:max-w-xs">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="문제은행 이름 또는 문항 내용 검색"
-              className="w-full text-sm pl-9 pr-8 py-2 rounded-md border border-border bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all"
+              className="w-full h-9 pl-9 pr-8 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -165,196 +205,101 @@ export default function QuestionBankList() {
               </button>
             )}
           </div>
-          <DropdownSelect
-            value={sortBy}
-            onChange={setSortBy}
-            options={SORT_OPTIONS}
-            size="md"
-            filterMode
-            className="w-[120px] sm:w-[136px] shrink-0"
-          />
-          <DropdownSelect
-            value={filterDiff}
-            onChange={setFilterDiff}
-            options={[
-              { value: 'all', label: '난이도 전체' },
-              { value: 'high', label: '상' },
-              { value: 'medium', label: '중' },
-              { value: 'low', label: '하' },
-              { value: '', label: '미설정' },
-            ]}
-            size="md"
-            filterMode
-            className="w-[112px] shrink-0"
-          />
-          <DropdownSelect
-            value={filterCourse}
-            onChange={setFilterCourse}
-            options={[
-              { value: 'all', label: '출처 과목 전체' },
-              ...allCourses.map(c => ({ value: c, label: c })),
-            ]}
-            size="md"
-            filterMode
-            className="w-[150px] sm:w-[180px] shrink-0"
-          />
-          {allTags.length > 0 && (
-            <DropdownSelect
-              value={filterTag}
-              onChange={setFilterTag}
-              options={[
-                { value: 'all', label: '태그 전체' },
-                ...allTags.map(t => ({ value: t, label: t })),
-              ]}
-              size="md"
-              filterMode
-              className="w-[130px] sm:w-[150px] shrink-0"
-            />
-          )}
-          <span className="text-xs text-muted-foreground ml-auto">{visibleBanks.length}개 표시</span>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <DropdownSelect
+                value={filterDiff}
+                onChange={setFilterDiff}
+                options={[
+                  { value: 'all', label: '난이도 전체' },
+                  { value: 'high', label: '상' },
+                  { value: 'medium', label: '중' },
+                  { value: 'low', label: '하' },
+                ]}
+                size="md"
+                filterMode
+                ghost
+                className="w-[112px]"
+              />
+              {allTags.length > 0 && (
+                <DropdownSelect
+                  value={filterTag}
+                  onChange={setFilterTag}
+                  options={[
+                    { value: 'all', label: '태그 전체' },
+                    ...allTags.map(t => ({ value: t, label: t })),
+                  ]}
+                  size="md"
+                  filterMode
+                  ghost
+                  className="w-[130px] sm:w-[150px]"
+                />
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <DropdownSelect
+                value={sortBy}
+                onChange={setSortBy}
+                options={SORT_OPTIONS}
+                size="md"
+                ghost
+                className="w-[120px] sm:w-[136px]"
+              />
+              <ViewToggle value={viewMode} onChange={changeViewMode} />
+            </div>
+          </div>
         </div>
 
-        {/* 은행 카드 그리드 */}
-        <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visibleBanks.map(({ bank, count: qCount, qHits }) => {
-            const diffLabel = bank.difficulty ? DIFF_LABEL[bank.difficulty] : ''
-            return (
-              <div
-                key={bank.id}
-                onClick={() => navigate(`/question-banks/${bank.id}`)}
-                className="flex flex-col justify-between min-h-[148px] bg-white p-5 cursor-pointer transition-all border border-border rounded-xl hover:shadow-md"
-              >
-                {/* 상단 영역 */}
-                <div>
-                  {/* 1열: 제목 + 액션 아이콘 */}
-                  <div className="flex items-start justify-between gap-3">
-                    {editingBankId === bank.id ? (
-                      <input
-                        autoFocus
-                        value={bankNameDraft}
-                        onClick={e => e.stopPropagation()}
-                        onChange={e => setBankNameDraft(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && bankNameDraft.trim()) {
-                            updateBank(bank.id, { name: bankNameDraft.trim() })
-                            setEditingBankId(null)
-                          }
-                          if (e.key === 'Escape') setEditingBankId(null)
-                        }}
-                        onBlur={() => {
-                          if (bankNameDraft.trim()) updateBank(bank.id, { name: bankNameDraft.trim() })
-                          setEditingBankId(null)
-                        }}
-                        className="font-semibold text-[15px] leading-snug text-foreground focus:outline-none border-b-2 border-primary bg-transparent min-w-0 w-full"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-1.5 group/title min-w-0">
-                        <h3 className="font-semibold text-[15px] leading-snug text-foreground truncate">{bank.name}</h3>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation()
-                            setBankNameDraft(bank.name)
-                            setEditingBankId(bank.id)
-                          }}
-                          className="opacity-0 group-hover/title:opacity-100 transition-opacity p-0.5 rounded text-muted-foreground hover:text-primary shrink-0"
-                          title="이름 수정"
-                        >
-                          <Pencil size={12} />
-                        </button>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-0.5 shrink-0 -mt-0.5 -mr-1">
-                      <button
-                        onClick={e => { e.stopPropagation(); executeCopyBank(bank) }}
-                        className="p-1.5 rounded-md text-muted-foreground hover:text-secondary-foreground hover:bg-secondary transition-colors"
-                        title="복사"
-                      >
-                        <Copy size={14} />
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); setDeleteTarget(bank) }}
-                        className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-incorrect-bg transition-colors"
-                        title="삭제"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
+        {/* 탐색기: 좌측 과목 사이드바 + 우측 은행 목록 */}
+        {banks.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-4">
+            <CourseSidebar
+              nav={courseNav}
+              selected={selectedCourse}
+              onSelect={setSelectedCourse}
+            />
 
-                  {/* 2열: 난이도 뱃지 · N개 문항 · 출처 과목 */}
-                  <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
-                    <span className={cn(
-                      'text-xs px-1.5 py-0.5 rounded-md font-medium',
-                      bank.difficulty && DIFFICULTY_META[bank.difficulty]
-                        ? DIFFICULTY_META[bank.difficulty].cls
-                        : 'bg-secondary text-muted-foreground'
-                    )}>
-                      {diffLabel || '미설정'}
-                    </span>
-                    <span className="text-muted-foreground text-xs">·</span>
-                    <span className="text-xs text-secondary-foreground">{qCount}개 문항</span>
-                    {bank.course && (
-                      <span className="text-xs px-1.5 py-0.5 rounded-md bg-secondary text-muted-foreground truncate max-w-[140px]" title={`출처: ${bank.course}`}>
-                        {bank.course}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* 태그 행 (편집 가능) */}
-                  <div className="flex items-center flex-wrap gap-1 mt-2" onClick={e => e.stopPropagation()}>
-                    {(bank.tags ?? []).map(t => (
-                      <span key={t} className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md bg-accent text-accent-foreground">
-                        {t}
-                        <button onClick={() => toggleBankTag(bank, t)} className="hover:text-destructive" title="태그 제거">
-                          <X size={10} />
-                        </button>
-                      </span>
-                    ))}
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-md text-muted-foreground hover:text-primary hover:bg-secondary transition-colors" title="태그 추가">
-                          <Tag size={11} /> 태그
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent align="start" className="w-52 p-2">
-                        <TagEditor bank={bank} allTags={allTags} onAdd={addBankTag} onToggle={toggleBankTag} />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  {qHits > 0 && (
-                    <p className="text-xs text-primary mt-2">문항 {qHits}개에 검색어 포함</p>
+            <div className="flex-1 min-w-0">
+              {visibleBanks.length === 0 ? (
+                <div className="py-16 text-center border border-dashed border-border rounded-xl">
+                  <Search size={32} className="mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-sm font-medium mb-1 text-muted-foreground">
+                    {hasActiveFilter ? '조건에 맞는 문제은행이 없습니다' : '이 과목에 문제은행이 없습니다'}
+                  </p>
+                  <p className="text-xs mb-4 text-muted-foreground">
+                    {hasActiveFilter ? '검색어나 필터를 바꿔 보세요' : '다른 과목을 선택하거나 새 문제은행을 만드세요'}
+                  </p>
+                  {hasActiveFilter ? (
+                    <Button variant="outline" size="sm" onClick={() => { setSearch(''); setFilterDiff('all'); setFilterTag('all') }}>
+                      필터 초기화
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={() => setShowAddModal(true)}>
+                      <Plus size={14} /> 새 문제은행
+                    </Button>
                   )}
                 </div>
-
-                {/* 하단: 최종 수정일 */}
-                <p className="text-[13px] text-muted-foreground mt-2">최종 수정 {bank.updatedAt}</p>
-              </div>
-            )
-          })}
-
-          {/* 추가 카드 (표시할 문제은행이 있을 때만 노출) */}
-          {visibleBanks.length > 0 && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary"
-            >
-              <Plus size={20} />
-              <span className="text-sm font-medium">새 문제은행 추가</span>
-            </button>
-          )}
-        </div>
-
-        {/* 필터 결과 없음 */}
-        {banks.length > 0 && visibleBanks.length === 0 && (
-          <div className="mt-12 text-center">
-            <Search size={36} className="mx-auto mb-3 text-muted-foreground" />
-            <p className="text-sm font-medium mb-1 text-muted-foreground">조건에 맞는 문제은행이 없습니다</p>
-            <p className="text-xs mb-4 text-muted-foreground">검색어나 필터를 바꿔 보세요</p>
-            {hasActiveFilter && (
-              <Button variant="outline" size="sm" onClick={() => { setSearch(''); setFilterDiff('all'); setFilterCourse('all'); setFilterTag('all') }}>
-                필터 초기화
-              </Button>
-            )}
+              ) : viewMode === 'card' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {visibleBanks.map(entry => (
+                    <BankCard key={entry.bank.id} entry={entry} h={bankHandlers} />
+                  ))}
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="bg-white flex flex-col items-center justify-center gap-2 transition-all min-h-[148px] border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary"
+                  >
+                    <Plus size={20} />
+                    <span className="text-sm font-medium">새 문제은행 추가</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="border border-border rounded-xl bg-white overflow-hidden divide-y divide-border">
+                  {visibleBanks.map(entry => (
+                    <BankRow key={entry.bank.id} entry={entry} h={bankHandlers} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -427,6 +372,261 @@ export default function QuestionBankList() {
         />
       )}
     </>
+  )
+}
+
+// ── 카드/리스트 보기 토글 ──────────────────────────────────────────────────
+function ViewToggle({ value, onChange }) {
+  const base = 'flex items-center justify-center w-8 h-8 rounded-md transition-colors'
+  return (
+    <div className="flex items-center gap-0.5 p-0.5 rounded-lg border border-border bg-secondary shrink-0">
+      <button
+        type="button"
+        onClick={() => onChange('card')}
+        aria-pressed={value === 'card'}
+        title="카드 보기"
+        className={cn(base, value === 'card' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}
+      >
+        <LayoutGrid size={15} />
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('list')}
+        aria-pressed={value === 'list'}
+        title="리스트 보기"
+        className={cn(base, value === 'list' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}
+      >
+        <ListIcon size={15} />
+      </button>
+    </div>
+  )
+}
+
+// ── 과목 탐색기 사이드바 ────────────────────────────────────────────────────
+function CourseNavItem({ item, active, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(item.key)}
+      title={item.sub || item.label}
+      className={cn(
+        'w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg transition-colors shrink-0',
+        active ? 'bg-accent text-primary font-semibold' : 'text-secondary-foreground hover:bg-secondary'
+      )}
+    >
+      <FolderClosed size={15} className={cn('shrink-0', active ? 'text-primary' : 'text-muted-foreground')} />
+      <span className="flex-1 min-w-0 truncate text-sm">{item.label}</span>
+      <span className={cn('text-xs tabular-nums shrink-0', active ? 'text-primary' : 'text-muted-foreground')}>{item.count}</span>
+    </button>
+  )
+}
+
+function CourseSidebar({ nav, selected, onSelect }) {
+  return (
+    <aside className="sm:w-52 shrink-0">
+      <div className="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
+        <CourseNavItem item={nav.current} active={selected === nav.current.key} onSelect={onSelect} />
+        <CourseNavItem item={nav.all} active={selected === nav.all.key} onSelect={onSelect} />
+        {nav.others.length > 0 && (
+          <>
+            <div className="hidden sm:block px-3 pt-2 pb-1">
+              <span className="text-[11px] font-medium text-muted-foreground">다른 과목</span>
+            </div>
+            {nav.others.map(o => (
+              <CourseNavItem key={o.key} item={o} active={selected === o.key} onSelect={onSelect} />
+            ))}
+          </>
+        )}
+      </div>
+    </aside>
+  )
+}
+
+// ── 은행 카드 ───────────────────────────────────────────────────────────────
+function BankCard({ entry, h }) {
+  const { bank, count: qCount, qHits } = entry
+  const diffLabel = bank.difficulty ? DIFF_LABEL[bank.difficulty] : ''
+  return (
+    <div
+      onClick={() => h.navigate(`/question-banks/${bank.id}`)}
+      className="flex flex-col justify-between min-h-[148px] bg-white p-5 cursor-pointer transition-all border border-border rounded-xl hover:shadow-md"
+    >
+      <div>
+        <div className="flex items-start justify-between gap-3">
+          {h.editingBankId === bank.id ? (
+            <input
+              autoFocus
+              value={h.bankNameDraft}
+              onClick={e => e.stopPropagation()}
+              onChange={e => h.setBankNameDraft(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && h.bankNameDraft.trim()) {
+                  h.updateBank(bank.id, { name: h.bankNameDraft.trim() })
+                  h.setEditingBankId(null)
+                }
+                if (e.key === 'Escape') h.setEditingBankId(null)
+              }}
+              onBlur={() => {
+                if (h.bankNameDraft.trim()) h.updateBank(bank.id, { name: h.bankNameDraft.trim() })
+                h.setEditingBankId(null)
+              }}
+              className="font-semibold text-[15px] leading-snug text-foreground focus:outline-none border-b-2 border-primary bg-transparent min-w-0 w-full"
+            />
+          ) : (
+            <div className="flex items-center gap-1.5 group/title min-w-0">
+              <h3 className="font-semibold text-[15px] leading-snug text-foreground truncate">{bank.name}</h3>
+              <button
+                onClick={e => { e.stopPropagation(); h.setBankNameDraft(bank.name); h.setEditingBankId(bank.id) }}
+                className="opacity-0 group-hover/title:opacity-100 transition-opacity p-0.5 rounded text-muted-foreground hover:text-primary shrink-0"
+                title="이름 수정"
+              >
+                <Pencil size={12} />
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-0.5 shrink-0 -mt-0.5 -mr-1">
+            <button
+              onClick={e => { e.stopPropagation(); h.executeCopyBank(bank) }}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-secondary-foreground hover:bg-secondary transition-colors"
+              title="복사"
+            >
+              <Copy size={14} />
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); h.setDeleteTarget(bank) }}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-incorrect-bg transition-colors"
+              title="삭제"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
+          <span className={cn(
+            'text-xs px-1.5 py-0.5 rounded-md font-medium',
+            bank.difficulty && DIFFICULTY_META[bank.difficulty]
+              ? DIFFICULTY_META[bank.difficulty].cls
+              : 'bg-secondary text-muted-foreground'
+          )}>
+            {diffLabel || '미설정'}
+          </span>
+          <span className="text-muted-foreground text-xs">·</span>
+          <span className="text-xs text-secondary-foreground">{qCount}개 문항</span>
+          {bank.course && (
+            <span className="text-xs px-1.5 py-0.5 rounded-md bg-secondary text-muted-foreground truncate max-w-[140px]" title={`출처: ${bank.course}`}>
+              {bank.course}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center flex-wrap gap-1 mt-2" onClick={e => e.stopPropagation()}>
+          {(bank.tags ?? []).map(t => (
+            <span key={t} className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md bg-accent text-accent-foreground">
+              {t}
+              <button onClick={() => h.toggleBankTag(bank, t)} className="hover:text-destructive" title="태그 제거">
+                <X size={10} />
+              </button>
+            </span>
+          ))}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-md text-muted-foreground hover:text-primary hover:bg-secondary transition-colors" title="태그 추가">
+                <Tag size={11} /> 태그
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-52 p-2">
+              <TagEditor bank={bank} allTags={h.allTags} onAdd={h.addBankTag} onToggle={h.toggleBankTag} />
+            </PopoverContent>
+          </Popover>
+        </div>
+        {qHits > 0 && (
+          <p className="text-xs text-primary mt-2">문항 {qHits}개에 검색어 포함</p>
+        )}
+      </div>
+
+      <p className="text-[13px] text-muted-foreground mt-2">최종 수정 {bank.updatedAt}</p>
+    </div>
+  )
+}
+
+// ── 은행 리스트 행 ──────────────────────────────────────────────────────────
+function BankRow({ entry, h }) {
+  const { bank, count: qCount, qHits } = entry
+  const diffLabel = bank.difficulty ? DIFF_LABEL[bank.difficulty] : ''
+  return (
+    <div
+      onClick={() => h.navigate(`/question-banks/${bank.id}`)}
+      className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-background"
+    >
+      <span className={cn(
+        'text-[11px] px-1.5 py-0.5 rounded-md font-medium shrink-0 w-9 text-center',
+        bank.difficulty && DIFFICULTY_META[bank.difficulty]
+          ? DIFFICULTY_META[bank.difficulty].cls
+          : 'bg-secondary text-muted-foreground'
+      )}>
+        {diffLabel || '-'}
+      </span>
+
+      <div className="flex-1 min-w-0">
+        {h.editingBankId === bank.id ? (
+          <input
+            autoFocus
+            value={h.bankNameDraft}
+            onClick={e => e.stopPropagation()}
+            onChange={e => h.setBankNameDraft(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && h.bankNameDraft.trim()) { h.updateBank(bank.id, { name: h.bankNameDraft.trim() }); h.setEditingBankId(null) }
+              if (e.key === 'Escape') h.setEditingBankId(null)
+            }}
+            onBlur={() => { if (h.bankNameDraft.trim()) h.updateBank(bank.id, { name: h.bankNameDraft.trim() }); h.setEditingBankId(null) }}
+            className="font-medium text-sm text-foreground focus:outline-none border-b-2 border-primary bg-transparent min-w-0 w-full"
+          />
+        ) : (
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-medium text-sm text-foreground truncate">{bank.name}</span>
+            {(bank.tags ?? []).slice(0, 2).map(t => (
+              <span key={t} className="hidden sm:inline text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground shrink-0">{t}</span>
+            ))}
+            {qHits > 0 && <span className="text-[11px] text-primary shrink-0">문항 {qHits}개 일치</span>}
+          </div>
+        )}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+          <span>{qCount}개 문항</span>
+          {bank.course && (
+            <>
+              <span>·</span>
+              <span className="truncate max-w-[160px]">{bank.course}</span>
+            </>
+          )}
+          <span className="hidden sm:inline">· 최종 수정 {bank.updatedAt}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
+        <button
+          onClick={() => { h.setBankNameDraft(bank.name); h.setEditingBankId(bank.id) }}
+          className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-secondary transition-colors"
+          title="이름 수정"
+        >
+          <Pencil size={14} />
+        </button>
+        <button
+          onClick={() => h.executeCopyBank(bank)}
+          className="p-1.5 rounded-md text-muted-foreground hover:text-secondary-foreground hover:bg-secondary transition-colors"
+          title="복사"
+        >
+          <Copy size={14} />
+        </button>
+        <button
+          onClick={() => h.setDeleteTarget(bank)}
+          className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-incorrect-bg transition-colors"
+          title="삭제"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
   )
 }
 
