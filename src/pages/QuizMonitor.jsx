@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useParams, Navigate, Link } from 'react-router-dom'
 import {
   Users, Hourglass, AlertTriangle, RefreshCw, Search,
-  CheckCircle2, Activity, ShieldCheck, UserPlus, Check,
+  CheckCircle2, Activity, UserPlus, TimerOff,
 } from 'lucide-react'
 import { mockQuizzes } from '../data/mockData'
 import { getQuizQuestions, getQuizStudents } from '../data/mockData'
@@ -58,7 +58,7 @@ const STATUS_META = {
 }
 
 const FILTER_OPTIONS = [
-  { value: 'all', label: '전체 상태' },
+  { value: 'all', label: '전체' },
   { value: 'in_progress', label: '응시 중' },
   { value: 'not_started', label: '미시작' },
   { value: 'submitted', label: '제출 완료' },
@@ -182,7 +182,7 @@ export default function QuizMonitor() {
         {/* 마감 경과 안내 */}
         {deadlinePassed && (
           <div className="mb-4 bg-warning-bg border border-warning-border rounded-md p-3 flex items-start gap-2">
-            <AlertTriangle size={16} className="text-warning-foreground shrink-0 mt-0.5" />
+            <TimerOff size={16} className="text-warning-foreground shrink-0 mt-0.5" />
             <div className="text-sm text-warning-foreground">
               <p className="font-medium">응시 가능 시간이 종료되었습니다.</p>
               <p className="text-xs mt-0.5">
@@ -227,18 +227,7 @@ export default function QuizMonitor() {
           />
         </div>
 
-<div className="bg-accent border border-accent rounded-md p-3 mb-4 flex items-start gap-2">
-          <ShieldCheck size={15} className="text-primary shrink-0 mt-0.5" />
-          <div className="text-xs text-secondary-foreground">
-            <p className="font-medium text-foreground">학생 응시 로그 수집 안내</p>
-            <p className="mt-0.5">
-              학생 응시 중에는 시작/문항 이동/답변 변경/포커스 이탈/제출 시각이 자동 기록됩니다.
-              본 화면의 이상 후보 표시는 단서이며 부정행위 단정이 아니므로 최종 판단은 교수자가 수행합니다.
-            </p>
-          </div>
-        </div>
-
-        {/* 필터/검색 */}
+        {/* 검색/필터 툴바 — 1행: 상태 칩 / 2행: 검색 */}
         <div className="flex flex-col gap-3 mb-3">
           <div className="flex items-center gap-2 flex-wrap">
             {FILTER_OPTIONS.map(opt => {
@@ -251,16 +240,16 @@ export default function QuizMonitor() {
                   type="button"
                   onClick={() => setFilter(opt.value)}
                   className={cn(
-                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all focus:outline-none',
+                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all focus:outline-none',
                     active && isAnomaly && 'bg-warning-foreground text-white border-warning-foreground',
                     active && !isAnomaly && 'bg-primary text-white border-primary',
                     !active && 'bg-white text-secondary-foreground border-border hover:border-muted-foreground/40',
                   )}
                 >
-                  {isAnomaly && <AlertTriangle size={12} className={active ? 'text-white' : 'text-warning-foreground'} />}
+                  {isAnomaly && <AlertTriangle size={11} className={active ? 'text-white' : 'text-warning-foreground'} />}
                   {opt.label}
                   <span className={cn(
-                    'tabular-nums text-xs font-semibold',
+                    'tabular-nums font-semibold',
                     active ? 'text-white/90' : isAnomaly && count > 0 ? 'text-warning-foreground' : 'text-muted-foreground',
                   )}>
                     {count}
@@ -269,19 +258,17 @@ export default function QuizMonitor() {
               )
             })}
           </div>
-          <div className="relative">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative w-full sm:max-w-xs">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="이름 또는 학번 검색"
-              className="w-full text-sm pl-9 pr-3 py-2.5 bg-white border border-border rounded-lg shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all"
+              className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
             />
           </div>
         </div>
-
-        <p className="text-xs mb-2 px-1 text-muted-foreground">총 {filtered.length}명 노출</p>
 
         {/* 학생 테이블 */}
         <Card className="overflow-hidden py-0 gap-0">
@@ -314,6 +301,11 @@ export default function QuizMonitor() {
             </div>
           )}
         </Card>
+
+        <p className="text-xs text-muted-foreground leading-relaxed mt-3 px-1">
+          학생 응시 중에는 시작/문항 이동/답변 변경/포커스 이탈/제출 시각이 자동 기록됩니다.
+          이상 후보 표시는 단서이며 부정행위 단정이 아니므로 최종 판단은 교수자가 수행합니다.
+        </p>
       </div>
 
       {/* 활동 로그 모달 */}
@@ -332,6 +324,7 @@ export default function QuizMonitor() {
                   student={selectedStudent}
                   quizId={id}
                   questions={questions}
+                  px="px-6"
                 />
               </div>
             </>
@@ -370,53 +363,49 @@ function GrantAttemptModal({ target, onClose, onConfirm }) {
         {target && (
           <div className="flex flex-col gap-5">
             {target._grant && (
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-sm text-primary">
-                <Check size={14} className="shrink-0" />
-                <span>이미 추가 응시 기회 {target._grant.totalAttempts}회가 부여되어 있습니다.</span>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                현재 추가 응시 기회 {target._grant.totalAttempts}회 부여됨
+              </p>
             )}
 
-            <div className="bg-secondary rounded-xl p-5">
-              <div className="flex items-center justify-between">
-                <p className="text-[15px] font-semibold text-foreground">추가 응시 횟수</p>
-                <div className="flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => setAdditionalAttempts(prev => Math.max(1, prev - 1))}
-                    disabled={additionalAttempts <= 1}
-                    className={cn(
-                      'w-9 h-9 flex items-center justify-center rounded-l-lg border border-border border-r-0 bg-white text-lg font-medium',
-                      additionalAttempts <= 1 ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer text-secondary-foreground',
-                    )}
-                  >-</button>
-                  <span className="w-12 h-9 flex items-center justify-center text-[15px] font-bold text-foreground border-t border-b border-border bg-white">
-                    {additionalAttempts}회
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setAdditionalAttempts(prev => Math.min(5, prev + 1))}
-                    disabled={additionalAttempts >= 5}
-                    className={cn(
-                      'w-9 h-9 flex items-center justify-center rounded-r-lg border border-border border-l-0 bg-white text-lg font-medium',
-                      additionalAttempts >= 5 ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer text-secondary-foreground',
-                    )}
-                  >+</button>
-                </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">추가 응시 횟수</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAdditionalAttempts(prev => Math.max(1, prev - 1))}
+                  disabled={additionalAttempts <= 1}
+                  className={cn(
+                    'w-7 h-7 flex items-center justify-center rounded-md border border-border bg-white text-base',
+                    additionalAttempts <= 1 ? 'cursor-not-allowed text-muted-foreground/50' : 'text-secondary-foreground hover:bg-secondary',
+                  )}
+                >-</button>
+                <span className="w-8 text-center text-sm font-semibold text-foreground tabular-nums">{additionalAttempts}회</span>
+                <button
+                  type="button"
+                  onClick={() => setAdditionalAttempts(prev => Math.min(5, prev + 1))}
+                  disabled={additionalAttempts >= 5}
+                  className={cn(
+                    'w-7 h-7 flex items-center justify-center rounded-md border border-border bg-white text-base',
+                    additionalAttempts >= 5 ? 'cursor-not-allowed text-muted-foreground/50' : 'text-secondary-foreground hover:bg-secondary',
+                  )}
+                >+</button>
               </div>
+            </div>
 
-              <div className="h-px bg-border my-5" />
-
-              <p className="text-[15px] font-semibold text-foreground mb-1.5">재응시 기한</p>
-              <p className="text-[13px] text-muted-foreground mb-3">미설정 시 기존 퀴즈 마감일을 따릅니다.</p>
+            <div>
+              <div className="flex items-baseline justify-between mb-2">
+                <span className="text-sm font-medium text-foreground">재응시 기한</span>
+                <span className="text-xs text-muted-foreground">미설정 시 퀴즈 마감일 적용</span>
+              </div>
               <DateTimePicker value={retakeDeadline} onChange={setRetakeDeadline} />
             </div>
           </div>
         )}
 
-        <div className="flex justify-end gap-2.5 pt-5">
+        <div className="flex justify-end gap-2 pt-6">
           <Button variant="outline" onClick={onClose}>취소</Button>
           <Button onClick={() => onConfirm({ additionalAttempts, retakeDeadline })}>
-            <UserPlus size={14} />
             기회 부여
           </Button>
         </div>

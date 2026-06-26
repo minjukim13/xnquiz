@@ -513,15 +513,15 @@ function InstructorQuizList() {
           </div>
         </div>
 
+        {/* 검색/필터 툴바 — 1행: 상태 탭 ... 정렬 / 2행: 검색 */}
         <div className="mt-1 mb-3 space-y-2.5">
-          <StatusFilterTabs
-            value={filterStatus}
-            onChange={setFilterStatus}
-            options={STATUS_FILTER_OPTIONS}
-          />
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <SearchInput value={searchQuery} onChange={setSearchQuery} />
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <StatusFilterTabs
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={STATUS_FILTER_OPTIONS}
+              />
             </div>
             <DropdownSelect
               value={sortKey}
@@ -532,6 +532,7 @@ function InstructorQuizList() {
               className="w-[120px] sm:w-[140px] shrink-0"
             />
           </div>
+          <SearchInput value={searchQuery} onChange={setSearchQuery} />
         </div>
 
         {loading ? (
@@ -1057,12 +1058,15 @@ function QuizExportModal({ quiz, onClose, onExport, onExportQti }) {
           )}
           {filteredCourses.map(course => {
             const isSelected = selected.has(course.name)
+            const badge = course.code || course.name.split(' ')[0]
+            const label = course.shortName || course.name.split(' ').slice(1).join(' ') || course.name
             return (
               <button
                 key={course.id}
                 onClick={() => toggle(course.name)}
+                title={course.name}
                 className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 text-[15px] text-left rounded-md border transition-colors',
+                  'w-full flex items-center gap-2.5 px-4 py-3 text-[15px] text-left rounded-md border transition-colors',
                   isSelected
                     ? 'border-blue-400 bg-accent text-primary font-semibold'
                     : 'border-border bg-white text-secondary-foreground hover:bg-secondary'
@@ -1075,7 +1079,10 @@ function QuizExportModal({ quiz, onClose, onExport, onExportQti }) {
                   onClick={e => e.stopPropagation()}
                   className="shrink-0 accent-primary"
                 />
-                <span className="flex-1">{course.name}</span>
+                {badge && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold shrink-0 bg-accent text-accent-foreground">{badge}</span>
+                )}
+                <span className="flex-1 truncate">{label}</span>
               </button>
             )
           })}
@@ -1280,10 +1287,7 @@ function QuizImportModal({ onClose, onImport, onImportQti }) {
                     )}
                   >
                     {badge && (
-                      <span className={cn(
-                        'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0',
-                        isSelected ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
-                      )}>{badge}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold shrink-0 bg-accent text-accent-foreground">{badge}</span>
                     )}
                     <span className="text-xs truncate">{label}</span>
                   </button>

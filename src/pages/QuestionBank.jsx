@@ -28,6 +28,13 @@ const DIFFICULTY_META = {
   low:    { label: '하', className: 'bg-green-50 text-green-600' },
 }
 
+const DIFF_TABS = [
+  { value: 'all', label: '전체' },
+  { value: 'high', label: DIFFICULTY_META.high.label },
+  { value: 'medium', label: DIFFICULTY_META.medium.label },
+  { value: 'low', label: DIFFICULTY_META.low.label },
+]
+
 export default function QuestionBank() {
   const { bankId } = useParams()
   const navigate = useNavigate()
@@ -59,6 +66,21 @@ export default function QuestionBank() {
     const matchDiff = filterDifficulty === 'all' || q.difficulty === filterDifficulty
     return matchSearch && matchType && matchDiff
   }), [questions, search, filterType, filterDifficulty])
+
+  // 난이도 탭 카운트 — 검색/유형 필터 적용 후 난이도별 개수
+  const diffCounts = useMemo(() => {
+    const base = questions.filter(q => {
+      const matchSearch = search === '' || q.text.toLowerCase().includes(search.toLowerCase())
+      const matchType = filterType === 'all' || q.type === filterType
+      return matchSearch && matchType
+    })
+    return {
+      all: base.length,
+      high: base.filter(q => q.difficulty === 'high').length,
+      medium: base.filter(q => q.difficulty === 'medium').length,
+      low: base.filter(q => q.difficulty === 'low').length,
+    }
+  }, [questions, search, filterType])
 
   const [deleteTargetId, setDeleteTargetId] = useState(null)
 
@@ -178,43 +200,49 @@ export default function QuestionBank() {
           }
         />
 
-        {/* 검색 + 필터 툴바 — 퀴즈 목록과 동일한 배치(검색 상단, 필터 좌측) */}
-        <div className="mt-1 mb-3 space-y-2">
-          <div className="relative w-full sm:max-w-xs">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <input
-              type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="문항 내용 검색"
-              className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
-            />
-          </div>
+        {/* 검색 + 필터 툴바 — 1행: 난이도 탭 / 2행: 유형 드롭다운 + 검색 */}
+        <div className="mt-1 mb-3 space-y-2.5">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <DropdownSelect
-                value={filterType} onChange={setFilterType} filterMode ghost size="md"
-                className="w-[120px] sm:w-[130px]"
-                options={[
-                  { value: 'all', label: '모든 유형' },
-                  ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
-                ]}
-              />
-              <DropdownSelect
-                value={filterDifficulty} onChange={setFilterDifficulty} filterMode ghost size="md"
-                className="w-[110px] sm:w-[120px]"
-                options={[
-                  { value: 'all', label: '난이도 전체' },
-                  { value: 'high', label: '상' },
-                  { value: 'medium', label: '중' },
-                  { value: 'low', label: '하' },
-                ]}
+            <div className="flex items-center gap-1 overflow-x-auto -mx-0.5 px-0.5 py-0.5 min-w-0">
+              {DIFF_TABS.map(t => {
+                const active = filterDifficulty === t.value
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setFilterDifficulty(t.value)}
+                    aria-pressed={active}
+                    className={cn(
+                      'shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors',
+                      active ? 'bg-primary text-white' : 'bg-secondary text-secondary-foreground hover:bg-border',
+                    )}
+                  >
+                    <span>{t.label}</span>
+                    <span className={cn('text-[11px] tabular-nums', active ? 'text-white/70' : 'text-muted-foreground')}>
+                      {diffCounts[t.value] ?? 0}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <DropdownSelect
+              value={filterType} onChange={setFilterType} filterMode ghost size="md"
+              className="w-[120px] sm:w-[130px] shrink-0"
+              options={[
+                { value: 'all', label: '모든 유형' },
+                ...Object.entries(QUIZ_TYPES).map(([k, v]) => ({ value: k, label: v.label })),
+              ]}
+            />
+            <div className="relative w-full sm:max-w-xs">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <input
+                type="text" value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="문항 내용 검색"
+                className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
               />
             </div>
-            {filtered.length > 0 && (
-              <label className="flex items-center gap-1.5 cursor-pointer select-none shrink-0">
-                <Switch size="sm" checked={allExpanded} onCheckedChange={setAllExpanded} />
-                <span className="text-[13px] text-secondary-foreground leading-none">모두 펼치기</span>
-              </label>
-            )}
           </div>
         </div>
 
@@ -240,6 +268,12 @@ export default function QuestionBank() {
             <Button variant="outline" size="sm" onClick={() => setShowMoveModal(true)}>
               다른 문제은행으로 이동
             </Button>
+          )}
+          {filtered.length > 0 && (
+            <label className="flex items-center gap-1.5 cursor-pointer select-none shrink-0 ml-auto">
+              <Switch size="sm" checked={allExpanded} onCheckedChange={setAllExpanded} />
+              <span className="text-[13px] text-secondary-foreground leading-none">모두 펼치기</span>
+            </label>
           )}
         </div>
 

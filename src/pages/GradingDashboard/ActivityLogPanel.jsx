@@ -87,7 +87,7 @@ function SubmitSummaryCell({ student }) {
   )
 }
 
-export default function ActivityLogPanel({ student, quizId, questions }) {
+export default function ActivityLogPanel({ student, quizId, questions, px = 'px-4' }) {
   const key = buildActivityLogKey(quizId, student.id)
   const log = useMemo(() => loadActivityLog(key), [key])
   const summary = useMemo(() => summarizeActivityLog(log), [log])
@@ -108,7 +108,7 @@ export default function ActivityLogPanel({ student, quizId, questions }) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* 통계 요약 — 제출 / 응시 시작 / 소요 시간 / 포커스 이탈 / 답변 변경 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+      <div className={cn('grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-3 py-4 border-b border-slate-100 bg-slate-50/60', px)}>
         <SubmitSummaryCell student={student} />
         <SummaryCell label="응시 시작" value={summary.startedAt ? formatDateTime(summary.startedAt) : '-'} />
         <SummaryCell label="소요 시간" value={formatDuration(summary.durationSec)} accent={summary.autoSubmitted ? 'amber' : undefined} />
@@ -117,14 +117,14 @@ export default function ActivityLogPanel({ student, quizId, questions }) {
       </div>
 
       {/* 타임라인 */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      <div className="flex-1 overflow-y-auto scrollbar-thin py-1">
         {log.map((entry, idx) => {
           const meta = TYPE_META[entry.type] || { label: entry.type, icon: FileText, className: 'text-slate-500 bg-slate-50' }
           const Icon = meta.icon
           return (
             <div
               key={`${entry.ts}-${idx}`}
-              className="flex items-start gap-3 px-4 py-2.5 border-b border-slate-50 hover:bg-slate-50/60"
+              className={cn('flex items-start gap-3 py-3 border-b border-slate-50 hover:bg-slate-50/60', px)}
             >
               <span className="w-16 shrink-0 text-xs font-mono tabular-nums text-muted-foreground pt-0.5">
                 {formatTime(entry.ts)}

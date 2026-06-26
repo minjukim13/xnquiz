@@ -80,13 +80,17 @@ export default function QuestionAnswer({ q, expanded = false }) {
     )
   }
 
-  // 단답형: 허용 정답 여러 개일 때 개별 배지
+  // 단답형: 허용 정답 여러 개일 때 검은색 텍스트로 표기 (다른 문항 유형과 동일)
   if (t === 'short_answer' && Array.isArray(ans) && ans.length > 1) {
+    const items = ans.map(toText).filter(Boolean)
+    if (items.length === 0) return null
     return (
       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
         <span className={BADGE}>정답</span>
-        {ans.map((item, i) => (
-          <span key={i} className={ITEM_BADGE}>{toText(item)}</span>
+        {items.map((item, i) => (
+          <span key={i} className="text-[13px] font-medium text-foreground">
+            {item}{i < items.length - 1 && <span className="text-muted-foreground font-normal"> / </span>}
+          </span>
         ))}
       </div>
     )

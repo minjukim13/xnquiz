@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { Plus, BookOpen, Trash2, Copy, Pencil, Search, X, Tag, LayoutGrid, List as ListIcon, FolderClosed } from 'lucide-react'
+import { Plus, BookOpen, Trash2, Copy, Pencil, Search, X, Tag, LayoutGrid, List as ListIcon } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useQuestionBank } from '../context/questionBank'
@@ -16,6 +16,13 @@ import { questionSearchText } from '../utils/bankSearch'
 const CURRENT_COURSE = 'CS301 데이터베이스'
 function resolveCurrentCourseCode() {
   return CURRENT_COURSE.split(/\s+/)[0].toUpperCase()
+}
+
+// "CS301 데이터베이스" → { code: 'CS301', name: '데이터베이스' }. 코드 패턴이 없으면 code=null.
+function parseCourse(course) {
+  const m = course.match(/^([A-Za-z]+\s*\d+)\s+(.+)$/)
+  if (m) return { code: m[1].replace(/\s+/g, '').toUpperCase(), name: m[2].trim() }
+  return { code: null, name: course }
 }
 
 const SORT_OPTIONS = [
@@ -92,9 +99,13 @@ export default function QuestionBankList() {
       .filter(c => c !== CURRENT_COURSE)
       .sort((a, b) => (a === NO_COURSE ? 1 : b === NO_COURSE ? -1 : a.localeCompare(b, 'ko')))
     return {
-      current: { key: CURRENT_COURSE, label: '현재 과목', sub: CURRENT_COURSE, count: counts[CURRENT_COURSE] || 0 },
+      current: { key: CURRENT_COURSE, label: '현재 과목', count: counts[CURRENT_COURSE] || 0 },
       all: { key: '__all__', label: '전체 과목', count: banks.length },
-      others: others.map(c => ({ key: c, label: c === NO_COURSE ? '출처 미지정' : c, count: counts[c] || 0 })),
+      others: others.map(c => (
+        c === NO_COURSE
+          ? { key: c, label: '출처 미지정', count: counts[c] || 0 }
+          : { key: c, ...parseCourse(c), count: counts[c] || 0 }
+      )),
     }
   }, [banks])
 
@@ -217,40 +228,11 @@ export default function QuestionBankList() {
             />
 
             <div className="flex-1 min-w-0">
-              {/* 검색/필터 툴바 — 선택 과목 범위에 적용 (검색 상단 → 난이도 탭·태그 좌측·정렬/보기 우측) */}
+              {/* 검색/필터 툴바 — 1행: 난이도 탭 ... 정렬 + 보기 / 2행: 검색 + 태그 드롭다운 */}
               <div className="mb-3 space-y-2.5">
-                <div className="relative w-full sm:max-w-xs">
-                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="문제은행 이름 또는 문항 내용 검색"
-                    className="w-full h-9 pl-9 pr-8 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
-                  />
-                  {search && (
-                    <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2 min-w-0">
                     <DifficultyFilterTabs value={filterDiff} onChange={setFilterDiff} counts={diffCounts} />
-                    {allTags.length > 0 && (
-                      <DropdownSelect
-                        value={filterTag}
-                        onChange={setFilterTag}
-                        options={[
-                          { value: 'all', label: '태그 전체' },
-                          ...allTags.map(t => ({ value: t, label: t })),
-                        ]}
-                        size="md"
-                        filterMode
-                        ghost
-                        className="w-[130px] sm:w-[150px] shrink-0"
-                      />
-                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <DropdownSelect
@@ -263,6 +245,37 @@ export default function QuestionBankList() {
                     />
                     <ViewToggle value={viewMode} onChange={changeViewMode} />
                   </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full sm:max-w-xs">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      placeholder="문제은행 이름 또는 문항 내용 검색"
+                      className="w-full h-9 pl-9 pr-8 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
+                    />
+                    {search && (
+                      <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  {allTags.length > 0 && (
+                    <DropdownSelect
+                      value={filterTag}
+                      onChange={setFilterTag}
+                      options={[
+                        { value: 'all', label: '태그 전체' },
+                        ...allTags.map(t => ({ value: t, label: t })),
+                      ]}
+                      size="md"
+                      filterMode
+                      ghost
+                      className="w-[130px] sm:w-[150px] shrink-0"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -446,18 +459,23 @@ function ViewToggle({ value, onChange }) {
 
 // ── 과목 탐색기 사이드바 ────────────────────────────────────────────────────
 function CourseNavItem({ item, active, onSelect }) {
+  const hasCode = !!item.code
   return (
     <button
       type="button"
       onClick={() => onSelect(item.key)}
-      title={item.sub || item.label}
+      title={hasCode ? `${item.code} ${item.name}` : item.label}
       className={cn(
         'w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg transition-colors shrink-0',
         active ? 'bg-accent text-primary font-semibold' : 'text-secondary-foreground hover:bg-secondary'
       )}
     >
-      <FolderClosed size={15} className={cn('shrink-0', active ? 'text-primary' : 'text-muted-foreground')} />
-      <span className="flex-1 min-w-0 truncate text-sm">{item.label}</span>
+      {hasCode && (
+        <span className="shrink-0 text-[11px] font-semibold tracking-tight px-1.5 py-0.5 rounded-md tabular-nums bg-accent text-accent-foreground">
+          {item.code}
+        </span>
+      )}
+      <span className="flex-1 min-w-0 truncate text-sm">{hasCode ? item.name : item.label}</span>
       <span className={cn('text-xs tabular-nums shrink-0', active ? 'text-primary' : 'text-muted-foreground')}>{item.count}</span>
     </button>
   )

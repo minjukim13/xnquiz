@@ -440,7 +440,7 @@ export default function StudentDetailPanel({ student, questions, quizId, onGrade
           </TabsContent>
 
           <TabsContent value="activity" className="flex flex-col min-h-0">
-            <ActivityLogPanel student={student} quizId={quizId} questions={questions} />
+            <ActivityLogPanel student={student} quizId={quizId} questions={questions} px="px-5" />
           </TabsContent>
 
           <TabsContent value="comments" className="flex flex-col min-h-0">
