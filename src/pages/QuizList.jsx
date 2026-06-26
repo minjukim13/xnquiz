@@ -1097,7 +1097,7 @@ function QtiExportPanel({ quiz, onClose, onExportQti }) {
         </p>
       </div>
       <div className="rounded-lg bg-accent/60 px-4 py-3 text-xs leading-relaxed text-secondary-foreground">
-        <p className="font-semibold text-primary mb-1">QTI 1.2 (Canvas Classic Quizzes 호환)</p>
+        <p className="font-semibold text-primary mb-1">QTI 1.2</p>
         <p>객관식·OX·복수정답·단답·수치형은 정답까지 함께 내보냅니다. 연결형·빈칸·드롭다운·수식형은 문항 본문과 유형만 포함됩니다(정답 제외). 미디어 첨부는 포함되지 않습니다.</p>
       </div>
       <div className="flex justify-end gap-2 pt-1">
@@ -1385,7 +1385,7 @@ function QtiImportPanel({ onClose, onImportQti }) {
               <>
                 <div className="text-center">
                   <p className="text-[15px] font-semibold text-foreground">QTI .zip 파일을 끌어다 놓거나 클릭해서 선택</p>
-                  <p className="text-xs text-muted-foreground mt-1">Canvas Classic Quizzes 내보내기 파일(QTI 1.2)을 지원합니다</p>
+                  <p className="text-xs text-muted-foreground mt-1">QTI 1.2 형식 내보내기 파일을 지원합니다</p>
                 </div>
                 {fileName && <p className="text-xs text-muted-foreground">{fileName}</p>}
                 {error && <p className="text-xs text-destructive">{error}</p>}
