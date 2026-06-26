@@ -98,7 +98,7 @@ export const QUIZ_TYPES = {
 const QUIZ_STORAGE_KEY = 'xnq_quizzes'
 // 시드 퀴즈(정적 mock)를 바꾸면 이 버전을 올린다. 버전이 바뀌면 localStorage 에 박제된
 // 정적 mock 수정본을 버리고 새 시드를 적용한다(사용자가 직접 만든 퀴즈는 보존).
-const QUIZ_SEED_VERSION = '2026-06-25.1'
+const QUIZ_SEED_VERSION = '2026-06-26.2'
 const QUIZ_VERSION_KEY = 'xnq_quizzes_seed_version'
 const _staticQuizIds = new Set()
 
@@ -673,6 +673,41 @@ export const mockQuizzes = [
     scoreRevealEnabled: true,
     scoreRevealScope: 'wrong_only',
     scoreRevealTiming: 'after_due',
+  },
+  {
+    // [검수용] 랜덤 출제 + 다회응시(3회) + 추가 할당 + 시간연장(학생 A) 통합 데모
+    id: '13',
+    title: '[검수용] 랜덤 출제·다회응시·추가 할당 데모',
+    assignmentGroupId: 'quiz',
+    description: 'Wave 1 검수용입니다. 학생마다 DB 종합 문제집에서 서로 다른 3문항이 출제되며, 최대 3회까지 응시할 수 있습니다. 컴퓨터공학과(학생 A)는 마감이 개별 연장되고 응시 편의 지원(시간 +50%)도 적용됩니다.',
+    course: 'CS301 데이터베이스',
+    status: 'open',
+    visible: true,
+    startDate: '2026-06-01 09:00',
+    dueDate: '2026-07-31 23:59',
+    lockDate: '2026-08-31 23:59',
+    week: 10,
+    session: 1,
+    // totalStudents 없음 → 데모 학생 s1~s3 로컬 명부(buildLocalRoster)로 채점/응시
+    questions: 3,
+    totalPoints: 15,
+    timeLimit: 30,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 3,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'with_answer',
+    scoreRevealTiming: 'after_due',
+    // 추가 할당(override): 컴퓨터공학과(학생 A)만 마감·이용 종료 개별 연장 (D-11 R-006)
+    // 데모 학생 전환 UI가 없어 응시 가능한 학생은 A(s1, 컴퓨터공학과) 뿐이므로 A 대상으로 둠
+    assignments: [
+      {
+        id: 'ov_demo13_cs',
+        assignTo: [{ type: 'group', id: '컴퓨터공학과', label: '컴퓨터공학과' }],
+        availableFrom: '2026-06-01 09:00',
+        dueDate: '2026-12-31 23:59',
+        availableUntil: '2027-01-31 23:59',
+      },
+    ],
   },
 ]
 
@@ -1619,6 +1654,7 @@ export function getQuizQuestions(quizId) {
   if (quizId === 'cs102_3') return mockCs102Quiz3Questions
   if (quizId === 'cs401_3') return mockCs401Quiz3Questions
   if (quizId === '12') return mockQuiz12Items
+  if (quizId === '13') return mockQuiz13Items
   return []
 }
 
@@ -2599,6 +2635,26 @@ const _bank1Snapshot = MOCK_BANK_QUESTIONS
 export const mockQuiz12Items = [
   {
     id: 'rg_demo_bank1',
+    type: 'random_group',
+    bankId: 'bank1',
+    bankName: 'DB 종합 문제집',
+    bankCourse: 'CS301 데이터베이스',
+    count: 3,
+    pointsPerQuestion: 5,
+    useDifficultyScoring: false,
+    difficultyPoints: { high: 5, medium: 5, low: 5 },
+    maxAvailable: _bank1Snapshot.length,
+    bankSnapshot: _bank1Snapshot,
+    points: 15,
+  },
+]
+
+// ── [검수용] 퀴즈 13: 랜덤 출제 + 다회응시 + 추가 할당 통합 데모 ──────────────
+// Wave 1 검수용 (D-09 R-007 재추첨 / D-11 R-006 effective 일정 / accommodation 시간연장)
+// 데모 학생 s1~s3 로컬 응시 (퀴즈 객체에 totalStudents 없음 → buildLocalRoster)
+export const mockQuiz13Items = [
+  {
+    id: 'rg_demo13_bank1',
     type: 'random_group',
     bankId: 'bank1',
     bankName: 'DB 종합 문제집',
