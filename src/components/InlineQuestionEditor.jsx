@@ -218,11 +218,11 @@ export default function InlineQuestionEditor({ index, prevType, onAdd, onCancel,
         <div className={cn('grid gap-3', selectedType === 'text' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-[1fr_5rem_8rem]')}>
           <div>
             <label className="text-[13px] font-medium block mb-1.5 text-secondary-foreground">
-              {selectedType === 'text' ? '안내문 제목' : '문제 제목'}
+              {selectedType === 'text' ? '안내문 제목' : '문항 제목'}
             </label>
             <input type="text" value={form.title || ''} maxLength={120}
               onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-              placeholder={selectedType === 'text' ? '안내문 제목을 입력하세요' : '문제 제목을 입력하세요'}
+              placeholder={selectedType === 'text' ? '안내문 제목을 입력하세요' : '문항 제목을 입력하세요'}
               className="w-full h-9 bg-white text-[15px] px-3 rounded-lg focus:outline-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
             />
           </div>
@@ -255,7 +255,7 @@ export default function InlineQuestionEditor({ index, prevType, onAdd, onCancel,
         {/* 문제 내용 */}
         <div>
           <label className="text-[13px] font-medium block mb-1.5 text-secondary-foreground">
-            {selectedType === 'text' ? '안내문 내용' : selectedType === 'formula' ? '문제 설명' : '문제 내용'}
+            {selectedType === 'text' ? '안내문 내용' : selectedType === 'formula' ? '문항 설명' : '문항 내용'}
             {' '}<span className="text-destructive">*</span>
           </label>
           {(selectedType === 'fill_in_multiple_blanks' || selectedType === 'multiple_dropdowns' || selectedType === 'formula') ? (
@@ -300,7 +300,7 @@ export default function InlineQuestionEditor({ index, prevType, onAdd, onCancel,
             <RichTextEditor
               value={form.text}
               onChange={val => setForm(prev => ({ ...prev, text: val }))}
-              placeholder={selectedType === 'text' ? '학생에게 표시할 안내문을 입력하세요' : '문제를 입력하세요. 툴바에서 이미지/동영상을 본문 안에 삽입할 수 있습니다.'}
+              placeholder={selectedType === 'text' ? '학생에게 표시할 안내문을 입력하세요' : '문항을 입력하세요. 툴바에서 이미지/동영상을 본문 안에 삽입할 수 있습니다.'}
               minHeight="min-h-[120px]"
             />
           )}

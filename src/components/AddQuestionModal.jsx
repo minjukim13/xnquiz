@@ -1,5 +1,5 @@
 import { useState, useRef, useLayoutEffect } from 'react'
-import { Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type, Check, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, CircleDot, ToggleLeft, ListChecks, PenLine, AlignLeft, Hash, ArrowLeftRight, AlignJustify, ChevronDown, Paperclip, Sigma, Type, Check, AlertCircle, X } from 'lucide-react'
 import { QUIZ_TYPES } from '../data/mockData'
 import { DropdownSelect } from './DropdownSelect'
 import { Button } from '@/components/ui/button'
@@ -374,30 +374,34 @@ function HybridTextField({ value, onChange, placeholder, onDelete }) {
 
 // ── 보기별 코멘트 입력 (Canvas "이 답변을 선택한 경우의 의견") ─────────────
 // 코멘트가 있으면 자동 펼침, 없으면 토글 버튼만 노출
+// 펼친 상태는 박스로 감싸 아래 보기 입력창과 시각적으로 명확히 구분한다 (XQ 피드백)
 function OptionCommentField({ value, onChange, indent = true }) {
-  const [open, setOpen] = useState(!!(value || '').trim())
-  const visible = open || !!(value || '').trim()
+  const hasValue = !!(value || '').trim()
+  const [open, setOpen] = useState(hasValue)
+  const visible = open || hasValue
   return (
-    <div className={cn(indent && 'ml-7', 'mt-1.5')}>
+    <div className={cn(indent && 'ml-7', 'mt-3')}>
       {!visible ? (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary hover:bg-secondary px-1.5 py-1 -ml-1.5 rounded-md transition-colors"
         >
           <Plus size={10} /> 이 답변 선택 시 피드백
         </button>
       ) : (
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] font-medium text-muted-foreground">이 답변을 선택한 경우의 의견</span>
-            {!(value || '').trim() && (
+        <div className="rounded-lg border border-dashed border-border bg-secondary/50 p-2.5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[11px] font-medium text-secondary-foreground">
+              이 답변을 선택한 경우의 의견
+            </span>
+            {!hasValue && (
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="text-[11px] text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded-md border border-border bg-white/60 hover:bg-white transition-colors"
               >
-                접기
+                <X size={11} /> 접기
               </button>
             )}
           </div>
@@ -604,7 +608,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
         <div className="space-y-3">
           <Label required>보기 옵션</Label>
           <p className="text-xs text-muted-foreground -mt-1">보기는 단순 텍스트로 입력하고, 필요하면 '서식'을 눌러 이미지·수식을 추가할 수 있습니다</p>
-          <div className="space-y-3">
+          <div className="space-y-5">
             {form.options.map((opt, i) => (
               <div key={i} className="flex items-start gap-2">
                 <button type="button" onClick={() => upd('correctIdx', i)}
@@ -698,7 +702,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
         <div className="space-y-3">
           <Label required>보기 옵션</Label>
           <p className="text-xs text-muted-foreground -mt-1">보기는 단순 텍스트로 입력하고, 필요하면 '서식'을 눌러 이미지·수식을 추가할 수 있습니다</p>
-          <div className="space-y-3">
+          <div className="space-y-5">
             {form.options.map((opt, i) => {
               const isCorrect = form.correctIdxs.includes(i)
               return (
@@ -1143,7 +1147,7 @@ export function TypeForm({ type, form, setForm, textareaRef }) {
     case 'file_upload':
       return (
         <div className="text-center py-3 rounded bg-secondary border border-neutral-200">
-          <p className="text-[15px] text-muted-foreground">문제 내용과 배점만 입력하면 됩니다.</p>
+          <p className="text-[15px] text-muted-foreground">문항 내용과 배점만 입력하면 됩니다.</p>
           <p className="text-xs mt-1 text-muted-foreground">허용 파일: PDF, DOC, DOCX, HWP, ZIP</p>
           <p className="text-xs mt-0.5 text-muted-foreground">채점은 교수자가 직접 수행합니다.</p>
         </div>
@@ -1447,11 +1451,11 @@ export default function AddQuestionModal({ onClose, onAdd, initialQuestion = nul
             <div className={cn('grid gap-3', selectedType === 'text' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-[1fr_5rem_8rem]')}>
               <div>
                 <label className="text-[15px] font-medium block mb-1.5 text-foreground">
-                  {selectedType === 'text' ? '안내문 제목' : '문제 제목'}
+                  {selectedType === 'text' ? '안내문 제목' : '문항 제목'}
                 </label>
                 <input type="text" value={form.title || ''} maxLength={120}
                   onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder={selectedType === 'text' ? '안내문 제목을 입력하세요' : '문제 제목을 입력하세요'}
+                  placeholder={selectedType === 'text' ? '안내문 제목을 입력하세요' : '문항 제목을 입력하세요'}
                   className="w-full h-9 bg-white text-[15px] px-3 rounded-lg focus:outline-none border border-border text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
                 />
               </div>
@@ -1481,10 +1485,10 @@ export default function AddQuestionModal({ onClose, onAdd, initialQuestion = nul
               )}
             </div>
 
-            {/* 문제 내용 */}
+            {/* 문항 내용 */}
             <div>
               <label className="text-[15px] font-medium block mb-1.5 text-foreground">
-                {selectedType === 'text' ? '안내문 내용' : selectedType === 'formula' ? '문제 설명' : '문제 내용'}
+                {selectedType === 'text' ? '안내문 내용' : selectedType === 'formula' ? '문항 설명' : '문항 내용'}
                 {' '}<span className="text-destructive">*</span>
               </label>
               {/* fill_in_multiple_blanks / multiple_dropdowns / formula 는 본문에 [빈칸N]/[드롭다운N] 토큰 삽입 동작 + 변수명 [a] 등 plain text 가 필요해서 textarea 유지 */}
@@ -1533,7 +1537,7 @@ export default function AddQuestionModal({ onClose, onAdd, initialQuestion = nul
                 <RichTextEditor
                   value={form.text}
                   onChange={val => setForm(prev => ({ ...prev, text: val }))}
-                  placeholder={selectedType === 'text' ? '학생에게 표시할 안내문을 입력하세요' : '문제를 입력하세요. 툴바에서 이미지/동영상을 본문 안에 삽입할 수 있습니다.'}
+                  placeholder={selectedType === 'text' ? '학생에게 표시할 안내문을 입력하세요' : '문항을 입력하세요. 툴바에서 이미지/동영상을 본문 안에 삽입할 수 있습니다.'}
                   minHeight="min-h-[120px]"
                   autoFocus
                 />

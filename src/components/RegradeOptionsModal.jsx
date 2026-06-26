@@ -44,8 +44,8 @@ const REGRADE_OPTIONS = [
   },
   {
     id: 'no_regrade',
-    title: '재채점 없이 문제만 업데이트',
-    desc: '문제 내용만 변경하고 기존 채점 결과를 그대로 유지합니다.',
+    title: '재채점 없이 문항만 업데이트',
+    desc: '문항 내용만 변경하고 기존 채점 결과를 그대로 유지합니다.',
     color: 'text-secondary-foreground',
     bg: 'bg-secondary',
     activeBorder: 'border-slate-400',

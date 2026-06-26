@@ -207,8 +207,8 @@ function buildReviewItems(form, questions, totalPoints) {
 
   // 7. 문항 표시 옵션
   const displayOpts = []
-  if (form.shuffleChoices) displayOpts.push('선지 순서 섞기')
-  if (form.shuffleQuestions) displayOpts.push('문제 순서 섞기')
+  if (form.shuffleChoices) displayOpts.push('보기 순서 섞기')
+  if (form.shuffleQuestions) displayOpts.push('문항 순서 섞기')
   if (form.oneQuestionAtATime) {
     displayOpts.push('한 번에 한 문항씩 표시')
     if (form.lockAfterAnswer) displayOpts.push('응답 후 문항 잠금')
