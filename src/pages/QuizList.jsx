@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, FolderInput, FolderOutput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3, ChevronDown, ChevronRight, Check, Ban } from 'lucide-react'
+import { Plus, FileText, AlertCircle, FolderInput, FolderOutput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3, ChevronDown, ChevronRight, Check, Ban, Award, Clock } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
@@ -655,9 +655,9 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
       )}
       onClick={() => navigate(`/quiz/${quiz.id}`)}
     >
-      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4">
+      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3.5">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-2 flex-wrap">
             {/* 상태 정보 그룹 (#2) */}
             {!isDraft && <VisibilityBadge isVisible={isVisible} />}
             <StatusBadge status={displayStatus} />
@@ -672,14 +672,16 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
               </span>
             )}
           </div>
-          <h3 className="text-base font-semibold leading-snug mb-1 truncate text-foreground">{quiz.title}</h3>
-          {/* 일시(#3) | 구성 정보(#4) 순으로 한 줄에 배치, '|' 로 그룹 구분 */}
+          <h3 className="text-base font-semibold leading-snug mb-2 truncate text-foreground">{quiz.title}</h3>
+          {/* 1줄: 일시(시작/마감/종료) — 텍스트 라벨 (#3) */}
           <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap text-xs">
             <QuizDateMeta quiz={quiz} />
-            <span className="text-border" aria-hidden="true">|</span>
-            <span className="text-secondary-foreground whitespace-nowrap">
-              {quiz.questions}문항 <span className="text-border">·</span> {quiz.totalPoints}점 <span className="text-border">·</span> 제한 {quiz.timeLimit ? `${quiz.timeLimit}분` : '없음'}
-            </span>
+          </div>
+          {/* 2줄: 구성 정보(문항/총점/제한) — 배지로 일시와 시각 분리 (#4) */}
+          <div className="flex items-center gap-1.5 flex-wrap mt-2">
+            <SpecPill icon={FileText}>{quiz.questions}문항</SpecPill>
+            <SpecPill icon={Award}>{quiz.totalPoints}점</SpecPill>
+            <SpecPill icon={Clock}>{quiz.timeLimit ? `${quiz.timeLimit}분` : '제한 없음'}</SpecPill>
           </div>
           {quiz.allowLateSubmit && quiz.lateSubmitDeadline && (
             <p className="text-xs text-warning mt-0.5">지각 제출: {quiz.lateSubmitDeadline.replace('T', ' ')}까지</p>
@@ -830,12 +832,24 @@ function DdayBadge({ dday }) {
   )
 }
 
+// 구성 정보 배지 — 문항/총점/제한을 일시 텍스트와 시각적으로 구분 (#4).
+// 흰 배경 + 테두리 칩이라 흰 카드/임시저장(회색) 카드 양쪽에서 또렷하게 보인다.
+function SpecPill({ icon: Icon, children }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary text-xs font-medium text-secondary-foreground whitespace-nowrap tabular-nums">
+      <Icon size={12} className="text-muted-foreground" />
+      {children}
+    </span>
+  )
+}
+
 // 일시 메타 — 시작/마감을 라벨로 분리 표시 (#3).
 // fragment 로 반환해 호출부의 flex 한 줄 안에서 다른 정보와 함께 흐르도록 함.
 function QuizDateMeta({ quiz, divider = false }) {
   const segs = []
   if (quiz.startDate) segs.push(['시작', quiz.startDate])
   if (quiz.dueDate) segs.push(['마감', quiz.dueDate])
+  if (quiz.lockDate) segs.push(['종료', quiz.lockDate])
   if (segs.length === 0) {
     return (
       <>
@@ -1702,9 +1716,9 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
       className="overflow-hidden transition-shadow cursor-pointer hover:shadow-md"
       onClick={() => navigate(`/quiz/${quiz.id}`)}
     >
-      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4">
+      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3.5">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <StatusBadge status={studentDisplayStatus} />
             <DdayBadge dday={ddayBadge} />
             {myBadge && (
@@ -1719,7 +1733,7 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
             )}
           </div>
 
-          <h3 className="text-base font-semibold leading-snug mb-1 truncate text-foreground">{quiz.title}</h3>
+          <h3 className="text-base font-semibold leading-snug mb-2 truncate text-foreground">{quiz.title}</h3>
 
           <div className="flex items-center gap-2 flex-wrap text-xs">
             <QuizDateMeta quiz={quiz} />
