@@ -98,7 +98,7 @@ export const QUIZ_TYPES = {
 const QUIZ_STORAGE_KEY = 'xnq_quizzes'
 // 시드 퀴즈(정적 mock)를 바꾸면 이 버전을 올린다. 버전이 바뀌면 localStorage 에 박제된
 // 정적 mock 수정본을 버리고 새 시드를 적용한다(사용자가 직접 만든 퀴즈는 보존).
-const QUIZ_SEED_VERSION = '2026-06-26.2'
+const QUIZ_SEED_VERSION = '2026-06-26.3'
 const QUIZ_VERSION_KEY = 'xnq_quizzes_seed_version'
 const _staticQuizIds = new Set()
 
@@ -708,6 +708,30 @@ export const mockQuizzes = [
         availableUntil: '2027-01-31 23:59',
       },
     ],
+  },
+  {
+    // [모니터링 테스트용] 응시 진행 중 퀴즈 — 제출/응시 중/미시작/이상 후보 혼합
+    id: '14',
+    title: '[테스트] 응시 모니터링 데모 - 진행 중 퀴즈',
+    assignmentGroupId: 'quiz',
+    description: '응시 모니터링 화면 테스트용 퀴즈입니다. 제출 완료, 응시 중, 미시작 학생과 이상 후보(포커스 이탈 다수, 장시간 미활동)가 함께 보이도록 구성되어 있습니다.',
+    course: 'CS301 데이터베이스',
+    status: 'open',
+    visible: true,
+    startDate: '2026-06-26 09:00',
+    dueDate: '2026-12-31 23:59',
+    lockDate: '2027-01-31 23:59',
+    week: 12,
+    session: 1,
+    // totalStudents 미설정 → getQuizStudents 의 '14' 전용 분기(buildMonitorDemoRoster) 사용
+    questions: 10,
+    totalPoints: 20,
+    timeLimit: 40,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: 1,
+    scoreRevealEnabled: false,
+    scoreRevealScope: null,
+    scoreRevealTiming: null,
   },
 ]
 
@@ -1655,6 +1679,7 @@ export function getQuizQuestions(quizId) {
   if (quizId === 'cs401_3') return mockCs401Quiz3Questions
   if (quizId === '12') return mockQuiz12Items
   if (quizId === '13') return mockQuiz13Items
+  if (quizId === '14') return mockQuiz3Questions
   return []
 }
 
@@ -3452,12 +3477,130 @@ function buildLocalRoster(quizId) {
   return Array.from(byId.values())
 }
 
+// ── 응시 모니터링 테스트용 명부 (quiz '14') ──
+// 응시 중 퀴즈를 가정하여 제출 완료/응시 중/미시작/이상 후보가 모두 보이도록 구성.
+// 시각은 로드 시점(now) 기준 상대값으로 만들어 "진행 중"으로 자연스럽게 보이게 한다.
+let _monitorDemoRoster = null
+function buildMonitorDemoRoster(quizId) {
+  if (_monitorDemoRoster) return _monitorDemoRoster
+
+  const now = Date.now()
+  const MIN = 60000
+  const fmt = (ms) => {
+    const d = new Date(ms)
+    const pad = n => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+  const mk = (i, over = {}) => ({
+    id: `${quizId}_s${i + 1}`,
+    studentId: `S${String(i + 1).padStart(3, '0')}`,
+    name: DEMO_NAMES[i % DEMO_NAMES.length],
+    department: DEMO_DEPARTMENTS[i % DEMO_DEPARTMENTS.length],
+    score: null, startTime: null, endTime: null, submitted: false, submittedAt: null,
+    response: null, autoScores: {}, manualScores: null, selections: {},
+    ...over,
+  })
+
+  const roster = []
+
+  // 제출 완료 6명
+  for (let i = 0; i < 6; i++) {
+    const start = now - (45 + i * 3) * MIN
+    const end = now - (12 + i * 2) * MIN
+    roster.push(mk(i, {
+      submitted: true,
+      startTime: fmt(start),
+      submittedAt: fmt(end),
+      endTime: fmt(end),
+      score: 12 + (i % 5),
+    }))
+  }
+
+  // 응시 중 정상 3명
+  for (let k = 0; k < 3; k++) {
+    const i = 6 + k
+    roster.push(mk(i, { startTime: fmt(now - (6 + k * 5) * MIN) }))
+  }
+
+  // 응시 중 이상 후보 2명: 포커스 이탈 다수 / 장시간 미활동
+  const focusIdx = 9
+  const idleIdx = 10
+  roster.push(mk(focusIdx, { startTime: fmt(now - 25 * MIN) }))
+  roster.push(mk(idleIdx, { startTime: fmt(now - 38 * MIN) }))
+
+  // 미시작 4명
+  for (let i = 11; i < 15; i++) roster.push(mk(i))
+
+  seedMonitorDemoLogs(quizId, roster, now, { focusId: `${quizId}_s${focusIdx + 1}`, idleId: `${quizId}_s${idleIdx + 1}` })
+
+  _monitorDemoRoster = roster
+  return roster
+}
+
+// 데모 명부의 활동 로그를 localStorage 에 시드한다.
+function seedMonitorDemoLogs(quizId, roster, now, { focusId, idleId }) {
+  if (typeof localStorage === 'undefined') return
+  if (import.meta.env.VITE_DATA_SOURCE === 'api') return
+  const MIN = 60000
+  const toTs = (str) => new Date(str.replace(' ', 'T')).getTime()
+
+  for (const s of roster) {
+    const key = `xnq_activity_log_${quizId}_${s.id}`
+    let logs
+
+    if (s.submitted) {
+      const start = toTs(s.startTime)
+      const end = toTs(s.submittedAt)
+      logs = [
+        { ts: start, type: 'start' },
+        { ts: start + 1 * MIN, type: 'navigate', from: 0, to: 1 },
+        { ts: start + 2 * MIN, type: 'answer_change', qId: 'q1' },
+        { ts: Math.floor((start + end) / 2), type: 'autosave' },
+        { ts: end, type: 'submit' },
+      ]
+    } else if (s.id === focusId) {
+      // 포커스 이탈 4회 → 이상 후보(포커스 이탈), 최근 활동은 1분 전이라 미활동 아님
+      const start = toTs(s.startTime)
+      logs = [{ ts: start, type: 'start' }]
+      for (let f = 0; f < 4; f++) {
+        logs.push({ ts: start + (2 + f * 4) * MIN, type: 'focus_loss' })
+        logs.push({ ts: start + (2 + f * 4) * MIN + 20000, type: 'focus_gain' })
+      }
+      logs.push({ ts: now - 1 * MIN, type: 'answer_change', qId: 'q3' })
+    } else if (s.id === idleId) {
+      // 마지막 활동이 오래전 → 이상 후보(장시간 미활동)
+      const start = toTs(s.startTime)
+      logs = [
+        { ts: start, type: 'start' },
+        { ts: start + 2 * MIN, type: 'navigate', from: 0, to: 1 },
+        { ts: start + 4 * MIN, type: 'answer_change', qId: 'q1' },
+      ]
+    } else if (s.startTime) {
+      // 정상 응시 중: 최근 활동 존재
+      const start = toTs(s.startTime)
+      logs = [
+        { ts: start, type: 'start' },
+        { ts: start + 1 * MIN, type: 'navigate', from: 0, to: 1 },
+        { ts: now - 30000, type: 'answer_change', qId: 'q2' },
+      ]
+    } else {
+      continue // 미시작 학생은 로그 없음
+    }
+
+    try {
+      logs.sort((a, b) => a.ts - b.ts)
+      localStorage.setItem(key, JSON.stringify(logs))
+    } catch { /* quota 초과 시 무시 */ }
+  }
+}
+
 export function getQuizStudents(quizId) {
   const quiz = mockQuizzes.find(q => q.id === quizId)
 
   if (quizId === '1') return autoSubmitExpiredStudents(mockStudents, quiz, new Date(), getQuizQuestions('1'))
   if (quizId === '8') return autoSubmitExpiredStudents(mockStudents8, quiz, new Date(), getQuizQuestions('8'))
   if (quizId === '12') return mockStudents12
+  if (quizId === '14') return buildMonitorDemoRoster('14')
 
   // 사용자 생성 퀴즈는 시드 명부(totalStudents)가 없음 → 데모 학생 명부 + 로컬 응시본
   if (quiz && !quiz.totalStudents) return buildLocalRoster(quizId)
