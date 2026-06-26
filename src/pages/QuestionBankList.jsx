@@ -506,13 +506,31 @@ function CourseSidebar({ nav, selected, onSelect }) {
 function BankCard({ entry, h }) {
   const { bank, count: qCount, qHits } = entry
   const diffLabel = bank.difficulty ? DIFF_LABEL[bank.difficulty] : ''
+  const course = bank.course ? parseCourse(bank.course) : null
   return (
     <div
       onClick={() => h.navigate(`/question-banks/${bank.id}`)}
-      className="flex flex-col justify-between min-h-[148px] bg-white p-5 cursor-pointer transition-all border border-border rounded-xl hover:shadow-md"
+      className="flex flex-col min-h-[168px] bg-white p-5 cursor-pointer transition-all border border-border rounded-xl hover:shadow-md hover:border-primary/40"
     >
-      <div>
-        <div className="flex items-start justify-between gap-3">
+      {/* 1줄: 과목(eyebrow) + 액션 */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          {course ? (
+            <div className="flex items-center gap-1.5">
+              {course.code && (
+                <span className="-ml-1.5 shrink-0 text-[11px] font-semibold tracking-tight px-1.5 py-0.5 rounded-md tabular-nums bg-accent text-accent-foreground">
+                  {course.code}
+                </span>
+              )}
+              <span className="text-xs text-muted-foreground truncate" title={`출처: ${bank.course}`}>
+                {course.name}
+              </span>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">과목 미지정</span>
+          )}
+
+          {/* 2줄: 문제은행명 */}
           {h.editingBankId === bank.id ? (
             <input
               autoFocus
@@ -530,11 +548,11 @@ function BankCard({ entry, h }) {
                 if (h.bankNameDraft.trim()) h.updateBank(bank.id, { name: h.bankNameDraft.trim() })
                 h.setEditingBankId(null)
               }}
-              className="font-semibold text-[15px] leading-snug text-foreground focus:outline-none border-b-2 border-primary bg-transparent min-w-0 w-full"
+              className="mt-2 font-semibold text-base leading-snug text-foreground focus:outline-none border-b-2 border-primary bg-transparent min-w-0 w-full"
             />
           ) : (
-            <div className="flex items-center gap-1.5 group/title min-w-0">
-              <h3 className="font-semibold text-[15px] leading-snug text-foreground truncate">{bank.name}</h3>
+            <div className="flex items-center gap-1.5 group/title min-w-0 mt-2">
+              <h3 className="font-semibold text-base leading-snug text-foreground truncate">{bank.name}</h3>
               <button
                 onClick={e => { e.stopPropagation(); h.setBankNameDraft(bank.name); h.setEditingBankId(bank.id) }}
                 className="opacity-0 group-hover/title:opacity-100 transition-opacity p-0.5 rounded text-muted-foreground hover:text-primary shrink-0"
@@ -544,68 +562,65 @@ function BankCard({ entry, h }) {
               </button>
             </div>
           )}
-          <div className="flex items-center gap-0.5 shrink-0 -mt-0.5 -mr-1">
-            <button
-              onClick={e => { e.stopPropagation(); h.executeCopyBank(bank) }}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-secondary-foreground hover:bg-secondary transition-colors"
-              title="복사"
-            >
-              <Copy size={14} />
-            </button>
-            <button
-              onClick={e => { e.stopPropagation(); h.setDeleteTarget(bank) }}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-incorrect-bg transition-colors"
-              title="삭제"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
         </div>
-
-        <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
-          <span className={cn(
-            'text-xs px-1.5 py-0.5 rounded-md font-medium',
-            bank.difficulty && DIFFICULTY_META[bank.difficulty]
-              ? DIFFICULTY_META[bank.difficulty].cls
-              : 'bg-secondary text-muted-foreground'
-          )}>
-            {diffLabel || '미설정'}
-          </span>
-          <span className="text-muted-foreground text-xs">·</span>
-          <span className="text-xs text-secondary-foreground">{qCount}개 문항</span>
-          {bank.course && (
-            <span className="text-xs px-1.5 py-0.5 rounded-md bg-secondary text-muted-foreground truncate max-w-[140px]" title={`출처: ${bank.course}`}>
-              {bank.course}
-            </span>
-          )}
+        <div className="flex items-center gap-0.5 shrink-0 -mt-1 -mr-1">
+          <button
+            onClick={e => { e.stopPropagation(); h.executeCopyBank(bank) }}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-secondary-foreground hover:bg-secondary transition-colors"
+            title="복사"
+          >
+            <Copy size={14} />
+          </button>
+          <button
+            onClick={e => { e.stopPropagation(); h.setDeleteTarget(bank) }}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-incorrect-bg transition-colors"
+            title="삭제"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
-
-        <div className="flex items-center flex-wrap gap-1 mt-2" onClick={e => e.stopPropagation()}>
-          {(bank.tags ?? []).map(t => (
-            <span key={t} className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md bg-accent text-accent-foreground">
-              {t}
-              <button onClick={() => h.toggleBankTag(bank, t)} className="hover:text-destructive" title="태그 제거">
-                <X size={10} />
-              </button>
-            </span>
-          ))}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-md text-muted-foreground hover:text-primary hover:bg-secondary transition-colors" title="태그 추가">
-                <Tag size={11} /> 태그
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-52 p-2">
-              <TagEditor bank={bank} allTags={h.allTags} onAdd={h.addBankTag} onToggle={h.toggleBankTag} />
-            </PopoverContent>
-          </Popover>
-        </div>
-        {qHits > 0 && (
-          <p className="text-xs text-primary mt-2">문항 {qHits}개에 검색어 포함</p>
-        )}
       </div>
 
-      <p className="text-[13px] text-muted-foreground mt-2">최종 수정 {bank.updatedAt}</p>
+      {qHits > 0 && (
+        <p className="text-xs text-primary mt-2.5">문항 {qHits}개에 검색어 포함</p>
+      )}
+
+      {/* 3줄: 난이도 · 문항수 · 수정일 */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-auto pt-4">
+        <span className={cn(
+          '-ml-1.5 px-1.5 py-0.5 rounded-md font-medium',
+          bank.difficulty && DIFFICULTY_META[bank.difficulty]
+            ? DIFFICULTY_META[bank.difficulty].cls
+            : 'bg-secondary text-muted-foreground'
+        )}>
+          {diffLabel || '미설정'}
+        </span>
+        <span className="text-secondary-foreground font-medium shrink-0">{qCount}개 문항</span>
+        <span aria-hidden>·</span>
+        <span className="truncate">{bank.updatedAt}</span>
+      </div>
+
+      {/* 4줄: 태그 */}
+      <div className="flex items-center flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/60" onClick={e => e.stopPropagation()}>
+        {(bank.tags ?? []).map(t => (
+          <span key={t} className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md bg-accent text-accent-foreground">
+            {t}
+            <button onClick={() => h.toggleBankTag(bank, t)} className="hover:text-destructive" title="태그 제거">
+              <X size={10} />
+            </button>
+          </span>
+        ))}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-md text-muted-foreground hover:text-primary hover:bg-secondary transition-colors" title="태그 추가">
+              <Tag size={11} /> 태그
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-52 p-2">
+            <TagEditor bank={bank} allTags={h.allTags} onAdd={h.addBankTag} onToggle={h.toggleBankTag} />
+          </PopoverContent>
+        </Popover>
+      </div>
     </div>
   )
 }
@@ -614,6 +629,7 @@ function BankCard({ entry, h }) {
 function BankRow({ entry, h }) {
   const { bank, count: qCount, qHits } = entry
   const diffLabel = bank.difficulty ? DIFF_LABEL[bank.difficulty] : ''
+  const course = bank.course ? parseCourse(bank.course) : null
   return (
     <div
       onClick={() => h.navigate(`/question-banks/${bank.id}`)}
@@ -652,11 +668,16 @@ function BankRow({ entry, h }) {
           </div>
         )}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+          {course?.code && (
+            <span className="shrink-0 text-[10px] font-semibold tracking-tight px-1 py-0.5 rounded tabular-nums bg-accent text-accent-foreground" title={`출처: ${bank.course}`}>
+              {course.code}
+            </span>
+          )}
           <span>{qCount}개 문항</span>
-          {bank.course && (
+          {course && (
             <>
               <span>·</span>
-              <span className="truncate max-w-[160px]">{bank.course}</span>
+              <span className="truncate max-w-[160px]">{course.name}</span>
             </>
           )}
           <span className="hidden sm:inline">· 최종 수정 {bank.updatedAt}</span>
