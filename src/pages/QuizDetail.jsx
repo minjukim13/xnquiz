@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, AlertCircle, EyeOff, Activity, ChevronDown } from 'lucide-react'
+import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, AlertCircle, EyeOff, Activity, ChevronDown, PlayCircle, Clock, Lock, CheckCircle2 } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/PageHeader'
 import { mockQuizzes, getStudentAttempts, getQuizQuestions as mockGetQuestions } from '../data/mockData'
@@ -25,6 +25,7 @@ import { htmlToPlainText, RichTextRenderer } from '../components/RichText'
 import QuestionAnswer from '../components/QuestionAnswer'
 import TypeBadge from '../components/TypeBadge'
 import CommentThread from './GradingDashboard/CommentThread'
+import { getCommentThread } from './GradingDashboard/utils'
 import { isResultViewed, markResultViewed } from '@/utils/resultsViewedStorage'
 import { getStudentAdjustment } from '@/utils/scoreAdjustments'
 import { getVoidedAdjustment } from '@/utils/voidedQuestions'
@@ -217,6 +218,150 @@ function scoreRevealParts(quiz) {
   return { scope, timing: '즉시 공개', variant: 'accent' }
 }
 
+// 마감까지 남은 시간을 사람이 읽기 쉬운 라벨로 반환 (이미 지났으면 null)
+function remainingLabel(due) {
+  if (!due) return null
+  const end = new Date(due)
+  if (Number.isNaN(end.getTime())) return null
+  const ms = end - new Date()
+  if (ms <= 0) return null
+  const mins = Math.floor(ms / 60000)
+  const days = Math.floor(mins / 1440)
+  const hours = Math.floor((mins % 1440) / 60)
+  if (days >= 1) return `마감까지 ${days}일 남음`
+  if (hours >= 1) return `마감까지 ${hours}시간 남음`
+  return `마감까지 ${Math.max(1, mins % 60)}분 남음`
+}
+
+// 학생 응시 액션 배너 — 응시 가능/예정/마감/횟수초과 상태를 한눈에 안내하고
+// 응시 가능할 때만 본문 최상단에 큰 CTA 를 노출한다.
+function StudentAttemptBanner({ quiz, schedule, isOpenForStudent, scheduled, isAttemptExceeded, attemptCount, maxAttempts }) {
+  const unlimited = maxAttempts === -1
+  const dueLabel = formatDateTimeFull(schedule.dueDate)
+  const startLabel = formatDateTimeFull(schedule.startDate)
+
+  // 1) 응시 가능 — 강조된 CTA
+  if (isOpenForStudent && !isAttemptExceeded) {
+    const remain = remainingLabel(schedule.dueDate)
+    const end = new Date(schedule.dueDate)
+    const urgent = !Number.isNaN(end.getTime()) && (end - new Date()) > 0 && (end - new Date()) <= 24 * 60 * 60 * 1000
+    return (
+      <Card className="mb-4 border-primary/30 bg-accent overflow-hidden">
+        <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3 min-w-0">
+            <PlayCircle size={22} className="shrink-0 mt-0.5 text-primary" />
+            <div className="min-w-0">
+              <p className="text-[15px] font-semibold text-foreground">
+                {attemptCount > 0 ? '다시 응시할 수 있습니다' : '지금 응시할 수 있습니다'}
+              </p>
+              <p className="text-sm text-secondary-foreground mt-0.5">
+                {attemptCount > 0 && (
+                  <span>{attemptCount}회 응시함{!unlimited && ` (총 ${maxAttempts}회)`} · </span>
+                )}
+                {dueLabel ? `${dueLabel} 마감` : '마감 없음'}
+                {remain && (
+                  <span className={cn('ml-1.5 font-medium', urgent ? 'text-destructive' : 'text-primary')}>· {remain}</span>
+                )}
+              </p>
+            </div>
+          </div>
+          <Button asChild size="lg" className="shrink-0">
+            <Link to={`/quiz/${quiz.id}/attempt`}>
+              <PlayCircle size={16} />
+              {attemptCount > 0 ? '재응시' : '응시하기'}
+            </Link>
+          </Button>
+        </div>
+      </Card>
+    )
+  }
+
+  // 2) 응시 예정 — 아직 시작 전
+  if (scheduled) {
+    return (
+      <Card className="mb-4 bg-secondary/60 overflow-hidden">
+        <div className="px-5 py-4 flex items-start gap-3">
+          <Clock size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
+          <div>
+            <p className="text-[15px] font-semibold text-foreground">아직 응시 기간이 아닙니다</p>
+            <p className="text-sm text-secondary-foreground mt-0.5">
+              {startLabel ? `${startLabel}부터 응시할 수 있습니다` : '응시 시작 시점이 설정되지 않았습니다'}
+            </p>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  // 3) 응시 횟수 모두 사용 — 기간 내이지만 초과
+  if (isOpenForStudent && isAttemptExceeded) {
+    return (
+      <Card className="mb-4 overflow-hidden">
+        <div className="px-5 py-4 flex items-start gap-3">
+          <CheckCircle2 size={20} className="shrink-0 mt-0.5 text-primary" />
+          <div>
+            <p className="text-[15px] font-semibold text-foreground">응시를 모두 마쳤습니다</p>
+            <p className="text-sm text-secondary-foreground mt-0.5">
+              응시 가능 횟수({maxAttempts}회)를 모두 사용했습니다.
+              {attemptCount > 0 ? ' 제출 결과는 아래에서 확인할 수 있습니다.' : ''}
+            </p>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  // 4) 마감/종료
+  return (
+    <Card className="mb-4 overflow-hidden">
+      <div className="px-5 py-4 flex items-start gap-3">
+        <Lock size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
+        <div>
+          <p className="text-[15px] font-semibold text-foreground">응시 기간이 종료되었습니다</p>
+          <p className="text-sm text-secondary-foreground mt-0.5">
+            {dueLabel ? `${dueLabel}에 마감되었습니다.` : '응시가 마감되었습니다.'}
+            {attemptCount > 0 ? ' 제출 결과는 아래에서 확인할 수 있습니다.' : ' 응시 기록이 없습니다.'}
+          </p>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+// 학생 화면 교수자 코멘트 — 자주 쓰이지 않는 기능이므로 기본 접힘.
+// 주고받은 메시지가 있을 때만 펼친 상태로 시작하고 개수 배지를 표시한다.
+function StudentCommentSection({ quizId, studentId }) {
+  const [thread] = useState(() => getCommentThread(quizId, studentId))
+  const hasMessages = thread.messages.length > 0
+  const [open, setOpen] = useState(hasMessages)
+
+  return (
+    <Card className="overflow-hidden py-0 gap-0">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full px-5 py-3.5 flex items-center justify-between gap-2 text-left hover:bg-secondary/40 transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-[15px] font-semibold text-foreground">교수자 코멘트</span>
+          <span className={cn(
+            'inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold',
+            hasMessages ? 'bg-accent text-primary' : 'bg-secondary text-muted-foreground'
+          )}>
+            {thread.messages.length}개
+          </span>
+        </span>
+        <ChevronDown size={16} className={cn('text-muted-foreground transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="h-[200px] flex flex-col border-t border-border/60">
+          <CommentThread quizId={quizId} studentId={studentId} role="student" className="flex-1" />
+        </div>
+      )}
+    </Card>
+  )
+}
+
 export default function QuizDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -361,30 +506,7 @@ export default function QuizDetail() {
             </div>
           ) : quiz.title}
           actions={
-            isStudent ? (
-              <>
-                {scheduled && (
-                  <span className="text-xs text-warning font-medium">
-                    {quiz.startDate} 시작
-                  </span>
-                )}
-                {isOpenForStudent && !isAttemptExceeded && (
-                  <Button asChild>
-                    <Link to={`/quiz/${quiz.id}/attempt`}>
-                      {attemptCount > 0 ? '재응시' : '응시하기'}
-                    </Link>
-                  </Button>
-                )}
-                {isOpenForStudent && isAttemptExceeded && (
-                  <div className="relative group">
-                    <Button disabled>응시하기</Button>
-                    <div className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block whitespace-nowrap text-xs px-2.5 py-1.5 rounded pointer-events-none z-10 bg-foreground text-white">
-                      응시 가능 횟수({maxAttempts}회)를 초과했습니다
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
+            isStudent ? null : (
               <>
                 {canGrade && (
                   <Button asChild>
@@ -478,6 +600,17 @@ export default function QuizDetail() {
 
         {isStudent ? (
           <>
+            {/* 응시 액션 배너 — 응시 가능/예정/마감/횟수초과 안내 */}
+            <StudentAttemptBanner
+              quiz={quiz}
+              schedule={studentSchedule}
+              isOpenForStudent={isOpenForStudent}
+              scheduled={scheduled}
+              isAttemptExceeded={isAttemptExceeded}
+              attemptCount={attemptCount}
+              maxAttempts={maxAttempts}
+            />
+
             {/* 퀴즈 설명 카드 */}
             {quiz.description && (
               <Card className="mb-4 px-5 py-4">
@@ -829,16 +962,9 @@ function StudentResultSection({ quiz, questions, myAttempts, studentId }) {
         )
       )}
 
-      {/* 교수자 코멘트 */}
+      {/* 교수자 코멘트 — 기본 접힘, 메시지 있을 때만 강조 */}
       {studentId && (
-        <Card className="overflow-hidden py-0 gap-0">
-          <div className="px-5 py-3.5 border-b border-border/60">
-            <h3 className="text-[15px] font-semibold text-foreground">교수자 코멘트</h3>
-          </div>
-          <div className="h-[200px] flex flex-col">
-            <CommentThread quizId={quiz.id} studentId={studentId} role="student" className="flex-1" />
-          </div>
-        </Card>
+        <StudentCommentSection quizId={quiz.id} studentId={studentId} />
       )}
     </div>
   )

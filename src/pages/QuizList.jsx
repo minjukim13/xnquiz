@@ -1070,9 +1070,32 @@ const STUDENT_SORT_OPTIONS = [
   { value: 'deadline', label: '마감임박순' },
 ]
 
+// ─────────────────────────────── 학생용 필터 ───────────────────────────────
+const STUDENT_ATTEMPT_FILTER_OPTIONS = [
+  { value: 'all', label: '응시 전체' },
+  { value: 'todo', label: '미응시' },
+  { value: 'done', label: '응시완료' },
+]
+
+// 학생용 진행 상태 — 마감/종료/채점중을 '마감' 하나로 통합
+function studentStatusKey(quiz) {
+  const s = getProgressStatus(quiz)
+  if (s === 'scheduled') return 'scheduled'
+  if (s === 'open') return 'open'
+  return 'closed'
+}
+
+// 학생 본인 응시 여부 (api: 부모가 내려준 attempts, mock: localStorage)
+function studentHasAttempted(quizId, studentId, apiAttempts) {
+  if (apiAttempts) return apiAttempts.some(a => a.quizId === quizId)
+  return getStudentAttempts(quizId).some(a => a.studentId === studentId)
+}
+
 function StudentQuizList() {
   const { currentStudent } = useRole()
   const [searchQuery, setSearchQuery] = useState('')
+  const [hideClosed, setHideClosed] = useState(true)
+  const [attemptFilter, setAttemptFilter] = useState('all')
   const [sortKey, setSortKey] = useState('recent')
   const [collapsedGroups, setCollapsedGroups] = useState({})
 
@@ -1115,10 +1138,19 @@ function StudentQuizList() {
     return () => { mounted = false }
   }, [])
 
-  const filteredAll = useMemo(
-    () => sortQuizzes(applyTitleSearch(allQuizzes, searchQuery), sortKey),
-    [allQuizzes, searchQuery, sortKey]
-  )
+  const filteredAll = useMemo(() => {
+    let list = applyTitleSearch(allQuizzes, searchQuery)
+    if (hideClosed) {
+      list = list.filter(q => studentStatusKey(q) !== 'closed')
+    }
+    if (attemptFilter !== 'all') {
+      list = list.filter(q => {
+        const done = studentHasAttempted(q.id, currentStudent.id, apiAttempts)
+        return attemptFilter === 'done' ? done : !done
+      })
+    }
+    return sortQuizzes(list, sortKey)
+  }, [allQuizzes, searchQuery, hideClosed, attemptFilter, sortKey, apiAttempts, currentStudent.id])
   const groupedAll = useMemo(() => groupByQuizMode(filteredAll), [filteredAll])
 
   const hasAny = filteredAll.length > 0
@@ -1132,7 +1164,27 @@ function StudentQuizList() {
 
         <div className="mt-1 mb-3 space-y-2">
           <SearchInput value={searchQuery} onChange={setSearchQuery} />
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+              <label className="flex items-center gap-1.5 px-2 py-1.5 text-sm text-secondary-foreground cursor-pointer select-none whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={hideClosed}
+                  onChange={e => setHideClosed(e.target.checked)}
+                  className="shrink-0 accent-primary"
+                />
+                마감된 퀴즈 제외
+              </label>
+              <DropdownSelect
+                value={attemptFilter}
+                onChange={setAttemptFilter}
+                options={STUDENT_ATTEMPT_FILTER_OPTIONS}
+                size="md"
+                filterMode
+                ghost
+                className="w-[100px] sm:w-[120px]"
+              />
+            </div>
             <DropdownSelect
               value={sortKey}
               onChange={setSortKey}
@@ -1184,7 +1236,7 @@ function StudentQuizList() {
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <FileText size={32} className="mb-3 opacity-40" />
             <p className="text-sm">
-              {searchQuery.trim()
+              {searchQuery.trim() || hideClosed || attemptFilter !== 'all'
                 ? '해당 조건에 맞는 퀴즈가 없습니다.'
                 : '현재 응시 가능한 퀴즈가 없습니다.'
               }
