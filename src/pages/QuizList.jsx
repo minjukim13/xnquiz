@@ -1271,7 +1271,8 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
       : { label: '미응시', cls: 'text-muted-foreground bg-secondary' }
 
   const reveal = myAttempt ? computeScoreReveal(quiz, myAttempt) : null
-  const showSubInfo = myAttempt && (myAttempt.manualPending > 0 || myAttempts.length > 1)
+  // 실제로 보여줄 내용이 있을 때만 하단 띠 노출 (수동채점 안내는 성적 공개 시에만, 응시 기록은 2회 이상일 때만)
+  const showSubInfo = !!myAttempt && (((myAttempt.manualPending > 0) && !!reveal?.released) || myAttempts.length > 1)
 
   return (
     <Card
@@ -1380,7 +1381,7 @@ function computeScoreReveal(quiz, myAttempt) {
   const totalScore = autoScore + manualScore
   const totalPossible = quiz.totalPoints ?? myAttempt.totalPossibleAuto
   const isHidden = quiz.scoreRevealEnabled === false || quiz.scoreReleasePolicy === null
-  const label = isHidden ? '비공개' : '공개 예정'
+  const label = isHidden ? '성적 비공개' : '성적 공개 예정'
 
   return { released, totalScore, totalPossible, label }
 }

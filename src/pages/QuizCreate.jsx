@@ -491,6 +491,9 @@ function InfoTab({ form, set }) {
 
       <SecuritySection form={form} set={set} />
 
+      {/* 연습용 퀴즈는 성적에 반영되지 않으므로 성적 관련 섹션을 숨긴다 */}
+      {form.quizMode === 'graded' && (
+        <>
       <Section title="성적 공개 정책">
         <div className="space-y-4">
           <Toggle checked={form.scoreRevealEnabled} onChange={v => set('scoreRevealEnabled', v)} label="성적 공개" description="제출 후 학생에게 성적 정보를 공개합니다" />
@@ -560,6 +563,8 @@ function InfoTab({ form, set }) {
       </Section>
 
       <GradebookPolicySection value={form.gradebookPolicy} onChange={v => set('gradebookPolicy', v)} />
+        </>
+      )}
 
       <Section title="퀴즈 공개 여부">
         <Toggle

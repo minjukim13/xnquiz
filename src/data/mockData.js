@@ -696,7 +696,7 @@ export const mockQuizzes = [
     allowAttempts: 3,
     scoreRevealEnabled: true,
     scoreRevealScope: 'with_answer',
-    scoreRevealTiming: 'after_due',
+    scoreRevealTiming: 'immediately',
     // 추가 할당(override): 컴퓨터공학과(학생 A)만 마감·이용 종료 개별 연장 (D-11 R-006)
     // 데모 학생 전환 UI가 없어 응시 가능한 학생은 A(s1, 컴퓨터공학과) 뿐이므로 A 대상으로 둠
     assignments: [
