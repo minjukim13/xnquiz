@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, FileText, AlertCircle, FolderInput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, FileText, AlertCircle, FolderInput, FolderOutput, Copy, Search, Settings2, Lock, Trash2, MoreVertical, Eye, EyeOff, ArrowUpDown, Pencil, ClipboardCheck, ClipboardList, BarChart3, ChevronDown, ChevronRight } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { mockQuizzes, MOCK_COURSES, ASSIGNMENT_GROUPS } from '../data/mockData'
 import { useRole } from '../context/role'
@@ -256,6 +256,7 @@ function InstructorQuizList() {
   const [sortKey, setSortKey] = useState('recent')
   const [collapsedGroups, setCollapsedGroups] = useState({})
   const [copySourceQuiz, setCopySourceQuiz] = useState(null)
+  const [exportSourceQuiz, setExportSourceQuiz] = useState(null)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showGlobalSettings, setShowGlobalSettings] = useState(false)
   const [searchParams] = useSearchParams()
@@ -328,6 +329,26 @@ function InstructorQuizList() {
       showToast('복사 중 오류가 발생했습니다')
     }
     setCopySourceQuiz(null)
+  }
+
+  const handleExportQuiz = async (quiz, targetCourses) => {
+    try {
+      for (const targetCourse of targetCourses) {
+        const { id: _srcId, ...rest } = quiz
+        const draft = resetFields(rest, { course: targetCourse })
+        const created = await createQuiz(draft)
+        await cloneQuestions(quiz.id, created.id)
+      }
+      await reload()
+      const msg = targetCourses.length === 1
+        ? `'${quiz.title}'을(를) ${targetCourses[0]}으로 내보냈습니다`
+        : `'${quiz.title}'을(를) ${targetCourses.length}개 과목으로 내보냈습니다`
+      showToast(msg)
+    } catch (err) {
+      console.error('[QuizList] export 실패', err)
+      showToast('내보내기 중 오류가 발생했습니다')
+    }
+    setExportSourceQuiz(null)
   }
 
   const handleImportQuizzes = async (selectedQuizzes) => {
@@ -485,6 +506,7 @@ function InstructorQuizList() {
                     key={quiz.id}
                     quiz={quiz}
                     onCopy={setCopySourceQuiz}
+                    onExport={setExportSourceQuiz}
                     onDelete={handleDeleteQuiz}
                     onToggleVisibility={handleToggleVisibility}
                   />
@@ -511,6 +533,14 @@ function InstructorQuizList() {
           quiz={copySourceQuiz}
           onClose={() => setCopySourceQuiz(null)}
           onCopy={handleCopyQuiz}
+        />
+      )}
+
+      {exportSourceQuiz && (
+        <QuizExportModal
+          quiz={exportSourceQuiz}
+          onClose={() => setExportSourceQuiz(null)}
+          onExport={handleExportQuiz}
         />
       )}
 
@@ -550,7 +580,7 @@ function getDdayBadge(quiz) {
   return { label: diff === 0 ? 'D-0' : `D-${diff}`, urgent: diff === 0 }
 }
 
-function QuizCard({ quiz, onCopy, onDelete, onToggleVisibility }) {
+function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
   const ddayBadge = getDdayBadge(quiz)
   const navigate = useNavigate()
   const scheduled = isScheduled(quiz)
@@ -666,6 +696,11 @@ function QuizCard({ quiz, onCopy, onDelete, onToggleVisibility }) {
                 </>
               )}
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onExport(quiz)}>
+                <FolderOutput size={14} />
+                다른 과목으로 내보내기
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => onDelete(quiz)}>
                 <Trash2 size={14} />
                 삭제
@@ -763,7 +798,7 @@ function ResetNotice({ mode = 'import' }) {
     ['접근 코드·IP 제한', '제거'],
     ['추가 할당', '설정 안함'],
   ]
-  const action = mode === 'copy' ? '복사한' : '가져온'
+  const action = mode === 'copy' ? '복사한' : mode === 'export' ? '내보낸' : '가져온'
   return (
     <div className="rounded-lg bg-secondary border border-border px-3.5 py-3">
       <p className="text-[11.5px] text-muted-foreground mb-3">
@@ -844,6 +879,91 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
             onClick={() => onCopy(quiz, selected)}
           >
             복사하기
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─────────────────────────────── 퀴즈 내보내기 모달 ───────────────────────────────
+function QuizExportModal({ quiz, onClose, onExport }) {
+  const [selected, setSelected] = useState(new Set())
+  const [courseSearch, setCourseSearch] = useState('')
+  // 현재 과목은 제외 — 다른 과목으로만 내보낼 수 있음
+  const filteredCourses = MOCK_COURSES.filter(c =>
+    c.name !== CURRENT_COURSE &&
+    c.name.toLowerCase().includes(courseSearch.toLowerCase())
+  )
+
+  const toggle = (name) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(name) ? next.delete(name) : next.add(name)
+      return next
+    })
+  }
+
+  return (
+    <Dialog open onOpenChange={open => !open && onClose()}>
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>다른 과목으로 내보내기</DialogTitle>
+          <p className="text-xs text-muted-foreground truncate">{quiz.title}</p>
+        </DialogHeader>
+
+        <div className="space-y-2">
+          <div className="relative mb-3">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="과목 검색"
+              value={courseSearch}
+              onChange={e => setCourseSearch(e.target.value)}
+              className="w-full text-xs py-1.5 pl-8 pr-3 border border-border rounded-md outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 text-secondary-foreground"
+            />
+          </div>
+          {filteredCourses.length === 0 && (
+            <p className="text-sm text-center py-4 text-muted-foreground">
+              {courseSearch ? '검색 결과가 없습니다' : '내보낼 다른 과목이 없습니다'}
+            </p>
+          )}
+          {filteredCourses.map(course => {
+            const isSelected = selected.has(course.name)
+            return (
+              <button
+                key={course.id}
+                onClick={() => toggle(course.name)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-3 text-[15px] text-left rounded-md border transition-colors',
+                  isSelected
+                    ? 'border-blue-400 bg-accent text-primary font-semibold'
+                    : 'border-border bg-white text-secondary-foreground hover:bg-secondary'
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggle(course.name)}
+                  onClick={e => e.stopPropagation()}
+                  className="shrink-0 accent-primary"
+                />
+                <span className="flex-1">{course.name}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        <ResetNotice mode="export" />
+
+        <div className="flex justify-end gap-2 pt-1">
+          <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>
+          <Button
+            size="sm"
+            disabled={selected.size === 0}
+            onClick={() => onExport(quiz, Array.from(selected))}
+          >
+            내보내기
           </Button>
         </div>
       </DialogContent>
@@ -1037,10 +1157,7 @@ function QuizImportModal({ onClose, onImport }) {
           </div>
         )}
 
-        <div className={cn('flex items-center justify-between px-6 py-4', checkedIds.size === 0 && 'border-t border-border')}>
-          <p className="text-[15px] text-muted-foreground">
-            {checkedIds.size > 0 ? `${checkedIds.size}개 선택됨` : ''}
-          </p>
+        <div className={cn('flex items-center justify-end px-6 py-4', checkedIds.size === 0 && 'border-t border-border')}>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={onClose}>취소</Button>
             <Button

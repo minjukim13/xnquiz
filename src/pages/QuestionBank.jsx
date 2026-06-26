@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
-import { Plus, Search, Edit2, Trash2, Upload, GripVertical } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Upload } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { QUIZ_TYPES } from '../data/mockData'
 import { useRole } from '../context/role'
@@ -9,11 +9,13 @@ import { useQuestionBank } from '../context/questionBank'
 import AddQuestionModal from '../components/AddQuestionModal'
 import InlineQuestionEditor from '../components/InlineQuestionEditor'
 import BankUploadModal from '../components/BankUploadModal'
+import MoveQuestionsModal from '../components/MoveQuestionsModal'
 import TypeBadge from '../components/TypeBadge'
 import PageHeader from '../components/PageHeader'
 import { htmlToPlainText } from '../components/RichText'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -28,7 +30,7 @@ export default function QuestionBank() {
   const { bankId } = useParams()
   const navigate = useNavigate()
   const { role } = useRole()
-  const { banks, getBankQuestions, updateBank, addQuestions, updateQuestion, deleteQuestion, reorderQuestions } = useQuestionBank()
+  const { banks, getBankQuestions, updateBank, addQuestions, updateQuestion, deleteQuestion, moveQuestions } = useQuestionBank()
 
   const bank = banks.find(b => b.id === bankId)
   const questions = useMemo(
@@ -45,8 +47,8 @@ export default function QuestionBank() {
   const [editingBankName, setEditingBankName] = useState(false)
   const [bankNameDraft, setBankNameDraft] = useState('')
   const [toast, setToast] = useState(null)
-  const dragIndexRef = useRef(null)
-  const [dragOverIndex, setDragOverIndex] = useState(null)
+  const [selectedIds, setSelectedIds] = useState([])
+  const [showMoveModal, setShowMoveModal] = useState(false)
 
   const filtered = useMemo(() => questions.filter(q => {
     const matchSearch = search === '' || q.text.toLowerCase().includes(search.toLowerCase())
@@ -59,17 +61,33 @@ export default function QuestionBank() {
 
   if (role !== 'instructor' || !bank) return <Navigate to="/" replace />
 
-  const isFiltered = search !== '' || filterType !== 'all' || filterDifficulty !== 'all'
+  const toggleSelect = (id) =>
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const allSelected = filtered.length > 0 && filtered.every(q => selectedIds.includes(q.id))
+  const toggleSelectAll = () =>
+    setSelectedIds(allSelected ? [] : filtered.map(q => q.id))
+  const clearSelection = () => setSelectedIds([])
 
-  const handleDragStart = (index) => { dragIndexRef.current = index }
-  const handleDragOver = (e, index) => { e.preventDefault(); setDragOverIndex(index) }
-  const handleDragLeave = () => setDragOverIndex(null)
-  const handleDrop = (index) => {
-    const from = dragIndexRef.current
-    setDragOverIndex(null)
-    dragIndexRef.current = null
-    if (from === null || from === index) return
-    reorderQuestions(bank.id, from, index)
+  const handleMove = async (targetBankId, keepOriginal) => {
+    const movingCount = selectedIds.length
+    const targetName = banks.find(b => b.id === targetBankId)?.name
+    if (keepOriginal) {
+      const copies = questions
+        .filter(q => selectedIds.includes(q.id))
+        .map((q, i) => {
+          const { id: _id, usageCount: _u, ...rest } = q
+          return { ...rest, id: `q_copy_${Date.now()}_${i}`, bankId: targetBankId, usageCount: 0 }
+        })
+      await addQuestions(copies)
+    } else {
+      await moveQuestions(selectedIds, targetBankId)
+    }
+    setShowMoveModal(false)
+    clearSelection()
+    setToast({
+      msg: `${movingCount}개 문항을 "${targetName}"(으)로 ${keepOriginal ? '복사' : '이동'}했습니다`,
+      bankId: targetBankId,
+    })
   }
 
   const handleSaveEdit = (updated) => {
@@ -188,7 +206,30 @@ export default function QuestionBank() {
           </div>
         </div>
 
-        <p className="text-xs mb-2 px-1 text-muted-foreground">총 {filtered.length}개 문항</p>
+        {/* 선택 툴바 */}
+        <div className="flex items-center gap-3 mb-2 px-1 min-h-[32px]">
+          {filtered.length > 0 ? (
+            <div
+              onClick={toggleSelectAll}
+              className="flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer"
+            >
+              <Checkbox
+                checked={allSelected}
+                indeterminate={selectedIds.length > 0 && !allSelected}
+                onChange={toggleSelectAll}
+                aria-label="전체 선택"
+              />
+              {selectedIds.length > 0 ? `${selectedIds.length}개 선택됨` : `총 ${filtered.length}개 문항`}
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">총 {filtered.length}개 문항</span>
+          )}
+          {selectedIds.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setShowMoveModal(true)}>
+              다른 문제은행으로 이동
+            </Button>
+          )}
+        </div>
 
         {/* 문항 목록 */}
         {filtered.length === 0 && !showInlineAdd ? (
@@ -210,25 +251,15 @@ export default function QuestionBank() {
             {filtered.length > 0 && (
               <Card className="overflow-hidden py-0 gap-0">
                 {filtered.map((q, idx) => (
-                  <div
+                  <QuestionItem
                     key={q.id}
-                    onDragOver={e => !isFiltered && handleDragOver(e, idx)}
-                    onDragLeave={() => !isFiltered && handleDragLeave()}
-                    onDrop={() => !isFiltered && handleDrop(idx)}
-                    className={cn(
-                      'border-t-2',
-                      !isFiltered && dragOverIndex === idx ? 'border-t-primary' : 'border-t-transparent',
-                    )}
-                  >
-                    <QuestionItem
-                      question={q}
-                      onEdit={() => setEditingQuestion(q)}
-                      onDelete={() => handleDelete(q.id)}
-                      isLast={idx === filtered.length - 1}
-                      showDragHandle={!isFiltered}
-                      onDragStart={() => handleDragStart(idx)}
-                    />
-                  </div>
+                    question={q}
+                    onEdit={() => setEditingQuestion(q)}
+                    onDelete={() => handleDelete(q.id)}
+                    isLast={idx === filtered.length - 1}
+                    selected={selectedIds.includes(q.id)}
+                    onToggleSelect={() => toggleSelect(q.id)}
+                  />
                 ))}
               </Card>
             )}
@@ -262,6 +293,15 @@ export default function QuestionBank() {
         />
       )}
 
+      {showMoveModal && (
+        <MoveQuestionsModal
+          count={selectedIds.length}
+          currentBankId={bank.id}
+          onClose={() => setShowMoveModal(false)}
+          onMove={handleMove}
+        />
+      )}
+
       {deleteTargetId && (
         <ConfirmDialog
           title="문항을 삭제할까요?"
@@ -283,21 +323,14 @@ export default function QuestionBank() {
   )
 }
 
-function QuestionItem({ question, onEdit, onDelete, isLast, showDragHandle, onDragStart }) {
+function QuestionItem({ question, onEdit, onDelete, isLast, selected, onToggleSelect }) {
   const diff = question.difficulty && DIFFICULTY_META[question.difficulty]
   return (
-    <div className={cn('flex transition-colors hover:bg-background', !isLast && 'border-b border-secondary')}>
-      {/* 드래그 핸들 */}
-      {showDragHandle && (
-        <div
-          draggable
-          onDragStart={onDragStart}
-          className="flex items-center px-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors shrink-0 self-stretch"
-          title="드래그하여 순서 변경"
-        >
-          <GripVertical size={16} />
-        </div>
-      )}
+    <div className={cn('flex transition-colors hover:bg-background', selected && 'bg-accent', !isLast && 'border-b border-secondary')}>
+      {/* 선택 체크박스 */}
+      <div className="flex items-center px-3.5 shrink-0 self-stretch">
+        <Checkbox checked={selected} onChange={onToggleSelect} aria-label="문항 선택" />
+      </div>
       {/* 클릭 가능한 문항 영역 */}
       <div
         className="flex-1 min-w-0 px-4 py-5 cursor-pointer"
