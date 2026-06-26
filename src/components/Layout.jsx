@@ -48,13 +48,13 @@ function NavLinks({ navItems, isActive, onNavigate }) {
 /* ── 역할 토글 (사이드바/모바일 공용) ── */
 function RoleToggle({ role, setRole }) {
   return (
-    <div className="flex items-center p-0.5 rounded-lg w-full bg-secondary">
+    <div className="flex items-center p-0.5 rounded-lg w-full border border-border">
       <button
         onClick={() => setRole('instructor')}
         className={cn(
           'flex-1 flex items-center justify-center px-2 py-2 rounded-md text-xs transition-all',
           role === 'instructor'
-            ? 'bg-white text-foreground font-semibold shadow-sm'
+            ? 'bg-accent text-primary font-semibold'
             : 'text-caption hover:text-muted-foreground'
         )}
       >
@@ -65,7 +65,7 @@ function RoleToggle({ role, setRole }) {
         className={cn(
           'flex-1 flex items-center justify-center px-2 py-2 rounded-md text-xs transition-all',
           role === 'student'
-            ? 'bg-white text-foreground font-semibold shadow-sm'
+            ? 'bg-accent text-primary font-semibold'
             : 'text-caption hover:text-muted-foreground'
         )}
       >

@@ -207,7 +207,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
     <div className="flex-1 bg-white overflow-hidden flex flex-col border border-slate-200 rounded-lg">
       {/* 필터: 제출 상태 세그먼트 + 채점 상태 필터 */}
       <div className="px-3 py-2 border-b border-slate-100 bg-white flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 inline-flex flex-wrap">
+        <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border inline-flex flex-wrap">
           {[
             { key: 'all',          label: '전체',     count: students.length,  dotCls: null },
             { key: 'ontime',       label: '정상제출', count: ontimeCount,      dotCls: 'bg-success' },
@@ -221,7 +221,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
                 onClick={() => setFilterStatus(key)}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all',
-                  isActive ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-500'
+                  isActive ? 'bg-accent text-primary' : 'bg-transparent text-gray-500'
                 )}
               >
                 {dotCls && (

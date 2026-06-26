@@ -5,7 +5,7 @@ import { htmlToPlainText } from './RichText'
 const toText = v => htmlToPlainText(typeof v === 'string' ? v : v == null ? '' : String(v))
 
 const BADGE = "text-[12px] font-medium px-1.5 py-0.5 rounded bg-correct-bg text-correct shrink-0"
-const PILL_ACTIVE = "bg-primary text-primary-foreground"
+const PILL_ACTIVE = "bg-accent text-primary"
 const PILL_INACTIVE = "bg-slate-100 text-muted-foreground"
 const ITEM_BADGE = "text-[12px] font-medium px-2 py-0.5 rounded-full bg-accent text-primary"
 

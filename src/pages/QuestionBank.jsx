@@ -213,12 +213,12 @@ export default function QuestionBank() {
                     onClick={() => setFilterDifficulty(t.value)}
                     aria-pressed={active}
                     className={cn(
-                      'shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors',
-                      active ? 'bg-primary text-white' : 'bg-secondary text-secondary-foreground hover:bg-border',
+                      'shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] whitespace-nowrap transition-colors',
+                      active ? 'bg-accent text-accent-foreground font-semibold' : 'font-medium text-secondary-foreground hover:bg-secondary',
                     )}
                   >
                     <span>{t.label}</span>
-                    <span className={cn('text-[11px] tabular-nums', active ? 'text-white/70' : 'text-muted-foreground')}>
+                    <span className={cn('text-[11px] tabular-nums', active ? 'text-accent-foreground/70' : 'text-muted-foreground')}>
                       {diffCounts[t.value] ?? 0}
                     </span>
                   </button>

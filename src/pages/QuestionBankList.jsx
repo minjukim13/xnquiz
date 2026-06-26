@@ -415,14 +415,14 @@ function DifficultyFilterTabs({ value, onChange, counts }) {
             onClick={() => onChange(t.value)}
             aria-pressed={active}
             className={cn(
-              'shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors',
+              'shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] whitespace-nowrap transition-colors',
               active
-                ? 'bg-primary text-white'
-                : 'bg-secondary text-secondary-foreground hover:bg-border'
+                ? 'bg-accent text-accent-foreground font-semibold'
+                : 'font-medium text-secondary-foreground hover:bg-secondary'
             )}
           >
             <span>{t.label}</span>
-            <span className={cn('text-[11px] tabular-nums', active ? 'text-white/70' : 'text-muted-foreground')}>{count}</span>
+            <span className={cn('text-[11px] tabular-nums', active ? 'text-accent-foreground/70' : 'text-muted-foreground')}>{count}</span>
           </button>
         )
       })}
@@ -434,13 +434,13 @@ function DifficultyFilterTabs({ value, onChange, counts }) {
 function ViewToggle({ value, onChange }) {
   const base = 'flex items-center justify-center w-8 h-8 rounded-md transition-colors'
   return (
-    <div className="flex items-center gap-0.5 p-0.5 rounded-lg border border-border bg-secondary shrink-0">
+    <div className="flex items-center gap-0.5 p-0.5 rounded-lg border border-border shrink-0">
       <button
         type="button"
         onClick={() => onChange('card')}
         aria-pressed={value === 'card'}
         title="카드 보기"
-        className={cn(base, value === 'card' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}
+        className={cn(base, value === 'card' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground')}
       >
         <LayoutGrid size={15} />
       </button>
@@ -449,7 +449,7 @@ function ViewToggle({ value, onChange }) {
         onClick={() => onChange('list')}
         aria-pressed={value === 'list'}
         title="리스트 보기"
-        className={cn(base, value === 'list' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}
+        className={cn(base, value === 'list' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground')}
       >
         <ListIcon size={15} />
       </button>

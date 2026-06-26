@@ -210,10 +210,10 @@ function StatusFilterTabs({ value, onChange, options }) {
             onClick={() => onChange(opt.value)}
             aria-pressed={active}
             className={cn(
-              'shrink-0 h-8 px-3 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors',
+              'shrink-0 h-8 px-3 rounded-full text-[13px] whitespace-nowrap transition-colors',
               active
-                ? 'bg-primary text-white'
-                : 'bg-secondary text-secondary-foreground hover:bg-border'
+                ? 'bg-accent text-accent-foreground font-semibold'
+                : 'font-medium text-secondary-foreground hover:bg-secondary'
             )}
           >
             {opt.label}
