@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { GLOBAL_SETTINGS_DEFAULTS as DEFAULTS, getGlobalSettings, saveGlobalSettings } from '@/utils/quizGlobalSettings'
 import { DEMO_STUDENTS } from '@/context/role'
 import CustomSelect from './CustomSelect'
+import { X } from 'lucide-react'
 
 const ACCOMMODATION_UNITS = [
   { value: 'minutes', label: '분' },
@@ -59,6 +60,19 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
       const next = { studentId, extraAmount: existing.extraAmount ?? existing.extraTimePercent ?? 0, extraUnit: existing.extraUnit ?? (existing.extraTimePercent != null ? 'percent' : 'minutes'), ...patch }
       return { ...prev, accommodations: [...list.filter(a => a.studentId !== studentId), next] }
     })
+  }
+
+  // 드롭다운으로 학생을 추가하면 목록에 항목을 만들고, 수량은 사용자가 직접 입력한다.
+  const addAccommodation = (studentId) => {
+    setLocal(prev => {
+      const list = prev.accommodations || []
+      if (list.some(a => a.studentId === studentId)) return prev
+      return { ...prev, accommodations: [...list, { studentId, extraAmount: 0, extraUnit: 'minutes' }] }
+    })
+  }
+
+  const removeAccommodation = (studentId) => {
+    setLocal(prev => ({ ...prev, accommodations: (prev.accommodations || []).filter(a => a.studentId !== studentId) }))
   }
 
   const handleSave = () => {
@@ -251,48 +265,77 @@ export default function QuizSettingsDialog({ open, onOpenChange }) {
           {/* 응시 편의 지원 (Accommodation, 7.7) */}
           <SettingsSection title="응시 편의 지원">
             <p className="text-xs text-muted-foreground -mt-1">특정 학생에게 추가 시간을 부여합니다. 한 번 설정하면 이 과목의 모든 시간 제한 퀴즈에 자동 적용됩니다. 날짜 연장은 퀴즈별 추가 할당에서 설정합니다.</p>
-            <div className="space-y-2">
-              {DEMO_STUDENTS.map(s => {
-                const acc = (local.accommodations || []).find(a => a.studentId === s.id)
-                const rawAmount = acc?.extraAmount ?? acc?.extraTimePercent
-                const amount = Number(rawAmount) > 0 ? String(rawAmount) : ''
-                const unit = acc?.extraUnit ?? (acc?.extraTimePercent != null ? 'percent' : 'minutes')
-                const active = amount !== ''
-                return (
-                  <div
-                    key={s.id}
-                    className={cn(
-                      'flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition-colors',
-                      active ? 'border-primary/40 bg-accent/40' : 'border-border bg-white'
-                    )}
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-700 truncate">{s.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{s.studentId} · {s.department}</p>
+            {(() => {
+              const accList = local.accommodations || []
+              const addedIds = new Set(accList.map(a => a.studentId))
+              const availableStudents = DEMO_STUDENTS.filter(s => !addedIds.has(s.id))
+              const addedRows = accList
+                .map(acc => ({ acc, student: DEMO_STUDENTS.find(s => s.id === acc.studentId) }))
+                .filter(r => r.student)
+              return (
+                <>
+                  {/* 학생 선택 드롭다운 */}
+                  <CustomSelect
+                    value=""
+                    onChange={v => { if (v) addAccommodation(v) }}
+                    options={availableStudents.map(s => ({ value: s.id, label: `${s.name} (${s.studentId} · ${s.department})` }))}
+                    placeholder={availableStudents.length ? '추가 시간을 부여할 학생 선택' : '모든 학생이 추가되었습니다'}
+                    className="w-full"
+                  />
+
+                  {/* 추가된 학생 목록 */}
+                  {addedRows.length > 0 ? (
+                    <div className="space-y-2">
+                      {addedRows.map(({ acc, student }) => {
+                        const rawAmount = acc.extraAmount ?? acc.extraTimePercent
+                        const amount = Number(rawAmount) > 0 ? String(rawAmount) : ''
+                        const unit = acc.extraUnit ?? (acc.extraTimePercent != null ? 'percent' : 'minutes')
+                        return (
+                          <div
+                            key={acc.studentId}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-accent/40 px-3.5 py-2.5"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-slate-700 truncate">{student.name}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">{student.studentId} · {student.department}</p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-xs text-muted-foreground">추가 시간</span>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={amount}
+                                onChange={e => updateAccommodation(acc.studentId, { extraAmount: Number(e.target.value.replace(/[^0-9]/g, '')) || 0 })}
+                                placeholder="0"
+                                aria-label={`${student.name} 추가 시간 수량`}
+                                className="w-16 text-center text-sm px-2 py-2.5 rounded-md border border-border bg-white text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all"
+                              />
+                              <CustomSelect
+                                value={unit}
+                                onChange={v => updateAccommodation(acc.studentId, { extraUnit: v })}
+                                options={ACCOMMODATION_UNITS}
+                                className="w-[68px]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeAccommodation(acc.studentId)}
+                                aria-label={`${student.name} 추가 시간 삭제`}
+                                className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-secondary transition-colors"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-muted-foreground">추가 시간</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={amount}
-                        onChange={e => updateAccommodation(s.id, { extraAmount: Number(e.target.value.replace(/[^0-9]/g, '')) || 0 })}
-                        placeholder="0"
-                        aria-label={`${s.name} 추가 시간 수량`}
-                        className="w-16 text-center text-sm px-2 py-2.5 rounded-md border border-border bg-white text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary transition-all"
-                      />
-                      <CustomSelect
-                        value={unit}
-                        onChange={v => updateAccommodation(s.id, { extraUnit: v })}
-                        options={ACCOMMODATION_UNITS}
-                        className="w-[68px]"
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-            <p className="text-[11px] text-muted-foreground">예: 제한 시간 60분 퀴즈 기준 +50%는 90분, +30분은 90분이 부여됩니다.</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground py-1">아직 추가 시간이 부여된 학생이 없습니다.</p>
+                  )}
+                </>
+              )
+            })()}
+            <p className="text-sm text-secondary-foreground bg-secondary rounded-md px-3.5 py-2.5">예: 제한 시간 60분 퀴즈 기준 +50%는 90분, +30분은 90분이 부여됩니다.</p>
           </SettingsSection>
         </div>
 
