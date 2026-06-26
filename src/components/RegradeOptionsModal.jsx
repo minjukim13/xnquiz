@@ -53,10 +53,12 @@ const REGRADE_OPTIONS = [
   },
 ]
 
-export default function RegradeOptionsModal({ submittedCount, mode = 'edit', questionLabel, onConfirm, onCancel }) {
+export default function RegradeOptionsModal({ submittedCount, mode = 'edit', questionLabel, onConfirm, onCancel, onEditQuestion }) {
   const isManual = mode === 'manual'
+  // 편집 모드: 5개(추가 인정 + 현재 정답 + 만점 + 제외 + 문제만 업데이트)
+  // 채점 화면(manual) 모드: 4개(추가 인정 + 현재 정답 + 만점 + 제외)
   const availableOptions = isManual
-    ? REGRADE_OPTIONS.filter(o => o.id === 'new_answer_only' || o.id === 'full_points' || o.id === 'exclude')
+    ? REGRADE_OPTIONS.filter(o => o.id === 'award_both' || o.id === 'new_answer_only' || o.id === 'full_points' || o.id === 'exclude')
     : REGRADE_OPTIONS
   const [selected, setSelected] = useState(isManual ? 'new_answer_only' : 'award_both')
 
@@ -83,6 +85,18 @@ export default function RegradeOptionsModal({ submittedCount, mode = 'edit', que
               )}
             </p>
           </div>
+
+          {/* 퀴즈 편집으로 이동 — 정답 수정이 필요한 경우 (채점 화면 진입 시 제공) */}
+          {onEditQuestion && (
+            <div className="flex items-center justify-between gap-2 rounded-lg bg-accent border border-border px-4 py-3">
+              <p className="text-[13px] leading-relaxed text-secondary-foreground">
+                정답 수정이 필요한 경우 퀴즈 편집에서 문항을 변경한 뒤 저장하면 재채점됩니다.
+              </p>
+              <Button variant="soft" size="sm" className="shrink-0" onClick={onEditQuestion}>
+                퀴즈 편집으로 이동
+              </Button>
+            </div>
+          )}
 
           {/* 옵션 목록 */}
           <div className="space-y-2">

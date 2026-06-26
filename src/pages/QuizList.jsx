@@ -6,6 +6,7 @@ import { mockQuizzes, MOCK_COURSES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { getStudentAttempts, hasAttemptSnapshot } from '../data/mockData'
 import { listQuizzes, getQuizQuestions, setQuizQuestions, createQuiz, updateQuiz, deleteQuiz, listAttempts, isApiMode, listCourses } from '@/lib/data'
+import { buildQti, parseQti } from '@/utils/qti'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import QuizSettingsDialog from '../components/QuizSettingsDialog'
 import StatusBadge from '../components/StatusBadge'
+import TypeBadge from '../components/TypeBadge'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { isDeadlinePassed } from '@/utils/deadlineUtils'
 import {
@@ -382,6 +384,55 @@ function InstructorQuizList() {
     }
   }
 
+  // QTI 1.2 파일로 내보내기 (Canvas Classic Quizzes 호환 .zip)
+  const handleExportQti = async (quiz) => {
+    try {
+      const questions = await getQuizQuestions(quiz.id)
+      const blob = await buildQti([{ quiz, questions }], quiz.course || CURRENT_COURSE)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const safe = (quiz.title || 'quiz').replace(/[\\/:*?"<>|]/g, '_').trim() || 'quiz'
+      a.download = `${safe}.zip`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      showToast(`'${quiz.title}' QTI 파일을 내보냈습니다`)
+    } catch (err) {
+      console.error('[QuizList] QTI export 실패', err)
+      showToast('QTI 내보내기 중 오류가 발생했습니다')
+    }
+    setExportSourceQuiz(null)
+  }
+
+  // QTI 1.2 파일에서 가져오기 — 임시저장 상태로 추가
+  const handleImportQti = async (bundles) => {
+    try {
+      const imported = []
+      for (const b of bundles) {
+        const draft = resetFields(b.quiz, { course: CURRENT_COURSE })
+        const created = await createQuiz(draft)
+        const qs = (b.questions || []).map((q, i) => ({
+          ...q,
+          id: `${created.id}_q${i + 1}`,
+          gradedCount: 0, totalCount: 0, avgScore: undefined,
+        }))
+        await setQuizQuestions(created.id, qs)
+        imported.push(created)
+      }
+      await reload()
+      setShowImportModal(false)
+      const msg = imported.length === 1
+        ? `'${imported[0].title}' QTI 가져오기 완료. 목록에서 편집하세요`
+        : `QTI 퀴즈 ${imported.length}개 가져오기 완료. 임시저장 상태로 추가되었습니다`
+      showToast(msg)
+    } catch (err) {
+      console.error('[QuizList] QTI import 실패', err)
+      showToast('QTI 가져오기 중 오류가 발생했습니다')
+    }
+  }
+
   const handleToggleVisibility = async (quiz) => {
     if (quiz.status === 'draft') return
     const nextVisible = quiz.visible === false
@@ -537,6 +588,7 @@ function InstructorQuizList() {
           quiz={exportSourceQuiz}
           onClose={() => setExportSourceQuiz(null)}
           onExport={handleExportQuiz}
+          onExportQti={handleExportQti}
         />
       )}
 
@@ -544,6 +596,7 @@ function InstructorQuizList() {
         <QuizImportModal
           onClose={() => setShowImportModal(false)}
           onImport={handleImportQuizzes}
+          onImportQti={handleImportQti}
         />
       )}
 
@@ -697,7 +750,7 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onExport(quiz)}>
                 <FolderOutput size={14} />
-                다른 과목으로 내보내기
+                내보내기
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => onDelete(quiz)}>
@@ -910,7 +963,8 @@ function QuizCopyModal({ quiz, onClose, onCopy }) {
 }
 
 // ─────────────────────────────── 퀴즈 내보내기 모달 ───────────────────────────────
-function QuizExportModal({ quiz, onClose, onExport }) {
+function QuizExportModal({ quiz, onClose, onExport, onExportQti }) {
+  const [tab, setTab] = useState('course')
   const [selected, setSelected] = useState(new Set())
   const [courseSearch, setCourseSearch] = useState('')
   // 현재 과목은 제외 — 다른 과목으로만 내보낼 수 있음
@@ -931,10 +985,23 @@ function QuizExportModal({ quiz, onClose, onExport }) {
     <Dialog open onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>다른 과목으로 내보내기</DialogTitle>
+          <DialogTitle>내보내기</DialogTitle>
           <p className="text-xs text-muted-foreground truncate">{quiz.title}</p>
         </DialogHeader>
 
+        <ExportImportTabs
+          tab={tab}
+          onChange={setTab}
+          options={[
+            { value: 'course', label: '다른 과목으로' },
+            { value: 'qti', label: 'QTI 파일로' },
+          ]}
+        />
+
+        {tab === 'qti' ? (
+          <QtiExportPanel quiz={quiz} onClose={onClose} onExportQti={onExportQti} />
+        ) : (
+        <>
         <div className="space-y-2">
           <div className="relative mb-3">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -989,13 +1056,63 @@ function QuizExportModal({ quiz, onClose, onExport }) {
             내보내기
           </Button>
         </div>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   )
 }
 
+// 내보내기/가져오기 공통 탭 헤더
+function ExportImportTabs({ tab, onChange, options }) {
+  return (
+    <div className="flex gap-1 p-1 bg-secondary rounded-lg">
+      {options.map(opt => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={cn(
+            'flex-1 text-[13px] font-semibold py-1.5 rounded-md transition-colors',
+            tab === opt.value
+              ? 'bg-white text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-secondary-foreground'
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// QTI 파일 내보내기 패널 (Canvas Classic Quizzes 호환 .zip)
+function QtiExportPanel({ quiz, onClose, onExportQti }) {
+  return (
+    <div className="space-y-4 pt-1">
+      <div className="rounded-lg border border-border bg-background p-4 space-y-1.5">
+        <p className="text-[15px] font-semibold text-foreground truncate">{quiz.title}</p>
+        <p className="text-xs text-muted-foreground">
+          {quiz.questions ?? 0}문항 · {quiz.totalPoints ?? 0}점
+        </p>
+      </div>
+      <div className="rounded-lg bg-accent/60 px-4 py-3 text-xs leading-relaxed text-secondary-foreground">
+        <p className="font-semibold text-primary mb-1">QTI 1.2 (Canvas Classic Quizzes 호환)</p>
+        <p>객관식·OX·복수정답·단답·수치형은 정답까지 함께 내보냅니다. 연결형·빈칸·드롭다운·수식형은 문항 본문과 유형만 포함됩니다(정답 제외). 미디어 첨부는 포함되지 않습니다.</p>
+      </div>
+      <div className="flex justify-end gap-2 pt-1">
+        <Button variant="ghost" size="sm" onClick={onClose}>취소</Button>
+        <Button size="sm" onClick={() => onExportQti(quiz)}>
+          QTI 파일 다운로드
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 // ─────────────────────────────── 퀴즈 가져오기 모달 ───────────────────────────────
-function QuizImportModal({ onClose, onImport }) {
+function QuizImportModal({ onClose, onImport, onImportQti }) {
+  const [tab, setTab] = useState('course')
   const [selectedCourse, setSelectedCourse] = useState(null)
   const [checkedIds, setCheckedIds] = useState(new Set())
   const [courseSearch, setCourseSearch] = useState('')
@@ -1068,10 +1185,24 @@ function QuizImportModal({ onClose, onImport }) {
     <Dialog open onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-w-4xl min-h-[600px] max-h-[82vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-6 py-5 border-b border-border shrink-0">
-          <DialogTitle>다른 과목 퀴즈 가져오기</DialogTitle>
+          <DialogTitle>가져오기</DialogTitle>
           <p className="text-[15px] text-muted-foreground">가져온 퀴즈는 임시저장 상태로 추가됩니다</p>
+          <div className="pt-3">
+            <ExportImportTabs
+              tab={tab}
+              onChange={setTab}
+              options={[
+                { value: 'course', label: '다른 과목' },
+                { value: 'qti', label: 'QTI 파일' },
+              ]}
+            />
+          </div>
         </DialogHeader>
 
+        {tab === 'qti' ? (
+          <QtiImportPanel onClose={onClose} onImportQti={onImportQti} />
+        ) : (
+        <>
         <div className="flex flex-1 overflow-hidden min-h-0">
           <div className="shrink-0 flex flex-col border-r border-border w-44">
             <div className="p-3 pb-2 border-b border-border">
@@ -1191,8 +1322,141 @@ function QuizImportModal({ onClose, onImport }) {
             </Button>
           </div>
         </div>
+        </>
+        )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+// QTI 파일 가져오기 패널 — .zip 업로드 → 파싱 → 미리보기 → 가져오기
+function QtiImportPanel({ onClose, onImportQti }) {
+  const [parsing, setParsing] = useState(false)
+  const [error, setError] = useState(null)
+  const [result, setResult] = useState(null)   // { bundles, totalWarnings }
+  const [fileName, setFileName] = useState('')
+  const [dragOver, setDragOver] = useState(false)
+
+  const handleFile = async (file) => {
+    if (!file) return
+    setParsing(true)
+    setError(null)
+    setResult(null)
+    setFileName(file.name)
+    try {
+      const parsed = await parseQti(file)
+      setResult(parsed)
+    } catch (err) {
+      console.error('[QtiImportPanel] 파싱 실패', err)
+      setError(err?.message || 'QTI 파일을 읽지 못했습니다')
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  const totalQuestions = result
+    ? result.bundles.reduce((s, b) => s + (b.questions?.length || 0), 0)
+    : 0
+  const allWarnings = result
+    ? result.bundles.flatMap(b => b.warnings || [])
+    : []
+
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto px-6 py-5 min-h-0">
+        {!result ? (
+          <label
+            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={e => {
+              e.preventDefault()
+              setDragOver(false)
+              handleFile(e.dataTransfer.files?.[0])
+            }}
+            className={cn(
+              'flex flex-col items-center justify-center gap-3 h-full min-h-[320px] rounded-xl border-2 border-dashed cursor-pointer transition-colors',
+              dragOver ? 'border-primary bg-accent' : 'border-border bg-background hover:bg-secondary'
+            )}
+          >
+            <FolderInput size={32} className="text-muted-foreground" />
+            {parsing ? (
+              <p className="text-[15px] text-secondary-foreground">파일을 읽는 중</p>
+            ) : (
+              <>
+                <div className="text-center">
+                  <p className="text-[15px] font-semibold text-foreground">QTI .zip 파일을 끌어다 놓거나 클릭해서 선택</p>
+                  <p className="text-xs text-muted-foreground mt-1">Canvas Classic Quizzes 내보내기 파일(QTI 1.2)을 지원합니다</p>
+                </div>
+                {fileName && <p className="text-xs text-muted-foreground">{fileName}</p>}
+                {error && <p className="text-xs text-destructive">{error}</p>}
+              </>
+            )}
+            <input
+              type="file"
+              accept=".zip,.imscc,.xml"
+              className="hidden"
+              onChange={e => handleFile(e.target.files?.[0])}
+            />
+          </label>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[15px] font-semibold text-foreground">
+                퀴즈 {result.bundles.length}개 · 문항 {totalQuestions}개
+              </p>
+              <button
+                type="button"
+                onClick={() => { setResult(null); setFileName(''); setError(null) }}
+                className="text-xs text-primary font-medium hover:underline"
+              >
+                다른 파일 선택
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {result.bundles.map((b, i) => (
+                <div key={i} className="rounded-lg border border-border bg-white p-3">
+                  <p className="text-[15px] font-medium text-foreground truncate">{b.quiz.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {b.questions.length}문항 · {b.quiz.totalPoints}점
+                  </p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {b.questions.slice(0, 12).map((q, qi) => (
+                      <TypeBadge key={qi} type={q.type} small />
+                    ))}
+                    {b.questions.length > 12 && (
+                      <span className="text-[11px] text-muted-foreground self-center">+{b.questions.length - 12}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {allWarnings.length > 0 && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 space-y-1">
+                <p className="text-xs font-semibold text-amber-700 flex items-center gap-1">
+                  <AlertCircle size={13} /> 일부 문항은 본문/유형만 가져옵니다
+                </p>
+                <ul className="text-[11.5px] text-amber-700/90 leading-relaxed list-disc pl-4">
+                  {allWarnings.slice(0, 6).map((w, wi) => <li key={wi}>{w}</li>)}
+                  {allWarnings.length > 6 && <li>외 {allWarnings.length - 6}건</li>}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
+        <Button variant="ghost" onClick={onClose}>취소</Button>
+        <Button
+          disabled={!result || totalQuestions === 0}
+          onClick={() => onImportQti(result.bundles)}
+        >
+          가져오기
+        </Button>
+      </div>
+    </>
   )
 }
 

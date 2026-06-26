@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import TypeBadge from '../../components/TypeBadge'
@@ -21,6 +22,7 @@ const REGRADE_OPTION_LABELS = {
 
 // ─── 문항 중심: 우측 상세 패널 ─────────────────────────────────────────────
 export default function QuestionDetailPanel({ question, students, search, onSearch, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, showToast }) {
+  const navigate = useNavigate()
   const [changedStudentIds, setChangedStudentIds] = useState(new Set())
   const [clearPendingSignal, setClearPendingSignal] = useState(0)
   const [infoCollapsed, setInfoCollapsed] = useState(false)
@@ -328,6 +330,7 @@ export default function QuestionDetailPanel({ question, students, search, onSear
           questionLabel={`Q${question.order ?? ''}`.trim()}
           onConfirm={handleRegradeConfirm}
           onCancel={() => { if (!regradeBusy) setShowRegradeModal(false) }}
+          onEditQuestion={() => navigate(`/quiz/${quizId}/edit?tab=questions&editQuestion=${question.id}`)}
         />
       )}
 

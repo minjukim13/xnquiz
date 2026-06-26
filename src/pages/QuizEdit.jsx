@@ -10,12 +10,13 @@ import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
 import { printQuizQuestions } from '../utils/pdfUtils'
 import { QUIZ_TYPES, mockQuizzes, ASSIGNMENT_GROUPS, hasAttemptSnapshot } from '../data/mockData'
-import { getQuiz, getQuizQuestions, setQuizQuestions, updateQuiz, recalculateScorePolicy } from '@/lib/data'
+import { getQuiz, getQuizQuestions, setQuizQuestions, updateQuiz, recalculateScorePolicy, regradeQuestion } from '@/lib/data'
 import { useRole } from '../context/role'
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog'
 import AssignmentOverrides from '../components/AssignmentOverrides'
 import { hasDuplicateStudent, sanitizeAssignments } from '../utils/assignments'
 import { getInvalidIpTokens } from '../utils/ipValidation'
+import { setQuestionVoided } from '@/utils/voidedQuestions'
 import { htmlToPlainText, RichTextEditor } from '../components/RichText'
 import { isDeadlinePassed } from '@/utils/deadlineUtils'
 import { cn } from '@/lib/utils'
@@ -77,14 +78,18 @@ export default function QuizEdit() {
   useEffect(() => {
     const m = searchParams.get('modal')
     const t = searchParams.get('tab')
+    const eq = searchParams.get('editQuestion')
     if (m === 'add-question') { setTab('questions'); setShowInlineAdd(true) }
     else if (m === 'settings') setTab('info')
-    else if (t === 'questions' || t === 'info') setTab(t)
+    else if (eq || t === 'questions') setTab('questions')
+    else if (t === 'info') setTab('info')
   }, [searchParams])
   const [questions, setQuestions] = useState([])
   const [initialQuestionsSnapshot, setInitialQuestionsSnapshot] = useState('[]')
   const [editingQuestion, setEditingQuestion] = useState(null)
   const [showPublishReview, setShowPublishReview] = useState(false)
+  // 문항별 저장 시 일괄 재채점 예약 (questionId → { option, oldQuestion })
+  const [regradeMap, setRegradeMap] = useState({})
 
   const [form, setForm] = useState(() => ({
     title: quiz?.title ?? '',
@@ -157,6 +162,20 @@ export default function QuizEdit() {
     return () => { mounted = false }
   }, [id])
 
+  // 채점 화면 재채점 모달에서 진입(?editQuestion=)한 경우 해당 문항 편집 모달 자동 오픈
+  const editQuestionParamRef = useRef(false)
+  useEffect(() => {
+    if (editQuestionParamRef.current) return
+    const eq = searchParams.get('editQuestion')
+    if (!eq || !loaded || questions.length === 0) return
+    const target = questions.find(q => q.id === eq)
+    if (target) {
+      editQuestionParamRef.current = true
+      setTab('questions')
+      setEditingQuestion(target)
+    }
+  }, [searchParams, loaded, questions])
+
   const hydratedRef = useRef(false)
   useEffect(() => {
     if (!quiz || hydratedRef.current) return
@@ -221,8 +240,20 @@ export default function QuizEdit() {
   const addNewQuestion = useCallback((q) => {
     setQuestions(prev => [...prev, { ...q, id: `new_q${Date.now()}` }])
   }, [])
-  const updateQuestion = (updated) => {
-    setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? { ...q, ...updated, id: editingQuestion.id } : q))
+  const updateQuestion = (updated, regradeOption, oldQuestion) => {
+    const qId = editingQuestion.id
+    setQuestions(prev => prev.map(q => q.id === qId ? { ...q, ...updated, id: qId } : q))
+    if (regradeOption && regradeOption !== 'no_regrade') {
+      setRegradeMap(prev => ({ ...prev, [qId]: { option: regradeOption, oldQuestion: oldQuestion ?? { ...editingQuestion } } }))
+    } else {
+      // 문제만 업데이트(no_regrade) 또는 정답 미변경 시 기존 예약 해제
+      setRegradeMap(prev => {
+        if (!prev[qId]) return prev
+        const next = { ...prev }
+        delete next[qId]
+        return next
+      })
+    }
   }
   const removeQuestion = (qId) => setQuestions(prev => prev.filter(q => q.id !== qId))
   const moveQuestion = useCallback((fromIdx, toIdx) => {
@@ -458,13 +489,48 @@ export default function QuizEdit() {
     proceed()
   }
 
+  // 저장 시 예약된 문항별 재채점을 일괄 실행 (제출자 있는 문항의 정답 수정 소급)
+  const runPendingRegrades = async (savedQuestions) => {
+    let totalRegraded = 0
+    const regradeLog = {}
+    for (const [oldQId, { option, oldQuestion }] of Object.entries(regradeMap)) {
+      const idx = questions.findIndex(x => x.id === oldQId)
+      if (idx < 0) continue
+      const target = savedQuestions?.[idx] ?? questions[idx]
+      if (!target) continue
+      try {
+        if (option === 'exclude') {
+          // 채점에서 제외(문항 무효화) — 총점에서 제외
+          setQuestionVoided(quiz.id, target.id, true)
+          regradeLog[target.id] = { option, count: 0, timestamp: new Date().toISOString() }
+          continue
+        }
+        const result = await regradeQuestion(quiz.id, target, option, oldQuestion)
+        const count = result?.regradedStudents ?? 0
+        totalRegraded += count
+        regradeLog[target.id] = { option, count, timestamp: new Date().toISOString() }
+      } catch (err) {
+        console.error('[QuizEdit] 재채점 실패', oldQId, err)
+      }
+    }
+    if (Object.keys(regradeLog).length > 0) {
+      try {
+        const existing = JSON.parse(localStorage.getItem('xnq_regrade_log') || '{}')
+        existing[quiz.id] = { ...(existing[quiz.id] || {}), ...regradeLog }
+        localStorage.setItem('xnq_regrade_log', JSON.stringify(existing))
+      } catch { /* ignore */ }
+    }
+    return totalRegraded
+  }
+
   const doSave = async (statusOverride) => {
+    let savedQuestions = questions
     const nextStatus = statusOverride ?? computeNextStatus()
     const reopened = nextStatus === 'open' && (quiz.status === 'closed' || quiz.status === 'grading')
     try {
       if (form.scorePolicy !== quiz.scorePolicy) await recalculateScorePolicy(quiz.id, form.scorePolicy)
       await updateQuiz(quiz.id, buildUpdateBody(nextStatus))
-      await setQuizQuestions(quiz.id, questions)
+      savedQuestions = await setQuizQuestions(quiz.id, questions) ?? questions
     } catch (err) {
       console.error('[QuizEdit] 저장 실패', err)
       setAlertDialog({ title: '저장 실패', message: err?.message ?? '저장 중 오류가 발생했습니다.', variant: 'error' })
@@ -478,8 +544,10 @@ export default function QuizEdit() {
         localStorage.setItem('xnq_questions_modified', JSON.stringify(map))
       } catch { /* ignore */ }
     }
+    const totalRegraded = await runPendingRegrades(savedQuestions)
     const reopenMsg = reopened ? ' 응시 기간이 연장되어 퀴즈가 다시 응시 가능 상태로 전환되었습니다.' : ''
-    sessionStorage.setItem('xnq_toast', `저장되었습니다.${reopenMsg}`)
+    const regradeMsg = totalRegraded > 0 ? ` ${totalRegraded}명의 점수가 재채점되었습니다.` : ''
+    sessionStorage.setItem('xnq_toast', `저장되었습니다.${regradeMsg}${reopenMsg}`)
     navigate(returnTo)
   }
 
@@ -507,6 +575,7 @@ export default function QuizEdit() {
               set={set}
               questions={questions}
               totalPoints={totalPoints}
+              regradeMap={regradeMap}
               onShowBank={() => setShowBankModal(true)}
               onShowRandomBank={() => setShowRandomBankModal(true)}
               onShowAdd={() => setShowInlineAdd(true)}
@@ -576,6 +645,20 @@ function InfoTab({ form, set, quizStatus, courseKey, hasTakers = false }) {
   // D-05 R-002: 과목 기본값과 다른 항목 표시 + 되돌리기
   return (
     <div className="space-y-3">
+      <Section title="퀴즈 공개 여부">
+        <Toggle
+          checked={form.visible}
+          onChange={v => set('visible', v)}
+          disabled={hasTakers && form.visible}
+          label="학생에게 퀴즈 공개"
+          description={hasTakers && form.visible
+            ? '이미 응시자가 있어 비공개로 전환할 수 없습니다.'
+            : isDraft
+              ? '공개 시 저장 후 학생이 즉시 응시할 수 있습니다. 임시저장은 비공개 상태에서만 가능합니다.'
+              : '비공개 시 학생 화면에 퀴즈가 표시되지 않습니다.'}
+        />
+      </Section>
+
       <Section title="시험 유형">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
@@ -821,19 +904,6 @@ function InfoTab({ form, set, quizStatus, courseKey, hasTakers = false }) {
         </>
       )}
 
-      <Section title="퀴즈 공개 여부">
-        <Toggle
-          checked={form.visible}
-          onChange={v => set('visible', v)}
-          disabled={hasTakers && form.visible}
-          label="학생에게 퀴즈 공개"
-          description={hasTakers && form.visible
-            ? '이미 응시자가 있어 비공개로 전환할 수 없습니다.'
-            : isDraft
-              ? '공개 시 저장 후 학생이 즉시 응시할 수 있습니다. 임시저장은 비공개 상태에서만 가능합니다.'
-              : '비공개 시 학생 화면에 퀴즈가 표시되지 않습니다.'}
-        />
-      </Section>
     </div>
   )
 }
@@ -884,7 +954,7 @@ function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDr
   )
 }
 
-function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove, showInlineAdd, onAddInline, onCancelInline, onInlineDirtyChange }) {
+function QuestionsTab({ form, set, questions, totalPoints, regradeMap = {}, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove, showInlineAdd, onAddInline, onCancelInline, onInlineDirtyChange }) {
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
   const [allExpanded, setAllExpanded] = useState(false)
@@ -1000,6 +1070,7 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
                     <Badge variant="secondary" className="bg-secondary text-secondary-foreground">{QUIZ_TYPES[q.type]?.label}</Badge>
                     <span className="text-xs text-muted-foreground">{q.points}점</span>
                     {QUIZ_TYPES[q.type]?.autoGrade === false && <Badge variant="secondary" className="bg-warning-bg text-warning-foreground">수동채점</Badge>}
+                    {regradeMap[q.id] && <Badge variant="secondary" className="bg-warning-bg text-warning-foreground gap-1"><Shuffle size={10} />재채점 예정</Badge>}
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0">
                     <button onClick={() => onEdit(q)} title="문항 편집" className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">

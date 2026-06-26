@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('recharts')) return 'charts'
           if (id.includes('lucide-react')) return 'icons'
           if (id.includes('xlsx')) return 'xlsx'
+          if (id.includes('jszip') || id.includes('/utils/qti')) return 'qti'
           if (id.includes('react-dom') || id.includes('react-router') || (id.includes('node_modules/react/') )) return 'vendor'
         },
       },

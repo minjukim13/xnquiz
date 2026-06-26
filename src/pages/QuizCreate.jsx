@@ -321,6 +321,15 @@ function InfoTab({ form, set }) {
   // D-05 R-002: 과목 기본값과 다른 항목 표시 + 되돌리기
   return (
     <div className="space-y-3">
+      <Section title="퀴즈 공개 여부">
+        <Toggle
+          checked={form.visible}
+          onChange={v => set('visible', v)}
+          label="학생에게 퀴즈 공개"
+          description="공개 시 저장 후 학생이 즉시 응시할 수 있습니다. 임시저장은 비공개 상태에서만 가능합니다."
+        />
+      </Section>
+
       <Section title="시험 유형">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
@@ -566,14 +575,6 @@ function InfoTab({ form, set }) {
         </>
       )}
 
-      <Section title="퀴즈 공개 여부">
-        <Toggle
-          checked={form.visible}
-          onChange={v => set('visible', v)}
-          label="학생에게 퀴즈 공개"
-          description="공개 시 저장 후 학생이 즉시 응시할 수 있습니다. 임시저장은 비공개 상태에서만 가능합니다."
-        />
-      </Section>
     </div>
   )
 }

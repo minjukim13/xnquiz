@@ -1,20 +1,15 @@
-import { useState } from 'react'
-import { AlertCircle, AlertTriangle, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react'
+import { AlertCircle, AlertTriangle, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { ASSIGNMENT_GROUPS } from '../data/mockData'
 import { cn } from '@/lib/utils'
 
 // 공개 직전 종합 확인 모달
-// URD-021 R-009: 9항목 결과 종합 안내 + 직전 단계 복귀
-// 표시 규칙: 경고 + 사용자가 변경한 항목만 기본 노출, 기본값 항목은 접기
+// URD-021 R-009: 9항목 결과를 항목/설정 표로 종합 안내 + 직전 단계 복귀
 export default function PublishReviewModal({ open, onOpenChange, form, questions, totalPoints, onConfirm, confirmLabel = '이대로 공개' }) {
-  const [showDefaults, setShowDefaults] = useState(false)
   if (!open) return null
   const items = buildReviewItems(form, questions, totalPoints)
   const warningItems = items.filter(i => i.severity === 'warning')
-  const visibleItems = items.filter(i => !i.isDefault || i.severity === 'warning')
-  const hiddenItems = items.filter(i => i.isDefault && i.severity !== 'warning')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -38,27 +33,55 @@ export default function PublishReviewModal({ open, onOpenChange, form, questions
             </div>
           )}
 
-          <div className="space-y-2">
-            {visibleItems.map(item => (
-              <ReviewItemCard key={item.key} item={item} />
-            ))}
+          <div className="rounded-md border border-border overflow-hidden">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-secondary">
+                  <th className="text-left font-semibold text-secondary-foreground px-3.5 py-2.5 w-[40%]">항목</th>
+                  <th className="text-left font-semibold text-secondary-foreground px-3.5 py-2.5">설정</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(item => (
+                  <tr
+                    key={item.key}
+                    className={cn(
+                      'border-t border-border align-top',
+                      item.severity === 'warning' ? 'bg-warning-bg/30' : 'bg-white',
+                    )}
+                  >
+                    <td className="px-3.5 py-3">
+                      <div className="flex items-start gap-2">
+                        <span className={cn(
+                          'w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px] font-semibold shrink-0 mt-0.5',
+                          item.severity === 'warning' ? 'bg-warning text-white' : 'bg-secondary text-secondary-foreground',
+                        )}>
+                          {item.no}
+                        </span>
+                        <div className="min-w-0">
+                          <span className="font-medium text-foreground">{item.title}</span>
+                          {item.severity === 'warning' && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 ml-1.5 rounded text-[11px] font-medium bg-warning text-white align-middle">
+                              <AlertCircle size={10} />
+                              {item.warningLabel || '확인 필요'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3.5 py-3">
+                      <p className="text-secondary-foreground whitespace-pre-line leading-relaxed">
+                        {item.value}
+                      </p>
+                      {item.note && (
+                        <p className="text-xs text-muted-foreground mt-1">{item.note}</p>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          {hiddenItems.length > 0 && (
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => setShowDefaults(v => !v)}
-                className="w-full inline-flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground py-2 transition-colors"
-              >
-                {showDefaults ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                기본 설정 {hiddenItems.length}개 {showDefaults ? '접기' : '보기'}
-              </button>
-              {showDefaults && hiddenItems.map(item => (
-                <ReviewItemCard key={item.key} item={item} />
-              ))}
-            </div>
-          )}
         </div>
 
         <div className="flex items-center justify-between pt-3 shrink-0 border-t border-secondary">
@@ -72,41 +95,6 @@ export default function PublishReviewModal({ open, onOpenChange, form, questions
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function ReviewItemCard({ item }) {
-  return (
-    <div className={cn(
-      'rounded-md border p-3 transition-colors',
-      item.severity === 'warning' ? 'border-warning-border bg-warning-bg/30' : 'border-border bg-white',
-    )}>
-      <div className="flex items-start gap-2.5">
-        <span className={cn(
-          'w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-semibold shrink-0',
-          item.severity === 'warning' ? 'bg-warning text-white' : 'bg-secondary text-secondary-foreground',
-        )}>
-          {item.no}
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-semibold text-foreground">{item.title}</p>
-            {item.severity === 'warning' && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-warning text-white">
-                <AlertCircle size={10} />
-                {item.warningLabel || '확인 필요'}
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-secondary-foreground mt-1 whitespace-pre-line leading-relaxed">
-            {item.value}
-          </p>
-          {item.note && (
-            <p className="text-xs text-muted-foreground mt-1">{item.note}</p>
-          )}
-        </div>
-      </div>
-    </div>
   )
 }
 
