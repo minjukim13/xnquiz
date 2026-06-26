@@ -56,10 +56,53 @@ export default function QuestionBankList() {
     [banks]
   )
 
-  // 검색 + 난이도 + 태그 필터까지만 적용한 중간 결과 (과목 선택은 별도). qHits = 본문으로 매칭된 문항 수.
-  const filteredBanks = useMemo(() => {
+  // 난이도 탭 카운트 — 현재 과목 + 검색 + 태그 범위에서 난이도 선택만 제외하고 집계
+  const diffCounts = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const inScope = banks.filter(b => {
+      const c = b.course || NO_COURSE
+      if (selectedCourse !== '__all__' && c !== selectedCourse) return false
+      if (filterTag !== 'all' && !(b.tags ?? []).includes(filterTag)) return false
+      if (term) {
+        const nameHit = b.name.toLowerCase().includes(term)
+        const qHit = getBankQuestions(b.id).some(q => questionSearchText(q).includes(term))
+        if (!nameHit && !qHit) return false
+      }
+      return true
+    })
+    const counts = { all: inScope.length, high: 0, medium: 0, low: 0, unset: 0 }
+    inScope.forEach(b => {
+      const d = b.difficulty || ''
+      if (d === 'high') counts.high++
+      else if (d === 'medium') counts.medium++
+      else if (d === 'low') counts.low++
+      else counts.unset++
+    })
+    return counts
+  }, [banks, search, filterTag, selectedCourse, getBankQuestions])
+
+  // 과목 탐색기 항목: 현재 과목(고정) → 전체 → 그 외 과목들. 각 개수는 과목별 전체 은행 수(검색/필터 무관, 순수 탐색용).
+  const courseNav = useMemo(() => {
+    const counts = {}
+    banks.forEach(b => {
+      const c = b.course || NO_COURSE
+      counts[c] = (counts[c] || 0) + 1
+    })
+    const others = [...new Set(banks.map(b => b.course || NO_COURSE))]
+      .filter(c => c !== CURRENT_COURSE)
+      .sort((a, b) => (a === NO_COURSE ? 1 : b === NO_COURSE ? -1 : a.localeCompare(b, 'ko')))
+    return {
+      current: { key: CURRENT_COURSE, label: '현재 과목', sub: CURRENT_COURSE, count: counts[CURRENT_COURSE] || 0 },
+      all: { key: '__all__', label: '전체 과목', count: banks.length },
+      others: others.map(c => ({ key: c, label: c === NO_COURSE ? '출처 미지정' : c, count: counts[c] || 0 })),
+    }
+  }, [banks])
+
+  // 선택 과목 범위 안에서 검색 + 난이도 + 태그 필터 + 정렬 적용. qHits = 본문으로 매칭된 문항 수.
+  const visibleBanks = useMemo(() => {
     const term = search.trim().toLowerCase()
     return banks
+      .filter(b => selectedCourse === '__all__' || (b.course || NO_COURSE) === selectedCourse)
       .map(b => {
         const qs = getBankQuestions(b.id)
         let qHits = 0
@@ -71,39 +114,15 @@ export default function QuestionBankList() {
         return { bank: b, count: qs.length, matched: !term || nameHit || qHits > 0, qHits: nameHit ? 0 : qHits }
       })
       .filter(x => x.matched)
-      .filter(x => filterDiff === 'all' || (x.bank.difficulty || '') === filterDiff)
+      .filter(x => filterDiff === 'all' || (filterDiff === 'unset' ? !x.bank.difficulty : (x.bank.difficulty || '') === filterDiff))
       .filter(x => filterTag === 'all' || (x.bank.tags ?? []).includes(filterTag))
-  }, [banks, search, filterDiff, filterTag, getBankQuestions])
-
-  // 과목 탐색기 항목: 현재 과목(고정) → 전체 → 그 외 과목들. 각 항목 옆 개수는 현재 필터 기준.
-  const courseNav = useMemo(() => {
-    const counts = {}
-    filteredBanks.forEach(x => {
-      const c = x.bank.course || NO_COURSE
-      counts[c] = (counts[c] || 0) + 1
-    })
-    const others = [...new Set(banks.map(b => b.course || NO_COURSE))]
-      .filter(c => c !== CURRENT_COURSE)
-      .sort((a, b) => (a === NO_COURSE ? 1 : b === NO_COURSE ? -1 : a.localeCompare(b, 'ko')))
-    return {
-      current: { key: CURRENT_COURSE, label: '현재 과목', sub: CURRENT_COURSE, count: counts[CURRENT_COURSE] || 0 },
-      all: { key: '__all__', label: '전체 과목', count: filteredBanks.length },
-      others: others.map(c => ({ key: c, label: c === NO_COURSE ? '출처 미지정' : c, count: counts[c] || 0 })),
-    }
-  }, [filteredBanks, banks])
-
-  // 선택 과목 + 정렬 적용
-  const visibleBanks = useMemo(() => {
-    const inCourse = selectedCourse === '__all__'
-      ? filteredBanks
-      : filteredBanks.filter(x => (x.bank.course || NO_COURSE) === selectedCourse)
-    return inCourse.slice().sort((a, b) => {
-      if (sortBy === 'name') return a.bank.name.localeCompare(b.bank.name, 'ko')
-      if (sortBy === 'count') return b.count - a.count
-      if (sortBy === 'created') return (b.bank.createdAt || '').localeCompare(a.bank.createdAt || '')
-      return (b.bank.updatedAt || '').localeCompare(a.bank.updatedAt || '') // updated
-    })
-  }, [filteredBanks, selectedCourse, sortBy])
+      .sort((a, b) => {
+        if (sortBy === 'name') return a.bank.name.localeCompare(b.bank.name, 'ko')
+        if (sortBy === 'count') return b.count - a.count
+        if (sortBy === 'created') return (b.bank.createdAt || '').localeCompare(a.bank.createdAt || '')
+        return (b.bank.updatedAt || '').localeCompare(a.bank.updatedAt || '') // updated
+      })
+  }, [banks, selectedCourse, search, filterDiff, filterTag, sortBy, getBankQuestions])
 
   const hasActiveFilter = search.trim() || filterDiff !== 'all' || filterTag !== 'all'
 
@@ -188,71 +207,9 @@ export default function QuestionBankList() {
           문제은행은 과목과 무관하게 내 모든 과목에서 공유됩니다. 좌측에서 과목을 골라 탐색하세요.
         </p>
 
-        {/* 검색/필터 툴바 (검색 상단, 필터 좌측·정렬/보기 우측 — 퀴즈 목록과 동일) */}
-        <div className="mt-1 mb-3 space-y-2">
-          <div className="relative w-full sm:max-w-xs">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="문제은행 이름 또는 문항 내용 검색"
-              className="w-full h-9 pl-9 pr-8 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X size={14} />
-              </button>
-            )}
-          </div>
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <DropdownSelect
-                value={filterDiff}
-                onChange={setFilterDiff}
-                options={[
-                  { value: 'all', label: '난이도 전체' },
-                  { value: 'high', label: '상' },
-                  { value: 'medium', label: '중' },
-                  { value: 'low', label: '하' },
-                ]}
-                size="md"
-                filterMode
-                ghost
-                className="w-[112px]"
-              />
-              {allTags.length > 0 && (
-                <DropdownSelect
-                  value={filterTag}
-                  onChange={setFilterTag}
-                  options={[
-                    { value: 'all', label: '태그 전체' },
-                    ...allTags.map(t => ({ value: t, label: t })),
-                  ]}
-                  size="md"
-                  filterMode
-                  ghost
-                  className="w-[130px] sm:w-[150px]"
-                />
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <DropdownSelect
-                value={sortBy}
-                onChange={setSortBy}
-                options={SORT_OPTIONS}
-                size="md"
-                ghost
-                className="w-[120px] sm:w-[136px]"
-              />
-              <ViewToggle value={viewMode} onChange={changeViewMode} />
-            </div>
-          </div>
-        </div>
-
-        {/* 탐색기: 좌측 과목 사이드바 + 우측 은행 목록 */}
+        {/* 탐색기: 좌측 과목 사이드바 + 우측(검색/필터/정렬 + 은행 목록) */}
         {banks.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 mt-1">
             <CourseSidebar
               nav={courseNav}
               selected={selectedCourse}
@@ -260,6 +217,55 @@ export default function QuestionBankList() {
             />
 
             <div className="flex-1 min-w-0">
+              {/* 검색/필터 툴바 — 선택 과목 범위에 적용 (검색 상단 → 난이도 탭·태그 좌측·정렬/보기 우측) */}
+              <div className="mb-3 space-y-2.5">
+                <div className="relative w-full sm:max-w-xs">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="문제은행 이름 또는 문항 내용 검색"
+                    className="w-full h-9 pl-9 pr-8 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-primary"
+                  />
+                  {search && (
+                    <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <DifficultyFilterTabs value={filterDiff} onChange={setFilterDiff} counts={diffCounts} />
+                    {allTags.length > 0 && (
+                      <DropdownSelect
+                        value={filterTag}
+                        onChange={setFilterTag}
+                        options={[
+                          { value: 'all', label: '태그 전체' },
+                          ...allTags.map(t => ({ value: t, label: t })),
+                        ]}
+                        size="md"
+                        filterMode
+                        ghost
+                        className="w-[130px] sm:w-[150px] shrink-0"
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <DropdownSelect
+                      value={sortBy}
+                      onChange={setSortBy}
+                      options={SORT_OPTIONS}
+                      size="md"
+                      ghost
+                      className="w-[120px] sm:w-[136px]"
+                    />
+                    <ViewToggle value={viewMode} onChange={changeViewMode} />
+                  </div>
+                </div>
+              </div>
+
               {visibleBanks.length === 0 ? (
                 <div className="py-16 text-center border border-dashed border-border rounded-xl">
                   <Search size={32} className="mx-auto mb-3 text-muted-foreground" />
@@ -372,6 +378,42 @@ export default function QuestionBankList() {
         />
       )}
     </>
+  )
+}
+
+// ── 난이도 필터 탭 ──────────────────────────────────────────────────────────
+const DIFF_TABS = [
+  { value: 'all', label: '전체' },
+  { value: 'high', label: DIFFICULTY_META.high.label },
+  { value: 'medium', label: DIFFICULTY_META.medium.label },
+  { value: 'low', label: DIFFICULTY_META.low.label },
+]
+
+function DifficultyFilterTabs({ value, onChange, counts }) {
+  return (
+    <div className="flex items-center gap-1 overflow-x-auto -mx-0.5 px-0.5 py-0.5">
+      {DIFF_TABS.map(t => {
+        const active = value === t.value
+        const count = counts[t.value] ?? 0
+        return (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => onChange(t.value)}
+            aria-pressed={active}
+            className={cn(
+              'shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors',
+              active
+                ? 'bg-primary text-white'
+                : 'bg-secondary text-secondary-foreground hover:bg-border'
+            )}
+          >
+            <span>{t.label}</span>
+            <span className={cn('text-[11px] tabular-nums', active ? 'text-white/70' : 'text-muted-foreground')}>{count}</span>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
