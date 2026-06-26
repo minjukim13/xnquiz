@@ -2,20 +2,22 @@ import { useState, useMemo } from 'react'
 import { useParams, Navigate, Link } from 'react-router-dom'
 import {
   Users, Hourglass, AlertTriangle, RefreshCw, Search,
-  CheckCircle2, Activity, Info, ShieldCheck,
+  CheckCircle2, Activity, ShieldCheck, UserPlus, Check,
 } from 'lucide-react'
 import { mockQuizzes } from '../data/mockData'
 import { getQuizQuestions, getQuizStudents } from '../data/mockData'
 import { useRole } from '../context/role'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { DropdownSelect } from '../components/DropdownSelect'
+import { Toast } from '@/components/ui/toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { buildActivityLogKey, loadActivityLog, summarizeActivityLog } from '@/utils/activityLog'
+import { getStudentGrantSummary, addRetakeGrant } from '@/utils/retakeGrants'
 import PageHeader from '../components/PageHeader'
+import DateTimePicker from '../components/DateTimePicker'
 import ActivityLogPanel from './GradingDashboard/ActivityLogPanel'
-import { isDeadlinePassed, getEffectiveDeadline } from '@/utils/deadlineUtils'
+import { isDeadlinePassed } from '@/utils/deadlineUtils'
 
 const FOCUS_LOSS_ANOMALY_THRESHOLD = 3
 const IDLE_ANOMALY_THRESHOLD_SEC = 10 * 60
@@ -72,9 +74,17 @@ export default function QuizMonitor() {
 
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [refreshTick, setRefreshTick] = useState(0)
+  const [grantTick, setGrantTick] = useState(0)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [selectedStudent, setSelectedStudent] = useState(null)
+  const [grantTarget, setGrantTarget] = useState(null)
+  const [toast, setToast] = useState(null)
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 4000)
+  }
 
   const students = useMemo(() => quiz ? getQuizStudents(id) : [], [quiz, id, refreshTick])
 
@@ -98,8 +108,9 @@ export default function QuizMonitor() {
     if (status === 'in_progress' && deadlinePassed) {
       anomalyReasons.push('마감 경과 후 응시 중')
     }
-    return { ...s, _status: status, _summary: summary, _idleSec: idleSec, _anomaly: anomalyReasons }
-  }), [students, id, nowMs, deadlinePassed])
+    const grant = getStudentGrantSummary(id, s.id)
+    return { ...s, _status: status, _summary: summary, _idleSec: idleSec, _anomaly: anomalyReasons, _grant: grant }
+  }), [students, id, nowMs, deadlinePassed, grantTick])
 
   const counts = useMemo(() => {
     const c = { total: enrichedStudents.length, in_progress: 0, not_started: 0, submitted: 0, anomaly: 0 }
@@ -129,6 +140,23 @@ export default function QuizMonitor() {
   const handleManualRefresh = () => {
     setNowMs(Date.now())
     setRefreshTick(t => t + 1)
+  }
+
+  const handleGrant = ({ additionalAttempts, retakeDeadline }) => {
+    if (!grantTarget) return
+    addRetakeGrant(id, {
+      studentId: grantTarget.id,
+      studentName: grantTarget.name,
+      studentNumber: grantTarget.studentId,
+      reason: '모니터링 개별 부여',
+      additionalAttempts,
+      retakeDeadline: retakeDeadline || null,
+      grantedAt: new Date().toISOString(),
+      scoreThreshold: null,
+    })
+    showToast(`${grantTarget.name} 학생에게 응시 기회 ${additionalAttempts}회를 부여했습니다.`)
+    setGrantTarget(null)
+    setGrantTick(t => t + 1)
   }
 
   return (
@@ -211,17 +239,37 @@ export default function QuizMonitor() {
         </div>
 
         {/* 필터/검색 */}
-        <div className="flex items-center gap-3 mb-3">
-          <DropdownSelect
-            value={filter}
-            onChange={setFilter}
-            options={FILTER_OPTIONS}
-            filterMode
-            ghost
-            size="md"
-            style={{ width: 140 }}
-          />
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-3 mb-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            {FILTER_OPTIONS.map(opt => {
+              const active = filter === opt.value
+              const count = opt.value === 'all' ? counts.total : counts[opt.value]
+              const isAnomaly = opt.value === 'anomaly'
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setFilter(opt.value)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all focus:outline-none',
+                    active && isAnomaly && 'bg-warning-foreground text-white border-warning-foreground',
+                    active && !isAnomaly && 'bg-primary text-white border-primary',
+                    !active && 'bg-white text-secondary-foreground border-border hover:border-muted-foreground/40',
+                  )}
+                >
+                  {isAnomaly && <AlertTriangle size={12} className={active ? 'text-white' : 'text-warning-foreground'} />}
+                  {opt.label}
+                  <span className={cn(
+                    'tabular-nums text-xs font-semibold',
+                    active ? 'text-white/90' : isAnomaly && count > 0 ? 'text-warning-foreground' : 'text-muted-foreground',
+                  )}>
+                    {count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          <div className="relative">
             <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -246,13 +294,13 @@ export default function QuizMonitor() {
             </div>
           ) : (
             <div className="divide-y divide-secondary">
-              <div className="hidden sm:grid grid-cols-[1fr_120px_120px_120px_160px_100px] gap-3 px-4 py-2 text-xs font-medium text-muted-foreground bg-background text-center">
+              <div className="hidden sm:grid grid-cols-[1fr_120px_110px_100px_150px_150px] gap-3 px-4 py-2 text-xs font-medium text-muted-foreground bg-background text-center">
                 <span className="text-left">학생</span>
                 <span>상태</span>
                 <span>시작 시각</span>
                 <span>경과 시간</span>
                 <span>이상 단서</span>
-                <span>활동 로그</span>
+                <span>작업</span>
               </div>
               {filtered.map(s => (
                 <StudentRow
@@ -260,6 +308,7 @@ export default function QuizMonitor() {
                   student={s}
                   nowMs={nowMs}
                   onOpenLog={() => setSelectedStudent(s)}
+                  onGrant={() => setGrantTarget(s)}
                 />
               ))}
             </div>
@@ -289,7 +338,90 @@ export default function QuizMonitor() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* 응시 기회 추가 부여 모달 */}
+      <GrantAttemptModal
+        key={grantTarget?.id || 'none'}
+        target={grantTarget}
+        onClose={() => setGrantTarget(null)}
+        onConfirm={handleGrant}
+      />
+
+      {toast && <Toast message={toast} />}
     </>
+  )
+}
+
+function GrantAttemptModal({ target, onClose, onConfirm }) {
+  // key={target.id} 로 리마운트되므로 입력값은 대상마다 자동 초기화됨
+  const [additionalAttempts, setAdditionalAttempts] = useState(1)
+  const [retakeDeadline, setRetakeDeadline] = useState('')
+
+  return (
+    <Dialog open={!!target} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader className="mb-5">
+          <DialogTitle>응시 기회 추가 부여</DialogTitle>
+          <DialogDescription>
+            {target ? `${target.name} (${target.studentId}) 학생에게 추가 응시 기회를 부여합니다.` : ''}
+          </DialogDescription>
+        </DialogHeader>
+
+        {target && (
+          <div className="flex flex-col gap-5">
+            {target._grant && (
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-sm text-primary">
+                <Check size={14} className="shrink-0" />
+                <span>이미 추가 응시 기회 {target._grant.totalAttempts}회가 부여되어 있습니다.</span>
+              </div>
+            )}
+
+            <div className="bg-secondary rounded-xl p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-[15px] font-semibold text-foreground">추가 응시 횟수</p>
+                <div className="flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setAdditionalAttempts(prev => Math.max(1, prev - 1))}
+                    disabled={additionalAttempts <= 1}
+                    className={cn(
+                      'w-9 h-9 flex items-center justify-center rounded-l-lg border border-border border-r-0 bg-white text-lg font-medium',
+                      additionalAttempts <= 1 ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer text-secondary-foreground',
+                    )}
+                  >-</button>
+                  <span className="w-12 h-9 flex items-center justify-center text-[15px] font-bold text-foreground border-t border-b border-border bg-white">
+                    {additionalAttempts}회
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setAdditionalAttempts(prev => Math.min(5, prev + 1))}
+                    disabled={additionalAttempts >= 5}
+                    className={cn(
+                      'w-9 h-9 flex items-center justify-center rounded-r-lg border border-border border-l-0 bg-white text-lg font-medium',
+                      additionalAttempts >= 5 ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer text-secondary-foreground',
+                    )}
+                  >+</button>
+                </div>
+              </div>
+
+              <div className="h-px bg-border my-5" />
+
+              <p className="text-[15px] font-semibold text-foreground mb-1.5">재응시 기한</p>
+              <p className="text-[13px] text-muted-foreground mb-3">미설정 시 기존 퀴즈 마감일을 따릅니다.</p>
+              <DateTimePicker value={retakeDeadline} onChange={setRetakeDeadline} />
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2.5 pt-5">
+          <Button variant="outline" onClick={onClose}>취소</Button>
+          <Button onClick={() => onConfirm({ additionalAttempts, retakeDeadline })}>
+            <UserPlus size={14} />
+            기회 부여
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -316,15 +448,27 @@ function SummaryCard({ label, value, total, icon: Icon, tone, hint }) {
   )
 }
 
-function StudentRow({ student, nowMs, onOpenLog }) {
+function StudentRow({ student, nowMs, onOpenLog, onGrant }) {
   const status = student._status
   const meta = STATUS_META[status]
   const anomalies = student._anomaly
+  const grant = student._grant
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_120px_160px_100px] gap-3 px-4 py-3 items-center hover:bg-background transition-colors">
+    <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_110px_100px_150px_150px] gap-3 px-4 py-3 items-center hover:bg-background transition-colors">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">{student.name}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="text-sm font-medium text-foreground truncate">{student.name}</p>
+          {grant && (
+            <span
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent text-primary shrink-0"
+              title={`추가 응시 기회 ${grant.totalAttempts}회 부여됨`}
+            >
+              <UserPlus size={9} />
+              기회 +{grant.totalAttempts}
+            </span>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground truncate">{student.studentId} · {student.department}</p>
       </div>
       <div className="sm:text-center">
@@ -357,10 +501,14 @@ function StudentRow({ student, nowMs, onOpenLog }) {
           ))
         )}
       </div>
-      <div className="sm:text-center">
+      <div className="flex flex-col items-start sm:items-center gap-1">
         <Button variant="ghost" size="sm" onClick={onOpenLog} className="text-xs">
           <Activity size={13} />
           로그 보기
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onGrant} className="text-xs text-primary hover:text-primary">
+          <UserPlus size={13} />
+          기회 부여
         </Button>
       </div>
     </div>

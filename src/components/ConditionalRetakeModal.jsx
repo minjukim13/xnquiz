@@ -4,23 +4,9 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import DateTimePicker from './DateTimePicker'
+import { getRetakeRecords, saveRetakeRecords } from '@/utils/retakeGrants'
 
 import { UserCheck, ChevronRight, ChevronLeft, Check } from 'lucide-react'
-
-const STORAGE_KEY = 'xnq_conditional_retakes'
-
-function getRetakeRecords() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {}
-  } catch { return {} }
-}
-
-function saveRetakeRecords(records) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
-  } catch { /* ignore */ }
-}
 
 export default function ConditionalRetakeModal({ open, onOpenChange, quizId, quizInfo, students, onComplete }) {
   const [step, setStep] = useState(1)
