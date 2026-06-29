@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Navigate, Link } from 'react-router-dom'
 import {
   Users, Hourglass, AlertTriangle, RefreshCw, Search,
   CheckCircle2, Activity, UserPlus, TimerOff,
 } from 'lucide-react'
 import { mockQuizzes } from '../data/mockData'
-import { getQuizQuestions, getQuizStudents } from '../data/mockData'
+import { getQuiz, getQuizQuestions, listAttempts, isApiMode } from '@/lib/data'
 import { useRole } from '../context/role'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -70,8 +70,10 @@ export default function QuizMonitor() {
   const { id } = useParams()
   const { role } = useRole()
 
-  const quiz = mockQuizzes.find(q => q.id === id)
-  const questions = useMemo(() => quiz ? getQuizQuestions(id) : [], [quiz, id])
+  const [quiz, setQuiz] = useState(() => (isApiMode() ? null : (mockQuizzes.find(q => q.id === id) ?? null)))
+  const [loaded, setLoaded] = useState(() => !isApiMode())
+  const [questions, setQuestions] = useState([])
+  const [students, setStudents] = useState([])
 
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [refreshTick, setRefreshTick] = useState(0)
@@ -87,7 +89,38 @@ export default function QuizMonitor() {
     setTimeout(() => setToast(null), 4000)
   }
 
-  const students = useMemo(() => quiz ? getQuizStudents(id) : [], [quiz, id, refreshTick])
+  // 퀴즈 메타·문항 로드 (mock/api 데이터 레이어 자동 분기)
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const [q, qs] = await Promise.all([getQuiz(id), getQuizQuestions(id)])
+        if (!mounted) return
+        if (q) setQuiz(q)
+        setQuestions(qs ?? [])
+      } catch (err) {
+        console.error('[QuizMonitor] 퀴즈/문항 로드 실패', err)
+      } finally {
+        if (mounted) setLoaded(true)
+      }
+    })()
+    return () => { mounted = false }
+  }, [id])
+
+  // 응시자 명부 로드 (새로고침 시 재조회)
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const rows = await listAttempts({ quizId: id })
+        if (mounted) setStudents(rows ?? [])
+      } catch (err) {
+        console.error('[QuizMonitor] 응시자 로드 실패', err)
+        if (mounted) setStudents([])
+      }
+    })()
+    return () => { mounted = false }
+  }, [id, refreshTick])
 
   const deadlinePassed = quiz ? isDeadlinePassed(quiz, new Date(nowMs)) : false
   // 마감(상태가 open이 아니거나 마감 시각 경과)되면 진행 중 표시를 멈춘다
@@ -142,6 +175,7 @@ export default function QuizMonitor() {
   }), [enrichedStudents, filter, search])
 
   if (role !== 'instructor') return <Navigate to="/" replace />
+  if (!loaded) return <div className="pt-10 text-sm text-muted-foreground">로딩 중</div>
   if (!quiz) return <Navigate to="/" replace />
 
   const handleManualRefresh = () => {

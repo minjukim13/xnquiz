@@ -41,6 +41,8 @@ function resolveDisplayStatus(quiz) {
   if (!quiz) return null
   if (isScheduled(quiz)) return 'scheduled'
   if (quiz.status === 'open' && isDeadlinePassed(quiz)) return 'closed'
+  // 미사용 'grading' 상태는 방어적으로 '마감'으로 정규화 (QuizList getProgressStatus 와 일치)
+  if (quiz.status === 'grading') return 'closed'
   return quiz.status
 }
 
@@ -468,7 +470,8 @@ export default function QuizDetail() {
 
   const scheduled = isScheduled(quiz)
   const displayStatus = resolveDisplayStatus(quiz)
-  const canGrade = !scheduled && (quiz.status === 'closed' || quiz.status === 'open')
+  // 채점 가능 여부는 정규화된 표시 상태 기준 (모니터링 버튼 노출 조건과 일관)
+  const canGrade = displayStatus === 'open' || displayStatus === 'closed'
   const canStats = quiz.status !== 'draft'
   const pastDue = isDeadlinePassed(quiz)
   const isOpenForStudent = quiz.status === 'open' && !scheduled && !pastDue
