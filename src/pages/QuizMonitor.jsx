@@ -17,7 +17,7 @@ import { getStudentGrantSummary, addRetakeGrant } from '@/utils/retakeGrants'
 import PageHeader from '../components/PageHeader'
 import DateTimePicker from '../components/DateTimePicker'
 import ActivityLogPanel from './GradingDashboard/ActivityLogPanel'
-import { isDeadlinePassed } from '@/utils/deadlineUtils'
+import { isDeadlinePassed, getEffectiveDeadline } from '@/utils/deadlineUtils'
 
 const FOCUS_LOSS_ANOMALY_THRESHOLD = 3
 const IDLE_ANOMALY_THRESHOLD_SEC = 10 * 60
@@ -45,22 +45,23 @@ function formatElapsed(startTimeIso, nowMs) {
   return `${m}분`
 }
 
-function classifyStudent(student) {
+function classifyStudent(student, quizClosed) {
   if (student.submitted) return 'submitted'
-  if (student.startTime) return 'in_progress'
-  return 'not_started'
+  // 마감 전 + 응시 시작 = '응시 중'. 그 외(미시작·마감 후 미제출)는 모두 '미제출'로 통일한다
+  if (!quizClosed && student.startTime) return 'in_progress'
+  return 'incomplete'
 }
 
 const STATUS_META = {
   in_progress: { label: '응시 중', className: 'bg-accent text-primary border-primary/30' },
-  not_started: { label: '미시작', className: 'bg-secondary text-secondary-foreground border-border' },
+  incomplete:  { label: '미제출', className: 'bg-warning-bg text-warning-foreground border-warning-border' },
   submitted:   { label: '제출 완료', className: 'bg-success-bg text-success-foreground border-success-border' },
 }
 
 const FILTER_OPTIONS = [
   { value: 'all', label: '전체' },
   { value: 'in_progress', label: '응시 중' },
-  { value: 'not_started', label: '미시작' },
+  { value: 'incomplete', label: '미제출' },
   { value: 'submitted', label: '제출 완료' },
   { value: 'anomaly', label: '이상 후보' },
 ]
@@ -89,9 +90,14 @@ export default function QuizMonitor() {
   const students = useMemo(() => quiz ? getQuizStudents(id) : [], [quiz, id, refreshTick])
 
   const deadlinePassed = quiz ? isDeadlinePassed(quiz, new Date(nowMs)) : false
+  // 마감(상태가 open이 아니거나 마감 시각 경과)되면 진행 중 표시를 멈춘다
+  const quizClosed = quiz ? (quiz.status !== 'open' || deadlinePassed) : false
+  // 경과 시간 동결 기준: 실제 마감 시각(없으면 현재 시각 폴백)
+  const effectiveDeadline = quiz ? getEffectiveDeadline(quiz) : null
+  const freezeMs = effectiveDeadline ? effectiveDeadline.getTime() : nowMs
 
   const enrichedStudents = useMemo(() => students.map(s => {
-    const status = classifyStudent(s)
+    const status = classifyStudent(s, quizClosed)
     const logKey = buildActivityLogKey(id, s.id)
     const log = loadActivityLog(logKey)
     const summary = summarizeActivityLog(log)
@@ -105,15 +111,16 @@ export default function QuizMonitor() {
       const min = Math.floor(idleSec / 60)
       anomalyReasons.push(`최근 활동 없음 ${min}분`)
     }
-    if (status === 'in_progress' && deadlinePassed) {
-      anomalyReasons.push('마감 경과 후 응시 중')
-    }
+    // 진행 중: 현재까지 경과 / 미제출(마감 후): 마감 시각에 동결 / 그 외: 표시 없음
+    const elapsed = status === 'in_progress' ? formatElapsed(s.startTime, nowMs)
+      : status === 'incomplete' ? formatElapsed(s.startTime, freezeMs)
+      : '-'
     const grant = getStudentGrantSummary(id, s.id)
-    return { ...s, _status: status, _summary: summary, _idleSec: idleSec, _anomaly: anomalyReasons, _grant: grant }
-  }), [students, id, nowMs, deadlinePassed, grantTick])
+    return { ...s, _status: status, _summary: summary, _idleSec: idleSec, _anomaly: anomalyReasons, _elapsed: elapsed, _grant: grant }
+  }), [students, id, nowMs, quizClosed, freezeMs, grantTick])
 
   const counts = useMemo(() => {
-    const c = { total: enrichedStudents.length, in_progress: 0, not_started: 0, submitted: 0, anomaly: 0 }
+    const c = { total: enrichedStudents.length, in_progress: 0, incomplete: 0, submitted: 0, anomaly: 0 }
     enrichedStudents.forEach(s => {
       c[s._status]++
       if (s._anomaly.length > 0) c.anomaly++
@@ -194,21 +201,23 @@ export default function QuizMonitor() {
           </div>
         )}
 
-        {/* 응시 현황 카드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        {/* 응시 현황 카드 — '미제출'로 용어 통일, 마감 전에만 '응시 중' 노출 */}
+        <div className={cn('grid grid-cols-2 gap-3 mb-4', quizClosed ? 'md:grid-cols-3' : 'md:grid-cols-4')}>
+          {!quizClosed && (
+            <SummaryCard
+              label="응시 중"
+              value={counts.in_progress}
+              total={counts.total}
+              icon={Activity}
+              tone="primary"
+            />
+          )}
           <SummaryCard
-            label="응시 중"
-            value={counts.in_progress}
+            label="미제출"
+            value={counts.incomplete}
             total={counts.total}
-            icon={Activity}
-            tone="primary"
-          />
-          <SummaryCard
-            label="미시작"
-            value={counts.not_started}
-            total={counts.total}
-            icon={Hourglass}
-            tone="muted"
+            icon={quizClosed ? TimerOff : Hourglass}
+            tone={quizClosed ? 'warning' : 'muted'}
           />
           <SummaryCard
             label="제출 완료"
@@ -230,7 +239,12 @@ export default function QuizMonitor() {
         {/* 검색/필터 툴바 — 1행: 상태 칩 / 2행: 검색 */}
         <div className="flex flex-col gap-3 mb-3">
           <div className="flex items-center gap-2 flex-wrap">
-            {FILTER_OPTIONS.map(opt => {
+            {FILTER_OPTIONS.filter(opt => {
+              // 현재 상태에 해당 학생이 없는 칩은 숨겨 혼란을 줄인다 (전체/선택된 칩은 항상 노출)
+              if (opt.value === 'all' || filter === opt.value) return true
+              const c = opt.value === 'anomaly' ? counts.anomaly : counts[opt.value]
+              return c > 0
+            }).map(opt => {
               const active = filter === opt.value
               const count = opt.value === 'all' ? counts.total : counts[opt.value]
               const isAnomaly = opt.value === 'anomaly'
@@ -293,7 +307,6 @@ export default function QuizMonitor() {
                 <StudentRow
                   key={s.id}
                   student={s}
-                  nowMs={nowMs}
                   onOpenLog={() => setSelectedStudent(s)}
                   onGrant={() => setGrantTarget(s)}
                 />
@@ -437,7 +450,7 @@ function SummaryCard({ label, value, total, icon: Icon, tone, hint }) {
   )
 }
 
-function StudentRow({ student, nowMs, onOpenLog, onGrant }) {
+function StudentRow({ student, onOpenLog, onGrant }) {
   const status = student._status
   const meta = STATUS_META[status]
   const anomalies = student._anomaly
@@ -472,7 +485,7 @@ function StudentRow({ student, nowMs, onOpenLog, onGrant }) {
         {student.startTime ? formatDateTime(student.startTime).slice(5) : '-'}
       </div>
       <div className="text-xs text-secondary-foreground tabular-nums sm:text-center">
-        {status === 'in_progress' ? formatElapsed(student.startTime, nowMs) : '-'}
+        {student._elapsed}
       </div>
       <div className="flex flex-wrap gap-1 sm:justify-center">
         {anomalies.length === 0 ? (
