@@ -1,12 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import TypeBadge from '../../components/TypeBadge'
 import { Download, FolderDown, ChevronDown, ChevronUp } from 'lucide-react'
 import ResponsesTab from './ResponsesTab'
-import AcceptedAnswerModal from './AcceptedAnswerModal'
-import RegradeOptionsModal from '../../components/RegradeOptionsModal'
+import ManualRegradeWizard from './ManualRegradeWizard'
 import { RichTextRenderer } from '../../components/RichText'
 import { regradeQuestion } from '@/lib/data'
 import { getVoidedQuestions, setQuestionVoided } from '@/utils/voidedQuestions'
@@ -22,17 +20,13 @@ const REGRADE_OPTION_LABELS = {
 
 // ─── 문항 중심: 우측 상세 패널 ─────────────────────────────────────────────
 export default function QuestionDetailPanel({ question, students, search, onSearch, onExcel, quizId, onGradeSaved, gradeVersion, excelRows, onExcelRowsConsumed, showToast }) {
-  const navigate = useNavigate()
   const [changedStudentIds, setChangedStudentIds] = useState(new Set())
   const [clearPendingSignal, setClearPendingSignal] = useState(0)
   const [infoCollapsed, setInfoCollapsed] = useState(false)
-  const [showAcceptedModal, setShowAcceptedModal] = useState(false)
   const [showRegradeModal, setShowRegradeModal] = useState(false)
   const [regradeBusy, setRegradeBusy] = useState(false)
   const [regradeTick, setRegradeTick] = useState(0)
 
-  // 추가 인정 답안 등록 대상 유형 (XQ-D-06 R-008: 단답형)
-  const canAcceptAnswer = question.type === 'short_answer'
   // 재채점 대상 = 이 문항을 받은 제출 학생 (XQ-D-06 R-008: 채점 화면 문항 중심)
   const submittedCount = students.filter(s => s.submitted).length
   // 채점 제외(무효화) 여부 (regradeTick 으로 적용 후 재조회)
@@ -47,8 +41,8 @@ export default function QuestionDetailPanel({ question, students, search, onSear
     showToast?.('채점 제외를 해제했습니다')
   }
 
-  // 재채점 실행 (현재 정답 기준 재채점 / 전원 만점 / 채점에서 제외) — 응시본 기준
-  const handleRegradeConfirm = async (option) => {
+  // 재채점 실행 (정답 변경 반영 + 현재/이전 정답 기준 재채점 / 전원 만점 / 채점에서 제외) — 응시본 기준
+  const handleRegradeConfirm = async (option, ctx) => {
     // 채점에서 제외: 재계산 대신 총점에서 제외 (XQ-D-06 R-008 문항 무효화)
     if (option === 'exclude') {
       setQuestionVoided(quizId, question.id, true)
@@ -60,7 +54,9 @@ export default function QuestionDetailPanel({ question, students, search, onSear
     }
     setRegradeBusy(true)
     try {
-      const result = await regradeQuestion(quizId, question, option, question)
+      // 위저드 1단계에서 정답을 바꿨으면 question 은 이미 새 정답으로 변경됨.
+      // award_both 비교를 위해 변경 전 스냅샷(ctx.oldQuestion)을 이전 정답으로 전달.
+      const result = await regradeQuestion(quizId, question, option, ctx?.oldQuestion ?? question)
       const count = result?.regradedStudents ?? result?.changedCount ?? 0
       try {
         const existing = JSON.parse(localStorage.getItem('xnq_regrade_log') || '{}')
@@ -272,11 +268,6 @@ export default function QuestionDetailPanel({ question, students, search, onSear
               제출물 일괄 다운로드
             </Button>
           )}
-          {canAcceptAnswer && (
-            <Button variant="outline" onClick={() => setShowAcceptedModal(true)}>
-              추가 인정 답안
-            </Button>
-          )}
           <Button variant="outline" disabled={submittedCount === 0} onClick={() => setShowRegradeModal(true)}>
             재채점
           </Button>
@@ -308,29 +299,14 @@ export default function QuestionDetailPanel({ question, students, search, onSear
 
       <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} changedStudentIds={changedStudentIds} onStudentChanged={id => setChangedStudentIds(prev => new Set(prev).add(id))} clearPendingSignal={clearPendingSignal} />
 
-      {showAcceptedModal && (
-        <AcceptedAnswerModal
+      {showRegradeModal && (
+        <ManualRegradeWizard
           question={question}
           students={students}
           quizId={quizId}
-          onClose={() => setShowAcceptedModal(false)}
-          onApplied={() => {
-            setShowAcceptedModal(false)
-            setRegradeTick(t => t + 1)
-            onGradeSaved?.()
-          }}
-          showToast={showToast}
-        />
-      )}
-
-      {showRegradeModal && (
-        <RegradeOptionsModal
-          mode="manual"
           submittedCount={submittedCount}
-          questionLabel={`Q${question.order ?? ''}`.trim()}
           onConfirm={handleRegradeConfirm}
           onCancel={() => { if (!regradeBusy) setShowRegradeModal(false) }}
-          onEditQuestion={() => navigate(`/quiz/${quizId}/edit?tab=questions&editQuestion=${question.id}`)}
         />
       )}
 

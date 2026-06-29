@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-const REGRADE_OPTIONS = [
+export const REGRADE_OPTIONS = [
   {
     id: 'award_both',
     title: '이전 정답과 수정된 정답 모두 인정',
