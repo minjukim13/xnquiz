@@ -642,7 +642,7 @@ function QuizCard({ quiz, onCopy, onExport, onDelete, onToggleVisibility }) {
   const hasTakers = (quiz.submitted ?? 0) > 0 || hasAttemptSnapshot(quiz.id)
   const hideBlocked = isVisible && hasTakers // 응시본 있으면 비공개 전환 불가
 
-  const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
+  const canGrade = !scheduled && (quiz.status === 'closed' || quiz.status === 'open')
   // 설정 정보 그룹 (#2)
   const hasWeekSession = quiz.week > 0 || quiz.session > 0
   // 응시 정보는 임시저장/예정에는 없음 — 그 외 상태에서만 우측에 표시 (#4·#6)
@@ -1699,9 +1699,8 @@ function StudentQuizCard({ quiz, studentId, scheduled = false, apiAttempts = nul
   const [showHistory, setShowHistory] = useState(false)
   const ddayBadge = getDdayBadge(quiz)
   const pastDue = isDeadlinePassed(quiz)
-  // 학생은 진행기간 내라면 grading 상태에서도 응시 가능
-  const isOpen = (quiz.status === 'open' || quiz.status === 'grading') && !scheduled && !pastDue
-  // 학생용 status 라벨은 진행중/마감/예정 으로만 단순화 — '채점중' 은 학생에게 노출하지 않음
+  const isOpen = quiz.status === 'open' && !scheduled && !pastDue
+  // 학생용 status 라벨은 진행중/마감/예정 으로만 단순화
   const studentDisplayStatus = scheduled ? 'scheduled' : isOpen ? 'open' : 'closed'
 
   // 응시완료/미응시 항상 표시 (예정 상태는 응시 전 단계라 배지 생략)

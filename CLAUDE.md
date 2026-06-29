@@ -48,7 +48,7 @@
 - `saveStudentAttempt` 기반 로컬 응시 이력은 mock 전용. api 모드에서는 `POST /api/attempts` → `PUT /answers` → `POST /submit` 플로우로 서버에 기록
 - 실데이터 금지 원칙은 mock/api 모두 공통 (시드의 `DEMO_NAMES`, `*@xn.test` 이메일)
 
-## Design System (Toss Style)
+## Design System (Xinics DS)
 
 ### 색상: 반드시 시맨틱 Tailwind 클래스 사용, hex 하드코딩 금지
 
@@ -68,7 +68,7 @@
 
 ### Button 사용 규칙
 
-- 기본 액션: `<Button>` (className 오버라이드 금지, default variant가 Toss Blue)
+- 기본 액션: `<Button>` (className 오버라이드 금지, default variant가 기본 파란 #3182F6)
 - 보조 액션: `<Button variant="outline">`
 - 연한 파란: `<Button variant="soft">`
 - 최소: `<Button variant="ghost">`

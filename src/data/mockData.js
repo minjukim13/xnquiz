@@ -104,13 +104,13 @@ const _staticQuizIds = new Set()
 
 export const mockQuizzes = [
   {
-    // grading 상태 / 성적 비공개 (채점 중 공개 안 함)
+    // 마감 상태 / 채점 진행 중 / 성적 비공개 (공개 안 함)
     id: '1',
     title: '중간고사 - 데이터베이스 설계 및 SQL',
     assignmentGroupId: 'midterm',
     description: 'ERD 설계, SQL 쿼리 작성, 정규화 전 범위를 다룹니다. 오픈북 불가, 제한 시간 내 제출하세요.',
     course: 'CS301 데이터베이스',
-    status: 'grading',
+    status: 'closed',
     visible: true,
     hasFileUpload: true,
     startDate: '2026-04-03 09:00',
@@ -264,12 +264,12 @@ export const mockQuizzes = [
     scoreRevealTiming: 'after_due',
   },
   {
-    // grading 상태 / 서술형 수동채점 / 마감 후 공개
+    // 마감 상태 / 서술형 수동채점 / 마감 후 공개
     id: '7',
     title: '5주차 서술형 과제 - 정규화 단계 분석',
     assignmentGroupId: 'homework',
     course: 'CS301 데이터베이스',
-    status: 'grading',
+    status: 'closed',
     visible: true,
     startDate: '2026-03-17 09:00',
     dueDate: '2026-03-21 23:59',
@@ -573,7 +573,7 @@ export const mockQuizzes = [
     assignmentGroupId: 'homework',
     description: '이진 트리의 전위/중위/후위 순회를 의사 코드로 작성하고 시간복잡도를 분석하시오.',
     course: 'CS102 자료구조',
-    status: 'grading',
+    status: 'closed',
     visible: true,
     startDate: '2026-04-07 09:00',
     dueDate: '2026-04-14 23:59',
@@ -626,7 +626,7 @@ export const mockQuizzes = [
     assignmentGroupId: 'final',
     description: '최단 경로(다익스트라/벨만-포드), 최소 신장 트리(MST), 위상 정렬을 종합 평가합니다.',
     course: 'CS401 알고리즘',
-    status: 'grading',
+    status: 'closed',
     visible: true,
     startDate: '2026-04-22 09:00',
     dueDate: '2026-04-22 11:30',
@@ -654,7 +654,7 @@ export const mockQuizzes = [
     assignmentGroupId: 'quiz',
     description: '랜덤 출제 그룹 기능 시연용 퀴즈. 학생마다 DB 종합 문제집에서 서로 다른 3문항이 출제됩니다.',
     course: 'CS301 데이터베이스',
-    status: 'grading',
+    status: 'closed',
     visible: true,
     startDate: '2026-05-10 09:00',
     dueDate: '2026-05-10 18:00',

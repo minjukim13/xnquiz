@@ -1,0 +1,163 @@
+/* ============================================================
+   Xinics Design System — Tokens
+   ============================================================
+   1차 산출물. CSS 변수 1개 파일.
+   다른 제품에서 이 파일만 import 하면 색/spacing/radius 일관 적용.
+
+   분류:
+   - Brand      : 회사 정체성, 학교별 가변 (멀티 테넌트 오버라이드 대상)
+   - Semantic   : 의미 기반 색, 확정
+   - Typography : 폰트 패밀리, 위계, 확정
+   - Spacing    : 4의 배수 스케일, 확정
+   - Radius     : 모서리 반경 스케일, 확정
+   - Shadow     : 그림자 스케일, 확정 (단순)
+   - Motion     : 마이크로 인터랙션 duration/easing (베이스, 학교 무관)
+   - Focus/State: 컴포넌트 상태 표준 (focus ring, disabled opacity)
+
+   원칙:
+   - placeholder 값은 반드시 /* TODO: */ 주석으로 표시
+   - 색과 무관한 토큰(spacing/radius/typography)은 즉시 확정값으로 사용
+   ============================================================ */
+
+:root {
+  /* ── Brand (학교별 가변 토큰. 기준값 = 통합개발서버 LMS 메인) ───── */
+  /* Xinics LMS 는 멀티 테넌트 (KAIST/고려대/서울대 등 학교별 운영). 메인 컬러는 학교 브랜드 따라 오버라이드. */
+  /* 본 토큰들은 통합개발서버 메인을 기준값으로 잡아둠 — 실제 운영 인스턴스에선 학교별로 교체. */
+  --color-brand-primary:        #157EF4;  /* 기준값. 학교별 오버라이드 (예: 고려대 적색, 서울대 청색). 통합개발서버 LMS 메인 (`_legacy-source-analysis.md` 2.1) */
+  --color-brand-primary-hover:  #1B64DA;  /* 기준값 -10%L. 오버라이드 시 함께 재도출 */
+  --color-brand-primary-active: #1454BA;  /* 기준값 -15%L. Button active state. 오버라이드 시 함께 재도출 (Round 1 추가) */
+  --color-brand-primary-soft:   #E8F3FF;  /* 기준값 매우 연한 배경. 오버라이드 시 함께 재도출 */
+  --color-brand-secondary:      #64748B;  /* 보조 (학교 공통 vs 가변 미결, Slate 임시) */
+
+  /* ── Semantic (확정) ───────── */
+  --color-success:      #16A34A;  /* v1.2-a 적용 (이전 #31B46E) */
+  --color-success-bg:   #E6F7EE;  /* v1.2-a 적용 (이전 #EAF8F1) */
+  --color-success-text: #0F7A37;  /* v1.2-a 신설. CriticalAlert / HelpPanel 본문 톤 정합 */
+  --color-warning:      #FF9500;  /* v1.2-a 적용 (이전 #F59E0B) */
+  --color-warning-bg:   #FFF4E0;  /* v1.2-a 적용 (이전 #FFF7E6) */
+  --color-warning-text: #A85800;  /* v1.2-a 신설. AA 명암비 통과용 본문 색 */
+  --color-danger:        #F04452;
+  --color-danger-hover:  #D9303D;  /* -10%L. Destructive Button hover (Round 1 추가, 베이스 확정) */
+  --color-danger-active: #C42531;  /* -15%L. Destructive Button active (Round 1 추가, 베이스 확정) */
+  --color-danger-bg:     #FDECEE;  /* v1.2-a 적용 (이전 #FEECEE) */
+  --color-danger-text:   #B81E2A;  /* v1.2-a 신설. CriticalAlert 본문 톤 정합 */
+  --color-info:         var(--color-brand-primary);
+  --color-info-bg:      var(--color-brand-primary-soft);
+
+  /* ── Surface / Foreground (확정, 무채색 베이스, cool slate) ── */
+  /* LMS 관리자 / 교수자 = 정보 + 도구 톤 = cool gray 정합. */
+  --color-background:        #FFFFFF;
+  --color-surface:           #F8FAFC;  /* slate-50 */
+  --color-surface-muted:     #F1F5F9;  /* slate-100 */
+  --color-foreground:        #0F172A;  /* slate-900 톤 */
+  --color-foreground-muted:  #475569;  /* slate-600 */
+  --color-foreground-subtle: #6B7280;  /* gray-500. 2026-05-12 명도 격상 (구 #94A3B8 = 2.6:1 미달 → 현 4.8:1 AA 통과). caption / placeholder 용 */
+  --color-border:            #E2E8F0;  /* slate-200, 가시성 ↑ */
+  --color-border-strong:     #CBD5E1;  /* slate-300 */
+
+  /* ── Typography (확정) ───────────────────────────────────── */
+  --font-sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'D2Coding', monospace;
+
+  /* 위계 (xnquiz 의 검증된 값을 시드로) */
+  --font-size-h1:      1.5rem;     /* 24px */
+  --font-size-h2:      1.25rem;    /* 20px */
+  --font-size-h3:      1.125rem;   /* 18px */
+  --font-size-h4:      1rem;       /* 16px */
+  --font-size-body:    1rem;       /* 16px */
+  --font-size-caption: 0.875rem;   /* 14px */
+  --font-size-small:   0.75rem;    /* 12px */
+
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+
+  --line-height-tight:   1.25;
+  --line-height-normal:  1.5;
+  --line-height-relaxed: 1.6;
+
+  --letter-spacing-tight:  -0.025em;
+  --letter-spacing-normal: 0;
+
+  /* ── Spacing (확정, 4 배수 스케일) ───────────────────────── */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Radius (확정, 균형값) ──────────────────── */
+  --radius-none: 0;
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-full: 9999px;
+
+  /* ── Height (확정, 공용 / 2026-05-07 Round 2 신설) ──────── */
+  /* Button + Input + Select + TextArea + Badge 등 인터랙티브 컴포넌트 공용. 폼 inline 정렬 정합 */
+  --height-xs: 28px;  /* 표 inline 액션, 좁은 영역 (xs 데스크톱 전용 가드) */
+  --height-sm: 32px;  /* 보조 액션, 좁은 폼 */
+  --height-md: 40px;  /* 일반 (기본) */
+  --height-lg: 48px;  /* 강조 CTA, 빈 화면 액션 */
+
+  /* ── Shadow (확정, 3단계, 다중 레이어 정밀 톤) ─── */
+  /* slate-900 (#0F172A → 15,23,42) 기반. 정밀 도구 톤. */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 6px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 4px 6px rgba(15, 23, 42, 0.05), 0 10px 15px rgba(15, 23, 42, 0.10);
+
+  /* ── Z-index (확정 / Round 4 Overlay 묶음 진입 시 tooltip 추가) ────────── */
+  /* 7 단계 스케일. 100 단위 + 의미 분리 (backdrop ≠ modal content). */
+  /* tooltip > toast > modal > overlay > sticky > dropdown 순서 — modal 안에서도 tooltip 노출 가능. */
+  --z-base:     0;
+  --z-dropdown: 100;  /* Select panel, Popover (트리거 종속 부유) */
+  --z-sticky:   200;  /* sticky 헤더/푸터/사이드바 */
+  --z-overlay:  300;  /* Modal backdrop, drawer backdrop (dim 레이어) */
+  --z-modal:    400;  /* Modal 본체 (backdrop 위) */
+  --z-toast:    500;  /* Toast, 알림 (Round 5+ 도입 시 활성) */
+  --z-tooltip:  600;  /* Tooltip (전체 최상위 — modal 위 hover 케이스 대응, Round 4 추가) */
+
+  /* ── Backdrop (확정 / Round 4 Modal 전용) ────────────────── */
+  /* 절대 검정 + alpha 40%. 학교별 brand 무관 (베이스 층). foreground 기반 도출 X — 학교별 light 톤 케이스 시각 무게 약화 회피. */
+  --color-backdrop: rgba(0, 0, 0, 0.4);
+
+  /* ── Motion (확정, 베이스 층 / 학교 무관) ─────────────────── */
+  /* 마이크로 인터랙션 수준 (호버 색 변경 / 모달 페이드 / 펼침). 화려한 모션 X. */
+  /* 마이크로 인터랙션 표준 범위 (150 ~ 300ms) 자체 결정. */
+  --duration-fast:  150ms;  /* 호버 / 작은 색·투명도 transition */
+  --duration-base:  200ms;  /* 기본 transition / 모달 페이드인 */
+  --duration-slow:  300ms;  /* 큰 레이아웃 변경 / 펼침·접힘 */
+
+  --easing-standard:    cubic-bezier(0.4, 0, 0.2, 1);  /* 기본 (양방향 자연 감속) */
+  --easing-emphasized:  cubic-bezier(0.2, 0, 0, 1);    /* 강조 (큰 상태 변화) */
+  --easing-decelerate:  cubic-bezier(0, 0, 0.2, 1);    /* 등장 (off-screen → on-screen) */
+
+  /* ── Focus Ring (확정, 컴포넌트 일관 적용) ────────────────── */
+  /* box-shadow 1줄 ring. 학교별 brand-primary 자동 적응 (color-mix 40% opacity). */
+  /* 사용 측에서 :focus-visible 에만 적용 (마우스 클릭 시 노출 X, 키보드 탭 시 노출 O). */
+  --focus-ring:        0 0 0 3px color-mix(in srgb, var(--color-brand-primary) 40%, transparent);
+  --focus-ring-danger: 0 0 0 3px color-mix(in srgb, var(--color-danger) 40%, transparent);  /* Destructive 액션 전용. brand-primary 와 색 충돌 방지 + 위험 신호 강화 (Round 1 추가) */
+
+  /* ── Disabled (확정, 단순 시각 변화) ──────────────────────── */
+  /* 정책: 투명도 + 커서만. 이유 툴팁/aria-describedby 강제 X (사용 측 결정). */
+  --disabled-opacity: 0.5;
+}
+
+/* 접근성 — 사용자 모션 축소 설정 시 모든 motion 토큰 즉시 0 으로. */
+/* WCAG 2.1 SC 2.3.3 (Animation from Interactions). prefers-reduced-motion 자동 반영. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}

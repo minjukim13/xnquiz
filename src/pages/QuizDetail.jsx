@@ -468,11 +468,10 @@ export default function QuizDetail() {
 
   const scheduled = isScheduled(quiz)
   const displayStatus = resolveDisplayStatus(quiz)
-  const canGrade = !scheduled && (quiz.status === 'grading' || quiz.status === 'closed' || quiz.status === 'open')
+  const canGrade = !scheduled && (quiz.status === 'closed' || quiz.status === 'open')
   const canStats = quiz.status !== 'draft'
   const pastDue = isDeadlinePassed(quiz)
-  // 학생은 진행기간 내라면 grading 상태에서도 응시 가능 (채점은 교수자 작업, 응시 가능 여부와 별개)
-  const isOpenForStudent = (quiz.status === 'open' || quiz.status === 'grading') && !scheduled && !pastDue
+  const isOpenForStudent = quiz.status === 'open' && !scheduled && !pastDue
   // 학생용 status 라벨은 진행중/마감/예정 으로만 단순화 — '채점중' 은 학생에게 노출하지 않음
   const studentDisplayStatus = scheduled ? 'scheduled' : isOpenForStudent ? 'open' : 'closed'
   const attemptCount = myAttempts.length
@@ -527,7 +526,7 @@ export default function QuizDetail() {
                     </Link>
                   </Button>
                 )}
-                {quiz.status === 'open' && (
+                {displayStatus !== 'draft' && displayStatus !== 'scheduled' && (
                   <Button asChild variant="outline">
                     <Link to={`/quiz/${quiz.id}/moderate`}>
                       <Activity size={15} />

@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "capture-storyboard": "node scripts/capture-storyboard.mjs"
+    "capture-storyboard": "node scripts/capture-storyboard.mjs",
+    "handoff": "vite build --config vite.config.singlefile.js && node scripts/build-handoff.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

@@ -350,10 +350,10 @@ export default function QuizEdit() {
     }
   }
 
-  // 마감/채점 처리된 퀴즈에서 마감일을 미래로 변경하면 자동 재오픈 (status: closed/grading → open).
+  // 마감 처리된 퀴즈에서 마감일을 미래로 변경하면 자동 재오픈 (status: closed → open).
   // 효과적인 마감 시점(allowLateSubmit + lateSubmitDeadline 우선 / dueDate + grace) 이 미래일 때만 전환.
   const computeNextStatus = () => {
-    if (quiz.status !== 'closed' && quiz.status !== 'grading') return quiz.status
+    if (quiz.status !== 'closed') return quiz.status
     const synthetic = {
       dueDate: form.dueDate || null,
       allowLateSubmit: form.allowLateSubmit,
@@ -526,7 +526,7 @@ export default function QuizEdit() {
   const doSave = async (statusOverride) => {
     let savedQuestions = questions
     const nextStatus = statusOverride ?? computeNextStatus()
-    const reopened = nextStatus === 'open' && (quiz.status === 'closed' || quiz.status === 'grading')
+    const reopened = nextStatus === 'open' && quiz.status === 'closed'
     try {
       if (form.scorePolicy !== quiz.scorePolicy) await recalculateScorePolicy(quiz.id, form.scorePolicy)
       await updateQuiz(quiz.id, buildUpdateBody(nextStatus))
@@ -803,9 +803,7 @@ function InfoTab({ form, set, courseKey }) {
 
       <SecuritySection form={form} set={set} />
 
-      {/* 연습용 퀴즈는 성적에 반영되지 않으므로 성적 관련 섹션을 숨긴다 */}
-      {form.quizMode === 'graded' && (
-        <>
+      {/* 성적 공개 정책은 연습용 퀴즈에서도 응시 결과(점수/정오답/정답)를 학생에게 공개할지 정하므로 항상 노출한다 */}
       <Section title="성적 공개 정책">
         <div className="space-y-4">
           <Toggle checked={form.scoreRevealEnabled} onChange={v => set('scoreRevealEnabled', v)} label="성적 공개" description="제출 후 학생에게 성적 정보를 공개합니다" />
@@ -874,8 +872,9 @@ function InfoTab({ form, set, courseKey }) {
         </div>
       </Section>
 
-      <GradebookPolicySection value={form.gradebookPolicy} onChange={v => set('gradebookPolicy', v)} />
-        </>
+      {/* 성적표 정책은 성적에 반영되는 평가용 퀴즈에서만 의미가 있으므로 연습용에서는 숨긴다 */}
+      {form.quizMode === 'graded' && (
+        <GradebookPolicySection value={form.gradebookPolicy} onChange={v => set('gradebookPolicy', v)} />
       )}
 
     </div>
