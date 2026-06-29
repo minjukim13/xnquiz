@@ -268,9 +268,11 @@ export default function QuestionDetailPanel({ question, students, search, onSear
               제출물 일괄 다운로드
             </Button>
           )}
-          <Button variant="outline" disabled={submittedCount === 0} onClick={() => setShowRegradeModal(true)}>
-            재채점
-          </Button>
+          {question.type !== 'essay' && question.type !== 'file_upload' && question.type !== 'text' && (
+            <Button variant="outline" disabled={submittedCount === 0} onClick={() => setShowRegradeModal(true)}>
+              재채점
+            </Button>
+          )}
           <Button variant="outline" onClick={() => handleBulkGrade('all_full')}>
             전체 정답
           </Button>
