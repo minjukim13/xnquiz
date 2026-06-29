@@ -54,7 +54,7 @@
 - 모드 분기 = URL 쿼리(`?mode=student`) + state. 모드 전환 시 선택 상태는 모드별 독립.
 - 최초 로드 시 첫 번째 문항 자동 선택.
 - 임시저장(`status === 'draft'`) 퀴즈 진입 시 EmptyState 안내 + 편집 진입 링크.
-- 자동 0점 처리: `startTime` 없는 미시작자는 마감 후 자동 0점 분류.
+- 자동 0점 처리: `startTime` 없는 미응시자(응시 미시작)는 마감 후 자동 0점 분류 (목록상 "미제출").
 - 재채점 옵션 모달: 응시자 1명 이상 + 정답 변경 시에만 자동 노출. 응시자 0명 또는 정답 외 편집은 즉시 반영.
 - 조건부 재응시: 조건(미응시 / 점수 미달) 자동 선별 → 검토 → 횟수/기간 확정.
 
@@ -92,7 +92,7 @@
   └── 통계 4종 (StatCard × 4)
        ├── 응시율 (응시 시작 학생 / 전체 수강생)
        ├── 응시 인원
-       ├── 채점 완료 (분모 = 전체 수강생, 마감 후 미시작자 자동 0점 반영)
+       ├── 채점 완료 (분모 = 전체 수강생, 마감 후 미응시자 자동 0점 반영)
        └── 평균 점수 (선택, 채점 완료 학생 기준)
 
 [액션 바]
@@ -475,7 +475,7 @@ RegradeOptionsModal 은 별도 fetch 없이 `selected` 옵션 결과만 부모(Q
 | 에러 (재채점 실행 실패, API 모드) | API 모드 미구현 | mock 모드 한정. API 모드 별도 endpoint 필요 → 간극 G-3 |
 | 권한 없음 | role !== 'instructor' | `<Navigate to="/" replace />` |
 | 오프라인 | API 모드 한정 | mock 모드 해당 없음 |
-| 자동 0점 처리 안내 | 마감 후 미시작자 | StudentListItem 배지 + StatCard 분모 포함 (메모리 `project_grading_aggregation_policy.md`) |
+| 자동 0점 처리 안내 | 마감 후 미응시자(startTime 없음) | StudentListItem 배지 + StatCard 분모 포함 (메모리 `project_grading_aggregation_policy.md`) |
 
 ---
 
