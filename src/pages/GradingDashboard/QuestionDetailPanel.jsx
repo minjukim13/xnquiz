@@ -214,7 +214,7 @@ export default function QuestionDetailPanel({ question, students, search, onSear
                     })}
                   </div>
                 ) : (
-                  <span className="text-[13px] font-medium text-foreground">{question.correctAnswer}</span>
+                  <span className="text-[13px] font-medium text-foreground">{Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : question.correctAnswer}</span>
                 )}
               </div>
             )}

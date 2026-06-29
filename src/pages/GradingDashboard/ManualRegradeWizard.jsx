@@ -139,7 +139,7 @@ export default function ManualRegradeWizard({ question, students, quizId, submit
                   onChange={e => setDraft(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAccepted() } }}
                   className="flex-1 h-9 px-3 rounded-lg border border-border text-sm focus:outline-none focus:border-primary"
-                  placeholder="동의어·약어 등 인정할 표현"
+                  placeholder="동의어, 약어 등 인정할 표현"
                 />
                 <Button variant="soft" size="sm" onClick={addAccepted}>추가</Button>
               </div>
