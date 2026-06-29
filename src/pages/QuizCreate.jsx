@@ -224,6 +224,19 @@ export default function QuizCreate() {
     setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? { ...q, ...updated, id: editingQuestion.id } : q))
   }
   const removeQuestion = (qId) => setQuestions(prev => prev.filter(q => q.id !== qId))
+  const requestRemoveQuestion = (qId) => {
+    const item = questions.find(q => q.id === qId)
+    const isGroup = item && isRandomGroup(item)
+    setConfirmDialog({
+      title: isGroup ? '출제 그룹 삭제' : '문항 삭제',
+      message: isGroup
+        ? '이 랜덤 출제 그룹을 삭제하시겠습니까?'
+        : '이 문항을 삭제하시겠습니까?',
+      confirmLabel: '삭제',
+      confirmDanger: true,
+      onConfirm: () => removeQuestion(qId),
+    })
+  }
   const moveQuestion = useCallback((fromIdx, toIdx) => {
     setQuestions(prev => {
       const next = [...prev]
@@ -284,7 +297,7 @@ export default function QuizCreate() {
             <InfoTab form={form} set={set} />
           </div>
           <div className={tab === 'questions' ? '' : 'hidden'}>
-            <QuestionsTab form={form} set={set} questions={questions} totalPoints={totalPoints} onShowBank={() => setShowBankModal(true)} onShowRandomBank={() => setShowRandomBankModal(true)} onShowAdd={() => setShowInlineAdd(true)} onEdit={setEditingQuestion} onRemove={removeQuestion} onMove={moveQuestion} showInlineAdd={showInlineAdd} onAddInline={(q) => { addNewQuestion(q); setShowInlineAdd(false); setInlineDirty(false) }} onCancelInline={() => { setShowInlineAdd(false); setInlineDirty(false) }} onInlineDirtyChange={setInlineDirty} editingQuestion={editingQuestion} onSaveEdit={(updated) => { updateQuestion(updated); setEditingQuestion(null) }} onCancelEdit={() => setEditingQuestion(null)} />
+            <QuestionsTab form={form} set={set} questions={questions} totalPoints={totalPoints} onShowBank={() => setShowBankModal(true)} onShowRandomBank={() => setShowRandomBankModal(true)} onShowAdd={() => setShowInlineAdd(true)} onEdit={setEditingQuestion} onRemove={requestRemoveQuestion} onMove={moveQuestion} showInlineAdd={showInlineAdd} onAddInline={(q) => { addNewQuestion(q); setShowInlineAdd(false); setInlineDirty(false) }} onCancelInline={() => { setShowInlineAdd(false); setInlineDirty(false) }} onInlineDirtyChange={setInlineDirty} editingQuestion={editingQuestion} onSaveEdit={(updated) => { updateQuestion(updated); setEditingQuestion(null) }} onCancelEdit={() => setEditingQuestion(null)} />
           </div>
         </div>
 
@@ -309,7 +322,7 @@ export default function QuizCreate() {
 
       <QuestionBankModal open={showBankModal} onOpenChange={setShowBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse="CS301 데이터베이스" />
       <RandomQuestionBankModal open={showRandomBankModal} onOpenChange={setShowRandomBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse="CS301 데이터베이스" />
-      {confirmDialog &&<ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
+      {confirmDialog &&<ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} confirmDanger={confirmDialog.confirmDanger} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
       {alertDialog && <AlertDialog title={alertDialog.title} message={alertDialog.message} variant={alertDialog.variant} onClose={() => setAlertDialog(null)} />}
       <PublishReviewModal
         open={showPublishReview}
