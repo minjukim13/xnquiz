@@ -13,7 +13,11 @@ import {
   buildQuestion,
   isValid,
   TypeForm,
+  questionToForm,
+  hasAnswerChanged,
+  isAutoGradeable,
 } from './AddQuestionModal'
+import RegradeOptionsModal from './RegradeOptionsModal'
 import {
   countBlanks,
   countDropdowns,
@@ -131,12 +135,26 @@ function TypePicker({ value, onChange }) {
 }
 
 // ── 인라인 문항 편집기 (페이지에 직접 추가) ────────────────────────────────
-export default function InlineQuestionEditor({ index, prevType, onAdd, onCancel, onDirtyChange }) {
-  // 직전 문항 유형을 기본값으로 이어받음 (예: 참/거짓 다음엔 참/거짓). 유효하지 않으면 객관식
-  const initialType = QUIZ_TYPES[prevType] ? prevType : 'multiple_choice'
+export default function InlineQuestionEditor({ index, prevType, initialQuestion = null, submittedCount = 0, onAdd, onCancel, onDirtyChange }) {
+  const isEditMode = !!initialQuestion
+  // 추가: 직전 문항 유형을 기본값으로 이어받음 (예: 참/거짓 다음엔 참/거짓). 유효하지 않으면 객관식
+  // 편집: 해당 문항의 유형으로 시작
+  const initialType = isEditMode
+    ? initialQuestion.type
+    : (QUIZ_TYPES[prevType] ? prevType : 'multiple_choice')
   const [selectedType, setSelectedType] = useState(initialType)
-  const [form, setForm] = useState(() => ({ ...initForm(initialType), title: `문항${index + 1}` }))
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [form, setForm] = useState(() =>
+    isEditMode
+      ? questionToForm(initialQuestion)
+      : { ...initForm(initialType), title: `문항${index + 1}` }
+  )
+  const [feedbackOpen, setFeedbackOpen] = useState(() =>
+    isEditMode
+      ? !!(initialQuestion?.correct_comments || initialQuestion?.incorrect_comments || initialQuestion?.neutral_comments)
+      : false
+  )
+  const [showRegradeOptions, setShowRegradeOptions] = useState(false)
+  const [pendingQuestion, setPendingQuestion] = useState(null)
   const bodyTextareaRef = useRef(null)
   const containerRef = useRef(null)
 
@@ -144,15 +162,15 @@ export default function InlineQuestionEditor({ index, prevType, onAdd, onCancel,
     containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [])
 
-  // 부모에게 dirty 상태 알림 — 기본 제목 외 제목 변경 또는 본문 입력이 있으면 dirty
+  // 부모에게 dirty 상태 알림 — 기본 제목 외 제목 변경 또는 본문 입력이 있으면 dirty (추가 모드 전용)
   const defaultTitle = `문항${index + 1}`
   useEffect(() => {
-    if (!onDirtyChange) return
+    if (!onDirtyChange || isEditMode) return
     const titleHas = (form.title || '').trim().length > 0 && (form.title || '').trim() !== defaultTitle
     const textHas = richTextHasContent(form.text || '')
     onDirtyChange(titleHas || textHas)
     return () => onDirtyChange(false)
-  }, [form.title, form.text, onDirtyChange, defaultTitle])
+  }, [form.title, form.text, onDirtyChange, defaultTitle, isEditMode])
 
   const handleTypeChange = (newType) => {
     if (newType === selectedType) return
@@ -169,7 +187,19 @@ export default function InlineQuestionEditor({ index, prevType, onAdd, onCancel,
 
   const handleAdd = () => {
     if (!isValid(selectedType, form)) return
-    onAdd(buildQuestion(selectedType, form))
+    const built = buildQuestion(selectedType, form)
+    // 편집 모드 + 제출 학생 있음 + 자동채점 유형 + 정답 변경됨 → 재채점 옵션 모달
+    if (isEditMode && submittedCount > 0 && isAutoGradeable(selectedType) && hasAnswerChanged(selectedType, initialQuestion, built)) {
+      setPendingQuestion(built)
+      setShowRegradeOptions(true)
+      return
+    }
+    onAdd(built)
+  }
+
+  const handleRegradeConfirm = (option) => {
+    onAdd(pendingQuestion, option, initialQuestion)
+    setShowRegradeOptions(false)
   }
 
   const typeInfo = QUIZ_TYPES[selectedType]
@@ -184,7 +214,7 @@ export default function InlineQuestionEditor({ index, prevType, onAdd, onCancel,
       <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-border bg-accent/30">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="text-xs font-bold w-5 text-center text-primary">{index + 1}</span>
-          <span className="text-[13px] font-semibold text-primary">새 문항</span>
+          <span className="text-[13px] font-semibold text-primary">{isEditMode ? '문항 편집' : '새 문항'}</span>
           <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
             <span className={cn(
               'w-1.5 h-1.5 rounded-full',
@@ -196,7 +226,7 @@ export default function InlineQuestionEditor({ index, prevType, onAdd, onCancel,
         <button
           type="button"
           onClick={onCancel}
-          title="추가 취소"
+          title={isEditMode ? '편집 취소' : '추가 취소'}
           className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
         >
           <X size={14} />
@@ -372,8 +402,17 @@ export default function InlineQuestionEditor({ index, prevType, onAdd, onCancel,
       {/* 푸터 */}
       <div className="flex items-center justify-end gap-2 px-3.5 sm:px-5 py-3 border-t border-border bg-secondary/30">
         <Button variant="outline" onClick={onCancel}>취소</Button>
-        <Button disabled={!valid} onClick={handleAdd}>문항 추가</Button>
+        <Button disabled={!valid} onClick={handleAdd}>{isEditMode ? '저장' : '문항 추가'}</Button>
       </div>
+
+      {showRegradeOptions && (
+        <RegradeOptionsModal
+          submittedCount={submittedCount}
+          questionLabel={initialQuestion?.order ? `Q${initialQuestion.order}` : ''}
+          onConfirm={handleRegradeConfirm}
+          onCancel={() => setShowRegradeOptions(false)}
+        />
+      )}
     </div>
   )
 }

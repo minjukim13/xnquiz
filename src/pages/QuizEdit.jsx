@@ -4,7 +4,6 @@ import { GripVertical, Pencil, Trash2, HelpCircle, Shuffle, ChevronRight } from 
 import { isRandomGroup, summarizeQuizItems } from '@/utils/randomGroups'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
-import AddQuestionModal from '../components/AddQuestionModal'
 import InlineQuestionEditor from '../components/InlineQuestionEditor'
 import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
@@ -586,6 +585,10 @@ export default function QuizEdit() {
               onAddInline={(q) => { addNewQuestion(q); setShowInlineAdd(false); setInlineDirty(false) }}
               onCancelInline={() => { setShowInlineAdd(false); setInlineDirty(false) }}
               onInlineDirtyChange={setInlineDirty}
+              editingQuestion={editingQuestion}
+              submittedCount={submittedCount}
+              onSaveEdit={(updated, option, old) => { updateQuestion(updated, option, old); setEditingQuestion(null) }}
+              onCancelEdit={() => setEditingQuestion(null)}
             />
           </div>
         </div>
@@ -614,8 +617,7 @@ export default function QuizEdit() {
 
       <QuestionBankModal open={showBankModal} onOpenChange={setShowBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse={quiz?.course} />
       <RandomQuestionBankModal open={showRandomBankModal} onOpenChange={setShowRandomBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse={quiz?.course} />
-      {editingQuestion && <AddQuestionModal onClose={() => setEditingQuestion(null)} onAdd={updateQuestion} initialQuestion={editingQuestion} submittedCount={submittedCount} />}
-      {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} confirmDanger={confirmDialog.confirmDanger} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
+      {confirmDialog &&<ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} confirmDanger={confirmDialog.confirmDanger} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
       <PublishReviewModal
         open={showPublishReview}
         onOpenChange={setShowPublishReview}
@@ -931,7 +933,7 @@ function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDr
   )
 }
 
-function QuestionsTab({ form, set, questions, totalPoints, regradeMap = {}, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove, showInlineAdd, onAddInline, onCancelInline, onInlineDirtyChange }) {
+function QuestionsTab({ form, set, questions, totalPoints, regradeMap = {}, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove, showInlineAdd, onAddInline, onCancelInline, onInlineDirtyChange, editingQuestion, submittedCount = 0, onSaveEdit, onCancelEdit }) {
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
   const [allExpanded, setAllExpanded] = useState(false)
@@ -1032,6 +1034,15 @@ function QuestionsTab({ form, set, questions, totalPoints, regradeMap = {}, onSh
               onDragEnd={handleDragEnd}
               onRemove={onRemove}
               onPreview={setPreviewGroup}
+            />
+          ) : editingQuestion?.id === q.id ? (
+            <InlineQuestionEditor
+              key={q.id}
+              index={i}
+              initialQuestion={q}
+              submittedCount={submittedCount}
+              onAdd={onSaveEdit}
+              onCancel={onCancelEdit}
             />
           ) : (
             <div key={q.id} draggable onDragStart={() => handleDragStart(i)} onDragOver={e => handleDragOver(e, i)} onDrop={() => handleDrop(i)} onDragEnd={handleDragEnd}

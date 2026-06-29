@@ -4,7 +4,6 @@ import { GripVertical, Pencil, Trash2, HelpCircle, Shuffle, ChevronRight } from 
 import { isRandomGroup, summarizeQuizItems } from '@/utils/randomGroups'
 import CustomSelect from '../components/CustomSelect'
 import QuestionAnswer from '../components/QuestionAnswer'
-import AddQuestionModal from '../components/AddQuestionModal'
 import InlineQuestionEditor from '../components/InlineQuestionEditor'
 import QuestionBankModal from '../components/QuestionBankModal'
 import RandomQuestionBankModal from '../components/RandomQuestionBankModal'
@@ -285,7 +284,7 @@ export default function QuizCreate() {
             <InfoTab form={form} set={set} />
           </div>
           <div className={tab === 'questions' ? '' : 'hidden'}>
-            <QuestionsTab form={form} set={set} questions={questions} totalPoints={totalPoints} onShowBank={() => setShowBankModal(true)} onShowRandomBank={() => setShowRandomBankModal(true)} onShowAdd={() => setShowInlineAdd(true)} onEdit={setEditingQuestion} onRemove={removeQuestion} onMove={moveQuestion} showInlineAdd={showInlineAdd} onAddInline={(q) => { addNewQuestion(q); setShowInlineAdd(false); setInlineDirty(false) }} onCancelInline={() => { setShowInlineAdd(false); setInlineDirty(false) }} onInlineDirtyChange={setInlineDirty} />
+            <QuestionsTab form={form} set={set} questions={questions} totalPoints={totalPoints} onShowBank={() => setShowBankModal(true)} onShowRandomBank={() => setShowRandomBankModal(true)} onShowAdd={() => setShowInlineAdd(true)} onEdit={setEditingQuestion} onRemove={removeQuestion} onMove={moveQuestion} showInlineAdd={showInlineAdd} onAddInline={(q) => { addNewQuestion(q); setShowInlineAdd(false); setInlineDirty(false) }} onCancelInline={() => { setShowInlineAdd(false); setInlineDirty(false) }} onInlineDirtyChange={setInlineDirty} editingQuestion={editingQuestion} onSaveEdit={(updated) => { updateQuestion(updated); setEditingQuestion(null) }} onCancelEdit={() => setEditingQuestion(null)} />
           </div>
         </div>
 
@@ -310,8 +309,7 @@ export default function QuizCreate() {
 
       <QuestionBankModal open={showBankModal} onOpenChange={setShowBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse="CS301 데이터베이스" />
       <RandomQuestionBankModal open={showRandomBankModal} onOpenChange={setShowRandomBankModal} onAdd={addQuestion} added={questions.map(q => q.id)} currentCourse="CS301 데이터베이스" />
-      {editingQuestion && <AddQuestionModal onClose={() => setEditingQuestion(null)} onAdd={updateQuestion} initialQuestion={editingQuestion} />}
-      {confirmDialog && <ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
+      {confirmDialog &&<ConfirmDialog title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} cancelLabel={confirmDialog.cancelLabel} onConfirm={() => { setConfirmDialog(null); confirmDialog.onConfirm() }} onCancel={() => setConfirmDialog(null)} />}
       {alertDialog && <AlertDialog title={alertDialog.title} message={alertDialog.message} variant={alertDialog.variant} onClose={() => setAlertDialog(null)} />}
       <PublishReviewModal
         open={showPublishReview}
@@ -628,7 +626,7 @@ function RandomGroupItemCard({ group, index, dragIdx, overIdx, onDragStart, onDr
   )
 }
 
-function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove, showInlineAdd, onAddInline, onCancelInline, onInlineDirtyChange }) {
+function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRandomBank, onShowAdd, onEdit, onRemove, onMove, showInlineAdd, onAddInline, onCancelInline, onInlineDirtyChange, editingQuestion, onSaveEdit, onCancelEdit }) {
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
   const [allExpanded, setAllExpanded] = useState(false)
@@ -731,6 +729,14 @@ function QuestionsTab({ form, set, questions, totalPoints, onShowBank, onShowRan
               onDragEnd={handleDragEnd}
               onRemove={onRemove}
               onPreview={setPreviewGroup}
+            />
+          ) : editingQuestion?.id === q.id ? (
+            <InlineQuestionEditor
+              key={q.id}
+              index={i}
+              initialQuestion={q}
+              onAdd={onSaveEdit}
+              onCancel={onCancelEdit}
             />
           ) : (
             <div key={q.id} draggable onDragStart={() => handleDragStart(i)} onDragOver={e => handleDragOver(e, i)} onDrop={() => handleDrop(i)} onDragEnd={handleDragEnd}

@@ -6,7 +6,6 @@ import { QUIZ_TYPES } from '../data/mockData'
 import { useRole } from '../context/role'
 import { DropdownSelect } from '../components/DropdownSelect'
 import { useQuestionBank } from '../context/questionBank'
-import AddQuestionModal from '../components/AddQuestionModal'
 import InlineQuestionEditor from '../components/InlineQuestionEditor'
 import BankUploadModal from '../components/BankUploadModal'
 import MoveQuestionsModal from '../components/MoveQuestionsModal'
@@ -296,7 +295,16 @@ export default function QuestionBank() {
           <div className="space-y-3">
             {filtered.length > 0 && (
               <Card className="overflow-hidden py-0 gap-0">
-                {filtered.map((q, idx) => (
+                {filtered.map((q, idx) => editingQuestion?.id === q.id ? (
+                  <div key={q.id} className={cn('p-2', idx !== filtered.length - 1 && 'border-b border-secondary')}>
+                    <InlineQuestionEditor
+                      index={idx}
+                      initialQuestion={q}
+                      onAdd={handleSaveEdit}
+                      onCancel={() => setEditingQuestion(null)}
+                    />
+                  </div>
+                ) : (
                   <QuestionItem
                     key={q.id}
                     question={q}
@@ -321,14 +329,6 @@ export default function QuestionBank() {
           </div>
         )}
       </div>
-
-      {editingQuestion && (
-        <AddQuestionModal
-          onClose={() => setEditingQuestion(null)}
-          onAdd={handleSaveEdit}
-          initialQuestion={editingQuestion}
-        />
-      )}
 
       {showUploadModal && (
         <BankUploadModal

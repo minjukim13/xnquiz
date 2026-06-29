@@ -1273,7 +1273,7 @@ export function questionToForm(q) {
 }
 
 // ── 정답 변경 감지 ────────────────────────────────────────────────────────
-function hasAnswerChanged(type, oldQuestion, newQuestion) {
+export function hasAnswerChanged(type, oldQuestion, newQuestion) {
   switch (type) {
     case 'multiple_choice':
     case 'true_false':
@@ -1314,7 +1314,7 @@ function hasAnswerChanged(type, oldQuestion, newQuestion) {
   }
 }
 
-function isAutoGradeable(type) {
+export function isAutoGradeable(type) {
   const ag = QUIZ_TYPES[type]?.autoGrade
   return ag === true || ag === 'partial'
 }
