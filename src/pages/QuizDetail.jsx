@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, AlertCircle, EyeOff, Activity, ChevronDown, PlayCircle, Clock, Lock, CheckCircle2 } from 'lucide-react'
+import { Pencil, BarChart3, ClipboardCheck, Eye, Trash2, MoreVertical, CalendarRange, AlertCircle, EyeOff, Activity, ChevronDown, Clock, Lock, CheckCircle2 } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/PageHeader'
 import { mockQuizzes, getStudentAttempts, getQuizQuestions as mockGetQuestions } from '../data/mockData'
@@ -262,7 +262,7 @@ function StudentAttemptBanner({ quiz, schedule, isOpenForStudent, scheduled, isA
       <Card className="mb-4 border-primary/30 bg-accent overflow-hidden">
         <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-start gap-3 min-w-0">
-            <PlayCircle size={22} className="shrink-0 mt-0.5 text-primary" />
+            <CheckCircle2 size={22} className="shrink-0 mt-0.5 text-primary" />
             <div className="min-w-0">
               <p className="text-[15px] font-semibold text-foreground">
                 {attemptCount > 0 ? '다시 응시할 수 있습니다' : '지금 응시할 수 있습니다'}
@@ -280,7 +280,6 @@ function StudentAttemptBanner({ quiz, schedule, isOpenForStudent, scheduled, isA
           </div>
           <Button asChild size="lg" className="shrink-0">
             <Link to={`/quiz/${quiz.id}/attempt`}>
-              <PlayCircle size={16} />
               {attemptCount > 0 ? '재응시' : '응시하기'}
             </Link>
           </Button>
