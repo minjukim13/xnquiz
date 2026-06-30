@@ -111,26 +111,26 @@ function appPreviewHtml(s) {
 `
 }
 
-// 경량 패키지 진입 안내: 실행 파일이 없으므로 앱 패키지로 안내 (자동 이동 없음)
+// 경량 패키지 진입 셔틀: 앱 패키지의 standalone 으로 자동 이동 (앱이 같은 위치에 풀려 있어야 함)
 function thinPreviewHtml(s) {
+  const appUrl = `../../${APP_FOLDER}/xnquiz.html${s.route}`
   return `<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>SCR-${s.num} ${s.title} 진입 안내 - XN Quizzes</title>
+<title>SCR-${s.num} ${s.title} 미리보기 - XN Quizzes</title>
+<meta http-equiv="refresh" content="0; url=${appUrl}">
 <style>
   body { font-family: 'Pretendard', -apple-system, sans-serif; max-width: 640px; margin: 0 auto; padding: 48px 24px; color: #4E5968; background: #F9FAFB; line-height: 1.7; }
   h2 { color: #191F28; font-weight: 600; margin-bottom: 16px; }
   code { background: #F2F4F6; border-radius: 4px; padding: 2px 6px; font-size: 0.92em; color: #191F28; }
   a { color: #3182F6; }
-  .route { display: inline-block; margin: 4px 0; }
 </style>
 </head>
 <body>
-<h2>SCR-${s.num} ${s.title}</h2>
-<p>이 패키지에는 실행 파일이 없습니다. 실행은 <strong>앱 패키지</strong> <code>xq-scr-${APP_NUM}-handoff_${stamp}</code> 의 <code>xnquiz.html</code> 을 사용하세요.</p>
-<p>앱을 연 뒤 주소창의 해시 경로를 <code class="route">${s.route}</code> 로 이동하면 본 화면이 열립니다 (HashRouter, 서버 불필요).</p>
-<p>앱 패키지를 이 패키지와 같은 위치에 나란히 풀었다면 <a href="../../${APP_FOLDER}/xnquiz.html${s.route}">여기를 눌러 바로 이동</a>할 수 있습니다.</p>
+<h2>SCR-${s.num} ${s.title} 화면 로딩중</h2>
+<p>잠시 후 앱 패키지의 화면으로 자동 이동합니다. 이동되지 않으면 <a href="${appUrl}">여기를 클릭</a>하세요.</p>
+<p style="color:#8B95A1;font-size:13px;margin-top:16px;">이동되지 않으면 앱 패키지 <code>xq-scr-${APP_NUM}-handoff_${stamp}</code> 가 이 패키지와 같은 위치에 풀려 있는지 확인하세요. 직접 실행하려면 그 안의 <code>xnquiz.html</code> 을 열고 주소창 해시를 <code>${s.route}</code> 로 이동하면 됩니다.</p>
 </body>
 </html>
 `
@@ -231,7 +231,7 @@ ${s.purpose}
 
 ## 사용 방법
 
-**실행 미리보기**: 앱 패키지 \`xq-scr-${APP_NUM}-handoff_${stamp}\` 를 풀어 그 안의 \`xnquiz.html\` 을 더블클릭한 뒤, 주소창 해시를 \`${s.route}\` 로 이동하면 본 화면이 열립니다 (HashRouter, 서버 불필요). 앱 패키지와 본 패키지를 같은 위치에 나란히 풀면 \`screen-preview.html\` 의 바로가기로도 진입할 수 있습니다.
+**실행 미리보기**: 앱 패키지 \`xq-scr-${APP_NUM}-handoff_${stamp}\` 와 본 패키지를 같은 위치에 나란히 푼 뒤 \`screen-preview.html\` 을 더블클릭하면 앱의 본 화면(\`${s.route}\`)으로 자동 이동합니다 (HashRouter, 서버 불필요). 자동 이동이 안 되면 앱 패키지의 \`xnquiz.html\` 을 직접 열고 주소창 해시를 \`${s.route}\` 로 이동하세요.
 
 **코드 검토**: \`src/\` 에는 **본 화면 소스만** 담겨 있습니다. 공통 UI(\`@/components/ui\`), 데이터 레이어(\`@/lib/data\`), 유틸 등 전체 의존성과 실행 코드는 앱 패키지(\`xq-scr-${APP_NUM}-handoff\`)의 \`src/\` 를 참조하세요. 경로 alias(\`@/*\`)는 앱 패키지의 \`jsconfig.json\` 매핑을 따릅니다.
 
