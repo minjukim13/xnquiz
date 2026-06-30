@@ -257,10 +257,10 @@ export default function QuestionDetailPanel({ question, students, search, onSear
       )}
 
       {/* 응시 현황 헤더 + 일괄 채점 액션 */}
-      <div className="flex items-center justify-between mb-3 gap-2 border-b border-border">
-        <div className="px-3 py-2 text-sm border-b-2 border-primary text-primary font-medium -mb-px">
+      <div className="flex items-center justify-between mb-3 gap-2 pb-2 border-b border-border">
+        <h3 className="text-[15px] font-semibold text-foreground">
           응시 현황
-        </div>
+        </h3>
         <div className="flex items-center gap-2">
           {question.type === 'file_upload' && (
             <Button variant="outline" onClick={() => showToast('프로토타입: 실제 파일 다운로드는 API 연동 후 지원됩니다')}>
