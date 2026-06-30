@@ -256,50 +256,51 @@ export default function QuestionDetailPanel({ question, students, search, onSear
         </div>
       )}
 
-      {/* 응시 현황 헤더 + 일괄 채점 액션 */}
-      <div className="flex items-center justify-between mb-3 gap-2 pb-2 border-b border-border">
-        <h3 className="text-[15px] font-semibold text-foreground">
-          응시 현황
-        </h3>
-        <div className="flex items-center gap-2">
-          {question.type === 'file_upload' && (
-            <Button variant="outline" onClick={() => showToast('프로토타입: 실제 파일 다운로드는 API 연동 후 지원됩니다')}>
-              <FolderDown size={14} />
-              제출물 일괄 다운로드
-            </Button>
-          )}
-          {question.type !== 'essay' && question.type !== 'file_upload' && question.type !== 'text' && (
-            <Button variant="outline" disabled={submittedCount === 0} onClick={() => setShowRegradeModal(true)}>
-              재채점
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => handleBulkGrade('all_full')}>
-            전체 정답
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                전체 오답
-                <ChevronDown size={12} className="text-muted-foreground" />
+      <ResponsesTab
+        question={question} students={students} search={search} onSearch={onSearch} quizId={quizId}
+        onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows}
+        onExcelRowsConsumed={onExcelRowsConsumed} changedStudentIds={changedStudentIds}
+        onStudentChanged={id => setChangedStudentIds(prev => new Set(prev).add(id))}
+        clearPendingSignal={clearPendingSignal}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {question.type === 'file_upload' && (
+              <Button variant="outline" size="sm" onClick={() => showToast('프로토타입: 실제 파일 다운로드는 API 연동 후 지원됩니다')}>
+                <FolderDown size={14} />
+                제출물 일괄 다운로드
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-2 border-0 rounded-xl shadow-lg">
-              <DropdownMenuItem onClick={() => handleBulkGrade('all_zero')}>
-                전체 학생 0점 처리
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleBulkGrade('unsubmitted_zero')}>
-                미제출자만 0점 처리
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="outline" onClick={onExcel}>
-            <Download size={14} />
-            엑셀 일괄 채점
-          </Button>
-        </div>
-      </div>
-
-      <ResponsesTab question={question} students={students} search={search} onSearch={onSearch} quizId={quizId} onGradeSaved={onGradeSaved} gradeVersion={gradeVersion} excelRows={excelRows} onExcelRowsConsumed={onExcelRowsConsumed} changedStudentIds={changedStudentIds} onStudentChanged={id => setChangedStudentIds(prev => new Set(prev).add(id))} clearPendingSignal={clearPendingSignal} />
+            )}
+            {submittedCount > 0 && question.type !== 'essay' && question.type !== 'file_upload' && question.type !== 'text' && (
+              <Button variant="outline" size="sm" onClick={() => setShowRegradeModal(true)}>
+                재채점
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => handleBulkGrade('all_full')}>
+              전체 정답
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  전체 오답
+                  <ChevronDown size={12} className="text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-2 border-0 rounded-xl shadow-lg">
+                <DropdownMenuItem onClick={() => handleBulkGrade('all_zero')}>
+                  전체 학생 0점 처리
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkGrade('unsubmitted_zero')}>
+                  미제출자만 0점 처리
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" size="sm" onClick={onExcel}>
+              <Download size={14} />
+              엑셀 일괄 채점
+            </Button>
+          </div>
+        }
+      />
 
       {showRegradeModal && (
         <ManualRegradeWizard

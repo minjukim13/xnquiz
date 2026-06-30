@@ -71,7 +71,7 @@ function ToolbarFilter({ label, options, selected, onChange, isOpen, onToggle, c
   )
 }
 
-function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved, excelRows, onExcelRowsConsumed, changedStudentIds, onStudentChanged, clearPendingSignal }) {
+function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSaved, excelRows, onExcelRowsConsumed, changedStudentIds, onStudentChanged, clearPendingSignal, actions }) {
   const [pageSize, setPageSize] = useState(20)
   const [page, setPage] = useState(1)
   const [pendingScores, setPendingScores] = useState({})
@@ -205,7 +205,7 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
 
   return (
     <div className="flex-1 bg-white overflow-hidden flex flex-col border border-slate-200 rounded-lg">
-      {/* 필터: 제출 상태 세그먼트 + 채점 상태 필터 */}
+      {/* 필터: 제출 상태 세그먼트 + 일괄 채점 액션 */}
       <div className="px-3 py-2 border-b border-slate-100 bg-white flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border inline-flex flex-wrap">
           {[
@@ -235,18 +235,10 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
             )
           })}
         </div>
-        <ToolbarFilter
-          containerRef={gradeStatusFilterRef}
-          label="채점 상태"
-          options={GRADE_STATUS_OPTIONS}
-          selected={gradeStatusFilter}
-          onChange={setGradeStatusFilter}
-          isOpen={openFilter === 'gradeStatus'}
-          onToggle={() => setOpenFilter(prev => prev === 'gradeStatus' ? null : 'gradeStatus')}
-        />
+        {actions}
       </div>
 
-      {/* 툴바: 검색 + 정렬 + 페이지 크기 */}
+      {/* 툴바: 검색 + 정렬 + 페이지 크기 + 채점 상태 */}
       <div className="px-3 py-2 flex items-center gap-2 border-b border-slate-100 bg-slate-50">
         <div className="flex-1 relative">
           <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -273,6 +265,15 @@ function ResponsesTab({ question, students, search, onSearch, quizId, onGradeSav
           options={PAGE_SIZE_OPTIONS}
           ghost
           className="w-20"
+        />
+        <ToolbarFilter
+          containerRef={gradeStatusFilterRef}
+          label="채점 상태"
+          options={GRADE_STATUS_OPTIONS}
+          selected={gradeStatusFilter}
+          onChange={setGradeStatusFilter}
+          isOpen={openFilter === 'gradeStatus'}
+          onToggle={() => setOpenFilter(prev => prev === 'gradeStatus' ? null : 'gradeStatus')}
         />
       </div>
 
