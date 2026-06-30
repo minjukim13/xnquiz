@@ -528,7 +528,7 @@ function InstructorQuizList() {
               options={SORT_OPTIONS}
               size="md"
               ghost
-              className="w-[120px] sm:w-[140px] shrink-0"
+              className="w-[120px] sm:w-[140px] shrink-0 ml-auto"
             />
           </div>
         </div>
