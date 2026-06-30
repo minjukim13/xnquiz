@@ -513,24 +513,26 @@ function InstructorQuizList() {
           </div>
         </div>
 
-        {/* 검색/필터 툴바 — 1행: 상태 탭 / 2행: 검색 + 정렬 */}
+        {/* 검색/필터 툴바 — 1행: 상태 탭 ... 정렬 / 2행: 검색 */}
         <div className="mt-1 mb-3 space-y-2.5">
-          <StatusFilterTabs
-            value={filterStatus}
-            onChange={setFilterStatus}
-            options={STATUS_FILTER_OPTIONS}
-          />
           <div className="flex items-center gap-2">
-            <SearchInput value={searchQuery} onChange={setSearchQuery} />
+            <div className="min-w-0 flex-1">
+              <StatusFilterTabs
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={STATUS_FILTER_OPTIONS}
+              />
+            </div>
             <DropdownSelect
               value={sortKey}
               onChange={setSortKey}
               options={SORT_OPTIONS}
               size="md"
               ghost
-              className="w-[120px] sm:w-[140px] shrink-0 ml-auto"
+              className="w-[120px] sm:w-[140px] shrink-0"
             />
           </div>
+          <SearchInput value={searchQuery} onChange={setSearchQuery} />
         </div>
 
         {loading ? (
