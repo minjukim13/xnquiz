@@ -98,7 +98,7 @@ export const QUIZ_TYPES = {
 const QUIZ_STORAGE_KEY = 'xnq_quizzes'
 // 시드 퀴즈(정적 mock)를 바꾸면 이 버전을 올린다. 버전이 바뀌면 localStorage 에 박제된
 // 정적 mock 수정본을 버리고 새 시드를 적용한다(사용자가 직접 만든 퀴즈는 보존).
-const QUIZ_SEED_VERSION = '2026-06-26.3'
+const QUIZ_SEED_VERSION = '2026-06-30.1'
 const QUIZ_VERSION_KEY = 'xnq_quizzes_seed_version'
 const _staticQuizIds = new Set()
 
@@ -491,8 +491,8 @@ export const mockQuizzes = [
     status: 'open',
     visible: true,
     startDate: '2026-05-25 09:00',
-    dueDate: '2026-06-15 23:59',
-    lockDate: '2026-07-15 23:59',
+    dueDate: '2026-08-15 23:59',
+    lockDate: '2026-09-15 23:59',
     securityAiProctoring: true,
     securityRequireConsent: true,
     week: 10,
@@ -506,6 +506,37 @@ export const mockQuizzes = [
     timeLimit: 25,
     scorePolicy: '최고 점수 유지',
     allowAttempts: 2,
+    scoreRevealEnabled: true,
+    scoreRevealScope: 'wrong_only',
+    scoreRevealTiming: 'immediately',
+  },
+  {
+    // 동의 화면 시연 전용: 응시 전 필수 동의만 활성 / 시간 제한 없음 / 무제한 응시 / 응시 기록 0
+    id: 'consent-demo',
+    title: '[데모] 응시 전 필수 동의 확인용',
+    assignmentGroupId: 'quiz',
+    description: '응시 전 필수 동의 화면을 확인하기 위한 데모 퀴즈입니다. 학생 역할로 응시하면 동의 안내문이 먼저 표시됩니다.',
+    course: 'CS301 데이터베이스',
+    status: 'open',
+    visible: true,
+    startDate: '2026-05-25 09:00',
+    dueDate: '2026-12-31 23:59',
+    lockDate: '2027-01-31 23:59',
+    securityRequireConsent: true,
+    securityConsentText: `- 본 시험은 응시 전 동의가 필요합니다.
+- 응시 중 수집되는 정보는 부정행위 검증 목적으로만 사용됩니다.
+- 동의하지 않으면 응시 화면에 진입할 수 없습니다.`,
+    week: 10,
+    session: 2,
+    totalStudents: 0,
+    submitted: 0,
+    graded: 0,
+    pendingGrade: 0,
+    questions: 6,
+    totalPoints: 20,
+    timeLimit: 0,
+    scorePolicy: '최고 점수 유지',
+    allowAttempts: -1,
     scoreRevealEnabled: true,
     scoreRevealScope: 'wrong_only',
     scoreRevealTiming: 'immediately',
@@ -1672,6 +1703,7 @@ export function getQuizQuestions(quizId) {
   if (quizId === 'cs201_2') return mockCs201Quiz2Questions
   if (quizId === 'cs401_1') return mockCs401Quiz1Questions
   if (quizId === '10') return mockQuiz10Questions
+  if (quizId === 'consent-demo') return mockQuiz10Questions
   if (quizId === '11') return mockQuiz11Questions
   if (quizId === 'cs102_1') return mockCs102Quiz1Questions
   if (quizId === 'cs102_2') return mockCs102Quiz2Questions
