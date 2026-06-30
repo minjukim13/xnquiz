@@ -184,6 +184,11 @@ export default function QuizAttempt() {
     !(hasSecurity && !consentGiven && !restored) &&
     !startNotice
 
+  // 응시 진입 게이트(동의/액세스 코드/기간)를 통과하기 전에는 세션을 저장하지 않는다.
+  // 게이트 표시 중 빈 세션이 저장되면 restored 로 잡혀 다음 렌더에서 게이트가 건너뛰어진다.
+  const gatesPassed = !isPreview && !blockedBeforeStart && !blockedLate && !needsAccessCode &&
+    !(hasSecurity && !consentGiven && !restored)
+
   // 응시본 동결 (D-09 R-008, D-02 R-011): 첫 문항 진입 시 현재 출제본을 깊은 복사로 동결·저장.
   // 이후 교수자 문항 수정·재추첨이 응시 중/재진입 화면·채점에 영향을 주지 않는다. 미리보기는 동결하지 않는다.
   useEffect(() => {
@@ -238,7 +243,7 @@ export default function QuizAttempt() {
   }, [answers, currentIndex, startedAt])
 
   useEffect(() => {
-    if (!sessionKey || submitted) return
+    if (!sessionKey || submitted || !gatesPassed) return
     const flush = () => {
       if (!dirtyRef.current) return
       const res = saveAttemptSession(sessionKey, snapshotRef.current)
@@ -263,7 +268,7 @@ export default function QuizAttempt() {
       window.removeEventListener('pagehide', onUnload)
       flush()
     }
-  }, [sessionKey, submitted]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sessionKey, submitted, gatesPassed]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (submitted || noTimeLimit || timeRemaining <= 0) return
