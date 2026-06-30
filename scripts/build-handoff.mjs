@@ -31,31 +31,31 @@ if (!existsSync(STANDALONE)) {
 }
 
 const SCREENS = [
-  { num: '01', slug: 'quiz-list-detail', title: '퀴즈 목록·상세', route: '#/', routeDisplay: '/ , /quiz/:id', spec: '5146181672',
+  { num: '01', slug: 'quiz-list-detail', title: '퀴즈 목록·상세', route: '#/', routeDisplay: '/ , /quiz/:id', spec: '5146181672', ver: 'v1.2',
     main: 'src/pages/QuizList.jsx · src/pages/QuizDetail.jsx',
     purpose: '코스 내 퀴즈 목록 조회·탐색(평가용/연습용 그룹, 상태 필터, 검색/정렬)과 퀴즈 상세 진입. 작성·편집은 SCR-02, 채점/통계/모니터는 SCR-06/07/08 위임.' },
-  { num: '02', slug: 'quiz-edit', title: '시험 작성·편집', route: '#/quiz/new', routeDisplay: '/quiz/new , /quiz/:id/edit', spec: '5146378267',
+  { num: '02', slug: 'quiz-edit', title: '시험 작성·편집', route: '#/quiz/new', routeDisplay: '/quiz/new , /quiz/:id/edit', spec: '5146378267', ver: 'v1.1',
     main: 'src/pages/QuizCreate.jsx · src/pages/QuizEdit.jsx',
-    purpose: '퀴즈 생성/편집 2탭 흐름(시험 설정 / 문항 추가) + 게시 확인 모달 + 응시 보안 섹션. 문항 작성 모달은 SCR-03, 학생 PreflightGate는 SCR-09 위임.' },
-  { num: '03', slug: 'question-form', title: '문항 작성 모달', route: '#/quiz/1/edit', routeDisplay: '/quiz/:id/edit (문항 추가 모달)', spec: '5146968124',
-    main: 'src/components/AddQuestionModal.jsx',
-    purpose: '문항 작성/편집 모달(12개 유형별 입력, 공통 필드=제목/배점/난이도/정답 판정/부분 점수/피드백, 진입점=직접 작성/문제은행 선택/랜덤 출제). 문제은행 본체는 SCR-04 위임.' },
-  { num: '04', slug: 'question-bank', title: '문제은행', route: '#/question-banks', routeDisplay: '/question-banks , /question-banks/:bankId', spec: '5147590709',
+    purpose: '퀴즈 생성/편집 2탭 흐름(시험 설정 / 문항 추가) + 게시 확인 모달 + 응시 보안 섹션. 문항 작성·편집기는 SCR-03, 학생 PreflightGate는 SCR-09 위임.' },
+  { num: '03', slug: 'question-form', title: '문항 작성·편집 (인라인 편집기)', route: '#/quiz/1/edit', routeDisplay: '/quiz/:id/edit (문항 인라인 편집기)', spec: '5146968124', ver: 'v1.1',
+    main: 'src/components/InlineQuestionEditor.jsx',
+    purpose: '문항 1건 작성·편집 인라인 편집기(12개 유형별 입력, 공통 필드=제목/배점/난이도/정답 판정/부분 점수/피드백). 모달이 아니라 시험 편집(SCR-02) 문항 목록 안에 카드형으로 펼쳐지며 유형 선택은 인라인 드롭다운. 문제은행 직접 선택/랜덤 출제 진입은 SCR-04 위임. (AddQuestionModal.jsx 는 입력 폼·헬퍼 모듈로만 사용, 모달 자체는 미사용)' },
+  { num: '04', slug: 'question-bank', title: '문제은행', route: '#/question-banks', routeDisplay: '/question-banks , /question-banks/:bankId', spec: '5147590709', ver: 'v1.1',
     main: 'src/pages/QuestionBankList.jsx · src/pages/QuestionBank.jsx',
     purpose: '문제은행 목록 + 문제모음 상세 + 일괄 업로드/이동·복사 모달. 문항 작성 본체는 SCR-03 위임.' },
-  { num: '05', slug: 'quiz-settings', title: '퀴즈 기본값 설정', route: '#/?modal=global-settings', routeDisplay: '/ (퀴즈 기본 설정 다이얼로그)', spec: '5147000912',
+  { num: '05', slug: 'quiz-settings', title: '퀴즈 기본값 설정', route: '#/?modal=global-settings', routeDisplay: '/ (퀴즈 기본 설정 다이얼로그)', spec: '5147000912', ver: 'v1.0',
     main: 'src/components/QuizSettingsDialog.jsx',
     purpose: '퀴즈 목록 톱니에서 진입하는 코스 단위 퀴즈 기본값 설정(복수선택 채점 / 정답 판정 / 신규 퀴즈 기본값 / 응시 편의 지원). 문항 단위 오버라이드는 SCR-03 위임.' },
-  { num: '06', slug: 'grading-dashboard', title: '채점 대시보드', route: '#/quiz/1/grade', routeDisplay: '/quiz/:id/grade', spec: '5146443856',
+  { num: '06', slug: 'grading-dashboard', title: '채점 대시보드', route: '#/quiz/1/grade', routeDisplay: '/quiz/:id/grade', spec: '5146443856', ver: 'v1.2',
     main: 'src/pages/GradingDashboard/',
     purpose: '채점 대시보드(응답별/학생별 탭, 수동 채점, 재채점 옵션, 조건부 재응시, 점수 집계, 답안지 PDF, 활동 로그). 통계는 SCR-07, 문제지 PDF는 SCR-02 위임.' },
-  { num: '07', slug: 'quiz-stats', title: '통계·분석', route: '#/quiz/1/stats', routeDisplay: '/quiz/:id/stats', spec: '5146705955',
+  { num: '07', slug: 'quiz-stats', title: '통계·분석', route: '#/quiz/1/stats', routeDisplay: '/quiz/:id/stats', spec: '5146705955', ver: 'v1.0',
     main: 'src/pages/QuizStats.jsx',
     purpose: '통계 페이지(요약 지표 / 점수 분포 / 문항별 득점률 / 측정학 지표 / 선택지 응답 패턴 / Excel 출력). 랜덤 출제 풀 평면화 + 모집단 필터링. 채점 이동은 SCR-06 위임.' },
-  { num: '08', slug: 'quiz-monitor', title: '진행 중 응시 모니터링', route: '#/quiz/1/moderate', routeDisplay: '/quiz/:id/moderate', spec: '5146476604',
+  { num: '08', slug: 'quiz-monitor', title: '진행 중 응시 모니터링', route: '#/quiz/1/moderate', routeDisplay: '/quiz/:id/moderate', spec: '5146476604', ver: 'v1.1',
     main: 'src/pages/QuizMonitor.jsx',
     purpose: '진행 중 응시 모니터링(응시자 현황, 이상 후보 판정, 수동 새로고침, 개별 응시 기회 부여). 자동 폴링 없음. 학생 수집 고지는 SCR-09 위임.' },
-  { num: '09', slug: 'quiz-attempt', title: '학생 응시·동의', route: '#/quiz/1/attempt', routeDisplay: '/quiz/:id/attempt', spec: '5147656220',
+  { num: '09', slug: 'quiz-attempt', title: '학생 응시·동의', route: '#/quiz/1/attempt', routeDisplay: '/quiz/:id/attempt', spec: '5147656220', ver: 'v1.0',
     main: 'src/pages/QuizAttempt.jsx',
     purpose: '학생 응시 흐름(진입 가드 / 액세스 코드 / PreflightGate 동의·보안 안내 + 답안 입력/자동저장/제출 + 결과 모달). 조건부 재응시 진입점은 SCR-06 위임.' },
 ]
@@ -89,7 +89,7 @@ function readme(s) {
 | 항목 | 내용 |
 | --- | --- |
 | 프로젝트 ID | XQ-202606_01 |
-| Screen Spec | XQ-202606_01-ScreenSpec-SCR${s.num}-v1.0 ([Confluence ${s.spec}](${specUrl})) |
+| Screen Spec | XQ-202606_01-ScreenSpec-SCR${s.num}-${s.ver} ([Confluence ${s.spec}](${specUrl})) |
 | 패키지 버전 | ${stamp} (현재 프로토타입 기준, R-001 양식 Screen Spec 동반) |
 | 패키지 유형 | Code + Standalone HTML (단독 실행 + 코드 검토) |
 | 빌드 환경 | React 19 + Vite 8 + Tailwind CSS v4 |
@@ -123,7 +123,7 @@ cd xnquiz && npm install && npm run dev
 
 | 경로 | 설명 |
 | --- | --- |
-| \`xnquiz.html\` | 단일 standalone 빌드 (Vite production + HashRouter). 더블클릭으로 즉시 실행, 모든 SCR 화면 라우트 진입 가능 (~2.7MB) |
+| \`xnquiz.html\` | 단일 standalone 빌드 (Vite production + HashRouter). 더블클릭으로 즉시 실행, 모든 SCR 화면 라우트 진입 가능 (단일 파일, 약 4.7MB) |
 | \`screen-preview.html\` | 본 화면(\`${s.route.replace('#', '')}\`) 으로 자동 이동하는 진입 셔틀 |
 | \`${s.main}\` | 본 화면 본체 |
 | \`src/pages/*\` | 다른 SCR 화면 (참고용) |
